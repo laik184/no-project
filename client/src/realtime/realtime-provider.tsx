@@ -6,8 +6,13 @@
  *
  * Usage:
  *   <RealtimeProvider>…</RealtimeProvider>           (wrap app root)
- *   const { subscribe } = useRealtime();             (inside any component)
+ *   const { subscribe, status } = useRealtime();     (inside any component)
  *   const off = subscribe("console", handler);       (returns unsubscribe fn)
+ *
+ * Connection status values:
+ *   "connected"   — stream is open and receiving events
+ *   "reconnecting"— lost connection, retrying with backoff
+ *   "offline"     — provider unmounted / SSE not supported
  *
  * Rules:
  *  - One connection per mounted provider instance.
@@ -22,6 +27,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { ALL_TOPICS, type RealtimeTopic } from "./realtime-events";
@@ -31,12 +37,13 @@ import { ALL_TOPICS, type RealtimeTopic } from "./realtime-events";
 type Handler = (data: unknown) => void;
 type Unsubscribe = () => void;
 
+export type RealtimeStatus = "connected" | "reconnecting" | "offline";
+
 export interface RealtimeContextValue {
-  /**
-   * Subscribe to a topic.  Returns an unsubscribe function — always call it
-   * in the cleanup phase of your useEffect / component unmount.
-   */
+  /** Subscribe to a topic.  Returns an unsubscribe function. */
   subscribe: (topic: string, handler: Handler) => Unsubscribe;
+  /** Current connection status of the shared EventSource. */
+  status: RealtimeStatus;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -52,6 +59,8 @@ interface RealtimeProviderProps {
 export function RealtimeProvider({ children }: RealtimeProviderProps) {
   // Map<topic, Set<handler>> — never replaced, only mutated.
   const handlersRef = useRef<Map<string, Set<Handler>>>(new Map());
+
+  const [status, setStatus] = useState<RealtimeStatus>("reconnecting");
 
   // Stable subscribe — safe to pass as a prop or store in a ref.
   const subscribe = useCallback((topic: string, handler: Handler): Unsubscribe => {
@@ -85,6 +94,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
     const connect = () => {
       if (!mounted) return;
 
+      setStatus("reconnecting");
       es = new EventSource("/api/realtime");
 
       // Attach one listener per canonical topic.
@@ -92,12 +102,16 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
         es.addEventListener(topic as string, dispatch(topic));
       }
 
-      es.onopen = () => { backoff = 1_000; };
+      es.onopen = () => {
+        backoff = 1_000;
+        setStatus("connected");
+      };
 
       es.onerror = () => {
         try { es?.close(); } catch {}
         es = null;
         if (mounted) {
+          setStatus("reconnecting");
           backoff = Math.min(30_000, backoff * 2);
           retryTimer = setTimeout(connect, backoff);
         }
@@ -108,13 +122,14 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
 
     return () => {
       mounted = false;
+      setStatus("offline");
       if (retryTimer) clearTimeout(retryTimer);
       try { es?.close(); } catch {}
     };
   }, []); // mount once — no reconnect on prop change needed
 
   return (
-    <RealtimeContext.Provider value={{ subscribe }}>
+    <RealtimeContext.Provider value={{ subscribe, status }}>
       {children}
     </RealtimeContext.Provider>
   );

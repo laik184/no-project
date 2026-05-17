@@ -1,6 +1,7 @@
 import { History, MessageSquarePlus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./types";
+import { RealtimeStatusDot } from "@/realtime/RealtimeStatusDot";
 
 interface ChatHeaderProps {
   showHistoryPanel: boolean;
@@ -19,8 +20,7 @@ export function ChatHeader({ showHistoryPanel, onToggleHistory, onNewChat, chatH
           <Sparkles className="h-3.5 w-3.5 text-white" />
         </div>
         <span className="text-sm font-semibold text-foreground">Agent</span>
-        <span className="w-1.5 h-1.5 rounded-full"
-          style={{ background: "#4ade80", boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />
+        <RealtimeStatusDot size={6} />
       </div>
       <div className="flex items-center gap-1">
         <button onClick={onToggleHistory}
