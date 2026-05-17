@@ -6,6 +6,7 @@
 
 import { spawn } from "child_process";
 import type { ExecOptions, ExecOutput } from "../types.js";
+import { filterEnv } from "../../../../security/safe-spawn.ts";
 
 // ─── Default limits ───────────────────────────────────────────
 
@@ -42,9 +43,9 @@ export function execCommand(
     let timedOut       = false;
     let settled        = false;
 
-    const spawnEnv = options.env
-      ? { ...process.env, ...options.env }
-      : process.env;
+    const spawnEnv = filterEnv(
+      options.env ? { ...process.env, ...options.env } : process.env,
+    );
 
     const child = spawn(command, [...args], {
       cwd:   options.cwd,

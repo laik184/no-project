@@ -8,6 +8,7 @@
 
 import { spawn }          from "child_process";
 import { captureService } from "../../console/capture/capture.service.ts";
+import { filterEnv }      from "../../security/safe-spawn.ts";
 
 export interface SpawnOptions {
   command:   string;
@@ -36,7 +37,7 @@ export async function spawnWithStream(opts: SpawnOptions): Promise<SpawnResult> 
     const proc = spawn(command, args, {
       cwd,
       shell: false,
-      env:   env ?? (process.env as NodeJS.ProcessEnv),
+      env:   filterEnv(env ?? process.env),
     });
 
     const timer = setTimeout(() => {

@@ -1,7 +1,9 @@
 import { getProjectDir } from "../../infrastructure/sandbox/sandbox.util.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
 import { spawnWithStream } from "../runtime/shell-log-emitter.ts";
-import { ALLOWED_COMMANDS, validateCommand } from "../registry/tool-security.ts";
+import { ALLOWED_COMMANDS } from "../registry/tool-security.ts";
+import { shellExecPreFlight, recordExecution } from "../../security/execution-policy.ts";
+import { validateSandboxCwd } from "../../security/command-validator.ts";
 
 export { ALLOWED_COMMANDS };
 
@@ -20,25 +22,36 @@ export const shellExec: Tool = {
   },
 
   async run(args, ctx: ToolContext): Promise<ToolResult> {
-    const command    = args.command as string;
-    const cmdArgs    = (args.args as string[]) || [];
-    const timeoutMs  = (args.timeoutMs as number) || 30_000;
+    const command    = String(args.command ?? "").trim();
+    const cmdArgs    = (Array.isArray(args.args) ? args.args : []).map(String);
+    const timeoutMs  = Math.min(Number(args.timeoutMs) || 30_000, 120_000);
     const projectDir = getProjectDir(ctx.projectId);
-    const cwd        = args.cwd ? `${projectDir}/${args.cwd}` : projectDir;
 
-    const cmdCheck = validateCommand(command);
-    if (!cmdCheck.valid) {
-      return { ok: false, error: cmdCheck.reason };
+    // Validate cwd stays inside sandbox
+    const cwdRaw = args.cwd ? `${projectDir}/${args.cwd}` : projectDir;
+    const cwdCheck = validateSandboxCwd(cwdRaw, projectDir);
+    if (!cwdCheck.valid) {
+      recordExecution({ ts: Date.now(), command, args: cmdArgs, projectId: ctx.projectId, runId: ctx.runId, blocked: true, reason: cwdCheck.reason });
+      return { ok: false, error: cwdCheck.reason };
     }
 
+    // Pre-flight: command allowlist + per-arg metachar + arg policies + URL check
+    const preflight = shellExecPreFlight(command, cmdArgs);
+    if (!preflight.valid) {
+      recordExecution({ ts: Date.now(), command, args: cmdArgs, projectId: ctx.projectId, runId: ctx.runId, blocked: true, reason: preflight.reason });
+      return { ok: false, error: `Blocked: ${preflight.reason}` };
+    }
+
+    const start = Date.now();
     const { exitCode, stdout, stderr, timedOut } = await spawnWithStream({
       command,
       args: cmdArgs,
-      cwd,
+      cwd:  cwdRaw,
       projectId: ctx.projectId,
-      env: { ...process.env as NodeJS.ProcessEnv, NODE_ENV: process.env.NODE_ENV || "development" },
       timeoutMs,
     });
+
+    recordExecution({ ts: start, command, args: cmdArgs, projectId: ctx.projectId, runId: ctx.runId, blocked: false, exitCode, durationMs: Date.now() - start });
 
     return {
       ok: exitCode === 0 && !timedOut,

@@ -1,6 +1,7 @@
 import { getProjectDir } from "../../infrastructure/sandbox/sandbox.util.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
 import { spawnWithStream } from "../runtime/shell-log-emitter.ts";
+import { validatePackageInstallArgs } from "../../security/execution-policy.ts";
 
 async function runNpm(
   npmArgs:   string[],
@@ -26,11 +27,26 @@ export const packageInstall: Tool = {
   async run(args, ctx: ToolContext): Promise<ToolResult> {
     const projectDir = getProjectDir(ctx.projectId);
     const pkgs       = (args.packages as string[]) || [];
-    const npmArgs    = ["install", ...(args.dev ? ["--save-dev"] : []), ...pkgs];
+
+    // Validate every package name before passing to npm
+    if (pkgs.length > 0) {
+      const pkgCheck = validatePackageInstallArgs(pkgs);
+      if (!pkgCheck.valid) return { ok: false, error: `Blocked: ${pkgCheck.reason}` };
+      const safePkgs = pkgCheck.cleaned!;
+      const npmArgs  = ["install", ...(args.dev ? ["--save-dev"] : []), ...safePkgs];
+      const { exitCode, stdout, stderr } = await runNpm(npmArgs, projectDir, ctx.projectId, ctx.signal);
+      return {
+        ok:     exitCode === 0,
+        result: { installed: safePkgs, exitCode, stdout, stderr },
+        error:  exitCode !== 0 ? stderr.slice(0, 500) : undefined,
+      };
+    }
+
+    const npmArgs = ["install"];
     const { exitCode, stdout, stderr } = await runNpm(npmArgs, projectDir, ctx.projectId, ctx.signal);
     return {
       ok:     exitCode === 0,
-      result: { installed: pkgs, exitCode, stdout, stderr },
+      result: { installed: [], exitCode, stdout, stderr },
       error:  exitCode !== 0 ? stderr.slice(0, 500) : undefined,
     };
   },
@@ -50,7 +66,10 @@ export const packageUninstall: Tool = {
     const projectDir = getProjectDir(ctx.projectId);
     const pkgs       = args.packages as string[];
     if (!pkgs.length) return { ok: false, error: "No packages specified" };
-    const { exitCode, stdout, stderr } = await runNpm(["uninstall", ...pkgs], projectDir, ctx.projectId, ctx.signal);
+    const pkgCheck = validatePackageInstallArgs(pkgs);
+    if (!pkgCheck.valid) return { ok: false, error: `Blocked: ${pkgCheck.reason}` };
+    const safePkgs = pkgCheck.cleaned!;
+    const { exitCode, stdout, stderr } = await runNpm(["uninstall", ...safePkgs], projectDir, ctx.projectId, ctx.signal);
     return {
       ok:     exitCode === 0,
       result: { uninstalled: pkgs, exitCode, stdout, stderr },

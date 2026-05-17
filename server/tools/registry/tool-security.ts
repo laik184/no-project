@@ -4,26 +4,21 @@
  * Security layer for the unified tool registry.
  *
  * Responsibilities:
- *  - Centralised ALLOWED_COMMANDS list (single source of truth)
+ *  - Re-exports SAFE_COMMANDS (single source of truth from security layer)
  *  - Sandbox path validation
- *  - Argument sanitisation
+ *  - Argument sanitisation (delegates to centralised command-validator)
  *  - Audit logging
  */
 
 import path from "path";
+import {
+  SAFE_COMMANDS,
+  validateCommand as _validateCommand,
+  validateArgs as _validateArgs,
+} from "../../security/command-validator.ts";
 
-// ── Shell command allowlist (shared across shell_exec and package tools) ───────
-
-export const ALLOWED_COMMANDS = new Set<string>([
-  "npm", "npx", "node", "tsx", "ts-node",
-  "git", "ls", "cat", "head", "tail", "echo",
-  "mkdir", "touch", "grep", "find", "cp", "mv",
-  "python", "python3", "pip", "pip3",
-  "vite", "next", "tsc", "eslint",
-  "drizzle-kit", "prisma",
-  "curl", "wget", "which", "env", "printenv",
-  "chmod", "pwd", "rm", "df", "du", "ps",
-]);
+// ── Re-export for backward compat with shell-tools.ts ─────────────────────────
+export const ALLOWED_COMMANDS = SAFE_COMMANDS;
 
 // ── Sandbox root ──────────────────────────────────────────────────────────────
 
@@ -64,30 +59,19 @@ export interface CommandValidationResult {
 }
 
 export function validateCommand(command: string): CommandValidationResult {
-  if (!ALLOWED_COMMANDS.has(command)) {
-    return {
-      valid: false,
-      reason: `Command "${command}" is not in the allowlist. Allowed: ${[...ALLOWED_COMMANDS].join(", ")}`,
-    };
-  }
-  return { valid: true };
+  return _validateCommand(command);
 }
 
 // ── Argument sanitisation ─────────────────────────────────────────────────────
+// Delegates to command-validator for per-arg metacharacter and policy checks.
+// Falls back to a broad JSON scan for any non-shell tool calls.
 
-const DANGEROUS_PATTERNS = [
-  /;\s*(rm|dd|mkfs|format)\s/i,
-  /\|\s*(sh|bash|zsh|fish)\s/i,
-  /`[^`]+`/,
-  /\$\([^)]+\)/,
-];
+const LEGACY_DANGEROUS_RE = /[|;&`$<>!\\()\n\r"'{}[\]]/;
 
 export function sanitizeArgs(args: Record<string, unknown>): { safe: boolean; reason?: string } {
   const flat = JSON.stringify(args);
-  for (const pattern of DANGEROUS_PATTERNS) {
-    if (pattern.test(flat)) {
-      return { safe: false, reason: `Argument contains dangerous pattern: ${pattern.source}` };
-    }
+  if (LEGACY_DANGEROUS_RE.test(flat)) {
+    return { safe: false, reason: "Argument contains disallowed shell metacharacter" };
   }
   return { safe: true };
 }

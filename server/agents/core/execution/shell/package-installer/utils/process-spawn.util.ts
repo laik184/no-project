@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 
 import { TimeoutError, withTimeout } from "./timeout.util.js";
+import { filterEnv } from "../../../../../../security/safe-spawn.ts";
 
 export interface ProcessSpawnInput {
   readonly command: string;
@@ -22,7 +23,7 @@ export async function spawnProcess(input: ProcessSpawnInput): Promise<ProcessSpa
       cwd: input.cwd,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: filterEnv(process.env),
     });
 
     const stdout: string[] = [];
