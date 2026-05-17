@@ -1,5 +1,5 @@
 import {
-  pgTable, serial, varchar, text, timestamp, jsonb, integer, boolean,
+  pgTable, serial, varchar, text, timestamp, jsonb, integer, boolean, index,
 } from "drizzle-orm/pg-core";
 
 export const projects = pgTable("projects", {
@@ -75,6 +75,35 @@ export const diffQueue = pgTable("diff_queue", {
   createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+/**
+ * Persistent tool execution history.
+ * One row per tool invocation — tracks full lifecycle with correlation IDs.
+ * Separate from agent_events (flat log) — this is structured, queryable data.
+ */
+export const toolExecutions = pgTable("tool_executions", {
+  id:           serial("id").primaryKey(),
+  executionId:  varchar("execution_id", { length: 64 }).notNull().unique(),
+  runId:        varchar("run_id", { length: 64 }).references(() => agentRuns.id, { onDelete: "cascade" }),
+  projectId:    integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  stepIndex:    integer("step_index"),
+  toolName:     varchar("tool_name", { length: 128 }).notNull(),
+  toolCategory: varchar("tool_category", { length: 64 }),
+  status:       varchar("status", { length: 32 }).default("running").notNull(),
+  argsJson:     jsonb("args_json"),
+  resultJson:   jsonb("result_json"),
+  errorText:    text("error_text"),
+  durationMs:   integer("duration_ms"),
+  retryCount:   integer("retry_count").default(0).notNull(),
+  replaySafe:   boolean("replay_safe").default(true).notNull(),
+  startedAt:    timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  endedAt:      timestamp("ended_at", { withTimezone: true }),
+}, (t) => [
+  index("tool_executions_run_id_idx").on(t.runId),
+  index("tool_executions_project_id_idx").on(t.projectId),
+  index("tool_executions_tool_name_idx").on(t.toolName),
+  index("tool_executions_started_at_idx").on(t.startedAt),
+]);
+
 export const consoleLogs = pgTable("console_logs", {
   id:        serial("id").primaryKey(),
   projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
@@ -148,8 +177,10 @@ export type Artifact         = typeof artifacts.$inferSelect;
 export type InsertArtifact   = typeof artifacts.$inferInsert;
 export type DiffQueueItem    = typeof diffQueue.$inferSelect;
 export type InsertDiffQueueItem = typeof diffQueue.$inferInsert;
-export type ConsoleLog       = typeof consoleLogs.$inferSelect;
-export type InsertConsoleLog = typeof consoleLogs.$inferInsert;
+export type ConsoleLog           = typeof consoleLogs.$inferSelect;
+export type InsertConsoleLog     = typeof consoleLogs.$inferInsert;
+export type ToolExecutionRow     = typeof toolExecutions.$inferSelect;
+export type InsertToolExecution  = typeof toolExecutions.$inferInsert;
 export type Deployment       = typeof deployments.$inferSelect;
 export type InsertDeployment = typeof deployments.$inferInsert;
 export type DeploymentDomain = typeof deploymentDomains.$inferSelect;

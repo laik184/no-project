@@ -28,6 +28,7 @@ import { createToolsRouter }         from './server/api/tools.routes.ts';
 import previewPipeline from './server/preview/index.ts';
 import fileExplorerPipeline from './server/file-explorer/index.ts';
 import consolePipeline from './server/console/index.ts';
+import { createExecutionHistoryRouter, initExecutionHistory } from './server/execution-history/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -62,6 +63,7 @@ app.use('/api/folders', createFoldersRouter());
 app.use('/api/inventory', createInventoryRouter());
 app.use('/api/observation', createObservationRouter());
 app.use('/api/tools', createToolsRouter());
+app.use('/api/execution-history', createExecutionHistoryRouter());
 app.use('/api/chat', chatOrchestrator.buildChatRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
@@ -154,6 +156,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   crashResponder.start();
   // Start runtime observation — watches logs + probes ports for all project servers
   observationController.start();
+  // Initialize persistent tool execution history system
+  initExecutionHistory();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

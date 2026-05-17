@@ -33,6 +33,18 @@ import {
 } from "../registry/tool-events.ts";
 import { auditLog } from "../registry/tool-security.ts";
 import { fromError, aborted } from "./tool-result.ts";
+import { bus } from "../../infrastructure/events/bus.ts";
+
+// Non-replay-safe tool names (contain side-effecting tokens or secrets)
+const NON_REPLAY_SAFE_TOOLS = new Set(["env_write", "env_delete", "git_push", "deploy"]);
+
+// Per-run step counter for ordering (in-memory, resets on restart — good enough)
+const stepCounters = new Map<string, number>();
+function nextStep(runId: string): number {
+  const n = (stepCounters.get(runId) ?? 0) + 1;
+  stepCounters.set(runId, n);
+  return n;
+}
 
 // ── Timeout wrapper ───────────────────────────────────────────────────────────
 
@@ -57,10 +69,13 @@ export async function executeTool(
   ctx: ToolContext,
   opts: ExecuteOptions = {},
 ): Promise<ToolResult> {
-  const name      = entry.tool.name;
-  const emit      = opts.emitEvents !== false;
-  const startTs   = Date.now();
-  const timeoutMs = opts.timeoutMs ?? entry.defaultTimeoutMs;
+  const name        = entry.tool.name;
+  const emit        = opts.emitEvents !== false;
+  const startTs     = Date.now();
+  const timeoutMs   = opts.timeoutMs ?? entry.defaultTimeoutMs;
+  const executionId = crypto.randomUUID();
+  const stepIndex   = nextStep(ctx.runId);
+  const replaySafe  = !NON_REPLAY_SAFE_TOOLS.has(name);
 
   // ── 1. Context validation ────────────────────────────────────────────────
   const ctxCheck = validateContext(ctx);
@@ -105,6 +120,20 @@ export async function executeTool(
     emitLegacyToolCall(ctx.runId, name, "running", { args: argSummary });
   }
 
+  // ── 7b. Emit full-fidelity execution start (for history persistence) ─────
+  bus.emit("tool.execution", {
+    executionId,
+    runId:        ctx.runId,
+    projectId:    ctx.projectId,
+    toolName:     name,
+    toolCategory: entry.category,
+    stepIndex,
+    phase:        "start",
+    args,
+    replaySafe,
+    ts:           startTs,
+  });
+
   // ── 8. Execute with timeout ──────────────────────────────────────────────
   let result: ToolResult;
   try {
@@ -129,6 +158,25 @@ export async function executeTool(
       durationMs,
     });
   }
+
+  // ── 10b. Emit full-fidelity execution outcome (for history persistence) ──
+  const timedOut = !result.ok && (result.error ?? "").includes("timed out");
+  bus.emit("tool.execution", {
+    executionId,
+    runId:       ctx.runId,
+    projectId:   ctx.projectId,
+    toolName:    name,
+    toolCategory: entry.category,
+    stepIndex,
+    phase:       result.ok ? "success" : "error",
+    args,
+    result:      result.ok ? result.result : undefined,
+    error:       result.ok ? undefined : (result.error ?? "unknown"),
+    durationMs,
+    timedOut,
+    replaySafe,
+    ts:          Date.now(),
+  });
 
   auditLog({
     ts: startTs,

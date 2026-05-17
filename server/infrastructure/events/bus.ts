@@ -60,6 +60,28 @@ export interface DebugLifecycleEvent {
   ts:         number;
 }
 
+/**
+ * Full-fidelity tool execution event — carries complete args and results
+ * (size-capped) for persistent execution history. Distinct from agent.event
+ * which only carries summaries.
+ */
+export interface ToolExecutionEvent {
+  executionId:  string;          // Stable correlation ID for this invocation
+  runId:        string;
+  projectId?:   number;
+  toolName:     string;
+  toolCategory?: string;
+  stepIndex?:   number;
+  phase:        "start" | "success" | "error";
+  args?:        unknown;         // Full args (sanitized, size-capped)
+  result?:      unknown;         // Full result (sanitized, size-capped)
+  error?:       string;
+  durationMs?:  number;
+  timedOut?:    boolean;
+  replaySafe?:  boolean;
+  ts:           number;
+}
+
 type BusEvents = {
   "agent.event":         (event: AgentEvent) => void;
   "run.lifecycle":       (event: RunLifecycleEvent) => void;
@@ -68,6 +90,7 @@ type BusEvents = {
   "runtime.verified":    (event: RuntimeVerifiedEvent) => void;
   "runtime.observation": (event: RuntimeObservationEvent) => void;
   "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
+  "tool.execution":      (event: ToolExecutionEvent) => void;
 };
 
 class TypedEventEmitter extends EventEmitter {
