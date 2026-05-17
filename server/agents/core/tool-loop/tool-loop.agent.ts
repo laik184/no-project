@@ -98,12 +98,21 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       steps++;
       emit(input.runId, "agent.thinking", "tool-loop", { step: steps, text: `Step ${steps}: thinking…` });
 
-      // ── LLM call ──────────────────────────────────────────────────────────
+      // ── LLM call (streaming) ──────────────────────────────────────────────
       let response: Awaited<ReturnType<typeof llm.chatWithTools>>;
+      let streamedContent = false;
       try {
         response = await withRetry(
-          () => llm.chatWithTools(messages, [...TOOL_DEFS], { signal: input.signal }),
-          { maxAttempts: 3, runId: input.runId, operationName: "llm.chatWithTools", signal: input.signal },
+          () => llm.streamChatWithTools(messages, [...TOOL_DEFS], {
+            signal:        input.signal,
+            onStreamStart: () => emit(input.runId, "agent.stream.start", "tool-loop", {}),
+            onToken:       (token) => {
+              streamedContent = true;
+              emit(input.runId, "agent.token", "tool-loop", { token });
+            },
+            onStreamEnd: (content) => emit(input.runId, "agent.stream.end", "tool-loop", { content }),
+          }),
+          { maxAttempts: 3, runId: input.runId, operationName: "llm.streamChatWithTools", signal: input.signal },
         );
       } catch (e: any) {
         const msg = e?.message || String(e);
@@ -111,7 +120,9 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
         return { success: false, steps, summary: msg, stopReason: "error", error: msg };
       }
 
-      if (response.content?.trim()) {
+      // Only emit agent.message for non-streamed content (streamed text was
+      // already sent token-by-token; emitting again would cause duplication).
+      if (response.content?.trim() && !streamedContent) {
         emit(input.runId, "agent.message", "tool-loop", { text: response.content });
       }
 

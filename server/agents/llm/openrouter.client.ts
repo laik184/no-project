@@ -123,4 +123,23 @@ async function complete(prompt: string): Promise<string> {
   return res.content;
 }
 
-export const llm = { chatWithTools, complete };
+// ── Streaming variant ──────────────────────────────────────────────────────
+
+export interface StreamOptions {
+  onToken?:       (token: string) => void;
+  onStreamStart?: () => void;
+  onStreamEnd?:   (content: string) => void;
+  signal?:        AbortSignal;
+}
+
+async function streamChatWithTools(
+  messages: ToolMessage[],
+  tools: ToolDef[],
+  opts: StreamOptions = {},
+): Promise<ChatResponse> {
+  // Dynamic import keeps the streaming module tree-shaken from non-streaming paths
+  const { streamChatWithTools: _stream } = await import("../../llm/stream/openrouter-stream.ts");
+  return _stream(messages, tools, opts);
+}
+
+export const llm = { chatWithTools, streamChatWithTools, complete };

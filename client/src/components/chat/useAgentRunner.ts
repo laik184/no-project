@@ -1,9 +1,12 @@
 import { useState, useRef, useCallback } from "react";
 import { getAgentMode } from "@/hooks/useAgentMode";
+import { useToast } from "@/hooks/use-toast";
+import { TokenBuffer } from "@/streaming/token-buffer";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import type { ChatMessage } from "./types";
 
 export function useAgentRunner() {
+  const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
@@ -13,10 +16,30 @@ export function useAgentRunner() {
   const currentRunIdRef   = useRef<string | null>(null);
   const thinkingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const checkpointCountRef = useRef(0);
+  // ── Streaming token refs ──────────────────────────────────────────────────
+  const tokenBufRef    = useRef<TokenBuffer | null>(null);
+  const isStreamingRef = useRef(false);
+
+  const finalizeStream = () => {
+    if (isStreamingRef.current) {
+      tokenBufRef.current?.destroy();
+      tokenBufRef.current = null;
+      isStreamingRef.current = false;
+      // Mark the last streaming message as done (removes cursor)
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "agent" && (last as { isStreaming?: boolean }).isStreaming) {
+          return [...prev.slice(0, -1), { ...last, isStreaming: false }];
+        }
+        return prev;
+      });
+    }
+  };
 
   const stopAgent = () => {
     thinkingTimersRef.current.forEach(clearTimeout);
     thinkingTimersRef.current = [];
+    finalizeStream();
     if (agentStreamRef.current) {
       try { agentStreamRef.current.close(); } catch { }
       agentStreamRef.current = null;
@@ -102,6 +125,37 @@ export function useAgentRunner() {
       try {
         const e = JSON.parse((ev as MessageEvent).data) as { eventType: string; phase?: string; agentName?: string; payload?: any };
         switch (e.eventType) {
+          // ── Token streaming events ───────────────────────────────────────
+          case "agent.stream.start": {
+            finalizeStream();
+            isStreamingRef.current = true;
+            setIsAgentThinking(false);
+            setIsAgentTyping(false);
+            setActiveAction(null);
+            // Seed the streaming message placeholder
+            setMessages((prev) => [...prev, { role: "agent", content: "", isStreaming: true, time: "just now" }]);
+            // Wire up RAF-throttled token buffer
+            tokenBufRef.current = new TokenBuffer((chunk) => {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "agent" && (last as { isStreaming?: boolean }).isStreaming) {
+                  return [...prev.slice(0, -1), { ...last, content: last.content + chunk }];
+                }
+                return prev;
+              });
+            });
+            break;
+          }
+          case "agent.token": {
+            const token = e.payload?.token as string | undefined;
+            if (token && tokenBufRef.current) tokenBufRef.current.push(token);
+            break;
+          }
+          case "agent.stream.end": {
+            finalizeStream();
+            break;
+          }
+          // ────────────────────────────────────────────────────────────────
           case "agent.thinking":
             setIsAgentThinking(true);
             setActiveAction({ type: "action", tool: "analysis.think", content: e.payload?.text || `Thinking${e.agentName ? ` (${e.agentName})` : ""}…`, status: "running" });
@@ -263,6 +317,7 @@ export function useAgentRunner() {
             break;
           }
           case "agent.message": {
+            finalizeStream();
             flushGroup();
             setIsAgentTyping(false);
             setActiveAction(null);
@@ -274,10 +329,24 @@ export function useAgentRunner() {
       } catch { }
     });
 
+    // ── Checkpoint notification toasts ────────────────────────────────────────
+    es.addEventListener("checkpoint", (ev) => {
+      try {
+        const e = JSON.parse((ev as MessageEvent).data) as { eventType: string; trigger?: string; checkpointId?: string };
+        if (e.eventType === "stable") {
+          toast({
+            description: `Safety snapshot saved${e.trigger ? ` (${e.trigger.replace(/_/g, " ")})` : ""}`,
+            duration: 2500,
+          });
+        }
+      } catch { }
+    });
+
     es.addEventListener("lifecycle", (ev) => {
       try {
         const e = JSON.parse((ev as MessageEvent).data) as { status: string };
         if (e.status === "completed" || e.status === "failed" || e.status === "cancelled") {
+          finalizeStream();
           flushGroup();
           es.close();
           agentStreamRef.current = null;

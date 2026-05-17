@@ -12,7 +12,7 @@ export interface QuestionData {
 
 export type ChatMessage =
   | { role: "user";       content: string;            time: string }
-  | { role: "agent";      content: string;            time: string }
+  | { role: "agent";      content: string;            time: string; isStreaming?: boolean }
   | { role: "tool_group"; actions: AgentStreamItem[]; time: string }
   | { role: "diff";       diffs: FileDiff[];           time: string }
   | { role: "checkpoint"; checkpoint: CheckpointData; time: string }

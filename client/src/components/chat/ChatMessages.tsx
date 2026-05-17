@@ -86,6 +86,15 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
             {msg.role === "agent" ? (
               <div className="flex-1 min-w-0 py-0.5" data-testid={`message-agent-${i}`}>
                 <AgentMarkdown content={msg.content} />
+                {msg.isStreaming && (
+                  <>
+                    <style>{`
+                      @keyframes stream-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
+                      .stream-cursor { animation: stream-cursor 0.8s ease-in-out infinite; }
+                    `}</style>
+                    <span className="stream-cursor inline-block w-[2px] h-[13px] ml-0.5 rounded-sm align-middle" style={{ background: "#7c8dff", verticalAlign: "text-bottom" }} />
+                  </>
+                )}
               </div>
             ) : (
               <div className="max-w-[82%] px-3 py-2 rounded-2xl text-[11.5px] leading-relaxed"

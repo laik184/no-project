@@ -31,7 +31,12 @@ export function createSseRouter(): Router {
       if (runIdFilter && e.runId !== runIdFilter) return;
       sseSend(res, "lifecycle", e);
     });
-    onClose(req, startHeartbeat(res), off1, off2);
+    // Forward checkpoint lifecycle events (creating, stable, rollback, etc.)
+    const off3 = bus.subscribe("checkpoint.event", (e) => {
+      if (runIdFilter && e.runId && e.runId !== runIdFilter) return;
+      sseSend(res, "checkpoint", e);
+    });
+    onClose(req, startHeartbeat(res), off1, off2, off3);
   });
 
   // ── Console log stream (projectId-scoped) ───────────────────────────────────
