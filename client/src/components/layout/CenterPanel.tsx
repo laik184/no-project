@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock } from "lucide-react";
+import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Preview from "@/pages/preview/index";
 import { DatabasePanel } from "@/components/panels/DatabasePanel";
@@ -9,6 +9,7 @@ import { ConsolePanel } from "@/components/console";
 import { PublishingPanel, AuthPanel } from "@/components/panels/PublishingPanel";
 import { FileTreePanel } from "@/components/file-explorer";
 import { GitPanel } from "./GitPanel";
+import { CheckpointPanel } from "@/components/panels/CheckpointPanel";
 import {
   EditorToolbar, StatusBar, ToolbarBtn,
   fileTabIcon, langDisplayName,
@@ -24,6 +25,7 @@ function urlTabIcon(url: string): React.ReactElement {
   if (url === "__publishing__")  return <Globe      style={{ width: 11, height: 11, color: "#4ade80" }} />;
   if (url === "__auth__")        return <Lock       style={{ width: 11, height: 11, color: "#a78bfa" }} />;
   if (url === "__git__")         return <GitBranch  style={{ width: 11, height: 11, color: "#86efac" }} />;
+  if (url === "__checkpoints__") return <Camera     style={{ width: 11, height: 11, color: "#fbbf24" }} />;
   return <Globe style={{ width: 11, height: 11, color: "#94a3b8" }} />;
 }
 
@@ -46,7 +48,13 @@ const toolItems = [
   {
     section: "Deployment",
     items: [
-      { id: "publishing", label: "Publishing", sub: "Publish a live, stable, public version of your app",   icon: Globe,     color: "#4ade80", bg: "rgba(74,222,128,0.1)",   url: "__publishing__" },
+      { id: "publishing",   label: "Publishing",  sub: "Publish a live, stable, public version of your app",     icon: Globe,   color: "#4ade80", bg: "rgba(74,222,128,0.1)",   url: "__publishing__"  },
+    ],
+  },
+  {
+    section: "Safety",
+    items: [
+      { id: "checkpoints",  label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", url: "__checkpoints__" },
     ],
   },
 ];
@@ -205,6 +213,7 @@ export function CenterPanel({
               if (activeTab?.url === "__publishing__")  return <PublishingPanel />;
               if (activeTab?.url === "__auth__")        return <AuthPanel onClose={() => closeTab(activeTabId)} />;
               if (activeTab?.url === "__git__")         return <GitPanel />;
+              if (activeTab?.url === "__checkpoints__") return <CheckpointPanel />;
               if (activeTab?.url) {
                 return <iframe key={activeTab.url} src={activeTab.url} className="absolute inset-0 w-full h-full border-0" title={activeTab.label} data-testid={`iframe-tab-${activeTab.id}`} />;
               }
