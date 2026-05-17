@@ -327,9 +327,7 @@ Contributions, architecture discussions, runtime ideas, and AI workflow improvem
 
 ---
 
-# 📄 License
 
-MIT License
 
 ---
 
