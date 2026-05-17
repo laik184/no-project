@@ -6,15 +6,19 @@
  *
  * The block makes the AI "see" what happened after every tool call —
  * this is what transforms it from blind execution to observable reasoning.
+ *
+ * Security: ALL content injected into LLM context passes through
+ * sanitizeForLlm / sanitizeToolResultJson before reaching the model.
  */
 
-import type { ToolResult } from "../registry/tool-types.ts";
+import type { ToolResult }   from "../registry/tool-types.ts";
 import type { ExecutionObservation, FailureClass } from "./types.ts";
-import { classifyFailure }    from "./observers/failure-classifier.ts";
-import { inspectConsole }     from "./observers/console-inspector.ts";
+import { classifyFailure }   from "./observers/failure-classifier.ts";
+import { inspectConsole }    from "./observers/console-inspector.ts";
 import { inspectRuntime, formatRuntimeHealth } from "./observers/runtime-inspector.ts";
-import { adviseAction }       from "./advisor/action-advisor.ts";
+import { adviseAction }      from "./advisor/action-advisor.ts";
 import type { RunMemorySummary } from "./memory/execution-entry.ts";
+import { sanitizeForLlm, sanitizeToolResultJson } from "../../security/secret-redactor.ts";
 
 // ── Tools that generate noisy but low-value output when succeeding ─────────────
 // These skip the observation block on success to reduce LLM context noise.
@@ -43,18 +47,25 @@ function renderContextBlock(obs: ExecutionObservation, hint: string): string {
   }
 
   // Error lines from console (only on failure or server issues)
+  // All console lines are sanitized before injection
   if (!obs.ok && obs.errorLines.length > 0) {
     lines.push("Console errors:");
-    obs.errorLines.slice(0, 8).forEach((l) => lines.push(`  ${l}`));
+    obs.errorLines
+      .slice(0, 8)
+      .map(sanitizeForLlm)
+      .forEach((l) => lines.push(`  ${l}`));
   } else if (obs.ok && obs.consoleLines.length > 0 && obs.runtimeHealth?.running) {
     // Server just started — show brief output for awareness
     lines.push("Console (last 3 lines):");
-    obs.consoleLines.slice(-3).forEach((l) => lines.push(`  ${l}`));
+    obs.consoleLines
+      .slice(-3)
+      .map(sanitizeForLlm)
+      .forEach((l) => lines.push(`  ${l}`));
   }
 
   // Recommendation (only on failure or important transitions)
   if (!obs.ok && obs.recommendation !== "continue") {
-    lines.push(`Recommendation: ${obs.recommendation.toUpperCase()} — ${hint}`);
+    lines.push(`Recommendation: ${obs.recommendation.toUpperCase()} — ${sanitizeForLlm(hint)}`);
   }
 
   lines.push("[/OBSERVATION]");
@@ -82,8 +93,8 @@ export function buildObservation(
     const timedOut    = resultData?.["timedOut"] as boolean | undefined;
     const { failureClass: fc } = classifyFailure({
       toolName,
-      errorMsg:    result.error ?? "",
-      consoleText: consoleSn.allLines.join("\n"),
+      errorMsg:    sanitizeForLlm(result.error ?? ""),
+      consoleText: consoleSn.allLines.map(sanitizeForLlm).join("\n"),
       exitCode,
       timedOut,
     });
@@ -111,8 +122,10 @@ export function buildObservation(
 }
 
 /**
- * Build the full tool message content: raw result JSON + observation block.
- * The observation block is appended so the LLM sees it as part of the tool reply.
+ * Build the full tool message content: sanitized result JSON + observation block.
+ *
+ * SECURITY: rawJson is sanitized through sanitizeToolResultJson before the LLM
+ * sees it. This is the final gate — no secret value can reach the model context.
  */
 export function buildObservableContent(
   result:      ToolResult,
@@ -120,9 +133,11 @@ export function buildObservableContent(
   maxResultLen = 8_000,
 ): string {
   const rawJson    = JSON.stringify(result);
-  const trimmed    = rawJson.length > maxResultLen
-    ? rawJson.slice(0, 4_000) + " ... [truncated] ... " + rawJson.slice(-1_000)
-    : rawJson;
+  // ── Secret gate: sanitize ALL tool result JSON before LLM injection ──────────
+  const sanitized  = sanitizeToolResultJson(rawJson);
+  const trimmed    = sanitized.length > maxResultLen
+    ? sanitized.slice(0, 4_000) + " ... [truncated] ... " + sanitized.slice(-1_000)
+    : sanitized;
 
   if (!observation.contextBlock) return trimmed;
   return trimmed + "\n" + observation.contextBlock;

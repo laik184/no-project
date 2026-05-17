@@ -12,6 +12,11 @@ import { SAFE_COMMANDS } from "./command-validator.ts";
 export { validateCommand, validateArgs, validatePackageName, validateSandboxCwd, SAFE_COMMANDS } from "./command-validator.ts";
 export { filterEnv, safeSpawn }                from "./safe-spawn.ts";
 export { shellExecPreFlight, validatePackageInstallArgs, recordExecution } from "./execution-policy.ts";
+export {
+  isSecretKey, redactEnvRecord, sanitizeString,
+  sanitizeObject, sanitizeForLlm, sanitizeToolResultJson,
+  REDACTED, SECRET_KEY_RE,
+} from "./secret-redactor.ts";
 
 /**
  * Inspector API — read-only endpoints for auditing shell execution history.

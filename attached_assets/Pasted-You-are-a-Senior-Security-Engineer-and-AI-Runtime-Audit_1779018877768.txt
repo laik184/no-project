@@ -1,0 +1,203 @@
+You are a Senior Security Engineer and AI Runtime Auditor.
+
+Your task is to deeply scan the entire codebase and FIX a critical security vulnerability:
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL SECURITY ISSUE
+━━━━━━━━━━━━━━━━━━━━
+
+BUG ID: T7
+Issue:
+env_read tool exposes .env secrets directly to the LLM.
+
+Current risk:
+- API keys
+- database URLs
+- auth secrets
+- tokens
+- private credentials
+
+can be:
+- read by the agent
+- inserted into LLM context
+- leaked to OpenRouter
+- stored in memory
+- exposed in logs
+- accidentally returned to users
+
+This is a CRITICAL SECRET LEAK vulnerability.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOALS
+━━━━━━━━━━━━━━━━━━━━
+
+1. Deep scan the entire codebase
+2. Find ALL env_read implementations
+3. Find ALL .env access patterns
+4. Find ALL secret exposure risks
+5. Detect unsafe environment handling
+6. Detect unsafe logging of secrets
+7. Detect LLM context contamination
+8. Detect tool outputs containing secrets
+9. Fix the vulnerability safely
+10. Keep architecture clean and maintainable
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN THESE AREAS FIRST
+━━━━━━━━━━━━━━━━━━━━
+
+- server/agents/tools/
+- server/agents/core/
+- server/chat/
+- server/infrastructure/
+- server/api/
+- shared/
+- runtime/
+- preview/
+- tool-loop/
+- orchestrators/
+- llm/
+- sandbox/
+
+━━━━━━━━━━━━━━━━━━━━
+FIND AND ANALYZE
+━━━━━━━━━━━━━━━━━━━━
+
+Search for:
+- env_read
+- process.env
+- dotenv
+- .env
+- API_KEY
+- SECRET
+- TOKEN
+- PASSWORD
+- AUTH
+- OPENROUTER_API_KEY
+- DATABASE_URL
+- fs.readFile(".env")
+- environment tools
+- tool outputs
+- LLM messages
+- logging systems
+- console outputs
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT SECURITY REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+The AI/LLM MUST NEVER:
+- read raw secrets
+- receive raw .env contents
+- see API keys
+- see passwords
+- see auth tokens
+- see database credentials
+- see private tokens
+
+The system MUST:
+- redact secrets
+- mask sensitive values
+- sanitize logs
+- sanitize tool outputs
+- sanitize SSE events
+- sanitize memory
+- sanitize LLM context
+
+━━━━━━━━━━━━━━━━━━━━
+FIX REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+1. Secret redaction system
+2. Safe env reader
+3. Output sanitizer
+4. LLM context sanitizer
+5. Secret masking utility
+6. Log sanitization
+7. SSE sanitization
+8. Tool output filtering
+9. Memory-safe secret handling
+10. Environment allowlist system
+
+━━━━━━━━━━━━━━━━━━━━
+SAFE OUTPUT RULES
+━━━━━━━━━━━━━━━━━━━━
+
+Allowed:
+OPENROUTER_API_KEY=***REDACTED***
+DATABASE_URL=***REDACTED***
+
+Forbidden:
+OPENROUTER_API_KEY=sk-xxxxx
+DATABASE_URL=postgres://real-url
+
+━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+- Keep folder structure clean
+- Keep files modular
+- Use reusable utilities
+- Avoid duplicate logic
+- Keep code production-grade
+- Keep functions small
+- Keep files under 250 lines
+- Use clear naming
+- Follow scalable architecture
+- Avoid tight coupling
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION STRATEGY
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+- centralized sanitizer utility
+- centralized secret detector
+- reusable masking helper
+- safe env parser
+- secure tool wrapper
+
+DO NOT:
+- hardcode secrets
+- scatter sanitization logic
+- duplicate regex patterns
+- break existing tools
+- rewrite unrelated systems
+
+ONLY:
+- isolate secret handling
+- sanitize sensitive data
+- secure LLM context
+- secure logs/events
+- secure tool outputs
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Security audit report
+2. Exact vulnerable files
+3. Exact vulnerable lines
+4. Secret leak flow diagram
+5. Root cause analysis
+6. Fixed architecture
+7. New folder structure
+8. Sanitization strategy
+9. Redaction patterns
+10. Safe env system
+11. Modified files list
+12. Production-grade patch plan
+
+Then APPLY fixes directly.
+
+IMPORTANT:
+- Keep every file under 250 lines
+- Refactor oversized files if needed
+- Preserve existing architecture
+- Use evidence-based analysis only
+- Mention exact files and lines
+- Do not skip hidden leak paths

@@ -1,38 +1,37 @@
-const VISIBLE_PREFIX_LEN = 4;
-const MASK_CHAR = "*";
+/**
+ * server/agents/devops/env-pipeline-validator/utils/mask.util.ts
+ *
+ * Delegates to the centralised secret-redactor.
+ * All masking logic lives in server/security/secret-redactor.ts.
+ *
+ * Previous implementation leaked first 4 characters of secret values.
+ * This version applies full ***REDACTED*** replacement.
+ */
 
-export function maskValue(value: string): string {
-  if (!value || value.length === 0) return "";
-  if (value.length <= VISIBLE_PREFIX_LEN) return MASK_CHAR.repeat(value.length);
-  const prefix = value.slice(0, VISIBLE_PREFIX_LEN);
-  const masked = MASK_CHAR.repeat(Math.min(value.length - VISIBLE_PREFIX_LEN, 12));
-  return `${prefix}${masked}`;
+import {
+  isSecretKey,
+  sanitizeObject,
+  REDACTED,
+} from "../../../../security/secret-redactor.ts";
+
+/** Full redaction — no partial masking, no prefix leak. */
+export function maskValue(_value: string): string {
+  return REDACTED;
 }
 
+/**
+ * Redact all secret keys in an env record.
+ * secretKeys param is kept for API compatibility but isSecretKey()
+ * from the centralised redactor is the authoritative check.
+ */
 export function maskEnvRecord(
   env: Readonly<Record<string, string>>,
-  secretKeys: readonly string[],
+  _secretKeys: readonly string[],
 ): Readonly<Record<string, string>> {
-  const secretSet = new Set(secretKeys.map((k) => k.toUpperCase()));
-  const masked: Record<string, string> = {};
-  for (const [k, v] of Object.entries(env)) {
-    masked[k] = secretSet.has(k.toUpperCase()) ? maskValue(v) : v;
-  }
-  return Object.freeze(masked);
+  return Object.freeze(sanitizeObject(env) as Record<string, string>);
 }
 
+/** Delegated to centralised redactor — comprehensive key pattern. */
 export function isSensitiveKey(key: string): boolean {
-  const upper = key.toUpperCase();
-  return (
-    upper.includes("SECRET") ||
-    upper.includes("PASSWORD") ||
-    upper.includes("PASSWD") ||
-    upper.includes("TOKEN") ||
-    upper.includes("API_KEY") ||
-    upper.includes("PRIVATE") ||
-    upper.includes("CREDENTIAL") ||
-    upper.includes("AUTH") ||
-    upper.includes("DSN") ||
-    upper.includes("CONNECTION_STRING")
-  );
+  return isSecretKey(key);
 }
