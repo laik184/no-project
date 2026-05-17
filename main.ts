@@ -32,7 +32,7 @@ import { createExecutionHistoryRouter, initExecutionHistory } from './server/exe
 import { createSecurityRouter } from './server/security/index.ts';
 import { createDiffApprovalRouter } from './server/api/diff-approval.routes.ts';
 import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
-import { startEmergencyRecoveryListener } from './server/infrastructure/checkpoints/restore/emergency-recovery.service.ts';
+import { startRecoveryManager } from './server/infrastructure/recovery/recovery-manager.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -165,8 +165,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   observationController.start();
   // Initialize persistent tool execution history system
   initExecutionHistory();
-  // Start emergency auto-recovery listener (rolls back on run.lifecycle failed)
-  startEmergencyRecoveryListener();
+  // Start recovery manager (lock-guarded, timeout-protected, crash-aware)
+  startRecoveryManager();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

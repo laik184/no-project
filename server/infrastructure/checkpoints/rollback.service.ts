@@ -2,6 +2,9 @@
  * rollback.service.ts
  * Orchestrates rollback of a project to a checkpoint.
  * Strategy: git reset --hard (primary) → snapshot restore (fallback).
+ *
+ * Safety: validates checkpoint integrity before attempting restore.
+ * Callers should use recovery-manager.ts to get lock + timeout guards.
  */
 
 import { getProjectDir }        from "../sandbox/sandbox.util.ts";
@@ -14,6 +17,21 @@ import {
 } from "./checkpoint.events.ts";
 import type { RollbackOptions, RollbackResult } from "./checkpoint.types.ts";
 
+// ─── Integrity validation ─────────────────────────────────────────────────────
+
+async function validateIntegrity(
+  projectId:    number,
+  checkpointId: string,
+): Promise<string | null> {
+  const meta = await checkpointStore.get(projectId, checkpointId);
+  if (!meta)                     return `Checkpoint ${checkpointId} not found`;
+  if (meta.status === "failed")  return `Checkpoint ${checkpointId} has status=failed`;
+  if (meta.status === "rolled_back") return `Checkpoint ${checkpointId} already rolled back`;
+  if (!meta.gitCommitSha && meta.fileCount === 0)
+    return `Checkpoint ${checkpointId} is empty (no git SHA, no files)`;
+  return null;
+}
+
 // ─── Main rollback entry point ────────────────────────────────────────────────
 
 export async function rollbackToCheckpoint(
@@ -23,18 +41,19 @@ export async function rollbackToCheckpoint(
 
   emitRollbackStarted(checkpointId, projectId);
 
-  const meta = await checkpointStore.get(projectId, checkpointId);
-  if (!meta) {
+  // ── Integrity gate — reject corrupted / invalid checkpoints ──────────────
+  const integrityError = await validateIntegrity(projectId, checkpointId);
+  if (integrityError) {
     const result: RollbackResult = {
-      success:       false,
-      checkpointId,
-      restoredFiles: [],
-      skippedFiles:  [],
-      error:         `Checkpoint ${checkpointId} not found for project ${projectId}`,
+      success: false, checkpointId,
+      restoredFiles: [], skippedFiles: [],
+      error: integrityError,
     };
     emitRollbackCompleted(result, projectId);
     return result;
   }
+
+  const meta = await checkpointStore.get(projectId, checkpointId);
 
   // ── Strategy 1: git reset --hard ──────────────────────────────────────────
   if (meta.gitCommitSha) {

@@ -13,6 +13,7 @@ import { getProjectDir, resolveSafe }     from "../../infrastructure/sandbox/san
 import { emitFileChange }                  from "../../infrastructure/events/file-change-emitter.ts";
 import { requestApproval, isApprovalEnabled } from "../../approvals/diff-approval.service.ts";
 import { atomicWrite }                     from "../../infrastructure/checkpoints/atomic-write.util.ts";
+import { checkpointStore }                 from "../../infrastructure/checkpoints/checkpoint.service.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
 
 // ── file_list ─────────────────────────────────────────────────────────────────
@@ -182,6 +183,16 @@ export const fileDelete: Tool = {
     const projectDir = getProjectDir(ctx.projectId);
     try {
       const abs = resolveSafe(projectDir, args.path as string);
+
+      // ── Pre-destructive checkpoint — snapshot before deletion ─────────────
+      checkpointStore.create({
+        projectId:   ctx.projectId,
+        sandboxRoot: getProjectDir(ctx.projectId),
+        trigger:     "pre_destructive",
+        runId:       ctx.runId,
+        label:       `pre-delete: ${String(args.path).slice(0, 60)}`,
+      }).catch(() => { /* non-fatal — never block a delete */ });
+
       await fs.rm(abs, { recursive: true, force: true });
       emitFileChange(ctx.projectId, "unlink", args.path as string);
       return { ok: true, result: { path: args.path, deleted: true } };
