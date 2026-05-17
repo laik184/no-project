@@ -4,15 +4,19 @@ import { useToast } from "@/hooks/use-toast";
 import { TokenBuffer } from "@/streaming/token-buffer";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import type { ChatMessage } from "./types";
+import { useRealtime } from "@/realtime/realtime-provider";
 
 export function useAgentRunner() {
   const { toast } = useToast();
+  const { subscribe } = useRealtime();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [activeAction, setActiveAction] = useState<AgentStreamItem | null>(null);
 
-  const agentStreamRef    = useRef<EventSource | null>(null);
+  // Stores cleanup fn for the active run's subscriptions (replaces EventSource ref)
+  const agentStreamRef    = useRef<{ close: () => void } | null>(null);
   const currentRunIdRef   = useRef<string | null>(null);
   const thinkingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const checkpointCountRef = useRef(0);
@@ -25,7 +29,6 @@ export function useAgentRunner() {
       tokenBufRef.current?.destroy();
       tokenBufRef.current = null;
       isStreamingRef.current = false;
-      // Mark the last streaming message as done (removes cursor)
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "agent" && (last as { isStreaming?: boolean }).isStreaming) {
@@ -109,8 +112,6 @@ export function useAgentRunner() {
     }
 
     currentRunIdRef.current = runId;
-    const es = new EventSource(`/api/agent/stream?runId=${encodeURIComponent(runId)}`);
-    agentStreamRef.current = es;
 
     const inflight = new Map<string, AgentStreamItem>();
     const toolKey = (tool: string, phase?: string) => `${phase || ""}::${tool}`;
@@ -121,20 +122,20 @@ export function useAgentRunner() {
       setMessages((prev) => [...prev, { role: "tool_group", time: "just now", actions }]);
     };
 
-    es.addEventListener("agent", (ev) => {
+    // ── Subscribe to agent events for this run ──────────────────────────────
+    const offAgent = subscribe("agent", (data) => {
       try {
-        const e = JSON.parse((ev as MessageEvent).data) as { eventType: string; phase?: string; agentName?: string; payload?: any };
+        const e = data as { eventType: string; phase?: string; agentName?: string; payload?: any; runId?: string };
+        if (e.runId !== runId) return; // client-side runId filter
         switch (e.eventType) {
-          // ── Token streaming events ───────────────────────────────────────
+          // ── Token streaming events ─────────────────────────────────────
           case "agent.stream.start": {
             finalizeStream();
             isStreamingRef.current = true;
             setIsAgentThinking(false);
             setIsAgentTyping(false);
             setActiveAction(null);
-            // Seed the streaming message placeholder
             setMessages((prev) => [...prev, { role: "agent", content: "", isStreaming: true, time: "just now" }]);
-            // Wire up RAF-throttled token buffer
             tokenBufRef.current = new TokenBuffer((chunk) => {
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
@@ -155,7 +156,6 @@ export function useAgentRunner() {
             finalizeStream();
             break;
           }
-          // ────────────────────────────────────────────────────────────────
           case "agent.thinking":
             setIsAgentThinking(true);
             setActiveAction({ type: "action", tool: "analysis.think", content: e.payload?.text || `Thinking${e.agentName ? ` (${e.agentName})` : ""}…`, status: "running" });
@@ -191,7 +191,6 @@ export function useAgentRunner() {
           case "agent.tool_call": {
             const tool   = e.payload?.tool   || "tool.call";
             const status = e.payload?.status;
-            // task_complete fires BEFORE the agent.message event — use it to show typing dots
             if (tool === "task_complete" && status === "running") {
               flushGroup();
               setIsAgentTyping(true);
@@ -199,7 +198,6 @@ export function useAgentRunner() {
               setActiveAction(null);
               break;
             }
-            // "done"/"error" status updates are handled by the lifecycle handler — skip here
             if (status === "done" || status === "error") break;
             const item: AgentStreamItem = { type: "action", tool, content: e.payload?.label || tool.replace(/_/g, " "), status: "running", meta: e.payload?.args ? { logs: JSON.stringify(e.payload.args, null, 2).slice(0, 600) } : undefined };
             inflight.set(toolKey(tool, e.phase), item);
@@ -227,10 +225,10 @@ export function useAgentRunner() {
             setActiveAction(null);
             flushGroup();
             const isGivingUp = attempt >= maxAttempts;
-            const msg = isGivingUp
+            const msg2 = isGivingUp
               ? `Automatic recovery failed after ${maxAttempts} attempts. Please check the server logs and fix the issue manually.\n\nLast error: ${reason || "unknown"}`
               : `Recovery attempt ${attempt}/${maxAttempts} failed — will retry after cooldown.\n\nReason: ${reason || "unknown"}`;
-            setMessages((prev) => [...prev, { role: "agent", content: msg, time: "just now" }]);
+            setMessages((prev) => [...prev, { role: "agent", content: msg2, time: "just now" }]);
             break;
           }
           case "plan.created": {
@@ -254,23 +252,23 @@ export function useAgentRunner() {
             break;
           }
           case "phase.started": {
-            const tool = `phase.${e.phase || "step"}`;
-            const item: AgentStreamItem = { type: "action", tool, content: e.payload?.label || `Phase: ${e.phase || "step"}`, status: "running" };
-            inflight.set(toolKey(tool), item);
-            setActiveAction(item);
+            const tool2 = `phase.${e.phase || "step"}`;
+            const item2: AgentStreamItem = { type: "action", tool: tool2, content: e.payload?.label || `Phase: ${e.phase || "step"}`, status: "running" };
+            inflight.set(toolKey(tool2), item2);
+            setActiveAction(item2);
             break;
           }
           case "phase.completed": {
-            const tool = `phase.${e.phase || "step"}`;
-            const cur = inflight.get(toolKey(tool));
-            if (cur) inflight.set(toolKey(tool), { ...cur, status: "done", meta: e.payload ? { logs: typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload, null, 2).slice(0, 600) } : cur.meta });
+            const tool2 = `phase.${e.phase || "step"}`;
+            const cur = inflight.get(toolKey(tool2));
+            if (cur) inflight.set(toolKey(tool2), { ...cur, status: "done", meta: e.payload ? { logs: typeof e.payload === "string" ? e.payload : JSON.stringify(e.payload, null, 2).slice(0, 600) } : cur.meta });
             setActiveAction(null);
             break;
           }
           case "phase.failed": {
-            const tool = `phase.${e.phase || "step"}`;
-            const cur = inflight.get(toolKey(tool));
-            inflight.set(toolKey(tool), { type: "action", tool, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error", meta: { logs: String(e.payload?.error || "failed") } });
+            const tool2 = `phase.${e.phase || "step"}`;
+            const cur = inflight.get(toolKey(tool2));
+            inflight.set(toolKey(tool2), { type: "action", tool: tool2, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error", meta: { logs: String(e.payload?.error || "failed") } });
             setActiveAction(null);
             break;
           }
@@ -300,8 +298,6 @@ export function useAgentRunner() {
             break;
           }
           case "agent.question.answered": {
-            // Server confirmed the answer was received — mark question answered in UI.
-            // Handles reconnect scenarios where local state was lost.
             const { questionId: answeredId, answer: confirmedAnswer } = e.payload ?? {};
             if (answeredId && confirmedAnswer) {
               setMessages((prev) =>
@@ -329,10 +325,11 @@ export function useAgentRunner() {
       } catch { }
     });
 
-    // ── Checkpoint notification toasts ────────────────────────────────────────
-    es.addEventListener("checkpoint", (ev) => {
+    // ── Checkpoint toasts ────────────────────────────────────────────────────
+    const offCheckpoint = subscribe("checkpoint", (data) => {
       try {
-        const e = JSON.parse((ev as MessageEvent).data) as { eventType: string; trigger?: string; checkpointId?: string };
+        const e = data as { eventType: string; trigger?: string; checkpointId?: string; runId?: string };
+        if (e.runId && e.runId !== runId) return;
         if (e.eventType === "stable") {
           toast({
             description: `Safety snapshot saved${e.trigger ? ` (${e.trigger.replace(/_/g, " ")})` : ""}`,
@@ -342,13 +339,16 @@ export function useAgentRunner() {
       } catch { }
     });
 
-    es.addEventListener("lifecycle", (ev) => {
+    // ── Lifecycle — run completion ────────────────────────────────────────────
+    const offLifecycle = subscribe("lifecycle", (data) => {
       try {
-        const e = JSON.parse((ev as MessageEvent).data) as { status: string };
+        const e = data as { status: string; runId?: string };
+        if (e.runId !== runId) return;
         if (e.status === "completed" || e.status === "failed" || e.status === "cancelled") {
           finalizeStream();
           flushGroup();
-          es.close();
+          // Unsubscribe all handlers for this run
+          agentStreamRef.current?.close();
           agentStreamRef.current = null;
           currentRunIdRef.current = null;
           setIsAgentThinking(false);
@@ -366,7 +366,10 @@ export function useAgentRunner() {
       } catch { }
     });
 
-    es.onerror = () => { if (es.readyState === EventSource.CLOSED) agentStreamRef.current = null; };
+    // Bundle all unsubscribers — called by stopAgent() or lifecycle completion
+    agentStreamRef.current = {
+      close: () => { offAgent(); offCheckpoint(); offLifecycle(); },
+    };
   };
 
   return { messages, setMessages, isAgentThinking, isAgentTyping, activeAction, setActiveAction, runAgent, stopAgent, handleAnswer };

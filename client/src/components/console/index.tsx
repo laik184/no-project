@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, RotateCcw, Copy, Check, Terminal, Wifi, WifiOff } from "lucide-react";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 type LineKind = "stdout" | "stderr" | "system" | "error";
 
@@ -24,25 +25,19 @@ export function ConsolePanel() {
   const [copied, setCopied] = useState(false);
   const [wsReady, setWsReady] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const sseRef = useRef<EventSource | null>(null);
   const projectId = Number(window.localStorage.getItem("nura.projectId") || "1") || 1;
 
-  useEffect(() => {
-    const es = new EventSource(`/sse/console?projectId=${projectId}`);
-    sseRef.current = es;
-    es.addEventListener("console", (ev) => {
-      try {
-        const e = JSON.parse((ev as MessageEvent).data) as { stream?: "stdout" | "stderr"; line?: string };
-        if (!e.line) return;
-        setLines((prev) => [...prev, { id: uid(), kind: e.stream === "stderr" ? "stderr" : "stdout", text: e.line! }]);
-      } catch {
-      }
-    });
-    return () => {
-      es.close();
-      sseRef.current = null;
-    };
-  }, [projectId]);
+  useRealtimeEvent("console", (data) => {
+    try {
+      const e = data as { stream?: "stdout" | "stderr"; line?: string; projectId?: number };
+      if (!e.line) return;
+      if (e.projectId !== undefined && e.projectId !== projectId) return;
+      setLines((prev) => [
+        ...prev,
+        { id: uid(), kind: e.stream === "stderr" ? "stderr" : "stdout", text: e.line! },
+      ]);
+    } catch {}
+  });
 
   useEffect(() => {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -78,29 +73,29 @@ export function ConsolePanel() {
     <div className="absolute inset-0 flex flex-col" style={{ background: "hsl(222,32%,5.5%)", fontFamily: "'JetBrains Mono','Fira Code','Cascadia Code','Menlo',monospace" }}>
       <div className="flex items-center justify-between px-4 py-2.5 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-2">
-          <Terminal className="h-3.5 w-3.5" style={{ color: "rgba(148,163,184,0.55)" }} />
-          <span className="text-xs font-semibold tracking-wide" style={{ color: "rgba(226,232,240,0.7)" }}>Console</span>
-          {wsReady ? <Wifi className="h-3 w-3 ml-0.5" style={{ color: "#4ade80" }} /> : <WifiOff className="h-3 w-3 ml-0.5" style={{ color: "rgba(248,113,113,0.7)" }} />}
+          <Terminal size={14} className="text-emerald-400" />
+          <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.7)" }}>Console</span>
+          {wsReady
+            ? <span className="flex items-center gap-1 text-emerald-400 text-xs"><Wifi size={11} />live</span>
+            : <span className="flex items-center gap-1 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}><WifiOff size={11} />idle</span>
+          }
         </div>
-        <div className="flex items-center gap-0.5">
-          <button onClick={handleClear} title="Clear" data-testid="button-console-clear" className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-colors" style={{ color: "rgba(148,163,184,0.55)" }}><Trash2 className="h-3.5 w-3.5" /><span>Clear</span></button>
-          <button onClick={handleRestart} title="Restart" data-testid="button-console-restart" className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-colors" style={{ color: "rgba(148,163,184,0.55)" }}><RotateCcw className="h-3.5 w-3.5" /><span>Restart</span></button>
-          <button onClick={handleCopy} title="Copy logs" data-testid="button-console-copy" className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-colors" style={{ color: copied ? "#34d399" : "rgba(148,163,184,0.55)" }}>
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}<span>{copied ? "Copied!" : "Copy"}</span>
+        <div className="flex items-center gap-1">
+          <button onClick={handleClear}   title="Clear" className="p-1.5 rounded hover:bg-white/10 transition-colors"><Trash2   size={13} style={{ color: "rgba(255,255,255,0.5)" }} /></button>
+          <button onClick={handleRestart} title="Restart" className="p-1.5 rounded hover:bg-white/10 transition-colors"><RotateCcw size={13} style={{ color: "rgba(255,255,255,0.5)" }} /></button>
+          <button onClick={handleCopy}    title="Copy" className="p-1.5 rounded hover:bg-white/10 transition-colors">
+            {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} style={{ color: "rgba(255,255,255,0.5)" }} />}
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-3 min-h-0" style={{ lineHeight: "1.75" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-3" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
         {lines.map((line) => (
-          <div key={line.id} className="text-[12px] whitespace-pre-wrap break-all select-text" style={{ color: line.kind === "stderr" ? "#f87171" : line.kind === "error" ? "#f87171" : line.kind === "system" ? "rgba(100,116,139,0.65)" : "rgba(203,213,225,0.88)" }} data-testid={`console-line-${line.kind}`}>
-            <span style={{ opacity: 0.35, userSelect: "none", marginRight: 4 }}>{line.kind === "stderr" ? "! " : "  "}</span>
+          <div key={line.id} className={`text-xs leading-5 ${line.kind === "stderr" || line.kind === "error" ? "text-red-400" : line.kind === "system" ? "text-blue-400/70" : "text-emerald-300/90"}`}>
+            {line.kind === "stderr" && <span className="opacity-60 mr-1">!</span>}
             {line.text}
           </div>
         ))}
         <div ref={bottomRef} />
-      </div>
-      <div className="flex-shrink-0 px-5 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <div className="text-[11px] text-muted-foreground">Only the AI agent can run commands in this console.</div>
       </div>
     </div>
   );

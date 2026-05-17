@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { RawTreeNode } from "./types";
 import { optimisticInsertFile, removeOptimisticFile } from "./tree-helpers";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 interface UseFileExplorerOptions {
   projectPath: string;
@@ -70,52 +71,34 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     };
   }, []);
 
-  useEffect(() => {
-    const es = new EventSource("/sse/agent");
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.type === "diff" && data.diff?.path) {
-          setAiFiles((prev) => new Set(prev).add(data.diff.path));
-          if (!data.projectId || data.projectId === projectPath) refreshFiles();
-        }
-      } catch {}
-    };
-    return () => es.close();
-  }, []);
+  // Agent events — highlight AI-written files and refresh tree on diffs
+  useRealtimeEvent("agent", (data) => {
+    try {
+      const d = data as Record<string, unknown>;
+      if (d.type === "diff" && (d.diff as any)?.path) {
+        setAiFiles((prev) => new Set(prev).add((d.diff as any).path));
+        if (!d.projectId || d.projectId === projectPath) refreshFiles();
+      }
+    } catch {}
+  });
 
-  useEffect(() => {
-    const es = new EventSource("/sse/console");
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.file || (data.msg && data.msg.includes("file"))) {
-          if (!data.projectId || data.projectId === projectPath) refreshFiles();
-        }
-      } catch {}
-    };
-    return () => es.close();
-  }, []);
+  // Console events — refresh tree when file-related messages arrive
+  useRealtimeEvent("console", (data) => {
+    try {
+      const d = data as Record<string, unknown>;
+      if (d.file || (d.msg && String(d.msg).includes("file"))) {
+        if (!d.projectId || d.projectId === projectPath) refreshFiles();
+      }
+    } catch {}
+  });
 
-  useEffect(() => {
-    if (!projectPath) return;
-    const es = new EventSource(`/sse/files?projectId=${encodeURIComponent(projectPath)}`);
-
-    const onFileEvent = (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (!data.projectId || String(data.projectId) === String(projectPath)) refreshFiles();
-      } catch {}
-    };
-
-    // Named event from bus-based SSE route (event: file)
-    es.addEventListener('file', onFileEvent);
-    // Fallback: plain data events from watcher SSE (no named type)
-    es.onmessage = onFileEvent;
-
-    es.onerror = () => { try { es.close(); } catch {} };
-    return () => { try { es.close(); } catch {} };
-  }, [projectPath]);
+  // File-change events — refresh tree on any file system change
+  useRealtimeEvent("file", (data) => {
+    try {
+      const d = data as Record<string, unknown>;
+      if (!d.projectId || String(d.projectId) === String(projectPath)) refreshFiles();
+    } catch {}
+  });
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

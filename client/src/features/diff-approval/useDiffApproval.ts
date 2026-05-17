@@ -1,17 +1,22 @@
 /**
  * useDiffApproval
  *
- * Subscribes to /sse/diffs and maintains a queue of pending diff approvals.
- * Exposes approve() and reject() that call the REST API.
+ * Subscribes to the unified realtime stream (diff topic) and maintains a
+ * queue of pending diff approvals.  Exposes approve() and reject() that call
+ * the REST API.
+ *
+ * Migrated from a standalone EventSource to the shared RealtimeProvider —
+ * no longer opens its own connection.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { DiffEvent, ApprovalStatus } from "./diff.types";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 export interface DiffApprovalState {
   queue:    DiffEvent[];
   current:  DiffEvent | null;
-  loading:  string | null; // sessionId being processed
+  loading:  string | null;
 }
 
 export function useDiffApproval(projectId?: number) {
@@ -20,108 +25,59 @@ export function useDiffApproval(projectId?: number) {
     current: null,
     loading: null,
   });
-  const esRef = useRef<EventSource | null>(null);
 
-  // ── SSE subscription ───────────────────────────────────────────────────────
-  useEffect(() => {
-    const url = projectId
-      ? `/sse/diffs?projectId=${projectId}`
-      : "/sse/diffs";
+  useRealtimeEvent("diff", (data) => {
+    try {
+      const event = data as DiffEvent;
+      if (projectId !== undefined && event.projectId !== projectId) return;
 
-    const es = new EventSource(url);
-    esRef.current = es;
-
-    es.addEventListener("diff", (e: MessageEvent) => {
-      try {
-        const event: DiffEvent = JSON.parse(e.data);
-        setState((prev) => {
-          // Update existing entry if it's a status change
-          const existingIdx = prev.queue.findIndex(
-            (d) => d.sessionId === event.sessionId,
-          );
-          if (existingIdx !== -1) {
-            const next = [...prev.queue];
-            next[existingIdx] = event;
-            const pending = next.filter((d) => d.status === "pending");
-            return {
-              queue:   next,
-              current: pending[0] ?? null,
-              loading: prev.loading === event.sessionId && event.status !== "pending"
-                ? null
-                : prev.loading,
-            };
-          }
-          // New pending diff
-          if (event.status !== "pending") return prev;
-          const next = [...prev.queue, event];
+      setState((prev) => {
+        const existingIdx = prev.queue.findIndex(
+          (d) => d.sessionId === event.sessionId,
+        );
+        if (existingIdx !== -1) {
+          const next = [...prev.queue];
+          next[existingIdx] = event;
+          const pending = next.filter((d) => d.status === "pending");
           return {
             queue:   next,
-            current: prev.current ?? event,
-            loading: prev.loading,
+            current: pending[0] ?? null,
+            loading:
+              prev.loading === event.sessionId && event.status !== "pending"
+                ? null
+                : prev.loading,
           };
-        });
-      } catch { /* malformed event */ }
-    });
+        }
+        if (event.status !== "pending") return prev;
+        const next = [...prev.queue, event];
+        return { queue: next, current: prev.current ?? event, loading: prev.loading };
+      });
+    } catch { /* malformed event */ }
+  });
 
-    es.onerror = () => {
-      // Reconnect handled automatically by EventSource
-    };
-
-    return () => {
-      es.close();
-      esRef.current = null;
-    };
-  }, [projectId]);
-
-  // ── Approve ────────────────────────────────────────────────────────────────
   const approve = useCallback(async (sessionId: string) => {
     setState((p) => ({ ...p, loading: sessionId }));
     try {
       const res = await fetch(`/api/approvals/${sessionId}/approve`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error("[diff-approval] approve failed:", body.error);
-      }
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      console.error("[diff-approval] approve failed:", e);
     } finally {
-      setState((p) => {
-        const next = p.queue.filter((d) => d.sessionId !== sessionId);
-        const pending = next.filter((d) => d.status === "pending");
-        return { queue: next, current: pending[0] ?? null, loading: null };
-      });
+      setState((p) => ({ ...p, loading: null }));
     }
   }, []);
 
-  // ── Reject ─────────────────────────────────────────────────────────────────
   const reject = useCallback(async (sessionId: string) => {
     setState((p) => ({ ...p, loading: sessionId }));
     try {
       const res = await fetch(`/api/approvals/${sessionId}/reject`, { method: "POST" });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error("[diff-approval] reject failed:", body.error);
-      }
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      console.error("[diff-approval] reject failed:", e);
     } finally {
-      setState((p) => {
-        const next = p.queue.filter((d) => d.sessionId !== sessionId);
-        const pending = next.filter((d) => d.status === "pending");
-        return { queue: next, current: pending[0] ?? null, loading: null };
-      });
+      setState((p) => ({ ...p, loading: null }));
     }
   }, []);
 
-  // ── Countdown ──────────────────────────────────────────────────────────────
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!state.current) { setSecondsLeft(null); return; }
-    const tick = () => {
-      const left = Math.max(0, Math.round((state.current!.expiresAt - Date.now()) / 1000));
-      setSecondsLeft(left);
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [state.current]);
-
-  return { ...state, approve, reject, secondsLeft };
+  return { state, approve, reject };
 }

@@ -1,25 +1,22 @@
 /**
- * useAgiStream — consume the AGI catch-all stream (/api/stream).
+ * useAgiStream — consume agent + lifecycle + console events.
  *
- * Fixed: was using es.onmessage which never fires for named events.
- * /api/stream sends everything under `event: agi` — must use addEventListener.
+ * Migrated to unified RealtimeProvider — no longer opens its own
+ * EventSource connection.  Collects all three topic streams into one array.
  */
 
-import { useEffect, useState } from "react";
-import { openSSE } from "@/realtime/sse-utils";
+import { useState } from "react";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 export function useAgiStream(): unknown[] {
   const [events, setEvents] = useState<unknown[]>([]);
 
-  useEffect(() => {
-    const close = openSSE("/api/stream", {
-      agi: (data) => {
-        setEvents((prev) => [...prev.slice(-200), data]);
-      },
-    });
+  const push = (data: unknown) =>
+    setEvents((prev) => [...prev.slice(-199), data]);
 
-    return close;
-  }, []);
+  useRealtimeEvent("agent",     push);
+  useRealtimeEvent("lifecycle", push);
+  useRealtimeEvent("console",   push);
 
   return events;
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { DevToolsTab } from "@/pages/preview/preview-types";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 interface UseDevToolsLogicArgs {
   networkMode: "normal" | "slow" | "offline";
@@ -39,35 +40,27 @@ export function useDevToolsLogic({
       .catch(() => {});
   }, [networkMode]);
 
-  useEffect(() => {
-    const es = new EventSource("/sse/console");
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data?.type === "done") setIframeKey((k) => k + 1);
-      } catch {}
-    };
-    return () => es.close();
-  }, []);
+  useRealtimeEvent("console", (data) => {
+    try {
+      const d = data as Record<string, unknown>;
+      if (d?.type === "done") setIframeKey((k) => k + 1);
+    } catch {}
+  });
 
-  useEffect(() => {
+  useRealtimeEvent("runtime.verified", (data) => {
     if (!followSharedPreview) return;
-    const es = new EventSource("/sse/preview");
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.url) {
-          setCurrentUrl(data.url);
-          setUrlInput(/^https?:\/\//.test(data.url) ? data.url : `http://${data.url}`);
-        }
-        if (data.deviceType) setDeviceType(data.deviceType as any);
-        if (data.devToolsTab) setDevToolsTab(data.devToolsTab as any);
-        if (typeof data.gridMode === "boolean") setGridMode(data.gridMode);
-      } catch {}
-    };
-    es.onerror = () => { try { es.close(); } catch {} };
-    return () => { try { es.close(); } catch {} };
-  }, [followSharedPreview]);
+    try {
+      const d = data as Record<string, unknown>;
+      if (d.url) {
+        const url = d.url as string;
+        setCurrentUrl(url);
+        setUrlInput(/^https?:\/\//.test(url) ? url : `http://${url}`);
+      }
+      if (d.deviceType) setDeviceType(d.deviceType as any);
+      if (d.devToolsTab) setDevToolsTab(d.devToolsTab as any);
+      if (typeof d.gridMode === "boolean") setGridMode(d.gridMode);
+    } catch {}
+  });
 
   const handleDevToolsResizeMouseDown = (e: any) => {
     e.preventDefault();

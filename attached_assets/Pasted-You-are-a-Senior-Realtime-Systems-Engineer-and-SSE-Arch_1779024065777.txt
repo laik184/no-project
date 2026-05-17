@@ -1,0 +1,203 @@
+You are a Senior Realtime Systems Engineer and SSE Architecture Auditor.
+
+Your task is to DEEP SCAN and FIX the overlapping SSE architecture problem in this codebase.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN PROBLEM
+━━━━━━━━━━━━━━━━━━━━
+
+Current system has MULTIPLE overlapping SSE endpoints that duplicate the same events, create stream chaos, waste memory, and risk listener leaks.
+
+Problem ID:
+C2 — Multiple overlapping SSE systems
+
+Current symptoms:
+- duplicate events
+- malformed SSE packets
+- unnecessary multiple EventSource connections
+- repeated listeners on the global bus
+- memory leaks
+- duplicate console streams
+- duplicate file streams
+- fragmented realtime architecture
+- inconsistent frontend subscriptions
+- CPU waste from fan-out duplication
+
+━━━━━━━━━━━━━━━━━━━━
+DEEP SCAN TARGETS
+━━━━━━━━━━━━━━━━━━━━
+
+Scan ALL realtime-related files deeply.
+
+Focus folders:
+- server/chat/streams/
+- server/infrastructure/events/
+- client/src/hooks/
+- client/src/lib/
+- client/src/components/
+- client/src/context/
+- client/src/providers/
+
+Search for:
+- EventSource(
+- bus.subscribe(
+- SSE endpoints
+- stream listeners
+- res.write(
+- text/event-stream
+- duplicate event emitters
+- duplicate subscriptions
+- duplicate SSE channels
+- overlapping event routing
+- malformed SSE formatting
+
+━━━━━━━━━━━━━━━━━━━━
+IDENTIFY ALL THESE ISSUES
+━━━━━━━━━━━━━━━━━━━━
+
+1. Duplicate SSE endpoints
+2. Endpoints listening to same bus events
+3. Duplicate res.write calls
+4. Multiple frontend hooks subscribing to same stream
+5. Duplicate EventSource connections
+6. Memory leak risks
+7. Listener cleanup failures
+8. Unused SSE endpoints
+9. Redundant stream channels
+10. Duplicate console streaming
+11. Duplicate file streaming
+12. Duplicate lifecycle streams
+13. Fragmented realtime architecture
+14. Broken event formatting
+15. SSE endpoints not used by frontend
+16. WebSocket/SSE overlap conflicts
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT ARCHITECTURE GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Create ONE unified realtime architecture.
+
+TARGET STRUCTURE:
+
+server/
+  infrastructure/
+    realtime/
+      event-bus.ts
+      sse-manager.ts
+      stream-router.ts
+      stream-topics.ts
+
+client/
+  realtime/
+    useRealtimeStream.ts
+    realtime-provider.ts
+    realtime-events.ts
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL TARGET
+━━━━━━━━━━━━━━━━━━━━
+
+Replace MANY fragmented SSE endpoints with:
+
+ONE:
+- unified SSE endpoint
+
+Example:
+GET /api/stream?topics=agent,console,file,lifecycle
+
+Server:
+- subscribes ONLY to requested topics
+- one connection per client
+- proper cleanup
+- proper listener disposal
+- no duplicate writes
+- no duplicated event formatting
+
+Client:
+- ONE EventSource connection
+- centralized realtime provider
+- topic-based event dispatch
+- no duplicate subscriptions
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT FIX RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. DO NOT rewrite unrelated architecture
+2. DO NOT break existing event payloads
+3. DO NOT change frontend business logic
+4. DO NOT create giant files
+5. KEEP every file UNDER 250 lines
+6. KEEP folder structure clean
+7. USE modular architecture
+8. USE reusable stream utilities
+9. ENSURE cleanup on disconnect
+10. ENSURE listener removal always happens
+11. REMOVE duplicate res.write calls
+12. REMOVE dead SSE endpoints
+13. REMOVE unused stream hooks
+14. REMOVE duplicated EventSource usage
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED OUTPUT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Deep SSE architecture audit
+2. List of ALL duplicate endpoints
+3. List of ALL duplicate frontend subscriptions
+4. Event flow diagram
+5. Memory leak analysis
+6. CPU waste analysis
+7. Final unified architecture
+8. Refactor strategy
+9. Step-by-step migration plan
+10. Exact files to modify
+11. Exact lines causing duplication
+12. Final optimized folder structure
+13. Cleanup strategy
+14. Listener lifecycle strategy
+15. Final production-grade SSE architecture
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Build:
+- centralized SSE manager
+- topic router
+- typed events
+- automatic cleanup
+- reusable subscription utilities
+- reconnect-safe frontend hooks
+- singleton EventSource manager
+- centralized realtime provider
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+Be EXTREMELY cautious.
+
+This is a production realtime architecture refactor.
+
+Avoid:
+- race conditions
+- event duplication
+- stale listeners
+- memory leaks
+- reconnect storms
+- duplicate subscriptions
+
+Focus on:
+- stability
+- scalability
+- clean architecture
+- maintainability
+- low coupling
+- modular design
+- production-grade realtime systems
+
+Act like a senior engineer fixing the realtime layer of a billion-dollar AI IDE.

@@ -1,35 +1,27 @@
 /**
- * useAgentUltraStream — stream agent events for a specific runId.
+ * useAgentUltraStream — collect agent + lifecycle events for a specific runId.
  *
- * Fixed:
- *  - Was connecting to /sse/agent (legacy double-write endpoint).
- *    Now uses /api/agent/stream (canonical, single-write).
- *  - Was using es.onmessage which never fires for named events.
- *    Now uses addEventListener('agent', ...) via openSSE().
+ * Migrated to unified RealtimeProvider.  Filters by runId client-side so
+ * the shared connection is reused.
  */
 
-import { useEffect, useState } from "react";
-import { openSSE } from "@/realtime/sse-utils";
+import { useState } from "react";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 export function useAgentUltraStream(runId?: string): unknown[] {
   const [events, setEvents] = useState<unknown[]>([]);
 
-  useEffect(() => {
-    if (!runId) return;
+  useRealtimeEvent("agent", (data) => {
+    const e = data as { runId?: string };
+    if (runId && e.runId !== runId) return;
+    setEvents((prev) => [...prev, data]);
+  });
 
-    const url = `/api/agent/stream?runId=${encodeURIComponent(runId)}`;
-
-    const close = openSSE(url, {
-      agent: (data) => {
-        setEvents((prev) => [...prev, data]);
-      },
-      lifecycle: (data) => {
-        setEvents((prev) => [...prev, data]);
-      },
-    });
-
-    return close;
-  }, [runId]);
+  useRealtimeEvent("lifecycle", (data) => {
+    const e = data as { runId?: string };
+    if (runId && e.runId !== runId) return;
+    setEvents((prev) => [...prev, data]);
+  });
 
   return events;
 }

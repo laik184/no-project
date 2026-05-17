@@ -1,10 +1,10 @@
-import WebPanel from './WebPanel';
-import { ConsolePanel } from './console';
-import PreviewPanel from './PreviewPanel';
-import DashboardPanel from './DashboardPanel';
-import ConflictResolverPanel from './ConflictResolverPanel';
+import WebPanel from '../layout/WebPanel';
+import { ConsolePanel } from '../console';
+import DashboardPanel from '../layout/DashboardPanel';
+import ConflictResolverPanel from '../conflict/ConflictResolverPanel';
 import React, { useState, useRef, useEffect } from 'react';
-import PatchDiffModal from './PatchDiffModal';
+import PatchDiffModal from '../diff/PatchDiffModal';
+import { useRealtimeEvent } from '@/realtime/useRealtimeStream';
 
 export default function SolopilotArchitectureModal({ onClose }: { onClose?: () => void }) {
   const [intent, setIntent] = useState('');
@@ -13,7 +13,6 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
   const [logs, setLogs] = useState<any[]>([]);
   const [status, setStatus] = useState('');
   const [evolveHistory, setEvolveHistory] = useState<any>(null);
-  const [sseConnected, setSseConnected] = useState(false);
   const [diff, setDiff] = useState<string | null>(null);
   const [resultMap, setResultMap] = useState<any>({});
 
@@ -27,38 +26,20 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
     return () => clearInterval(iv);
   }, []);
 
-  function startSSE() {
+  useRealtimeEvent('console', (data) => {
     try {
-      let retries = 0;
-      function connect() {
-        const src = new EventSource('/api/solopilot/stream');
-        src.onopen = () => { retries = 0; };
-        src.onmessage = (evt) => {
-          try {
-            const d = JSON.parse(evt.data);
-            if (d.type === 'autoevolve:finished') setEvolveHistory(d.result);
-          } catch (e) {}
-        };
-        src.onerror = () => {
-          src.close();
-          setTimeout(() => { retries++; connect(); }, Math.min(5000, 500 * retries));
-        };
-      }
-      connect();
-      setSseConnected(true);
-    } catch (e) {
-      console.warn('SSE connect failed', e);
-    }
-  }
+      const d = data as Record<string, unknown>;
+      if (d.type === 'autoevolve:finished') setEvolveHistory(d.result);
+    } catch {}
+  });
 
   async function startAutoEvolve() {
     setStatus('evolving...');
     try {
-      startSSE();
       const res = await fetch('/api/solopilot/autoevolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent })
+        body: JSON.stringify({ intent }),
       });
       const d = await res.json();
       if (d.ok) alert('Auto-evolve started. Monitor SSE stream.');
@@ -73,7 +54,7 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
     const res = await fetch('/api/solopilot/architecture', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent })
+      body: JSON.stringify({ intent }),
     });
     const d = await res.json();
     setArch(d);
@@ -87,7 +68,7 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
       const res = await fetch('/api/solopilot/applyChange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change, applyNow: false })
+        body: JSON.stringify({ change, applyNow: false }),
       });
       const d = await res.json();
       setResultMap((prev: any) => ({ ...prev, [changeIdx]: d.ok ? 'staged' : 'failed' }));
@@ -106,7 +87,7 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
       const res = await fetch('/api/solopilot/applyChange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change, applyNow: true })
+        body: JSON.stringify({ change, applyNow: true }),
       });
       const d = await res.json();
       setResultMap((prev: any) => ({ ...prev, [changeIdx]: d.batchId ? 'applied' : 'failed' }));
@@ -143,7 +124,7 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
 
   async function viewDiff(idx: number) {
     const change = getChange(idx);
-    if (!change) { return; }
+    if (!change) return;
     setDiff("Patch Diff for: " + (change.title || change.id) + "\n\n" + change.description);
   }
 
@@ -151,7 +132,6 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
     <div style={{ padding: 12, color: '#ddd', width: '90%', height: '90%', overflow: 'auto', background: '#011018' }}>
       <div style={{ marginTop: 12 }}><WebPanel /></div>
       <div style={{ marginTop: 12 }}><ConsolePanel /></div>
-      <div style={{ marginTop: 12 }}><PreviewPanel /></div>
       <div style={{ marginTop: 12 }}><DashboardPanel /></div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -190,9 +170,7 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
             ).map((c: any, idx: number) => (
               <div key={idx} style={{ padding: 8, borderBottom: '1px solid #222' }}>
                 <div><strong>{c.title || ('Change ' + (idx + 1))}</strong></div>
-                <div style={{ fontSize: 12, color: '#aaa', whiteSpace: 'pre-wrap' }}>
-                  {c.description}
-                </div>
+                <div style={{ fontSize: 12, color: '#aaa', whiteSpace: 'pre-wrap' }}>{c.description}</div>
                 <div style={{ marginTop: 4 }}>
                   {resultMap[idx] === 'staged' && <span style={{ color: 'yellow' }}>Staged</span>}
                   {resultMap[idx] === 'applied' && <span style={{ color: 'lightgreen' }}>Applied</span>}
@@ -211,7 +189,6 @@ export default function SolopilotArchitectureModal({ onClose }: { onClose?: () =
       </div>
 
       {diff && <PatchDiffModal diff={diff} onClose={() => setDiff(null)} />}
-
       <div style={{ marginTop: 18 }}><ConflictResolverPanel /></div>
     </div>
   );

@@ -1,22 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 export default function LogsPanel() {
   const [logs, setLogs] = useState<string[]>([]);
 
-  useEffect(() => {
-    const buildId = "latest";
-    const es = new EventSource(`/api/builds/${buildId}/logs`);
-
-    es.onmessage = (e) => {
-      setLogs(prev => [...prev, e.data]);
-    };
-
-    es.onerror = () => {
-      es.close();
-    };
-
-    return () => es.close();
-  }, []);
+  useRealtimeEvent("console", (data) => {
+    try {
+      const e = data as { line?: string; text?: string };
+      const line = e.line ?? e.text ?? JSON.stringify(data);
+      setLogs((prev) => [...prev.slice(-499), line]);
+    } catch {
+      setLogs((prev) => [...prev.slice(-499), String(data)]);
+    }
+  });
 
   return (
     <div style={{ fontFamily: "monospace", fontSize: 12, padding: 8, background: "#0b0b0b", color: "#ddd", height: "100%", overflow: "auto" }}>

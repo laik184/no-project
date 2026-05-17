@@ -10,5 +10,14 @@
 import { openSSE } from "@/realtime/sse-utils";
 
 export function connectSSE(onEvent: (data: unknown) => void): () => void {
-  return openSSE("/events", { event: onEvent });
+  return openSSE("/api/realtime", {
+    agent:                 onEvent,
+    lifecycle:             onEvent,
+    console:               onEvent,
+    file:                  onEvent,
+    "runtime.verified":    onEvent,
+    "runtime.observation": onEvent,
+    diff:                  onEvent,
+    checkpoint:            onEvent,
+  });
 }

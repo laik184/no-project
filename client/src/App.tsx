@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarDrawerProvider } from "@/components/panels/sidebar-drawer-context";
 import { SidebarDrawer } from "@/components/panels/sidebar-drawer";
 import { AppStateProvider } from "@/context/app-state-context";
+import { RealtimeProvider } from "@/realtime/realtime-provider";
 import { ImportModalProvider } from "@/context/import-modal-context";
 import { ImportModal } from "@/components/import/import-modal";
 import Home from "@/pages/core/home";
@@ -85,6 +86,7 @@ function AppShell() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeProvider>
       <AppStateProvider>
         <ImportModalProvider>
           <SidebarDrawerProvider>
@@ -97,6 +99,7 @@ function App() {
           </SidebarDrawerProvider>
         </ImportModalProvider>
       </AppStateProvider>
+      </RealtimeProvider>
     </QueryClientProvider>
   );
 }
