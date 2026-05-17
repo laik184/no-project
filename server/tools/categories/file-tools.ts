@@ -1,8 +1,20 @@
-import fs from "fs/promises";
+/**
+ * server/tools/categories/file-tools.ts
+ *
+ * File tools: file_list, file_read, file_write, file_delete
+ *
+ * Security: file_write routes through the diff approval gate for existing files.
+ * New files are written directly. The gate is bypassed when DISABLE_DIFF_APPROVAL=true.
+ */
+
+import fs   from "fs/promises";
 import path from "path";
-import { getProjectDir, resolveSafe } from "../../infrastructure/sandbox/sandbox.util.ts";
-import { emitFileChange } from "../../infrastructure/events/file-change-emitter.ts";
+import { getProjectDir, resolveSafe }     from "../../infrastructure/sandbox/sandbox.util.ts";
+import { emitFileChange }                  from "../../infrastructure/events/file-change-emitter.ts";
+import { requestApproval, isApprovalEnabled } from "../../approvals/diff-approval.service.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
+
+// ── file_list ─────────────────────────────────────────────────────────────────
 
 async function buildTree(dir: string, maxDepth: number, depth = 0): Promise<string[]> {
   if (depth >= maxDepth) return [];
@@ -28,14 +40,14 @@ export const fileList: Tool = {
   parameters: {
     type: "object",
     properties: {
-      path: { type: "string", description: "Subdirectory to list (default: project root)" },
+      path:     { type: "string", description: "Subdirectory to list (default: project root)" },
       maxDepth: { type: "number", description: "Max depth (default 4)" },
     },
   },
   async run(args, ctx: ToolContext): Promise<ToolResult> {
     const projectDir = getProjectDir(ctx.projectId);
-    const subPath = (args.path as string) || ".";
-    const maxDepth = (args.maxDepth as number) || 4;
+    const subPath    = (args.path as string) || ".";
+    const maxDepth   = (args.maxDepth as number) || 4;
     try {
       const targetDir = resolveSafe(projectDir, subPath);
       const tree = await buildTree(targetDir, maxDepth);
@@ -46,15 +58,17 @@ export const fileList: Tool = {
   },
 };
 
+// ── file_read ─────────────────────────────────────────────────────────────────
+
 export const fileRead: Tool = {
   name: "file_read",
   description: "Read the contents of a file in the project sandbox.",
   parameters: {
     type: "object",
     properties: {
-      path: { type: "string", description: "Relative file path" },
+      path:   { type: "string", description: "Relative file path" },
       offset: { type: "number", description: "Start line (1-indexed, optional)" },
-      limit: { type: "number", description: "Max lines to read (optional)" },
+      limit:  { type: "number", description: "Max lines to read (optional)" },
     },
     required: ["path"],
   },
@@ -66,7 +80,7 @@ export const fileRead: Tool = {
       if (args.offset || args.limit) {
         const lines = content.split("\n");
         const start = ((args.offset as number) || 1) - 1;
-        const end = args.limit ? start + (args.limit as number) : lines.length;
+        const end   = args.limit ? start + (args.limit as number) : lines.length;
         content = lines.slice(start, end).join("\n");
       }
       const stat = await fs.stat(abs);
@@ -77,32 +91,82 @@ export const fileRead: Tool = {
   },
 };
 
+// ── file_write ────────────────────────────────────────────────────────────────
+
 export const fileWrite: Tool = {
   name: "file_write",
-  description: "Create or overwrite a file in the project sandbox.",
+  description:
+    "Create or overwrite a file in the project sandbox. " +
+    "For existing files, a diff is sent to the user for approval before writing. " +
+    "New files are created immediately.",
   parameters: {
     type: "object",
     properties: {
-      path: { type: "string", description: "Relative file path" },
+      path:    { type: "string", description: "Relative file path" },
       content: { type: "string", description: "File content" },
     },
     required: ["path", "content"],
   },
   async run(args, ctx: ToolContext): Promise<ToolResult> {
-    const projectDir = getProjectDir(ctx.projectId);
+    const projectDir  = getProjectDir(ctx.projectId);
+    const filePath    = args.path as string;
+    const newContent  = args.content as string;
+
     try {
-      const abs = resolveSafe(projectDir, args.path as string);
-      const existed = await fs.stat(abs).then(() => true).catch(() => false);
+      const abs         = resolveSafe(projectDir, filePath);
+      const existedStat = await fs.stat(abs).catch(() => null);
+      const isNewFile   = existedStat === null;
+
+      // ── Approval gate: only for existing files ───────────────────────────────
+      if (!isNewFile && isApprovalEnabled()) {
+        const oldContent = await fs.readFile(abs, "utf-8").catch(() => "");
+
+        if (oldContent === newContent) {
+          return { ok: true, result: { path: filePath, written: true, unchanged: true } };
+        }
+
+        const { sessionId, diffId, additions, deletions } = await requestApproval({
+          sessionId:  "", // generated inside requestApproval
+          projectId:  ctx.projectId,
+          runId:      ctx.runId,
+          filePath,
+          isNewFile:  false,
+          oldContent,
+          newContent,
+        });
+
+        return {
+          ok: true,
+          result: {
+            path:             filePath,
+            pending:          true,
+            approvalRequired: true,
+            sessionId,
+            diffId,
+            additions,
+            deletions,
+            message:
+              `Diff sent for user approval (+${additions}/-${deletions} lines). ` +
+              `File will be written when the user approves. ` +
+              `Do not attempt to re-write this file until the user confirms.`,
+          },
+        };
+      }
+
+      // ── Direct write: new file or approval disabled ──────────────────────────
       await fs.mkdir(path.dirname(abs), { recursive: true });
-      await fs.writeFile(abs, args.content as string, "utf-8");
+      await fs.writeFile(abs, newContent, "utf-8");
       const stat = await fs.stat(abs);
-      emitFileChange(ctx.projectId, existed ? "change" : "add", args.path as string);
-      return { ok: true, result: { path: args.path, size: stat.size, written: true } };
+      emitFileChange(ctx.projectId, isNewFile ? "add" : "change", filePath);
+      return { ok: true, result: { path: filePath, size: stat.size, written: true } };
+
     } catch (e: any) {
       return { ok: false, error: e.message };
     }
   },
 };
+
+// ── file_delete ───────────────────────────────────────────────────────────────
 
 export const fileDelete: Tool = {
   name: "file_delete",

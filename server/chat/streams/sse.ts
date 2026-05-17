@@ -142,6 +142,19 @@ export function createSseRouter(): Router {
     onClose(req, startHeartbeat(res), off1, off2, off3, off4, off5, off6);
   });
 
+  // ── Diff approval stream (projectId-scoped) ──────────────────────────────────
+  // Used by: useDiffApproval (diff modal in workspace)
+  // Sends "diff" events when the agent wants to overwrite a file.
+  r.get("/sse/diffs", (req: Request, res: Response) => {
+    setupSse(res);
+    const projectIdFilter = req.query.projectId ? Number(req.query.projectId) : null;
+    const off = bus.subscribe("agent.diff", (e) => {
+      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
+      sseSend(res, "diff", e);
+    });
+    onClose(req, startHeartbeat(res), off);
+  });
+
   // ── Solopilot dashboard stream (agent + lifecycle) ────────────────────────────
   r.get("/api/solopilot/dashboard/stream", (req: Request, res: Response) => {
     setupSse(res);

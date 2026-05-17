@@ -53,6 +53,7 @@ import { CheckpointCard, type CheckpointData } from "@/components/panels/Checkpo
 import { type AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import { generateMockDiffs, type FileDiff } from "@/components/diff/FileDiffCard";
 import { ChatPanel } from "@/components/chat";
+import { DiffApprovalModal } from "@/features/diff-approval/DiffApprovalModal";
 
 function InvitePopup({ onClose }: { onClose: () => void }) {
   const [email, setEmail]       = useState("");
@@ -409,6 +410,7 @@ export default function Workspace() {
       </div>
 
       {showInvitePopup && <InvitePopup onClose={() => setShowInvitePopup(false)} />}
+      <DiffApprovalModal />
     </>
   );
 }

@@ -82,6 +82,26 @@ export interface ToolExecutionEvent {
   ts:           number;
 }
 
+/**
+ * Fired when the agent wants to write an existing file and diff approval is enabled.
+ * Frontend renders a diff modal; user approves/rejects via REST.
+ */
+export interface AgentDiffEvent {
+  diffId:       number;
+  sessionId:    string;
+  projectId:    number;
+  runId:        string;
+  filePath:     string;
+  isNewFile:    boolean;
+  oldContent:   string;
+  newContent:   string;
+  unifiedDiff:  string;
+  status:       "pending" | "approved" | "rejected" | "expired";
+  createdAt:    number;
+  expiresAt:    number;
+  ts?:          number;
+}
+
 type BusEvents = {
   "agent.event":         (event: AgentEvent) => void;
   "run.lifecycle":       (event: RunLifecycleEvent) => void;
@@ -91,6 +111,7 @@ type BusEvents = {
   "runtime.observation": (event: RuntimeObservationEvent) => void;
   "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
   "tool.execution":      (event: ToolExecutionEvent) => void;
+  "agent.diff":          (event: AgentDiffEvent) => void;
 };
 
 class TypedEventEmitter extends EventEmitter {
