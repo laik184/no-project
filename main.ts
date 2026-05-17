@@ -31,6 +31,8 @@ import consolePipeline from './server/console/index.ts';
 import { createExecutionHistoryRouter, initExecutionHistory } from './server/execution-history/index.ts';
 import { createSecurityRouter } from './server/security/index.ts';
 import { createDiffApprovalRouter } from './server/api/diff-approval.routes.ts';
+import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
+import { startEmergencyRecoveryListener } from './server/infrastructure/checkpoints/restore/emergency-recovery.service.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -68,6 +70,7 @@ app.use('/api/tools', createToolsRouter());
 app.use('/api/execution-history', createExecutionHistoryRouter());
 app.use('/api/security', createSecurityRouter());
 app.use('/api/approvals', createDiffApprovalRouter());
+app.use('/api/checkpoints', createCheckpointsRouter());
 app.use('/api/chat', chatOrchestrator.buildChatRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
@@ -162,6 +165,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   observationController.start();
   // Initialize persistent tool execution history system
   initExecutionHistory();
+  // Start emergency auto-recovery listener (rolls back on run.lifecycle failed)
+  startEmergencyRecoveryListener();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

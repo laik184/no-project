@@ -102,6 +102,25 @@ export interface AgentDiffEvent {
   ts?:          number;
 }
 
+/**
+ * Emitted at every stage of the checkpoint / rollback lifecycle.
+ * eventType values: creating | stable | failed | rollback_started |
+ *                   rollback_completed | emergency_recovery
+ */
+export interface CheckpointEvent {
+  eventType:     string;
+  checkpointId?: string;
+  projectId:     number;
+  runId?:        string;
+  trigger?:      string;
+  gitSha?:       string;
+  restoredCount?: number;
+  success?:      boolean;
+  error?:        string;
+  reason?:       string;
+  ts:            number;
+}
+
 type BusEvents = {
   "agent.event":         (event: AgentEvent) => void;
   "run.lifecycle":       (event: RunLifecycleEvent) => void;
@@ -112,6 +131,7 @@ type BusEvents = {
   "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
   "tool.execution":      (event: ToolExecutionEvent) => void;
   "agent.diff":          (event: AgentDiffEvent) => void;
+  "checkpoint.event":    (event: CheckpointEvent) => void;
 };
 
 class TypedEventEmitter extends EventEmitter {

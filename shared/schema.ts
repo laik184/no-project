@@ -188,6 +188,43 @@ export type DeploymentSecret = typeof deploymentSecrets.$inferSelect;
 export type DeploymentSettings = typeof deploymentSettings.$inferSelect;
 export type DeploymentAuthConfig = typeof deploymentAuthConfig.$inferSelect;
 
+// ─── Checkpoint + Rollback tables ────────────────────────────────────────────
+
+export const checkpoints = pgTable("checkpoints", {
+  id:            serial("id").primaryKey(),
+  checkpointId:  varchar("checkpoint_id", { length: 64 }).notNull().unique(),
+  projectId:     integer("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  runId:         varchar("run_id", { length: 64 }).references(() => agentRuns.id, { onDelete: "set null" }),
+  trigger:       varchar("trigger", { length: 32 }).notNull(),
+  status:        varchar("status", { length: 32 }).default("stable").notNull(),
+  gitCommitSha:  varchar("git_commit_sha", { length: 64 }),
+  fileCount:     integer("file_count").default(0).notNull(),
+  label:         text("label"),
+  createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("checkpoints_project_id_idx").on(t.projectId),
+  index("checkpoints_run_id_idx").on(t.runId),
+  index("checkpoints_created_at_idx").on(t.createdAt),
+]);
+
+export const rollbackHistory = pgTable("rollback_history", {
+  id:            serial("id").primaryKey(),
+  checkpointId:  varchar("checkpoint_id", { length: 64 }).notNull(),
+  projectId:     integer("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  runId:         varchar("run_id", { length: 64 }),
+  scope:         varchar("scope", { length: 32 }).notNull(),
+  status:        varchar("status", { length: 32 }).default("completed").notNull(),
+  restoredFiles: jsonb("restored_files").default([]).notNull(),
+  error:         text("error"),
+  triggeredAt:   timestamp("triggered_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("rollback_history_project_id_idx").on(t.projectId),
+]);
+
+export type Checkpoint       = typeof checkpoints.$inferSelect;
+export type InsertCheckpoint = typeof checkpoints.$inferInsert;
+export type RollbackHistoryRow = typeof rollbackHistory.$inferSelect;
+
 export interface Folder {
   id: number;
   name: string;

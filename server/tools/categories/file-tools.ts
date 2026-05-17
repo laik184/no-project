@@ -12,6 +12,7 @@ import path from "path";
 import { getProjectDir, resolveSafe }     from "../../infrastructure/sandbox/sandbox.util.ts";
 import { emitFileChange }                  from "../../infrastructure/events/file-change-emitter.ts";
 import { requestApproval, isApprovalEnabled } from "../../approvals/diff-approval.service.ts";
+import { atomicWrite }                     from "../../infrastructure/checkpoints/atomic-write.util.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
 
 // ── file_list ─────────────────────────────────────────────────────────────────
@@ -153,9 +154,8 @@ export const fileWrite: Tool = {
         };
       }
 
-      // ── Direct write: new file or approval disabled ──────────────────────────
-      await fs.mkdir(path.dirname(abs), { recursive: true });
-      await fs.writeFile(abs, newContent, "utf-8");
+      // ── Direct write: new file or approval disabled (atomic) ─────────────────
+      await atomicWrite(abs, newContent);
       const stat = await fs.stat(abs);
       emitFileChange(ctx.projectId, isNewFile ? "add" : "change", filePath);
       return { ok: true, result: { path: filePath, size: stat.size, written: true } };

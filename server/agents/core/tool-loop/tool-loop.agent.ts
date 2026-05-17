@@ -22,6 +22,9 @@ import { TOOL_REFERENCE }            from "./tool-reference.ts";
 import { withRetry }                 from "./retry.ts";
 import { executeToolCall }           from "./tool-call.executor.ts";
 import { executionObserver }         from "../../../tools/observation/index.ts";
+import { checkpointStore }           from "../../../infrastructure/checkpoints/checkpoint.service.ts";
+import { rollbackLatestForRun }      from "../../../infrastructure/checkpoints/rollback.service.ts";
+import { getProjectDir }             from "../../../infrastructure/sandbox/sandbox.util.ts";
 import {
   runVerificationEngine,
   buildVerificationFeedback,
@@ -69,6 +72,16 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
 
   const ctx: ToolContext = { projectId: input.projectId, runId: input.runId, signal: input.signal };
   const retryCtrl = input.skipVerification ? null : getOrCreateRetryController(input.runId);
+
+  // ── Pre-run checkpoint: create a safety snapshot before any changes ────────
+  const sandboxRoot = getProjectDir(input.projectId);
+  checkpointStore.create({
+    projectId:   input.projectId,
+    sandboxRoot,
+    trigger:     "run_start",
+    runId:       input.runId,
+    label:       `pre-run: ${input.goal.slice(0, 60)}`,
+  }).catch((e) => console.warn("[tool-loop] Pre-run checkpoint failed (non-fatal):", e.message));
 
   emit(input.runId, "agent.thinking", "tool-loop", {
     text: `Starting agent loop for: ${input.goal.slice(0, 200)}`,
