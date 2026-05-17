@@ -12,6 +12,7 @@ NURA X is an experimental next-generation **Agentic AI Development Platform** in
 * Replit
 * Cursor
 * Lovable
+* claude
 
 It allows users to:
 
