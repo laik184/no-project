@@ -131,14 +131,31 @@ export function CenterPanel({
   useEditorSync({
     tabId: activeTabId,
     filePath: isFileTab ? activeFilePath : undefined,
-    onExternalChange: useCallback((newContent: string, serverMtime: number) => {
-      const model = editorRef.current?.getModel();
+    onExternalChange: useCallback((newContent: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const model = editor.getModel();
       if (!model) return;
+
+      // Preserve cursor position and scroll so AI writes don't jump the view
+      const selection  = editor.getSelection();
+      const scrollTop  = editor.getScrollTop();
+      const scrollLeft = editor.getScrollLeft();
+
       model.pushEditOperations(
         [],
         [{ range: model.getFullModelRange(), text: newContent }],
         () => null,
       );
+
+      // Restore position — clamp to new model bounds
+      if (selection) {
+        const lineCount = model.getLineCount();
+        const ln  = Math.min(selection.positionLineNumber, lineCount);
+        const col = Math.min(selection.positionColumn, model.getLineMaxColumn(ln));
+        editor.setPosition({ lineNumber: ln, column: col });
+      }
+      editor.setScrollPosition({ scrollTop, scrollLeft });
     }, []),
   });
 

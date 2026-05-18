@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RawTreeNode } from "./types";
 import { optimisticInsertFile, removeOptimisticFile } from "./tree-helpers";
 import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
@@ -9,13 +9,16 @@ interface UseFileExplorerOptions {
 }
 
 export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOptions) {
-  const [tree, setTree]               = useState<RawTreeNode[]>([]);
-  const [dirtyFiles, setDirtyFiles]   = useState<Set<string>>(new Set());
-  const [aiFiles, setAiFiles]         = useState<Set<string>>(new Set());
+  const [tree, setTree]                   = useState<RawTreeNode[]>([]);
+  const [dirtyFiles, setDirtyFiles]       = useState<Set<string>>(new Set());
+  const [aiFiles, setAiFiles]             = useState<Set<string>>(new Set());
   const [writingFiles, setWritingFiles]   = useState<Set<string>>(new Set());
   const [writingSizes, setWritingSizes]   = useState<Map<string, number>>(new Map());
-  const [focusedPath, setFocusedPath] = useState<string | null>(null);
-  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+  const [focusedPath, setFocusedPath]     = useState<string | null>(null);
+  const [hoveredPath, setHoveredPath]     = useState<string | null>(null);
+  // Tracks pending safety-fallback timers keyed by file path so they can be
+  // cancelled when the completion event arrives or on unmount.
+  const writingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const loadTree = () => {
     if (!projectPath) return;
@@ -104,14 +107,23 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
         if (d.size !== undefined) {
           setWritingSizes((prev) => { const n = new Map(prev); n.set(d.path!, d.size!); return n; });
         }
-        // Safety fallback: auto-clear after 15 seconds in case completion event is missed
-        setTimeout(() => {
+        // Safety fallback: auto-clear after 15 seconds if the completion event
+        // is missed. Cancel any previous timer for this path to avoid duplicates,
+        // and track the new timer so it can be cancelled on completion or unmount.
+        const existingTimer = writingTimers.current.get(d.path!);
+        if (existingTimer !== undefined) clearTimeout(existingTimer);
+        const timer = setTimeout(() => {
+          writingTimers.current.delete(d.path!);
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
           setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }, 15_000);
+        writingTimers.current.set(d.path!, timer);
       } else {
-        // Write completed (add / change / unlink) — clear in-flight state and refresh tree
+        // Write completed (add / change / unlink) — cancel fallback timer,
+        // clear in-flight state, and refresh tree.
         if (d.path) {
+          const t = writingTimers.current.get(d.path!);
+          if (t !== undefined) { clearTimeout(t); writingTimers.current.delete(d.path!); }
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
           setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }
@@ -135,6 +147,14 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [focusedPath, activeFile]);
+
+  // Cleanup all pending writing-fallback timers on unmount
+  useEffect(() => {
+    return () => {
+      for (const timer of writingTimers.current.values()) clearTimeout(timer);
+      writingTimers.current.clear();
+    };
+  }, []);
 
   const apiRenameFile = async (oldPath: string, newPath: string) => {
     const res = await fetch("/api/rename-file", {

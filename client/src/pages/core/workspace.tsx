@@ -253,14 +253,21 @@ export default function Workspace() {
   const openFileTab = (name: string, content: string, lang: string) => {
     setActiveFileName(name);
     setTabs((prev) => {
-      const existing = prev.find((t) => t.fileContent !== undefined && t.label === name);
+      // Deduplicate by full path (filePath) so re-opening the same file
+      // switches to the existing tab rather than opening a duplicate.
+      const existing = prev.find(
+        (t) => t.fileContent !== undefined && (t.filePath === name || t.label === name),
+      );
       if (existing) {
         setActiveTabId(existing.id);
         return prev;
       }
       const id = nextTabId.current++;
       setActiveTabId(id);
-      return [...prev, { id, label: name, fileContent: content, fileLang: lang }];
+      // Store the full path in filePath so useEditorSync can match SSE events
+      // precisely. Use only the filename as the visible tab label.
+      const label = name.includes('/') ? (name.split('/').pop() ?? name) : name;
+      return [...prev, { id, label, filePath: name, fileContent: content, fileLang: lang }];
     });
   };
 
