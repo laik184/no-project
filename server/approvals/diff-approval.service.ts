@@ -21,6 +21,8 @@ import { eq }        from "drizzle-orm";
 import { bus }       from "../infrastructure/events/bus.ts";
 import { emitFileChange } from "../infrastructure/events/file-change-emitter.ts";
 import { getProjectDir }  from "../infrastructure/sandbox/sandbox.util.ts";
+import { atomicWrite }    from "../infrastructure/checkpoints/atomic-write.util.ts";
+import { versionStore }   from "../collaboration/version-store.ts";
 import { generateUnifiedDiff, diffStats } from "./diff-generator.ts";
 import {
   createSession, resolveSession,
@@ -115,8 +117,10 @@ export async function approve(sessionId: string): Promise<ApprovalOutcome | { er
   try {
     const projectDir = getProjectDir(pending.projectId);
     const abs        = path.join(projectDir, pending.filePath);
-    await fs.mkdir(path.dirname(abs), { recursive: true });
-    await fs.writeFile(abs, pending.newContent, "utf-8");
+    // Atomic write: temp-file rename prevents partial writes
+    await atomicWrite(abs, pending.newContent);
+    // Track version so future conflict detection works
+    versionStore.record(pending.projectId, pending.filePath, pending.newContent, "agent");
     emitFileChange(pending.projectId, pending.isNewFile ? "add" : "change", pending.filePath);
     await updateDbStatus(pending.diffId, "applied");
     bus.emit("agent.diff", { ...pending, status: "approved" });

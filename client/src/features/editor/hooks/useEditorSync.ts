@@ -85,7 +85,17 @@ export function useEditorSync({
       const fp  = filePathRef.current;
 
       // First dirty/saving check — avoids launching a fetch we'll discard anyway.
-      if (!dirtyStateStore.canReceiveExternalChange(tid)) return;
+      if (!dirtyStateStore.canReceiveExternalChange(tid)) {
+        // Notify the workspace that an external change arrived for a dirty file.
+        // This lets the UI show a non-blocking "file changed externally" warning
+        // without overwriting what the user is typing.
+        window.dispatchEvent(
+          new CustomEvent('file:external-change-blocked', {
+            detail: { filePath: fp, projectId: d.projectId },
+          }),
+        );
+        return;
+      }
       if (saveQueueService.isInFlight(fp)) return;
 
       // Claim the current generation. If a newer event fires before this fetch
@@ -121,7 +131,14 @@ export function useEditorSync({
 
           // Second dirty/saving check — the user may have started typing while
           // the fetch was in flight.
-          if (!dirtyStateStore.canReceiveExternalChange(tid)) return;
+          if (!dirtyStateStore.canReceiveExternalChange(tid)) {
+            window.dispatchEvent(
+              new CustomEvent('file:external-change-blocked', {
+                detail: { filePath: fp, projectId: d.projectId },
+              }),
+            );
+            return;
+          }
 
           saveQueueService.updateServerMtime(fp, mtime);
           dirtyStateStore.applyExternalContent(tid, mtime);

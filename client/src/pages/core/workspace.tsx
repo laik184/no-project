@@ -54,6 +54,7 @@ import { type AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import { generateMockDiffs, type FileDiff } from "@/components/diff/FileDiffCard";
 import { ChatPanel } from "@/components/chat";
 import { DiffApprovalModal } from "@/features/diff-approval/DiffApprovalModal";
+import { useExternalChangeWarning } from "@/features/collaboration/useExternalChangeWarning";
 
 function InvitePopup({ onClose }: { onClose: () => void }) {
   const [email, setEmail]       = useState("");
@@ -220,6 +221,8 @@ function InvitePopup({ onClose }: { onClose: () => void }) {
 
 export default function Workspace() {
   const [, navigate] = useLocation();
+  // Show a non-blocking toast when an external file change arrives on a dirty tab.
+  useExternalChangeWarning();
   const [chatInput, setChatInput] = useState("");
   // Preview tab is open by default so the user immediately sees their app.
   const [tabs, setTabs] = useState<WorkspaceTab[]>([
