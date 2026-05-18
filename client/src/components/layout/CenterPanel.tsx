@@ -15,8 +15,12 @@ import {
   fileTabIcon, langDisplayName,
 } from "./editor-toolbar";
 import type { WorkspaceTab } from "./editor-toolbar";
-import { useAutoSave } from "@/features/editor/hooks/useAutoSave";
+import { dirtyStateStore } from "@/features/editor-state/dirty-state.store";
+import { saveQueueService } from "@/features/editor/services/save-queue";
+import { useEditorSession } from "@/features/editor-state/hooks/useEditorSession";
 import { useEditorSync } from "@/features/editor/hooks/useEditorSync";
+import { onBeforeUnload } from "@/features/editor-state/editor-events";
+import type { SaveStatus } from "@/features/editor/types/auto-save.types";
 
 export type { WorkspaceTab } from "./editor-toolbar";
 
@@ -50,13 +54,13 @@ const toolItems = [
   {
     section: "Deployment",
     items: [
-      { id: "publishing",   label: "Publishing",  sub: "Publish a live, stable, public version of your app",     icon: Globe,   color: "#4ade80", bg: "rgba(74,222,128,0.1)",   url: "__publishing__"  },
+      { id: "publishing", label: "Publishing", sub: "Publish a live, stable, public version of your app",   icon: Globe,   color: "#4ade80", bg: "rgba(74,222,128,0.1)",   url: "__publishing__" },
     ],
   },
   {
     section: "Safety",
     items: [
-      { id: "checkpoints",  label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", url: "__checkpoints__" },
+      { id: "checkpoints", label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", url: "__checkpoints__" },
     ],
   },
 ];
@@ -78,97 +82,85 @@ export function CenterPanel({
   tabs, activeTabId, setActiveTabId, addTab, closeTab,
   addToolTab, openFileTab, showFileExplorer, setShowFileExplorer, activeFileName,
 }: CenterPanelProps) {
-  const [modifiedIds, setModifiedIds] = useState<Set<number>>(new Set());
-  const [wordWrap, setWordWrap]       = useState(true);
-  const [cursorPos, setCursorPos]     = useState({ line: 1, col: 1 });
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
-  const contentRef = useRef<string>("");
+  // ── Per-tab derived state from the central store ───────────────────────────
+  const [dirtyTabIds, setDirtyTabIds] = useState<Set<number>>(new Set());
+  const [activeTabSaveStatus, setActiveTabSaveStatus] = useState<SaveStatus>('idle');
+  const activeTabIdRef = useRef(activeTabId);
+  useEffect(() => { activeTabIdRef.current = activeTabId; }, [activeTabId]);
 
-  const activeTab  = tabs.find((t) => t.id === activeTabId);
-  const isFileTab  = activeTab?.fileContent !== undefined;
+  useEffect(() => {
+    return dirtyStateStore.subscribe((snapshot) => {
+      const dirty = new Set<number>();
+      for (const [id, s] of snapshot) { if (s.isDirty) dirty.add(id); }
+      setDirtyTabIds(dirty);
+      const active = snapshot.get(activeTabIdRef.current);
+      setActiveTabSaveStatus(active?.saveStatus ?? 'idle');
+    });
+  }, []);
+
+  // ── Bridge: saveQueueService → dirtyStateStore ─────────────────────────────
+  useEffect(() => {
+    return saveQueueService.addStatusSubscriber((filePath, status, serverMtime) => {
+      const tab = dirtyStateStore.getTabByFilePath(filePath);
+      if (!tab) return;
+      dirtyStateStore.setSaveStatus(tab.tabId, status, serverMtime);
+      if (status === 'saved') dirtyStateStore.markClean(tab.tabId, serverMtime);
+    });
+  }, []);
+
+  // ── Protect unsaved changes on browser close ───────────────────────────────
+  useEffect(() => {
+    return onBeforeUnload(() => dirtyStateStore.hasAnyDirty());
+  }, []);
+
+  const [wordWrap, setWordWrap] = useState(true);
+  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+
+  const activeTab    = tabs.find((t) => t.id === activeTabId);
+  const isFileTab    = activeTab?.fileContent !== undefined;
   const activeFilePath = activeTab?.filePath ?? activeTab?.label;
 
-  const markModified = useCallback((id: number) => {
-    setModifiedIds((prev) => { const s = new Set(prev); s.add(id); return s; });
-  }, []);
-
-  const removeModified = useCallback((id: number) => {
-    setModifiedIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
-  }, []);
-
-  // ── Auto-save hook ─────────────────────────────────────────────────────────
-  const { saveStatus, onContentChange, forceSave, notifyFileClosed } = useAutoSave({
+  // ── Editor session: per active tab (debounce + store integration) ──────────
+  const { onContentChange, forceSave, flush } = useEditorSession({
+    tabId: activeTabId,
     filePath: isFileTab ? activeFilePath : undefined,
   });
 
   // ── External sync: re-load editor when AI writes this file ────────────────
-  const hasPendingEdits = modifiedIds.has(activeTabId);
   useEditorSync({
+    tabId: activeTabId,
     filePath: isFileTab ? activeFilePath : undefined,
-    hasPendingEdits,
-    onExternalChange: useCallback((newContent: string) => {
+    onExternalChange: useCallback((newContent: string, serverMtime: number) => {
       const model = editorRef.current?.getModel();
       if (!model) return;
-      // Use pushEditOperations to preserve undo history
       model.pushEditOperations(
         [],
         [{ range: model.getFullModelRange(), text: newContent }],
         () => null,
       );
-      contentRef.current = newContent;
-      // Clear modified flag — content is now in sync with server
-      setModifiedIds((prev) => {
-        const s = new Set(prev);
-        s.delete(activeTabId);
-        return s;
-      });
-    }, [activeTabId]),
+    }, []),
   });
 
-  // ── Ctrl+S force-save ──────────────────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const ke = e as KeyboardEvent;
-      if ((ke.ctrlKey || ke.metaKey) && (ke.key === "s" || ke.key === "S")) {
-        ke.preventDefault();
-      }
-      if (!isFileTab || !activeFilePath) return;
-      const content = contentRef.current;
-      if (!content) return;
-      void forceSave(content);
-      removeModified(activeTabId);
-    };
+  // ── Tab switching: flush pending save before switching ─────────────────────
+  const handleTabSwitch = useCallback(async (id: number) => {
+    if (id === activeTabId) return;
+    await flush();
+    setActiveTabId(id);
+  }, [activeTabId, flush, setActiveTabId]);
 
-    const globalSaveHandler = () => {
-      if (!isFileTab || !activeFilePath) return;
-      const content = contentRef.current;
-      if (!content) return;
-      void forceSave(content);
-      removeModified(activeTabId);
-    };
-
-    window.addEventListener("keydown", handler);
-    window.addEventListener("global-save", globalSaveHandler);
-    return () => {
-      window.removeEventListener("keydown", handler);
-      window.removeEventListener("global-save", globalSaveHandler);
-    };
-  }, [isFileTab, activeFilePath, activeTabId, forceSave, removeModified]);
-
-  // ── Cleanup on tab close ───────────────────────────────────────────────────
-  const handleCloseTab = useCallback((id: number) => {
-    const tab = tabs.find((t) => t.id === id);
-    if (tab?.filePath ?? tab?.label) {
-      notifyFileClosed(tab!.filePath ?? tab!.label!);
-    }
-    removeModified(id);
+  // ── Tab close: flush, then clean store, then close ─────────────────────────
+  const handleCloseTab = useCallback(async (id: number) => {
+    if (id === activeTabId) await flush();
+    dirtyStateStore.removeTab(id);
+    const fp = tabs.find((t) => t.id === id)?.filePath;
+    if (fp) saveQueueService.clear(fp);
     closeTab(id);
-  }, [tabs, notifyFileClosed, removeModified, closeTab]);
+  }, [activeTabId, flush, tabs, closeTab]);
 
+  // ── Monaco mount ───────────────────────────────────────────────────────────
   const handleMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
-    // Capture initial content
-    contentRef.current = editor.getValue();
     editor.onDidChangeCursorPosition((e) => {
       setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -186,13 +178,11 @@ export function CenterPanel({
     });
   }, []);
 
-  // ── Editor onChange: capture content + trigger auto-save ──────────────────
+  // ── Editor onChange ────────────────────────────────────────────────────────
   const handleEditorChange = useCallback((value: string | undefined) => {
     if (value === undefined) return;
-    contentRef.current = value;
-    markModified(activeTabId);
     onContentChange(value);
-  }, [activeTabId, markModified, onContentChange]);
+  }, [onContentChange]);
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
@@ -204,13 +194,18 @@ export function CenterPanel({
       >
         {tabs.map((tab) => {
           const isActive   = tab.id === activeTabId;
-          const isModified = modifiedIds.has(tab.id);
+          const isModified = dirtyTabIds.has(tab.id);
           return (
             <div
               key={tab.id}
-              onClick={() => setActiveTabId(tab.id)}
+              onClick={() => void handleTabSwitch(tab.id)}
               className="flex items-center gap-1.5 pl-2.5 pr-1 rounded-md border text-xs cursor-pointer transition-all flex-shrink-0 group"
-              style={{ height: 26, background: isActive ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.025)", borderColor: isActive ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)", color: isActive ? "rgba(226,232,240,0.9)" : "rgba(148,163,184,0.55)" }}
+              style={{
+                height: 26,
+                background: isActive ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.025)",
+                borderColor: isActive ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)",
+                color: isActive ? "rgba(226,232,240,0.9)" : "rgba(148,163,184,0.55)",
+              }}
               data-testid={`tab-${tab.id}`}
             >
               {tabIcon(tab)}
@@ -219,12 +214,20 @@ export function CenterPanel({
                 {isModified ? (
                   <>
                     <span className="group-hover:hidden w-1.5 h-1.5 rounded-full" style={{ background: "#fbbf24" }} />
-                    <button onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }} className="hidden group-hover:flex w-4 h-4 items-center justify-center rounded hover:bg-white/10 transition-colors" data-testid={`button-close-tab-${tab.id}`}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void handleCloseTab(tab.id); }}
+                      className="hidden group-hover:flex w-4 h-4 items-center justify-center rounded hover:bg-white/10 transition-colors"
+                      data-testid={`button-close-tab-${tab.id}`}
+                    >
                       <X style={{ width: 9, height: 9 }} />
                     </button>
                   </>
                 ) : (
-                  <button onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }} className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100" data-testid={`button-close-tab-${tab.id}`}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); void handleCloseTab(tab.id); }}
+                    className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+                    data-testid={`button-close-tab-${tab.id}`}
+                  >
                     <X style={{ width: 9, height: 9 }} />
                   </button>
                 )}
@@ -235,7 +238,10 @@ export function CenterPanel({
 
         <button
           onClick={addTab}
-          className={cn("flex items-center gap-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors flex-shrink-0", tabs.length > 0 ? "w-6 h-6 justify-center" : "px-2.5 h-7")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors flex-shrink-0",
+            tabs.length > 0 ? "w-6 h-6 justify-center" : "px-2.5 h-7",
+          )}
           data-testid="button-new-tab"
         >
           <Plus style={{ width: 12, height: 12 }} />
@@ -251,8 +257,8 @@ export function CenterPanel({
             <EditorToolbar
               label={activeTab!.label}
               lang={activeTab!.fileLang}
-              modified={modifiedIds.has(activeTab!.id)}
-              saveStatus={saveStatus}
+              modified={dirtyTabIds.has(activeTab!.id)}
+              saveStatus={activeTabSaveStatus}
               wordWrap={wordWrap}
               line={cursorPos.line}
               col={cursorPos.col}
@@ -264,11 +270,15 @@ export function CenterPanel({
           <div className="flex-1 relative overflow-hidden">
             {(() => {
               if (isFileTab) {
+                // FIX: restore edited content when switching back to this tab
+                const restoredContent =
+                  dirtyStateStore.getEditedContent(activeTab!.id) ?? activeTab!.fileContent;
+
                 return (
                   <div className="absolute inset-0">
                     <Editor
                       key={activeTab!.id}
-                      defaultValue={activeTab!.fileContent}
+                      defaultValue={restoredContent}
                       language={activeTab!.fileLang ?? "typescript"}
                       theme="vs-dark"
                       onMount={handleMount}
@@ -295,11 +305,19 @@ export function CenterPanel({
               if (activeTab?.url === "__database__")    return <DatabasePanel />;
               if (activeTab?.url === "__console__")     return <ConsolePanel />;
               if (activeTab?.url === "__publishing__")  return <PublishingPanel />;
-              if (activeTab?.url === "__auth__")        return <AuthPanel onClose={() => handleCloseTab(activeTabId)} />;
+              if (activeTab?.url === "__auth__")        return <AuthPanel onClose={() => void handleCloseTab(activeTabId)} />;
               if (activeTab?.url === "__git__")         return <GitPanel />;
               if (activeTab?.url === "__checkpoints__") return <CheckpointPanel />;
               if (activeTab?.url) {
-                return <iframe key={activeTab.url} src={activeTab.url} className="absolute inset-0 w-full h-full border-0" title={activeTab.label} data-testid={`iframe-tab-${activeTab.id}`} />;
+                return (
+                  <iframe
+                    key={activeTab.url}
+                    src={activeTab.url}
+                    className="absolute inset-0 w-full h-full border-0"
+                    title={activeTab.label}
+                    data-testid={`iframe-tab-${activeTab.id}`}
+                  />
+                );
               }
               return (
                 <div className="absolute inset-0 overflow-y-auto" style={{ background: "rgba(255,255,255,0.006)" }}>
@@ -345,8 +363,8 @@ export function CenterPanel({
           {isFileTab && (
             <StatusBar
               lang={activeTab!.fileLang}
-              modified={modifiedIds.has(activeTab!.id)}
-              saveStatus={saveStatus}
+              modified={dirtyTabIds.has(activeTab!.id)}
+              saveStatus={activeTabSaveStatus}
               line={cursorPos.line}
               col={cursorPos.col}
             />
@@ -354,7 +372,10 @@ export function CenterPanel({
         </div>
 
         {/* ── File Explorer side panel ── */}
-        <div className="h-full flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out" style={{ width: showFileExplorer ? 240 : 0, borderLeft: showFileExplorer ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
+        <div
+          className="h-full flex-shrink-0 overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ width: showFileExplorer ? 240 : 0, borderLeft: showFileExplorer ? "1px solid rgba(255,255,255,0.07)" : "none" }}
+        >
           {showFileExplorer && (
             <FileTreePanel
               activeFileName={activeFileName}

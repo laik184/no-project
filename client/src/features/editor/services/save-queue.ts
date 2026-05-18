@@ -19,15 +19,22 @@ interface FileState {
 
 export class SaveQueueService {
   private files = new Map<string, FileState>();
-  private onStatus?: StatusCallback;
+  private subscribers = new Set<StatusCallback>();
   private config: AutoSaveConfig;
 
   constructor(config?: Partial<AutoSaveConfig>) {
     this.config = { ...DEFAULT_AUTO_SAVE_CONFIG, ...config };
   }
 
+  addStatusSubscriber(cb: StatusCallback): () => void {
+    this.subscribers.add(cb);
+    return () => this.subscribers.delete(cb);
+  }
+
+  /** @deprecated use addStatusSubscriber for multi-subscriber support */
   setStatusCallback(cb: StatusCallback): void {
-    this.onStatus = cb;
+    this.subscribers.clear();
+    this.subscribers.add(cb);
   }
 
   updateServerMtime(filePath: string, mtime: number): void {
@@ -119,10 +126,16 @@ export class SaveQueueService {
   }
 
   private emit(filePath: string, status: SaveStatus, serverMtime?: number): void {
-    try { this.onStatus?.(filePath, status, serverMtime); } catch {}
+    this.subscribers.forEach((cb) => { try { cb(filePath, status, serverMtime); } catch {} });
+  }
+
+  isInFlight(filePath: string): boolean {
+    return this.files.get(filePath)?.inFlight ?? false;
   }
 
   clear(filePath: string): void {
+    const state = this.files.get(filePath);
+    if (state?.inFlight) return;
     this.files.delete(filePath);
   }
 }

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useRealtime } from '@/realtime/realtime-provider';
-import { saveQueueService } from '../services/save-queue.ts';
+import { dirtyStateStore } from '@/features/editor-state/dirty-state.store';
+import { saveQueueService } from '../services/save-queue';
 
 interface UseEditorSyncOptions {
+  tabId: number;
   filePath: string | undefined;
-  hasPendingEdits: boolean;
   onExternalChange: (newContent: string, serverMtime: number) => void;
 }
 
@@ -16,16 +17,16 @@ function pathsMatch(a: string, b: string): boolean {
 }
 
 export function useEditorSync({
+  tabId,
   filePath,
-  hasPendingEdits,
   onExternalChange,
 }: UseEditorSyncOptions): void {
   const { subscribe } = useRealtime();
+  const tabIdRef = useRef(tabId);
   const filePathRef = useRef(filePath);
-  const hasPendingRef = useRef(hasPendingEdits);
 
+  useEffect(() => { tabIdRef.current = tabId; }, [tabId]);
   useEffect(() => { filePathRef.current = filePath; }, [filePath]);
-  useEffect(() => { hasPendingRef.current = hasPendingEdits; }, [hasPendingEdits]);
 
   useEffect(() => {
     if (!filePath) return;
@@ -35,16 +36,25 @@ export function useEditorSync({
       if (!d.path || !filePathRef.current) return;
       if (d.type !== 'change' && d.type !== 'add') return;
       if (!pathsMatch(d.path, filePathRef.current)) return;
-      if (hasPendingRef.current) return;
 
-      const path = filePathRef.current;
-      fetch(`/api/read-file?filePath=${encodeURIComponent(path)}`)
+      const tid = tabIdRef.current;
+      const fp = filePathRef.current;
+
+      if (!dirtyStateStore.canReceiveExternalChange(tid)) return;
+      if (saveQueueService.isInFlight(fp)) return;
+
+      fetch(`/api/read-file?filePath=${encodeURIComponent(fp)}`)
         .then((r) => r.json())
         .then((data: { ok: boolean; content?: string; modifiedAt?: string }) => {
           if (!data.ok || data.content === undefined) return;
-          if (filePathRef.current !== path) return;
+          if (filePathRef.current !== fp) return;
+
           const mtime = data.modifiedAt ? new Date(data.modifiedAt).getTime() : Date.now();
-          saveQueueService.updateServerMtime(path, mtime);
+
+          if (!dirtyStateStore.canReceiveExternalChange(tid)) return;
+
+          saveQueueService.updateServerMtime(fp, mtime);
+          dirtyStateStore.applyExternalContent(tid, mtime);
           onExternalChange(data.content, mtime);
         })
         .catch(() => {});
