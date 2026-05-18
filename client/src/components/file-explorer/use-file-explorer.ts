@@ -18,7 +18,10 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   const [hoveredPath, setHoveredPath]     = useState<string | null>(null);
   // Tracks pending safety-fallback timers keyed by file path so they can be
   // cancelled when the completion event arrives or on unmount.
-  const writingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const writingTimers       = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Coalesces rapid file.change events so the tree fetch fires once after the
+  // last event rather than N times for N simultaneous writes.
+  const treeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTree = () => {
     if (!projectPath) return;
@@ -120,14 +123,21 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
         writingTimers.current.set(d.path!, timer);
       } else {
         // Write completed (add / change / unlink) — cancel fallback timer,
-        // clear in-flight state, and refresh tree.
+        // clear in-flight state, then coalesce the tree refresh so N rapid
+        // writes only trigger one /api/list-files call.
         if (d.path) {
           const t = writingTimers.current.get(d.path!);
           if (t !== undefined) { clearTimeout(t); writingTimers.current.delete(d.path!); }
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
           setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }
-        refreshFiles();
+        // Debounce: if multiple file-change events arrive within 200ms, only
+        // one tree-fetch is fired (the one after the last event in the burst).
+        if (treeRefreshTimerRef.current) clearTimeout(treeRefreshTimerRef.current);
+        treeRefreshTimerRef.current = setTimeout(() => {
+          treeRefreshTimerRef.current = null;
+          refreshFiles();
+        }, 200);
       }
     } catch {}
   });
@@ -148,11 +158,12 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     return () => window.removeEventListener("keydown", handler);
   }, [focusedPath, activeFile]);
 
-  // Cleanup all pending writing-fallback timers on unmount
+  // Cleanup all pending timers on unmount
   useEffect(() => {
     return () => {
       for (const timer of writingTimers.current.values()) clearTimeout(timer);
       writingTimers.current.clear();
+      if (treeRefreshTimerRef.current) clearTimeout(treeRefreshTimerRef.current);
     };
   }, []);
 

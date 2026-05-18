@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type RefObject, type FormEvent } from "react";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 interface UseNavigationLogicArgs {
   iframeRef: RefObject<HTMLIFrameElement>;
@@ -98,6 +99,14 @@ export function useNavigationLogic({
     window.addEventListener("file-refresh", handler);
     return () => window.removeEventListener("file-refresh", handler);
   }, []);
+
+  // Preview auto-refresh: when the AI verifies the runtime is healthy, do a
+  // soft reload so the user immediately sees the latest app state without
+  // manually clicking refresh.
+  useRealtimeEvent("runtime.verified", () => {
+    setIframeKey((k) => k + 1);
+    setLastReloadType("hot");
+  });
 
   useEffect(() => {
     if (!showDevUrlPopup) return;

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera } from "lucide-react";
+import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Preview from "@/pages/preview/index";
 import { DatabasePanel } from "@/components/panels/DatabasePanel";
@@ -112,6 +112,70 @@ export function CenterPanel({
   useEffect(() => {
     return onBeforeUnload(() => dirtyStateStore.hasAnyDirty());
   }, []);
+
+  // ── Conflict resolution ────────────────────────────────────────────────────
+  // conflictPath is set when the save queue receives a 409 from the server
+  // (our clientMtime doesn't match the file's actual mtime — another process
+  // wrote the file between our last sync and this save).
+  const [conflictPath, setConflictPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const path = (e as CustomEvent).detail?.path as string | undefined;
+      if (path) setConflictPath(path);
+    };
+    window.addEventListener("editor:conflict", handler);
+    return () => window.removeEventListener("editor:conflict", handler);
+  }, []);
+
+  const handleConflictReload = useCallback(async () => {
+    const fp = conflictPath;
+    if (!fp) return;
+    const tab = tabs.find((t) => (t.filePath ?? t.label) === fp);
+    if (!tab) { setConflictPath(null); return; }
+    try {
+      const res  = await fetch(`/api/read-file?filePath=${encodeURIComponent(fp)}`);
+      const data = await res.json() as { ok: boolean; content?: string; modifiedAt?: string };
+      if (data.ok && data.content !== undefined) {
+        const mtime = data.modifiedAt
+          ? Math.round(new Date(data.modifiedAt).getTime())
+          : Date.now();
+        saveQueueService.updateServerMtime(fp, mtime);
+        dirtyStateStore.applyExternalContent(tab.id, mtime);
+        if (tab.id === activeTabId) {
+          const model = editorRef.current?.getModel();
+          if (model) {
+            model.pushEditOperations(
+              [], [{ range: model.getFullModelRange(), text: data.content }], () => null,
+            );
+          }
+        }
+      }
+    } catch {}
+    setConflictPath(null);
+  }, [conflictPath, tabs, activeTabId]);
+
+  const handleConflictOverwrite = useCallback(async () => {
+    const fp = conflictPath;
+    if (!fp) return;
+    const tab = tabs.find((t) => (t.filePath ?? t.label) === fp);
+    if (!tab) { setConflictPath(null); return; }
+    const content = dirtyStateStore.getEditedContent(tab.id) ?? tab.fileContent ?? "";
+    try {
+      const res = await fetch("/api/save-file", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        // No clientMtime field → server performs an unconditional overwrite
+        body: JSON.stringify({ filePath: fp, content }),
+      });
+      const data = await res.json() as { ok: boolean; serverMtime?: number };
+      if (data.ok) {
+        saveQueueService.updateServerMtime(fp, data.serverMtime ?? Date.now());
+        dirtyStateStore.markClean(tab.id, data.serverMtime);
+      }
+    } catch {}
+    setConflictPath(null);
+  }, [conflictPath, tabs]);
 
   const [wordWrap, setWordWrap] = useState(true);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -282,6 +346,55 @@ export function CenterPanel({
               onToggleWrap={toggleWrap}
               onFormat={handleFormat}
             />
+          )}
+
+          {/* Conflict resolution banner — shown when the server rejects our save
+              because another process wrote the file after our last sync.        */}
+          {isFileTab && conflictPath && conflictPath === activeFilePath && (
+            <div
+              className="flex items-center gap-2.5 px-4 py-2 flex-shrink-0 text-xs"
+              style={{
+                background: "rgba(239,68,68,0.1)",
+                borderBottom: "1px solid rgba(239,68,68,0.22)",
+              }}
+              data-testid="banner-conflict"
+            >
+              <AlertTriangle style={{ width: 13, height: 13, color: "#fca5a5", flexShrink: 0 }} />
+              <span style={{ color: "#fca5a5", flex: 1 }}>
+                Server has a newer version — your changes weren&apos;t saved.
+              </span>
+              <button
+                onClick={() => void handleConflictReload()}
+                className="px-2.5 py-0.5 rounded text-[11px] font-medium transition-opacity hover:opacity-80"
+                style={{
+                  background: "rgba(239,68,68,0.22)",
+                  color: "#fca5a5",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                }}
+                data-testid="button-conflict-reload"
+              >
+                Reload from server
+              </button>
+              <button
+                onClick={() => void handleConflictOverwrite()}
+                className="px-2.5 py-0.5 rounded text-[11px] font-medium transition-opacity hover:opacity-80"
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  color: "rgba(226,232,240,0.65)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+                data-testid="button-conflict-overwrite"
+              >
+                Force overwrite
+              </button>
+              <button
+                onClick={() => setConflictPath(null)}
+                className="opacity-40 hover:opacity-80 transition-opacity ml-1"
+                data-testid="button-conflict-dismiss"
+              >
+                <X style={{ width: 11, height: 11 }} />
+              </button>
+            </div>
           )}
 
           <div className="flex-1 relative overflow-hidden">
