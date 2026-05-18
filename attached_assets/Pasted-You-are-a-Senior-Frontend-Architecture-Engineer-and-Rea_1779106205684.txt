@@ -1,0 +1,270 @@
+You are a Senior Frontend Architecture Engineer and React Systems Refactor Specialist.
+
+Your task is to deeply scan, audit, and refactor the frontend hook architecture to fix fragmented hook logic, duplicated stream subscriptions, unstable UI state propagation, and oversized component complexity.
+
+MAIN TARGET:
+Fix:
+C7 — Fragmented Hooks → UI Instability
+
+━━━━━━━━━━━━━━━━━━━━
+PROBLEM DESCRIPTION
+━━━━━━━━━━━━━━━━━━━━
+
+The frontend currently contains:
+- duplicated hooks
+- overlapping SSE subscriptions
+- multiple stream consumers
+- duplicated state logic
+- scattered runtime state
+- oversized React components
+- unstable rendering patterns
+- duplicated event processing
+- disconnected hook responsibilities
+
+This causes:
+- random UI desync
+- duplicate event rendering
+- stale state
+- memory leaks
+- inconsistent agent state
+- unstable preview updates
+- unnecessary rerenders
+- hook conflicts
+- race conditions
+- poor maintainability
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN FOCUS AREAS
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan ALL frontend architecture related to:
+
+- chat
+- streaming
+- SSE
+- WebSocket
+- console
+- preview
+- runtime
+- file explorer
+- workspace
+- agent state
+- app state
+- event subscriptions
+
+Scan especially:
+
+client/src/hooks/
+client/src/components/
+client/src/context/
+client/src/lib/
+client/src/pages/workspace.tsx
+client/src/components/ChatPanel.tsx
+client/src/components/CenterPanel.tsx
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT DETECTION TASKS
+━━━━━━━━━━━━━━━━━━━━
+
+Find:
+- duplicated hooks
+- overlapping hook responsibilities
+- hooks subscribing to same SSE streams
+- duplicated EventSource usage
+- duplicated WebSocket logic
+- hook state conflicts
+- multiple sources of truth
+- rerender loops
+- stale closures
+- missing cleanup functions
+- listener leaks
+- oversized hooks
+- oversized components
+- deeply nested state
+- prop drilling
+- duplicated stream parsing
+- fragmented runtime state
+- duplicated loading state
+- duplicated agent state
+- duplicated preview state
+- duplicated console state
+
+━━━━━━━━━━━━━━━━━━━━
+SPECIFIC FILE ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Audit:
+- useAgentRunner
+- useLiveAgentStream
+- use-agent-ultra-stream
+- useAgiStream
+- sse.ts
+- app-state-context
+- workspace state
+- preview hooks
+- console hooks
+
+Explain:
+- what each hook does
+- where responsibilities overlap
+- which hooks should be merged
+- which hooks should be deleted
+- which state should become centralized
+
+━━━━━━━━━━━━━━━━━━━━
+REFACTOR GOALS
+━━━━━━━━━━━━━━━━━━━━
+
+Create a CLEAN FRONTEND ARCHITECTURE with:
+
+✅ single source of truth
+✅ centralized stream manager
+✅ unified SSE handling
+✅ modular hooks
+✅ low coupling
+✅ high cohesion
+✅ predictable state flow
+✅ isolated responsibilities
+✅ stable rerender patterns
+✅ proper cleanup handling
+✅ scalable folder structure
+✅ reusable stream layer
+✅ reusable runtime state
+✅ reusable agent state
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+RULES:
+- Maximum 250 lines per file
+- Maximum 1 responsibility per hook
+- Maximum 1 stream subscription source
+- No duplicated EventSource connections
+- No duplicated WebSocket connections
+- No direct EventSource usage inside UI components
+- No giant god-components
+- No giant hooks
+- No circular imports
+- No duplicated state logic
+- No mixed concerns
+
+Architecture MUST follow:
+- high cohesion
+- low coupling
+- feature isolation
+- modular design
+- predictable event flow
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET FINAL ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Create architecture like:
+
+client/src/
+├── features/
+│   ├── agent/
+│   │   ├── hooks/
+│   │   ├── streams/
+│   │   ├── state/
+│   │   ├── components/
+│   │   └── services/
+│   ├── console/
+│   ├── preview/
+│   ├── explorer/
+│   └── workspace/
+│
+├── shared/
+│   ├── streams/
+│   ├── events/
+│   ├── state/
+│   ├── hooks/
+│   └── utils/
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT STREAM REFACTOR
+━━━━━━━━━━━━━━━━━━━━
+
+Design:
+ONE centralized stream manager.
+
+Instead of:
+- multiple EventSource instances
+- multiple duplicated listeners
+- fragmented hooks
+
+Create:
+- one stream connection manager
+- event routing layer
+- subscription registry
+- centralized cleanup system
+
+Example target:
+StreamManager
+  ├── connect()
+  ├── disconnect()
+  ├── subscribe(event, handler)
+  ├── unsubscribe()
+  └── reconnect()
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Full Hook Architecture Audit
+2. Duplicated Hooks Report
+3. UI Instability Root Causes
+4. SSE Duplication Report
+5. Rerender Problem Report
+6. Memory Leak Risk Report
+7. Hook Responsibility Violations
+8. Oversized Component Report
+9. Current vs Correct Architecture
+10. Centralized State Plan
+11. Stream Refactor Plan
+12. Folder Structure Refactor
+13. Hook Merge/Delete Plan
+14. Component Split Plan
+15. Stable State Flow Diagram
+16. Production-Grade Hook Architecture
+17. Refactored File Tree
+18. Exact Files To Modify
+19. Exact Hooks To Remove
+20. Exact Hooks To Merge
+21. Exact Hooks To Create
+22. Final Scalable Frontend Architecture
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT IMPLEMENTATION RULES
+━━━━━━━━━━━━━━━━━━━━
+
+When generating fixes:
+- keep files under 250 lines
+- split giant hooks
+- split giant components
+- move logic into services
+- move SSE handling outside UI
+- isolate business logic
+- isolate rendering logic
+- use composition over monoliths
+- avoid prop drilling
+- prefer feature-based architecture
+
+DO NOT:
+- rewrite everything blindly
+- break working flows
+- remove existing functionality
+- create unnecessary abstractions
+
+ONLY:
+- stabilize architecture
+- reduce coupling
+- improve maintainability
+- improve scalability
+- improve predictability
+- improve runtime stability
+
+Act like a principal engineer refactoring a production-scale AI IDE frontend.
