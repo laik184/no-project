@@ -11,6 +11,8 @@ import { filesService } from './files/files.service.ts';
 import { tunnelService } from './tunnel/tunnel.service.ts';
 import { devtoolsService } from './devtools/devtools.service.ts';
 import { stateService } from './state/state.service.ts';
+import { mountLifecycleBridge } from './lifecycle/preview-lifecycle-bridge.ts';
+import { getLifecycleManager } from './lifecycle/preview-lifecycle.manager.ts';
 import type { ProjectProcess, RunResult, StopResult, RestartResult } from './runtime/runtime.types.ts';
 import type { PreviewState } from './state/state.types.ts';
 
@@ -47,6 +49,7 @@ export class PreviewOrchestrator {
 
     this.wireRuntimeEvents();
     this.wireStateEvents();
+    mountLifecycleBridge();
 
     this.status = 'ready';
     this.initialized = true;
@@ -59,6 +62,9 @@ export class PreviewOrchestrator {
     projectPath: string,
     options?: { command?: string; port?: number; env?: Record<string, string> }
   ): Promise<RunResult> {
+    const numId = parseInt(id, 10) || 0;
+    getLifecycleManager(numId).forceTransition('starting', `Starting "${id}"…`);
+
     const result = await runtimeService.run({ id, projectPath, ...options });
 
     if (result.ok) {
@@ -70,6 +76,7 @@ export class PreviewOrchestrator {
         source: 'orchestrator',
         projectId: id,
       });
+      getLifecycleManager(numId).forceTransition('ready', `Server ready on port ${result.port}.`, { port: result.port });
       this.emit({ type: 'project-started', payload: { id, port: result.port, pid: result.pid } });
     } else {
       devtoolsService.pushConsoleLog({
@@ -78,6 +85,7 @@ export class PreviewOrchestrator {
         source: 'orchestrator',
         projectId: id,
       });
+      getLifecycleManager(numId).forceTransition('crashed', result.error ?? 'Failed to start.', { error: result.error });
       this.emit({ type: 'project-error', payload: { id, error: result.error } });
     }
 
@@ -94,6 +102,8 @@ export class PreviewOrchestrator {
         source: 'orchestrator',
         projectId: id,
       });
+      const numId = parseInt(id, 10) || 0;
+      getLifecycleManager(numId).forceTransition('idle', 'Project stopped.');
       this.emit({ type: 'project-stopped', payload: { id } });
     }
 
@@ -105,6 +115,9 @@ export class PreviewOrchestrator {
     projectPath: string,
     options?: { command?: string; port?: number }
   ): Promise<RestartResult> {
+    const numId = parseInt(id, 10) || 0;
+    getLifecycleManager(numId).forceTransition('restarting', `Restarting "${id}"…`);
+
     devtoolsService.pushConsoleLog({
       type: 'info',
       message: `[IQ2000] Restarting "${id}"...`,
@@ -116,8 +129,10 @@ export class PreviewOrchestrator {
 
     if (result.ok) {
       devtoolsService.signalReload();
+      getLifecycleManager(numId).forceTransition('ready', 'Restart complete.', { reloadType: result.reloadType });
       this.emit({ type: 'project-restarted', payload: { id, reloadType: result.reloadType } });
     } else {
+      getLifecycleManager(numId).forceTransition('crashed', result.error ?? 'Restart failed.', { error: result.error });
       this.emit({ type: 'project-error', payload: { id, error: result.error } });
     }
 

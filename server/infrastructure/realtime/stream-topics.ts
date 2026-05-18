@@ -19,6 +19,7 @@ export const TOPIC = {
   RUNTIME_OBSERVATION: "runtime.observation",
   DIFF:                "diff",
   CHECKPOINT:          "checkpoint",
+  PREVIEW_LIFECYCLE:   "preview.lifecycle",
 } as const;
 
 export type Topic = typeof TOPIC[keyof typeof TOPIC];

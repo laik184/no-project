@@ -116,6 +116,15 @@ export interface CheckpointEvent {
   ts:             number;
 }
 
+export interface PreviewLifecycleEvent {
+  projectId: number;
+  state:     string;
+  prevState: string;
+  message:   string;
+  meta?:     Record<string, unknown>;
+  ts:        number;
+}
+
 export type BusEvents = {
   "agent.event":         (event: AgentEvent) => void;
   "run.lifecycle":       (event: RunLifecycleEvent) => void;
@@ -127,4 +136,5 @@ export type BusEvents = {
   "tool.execution":      (event: ToolExecutionEvent) => void;
   "agent.diff":          (event: AgentDiffEvent) => void;
   "checkpoint.event":    (event: CheckpointEvent) => void;
+  "preview.lifecycle":   (event: PreviewLifecycleEvent) => void;
 };

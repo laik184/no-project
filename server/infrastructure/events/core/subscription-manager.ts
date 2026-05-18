@@ -27,6 +27,7 @@ import { matchesRuntimeVerified,
          matchesRuntimeObservation }  from "../channels/runtime-channel.ts";
 import { matchesDiff }                from "../channels/diff-channel.ts";
 import { matchesCheckpoint }          from "../channels/checkpoint-channel.ts";
+import { matchesPreviewLifecycle }    from "../channels/preview-lifecycle-channel.ts";
 
 // ── Unlimited listeners — the hub pattern means always exactly 1 per event ──
 bus.setMaxListeners(0);
@@ -83,6 +84,12 @@ bus.on("checkpoint.event", (e) => {
   pool.fanOut(TOPIC.CHECKPOINT, e, seqId, (conn) => matchesCheckpoint(conn, e));
 });
 
+// ── preview.lifecycle ─────────────────────────────────────────────────────────
+bus.on("preview.lifecycle", (e) => {
+  const seqId = record(TOPIC.PREVIEW_LIFECYCLE, e);
+  pool.fanOut(TOPIC.PREVIEW_LIFECYCLE, e, seqId, (conn) => matchesPreviewLifecycle(conn, e));
+});
+
 // ── Listener leak detection ───────────────────────────────────────────────────
 // The hub pattern keeps SSE fan-out to exactly 1 listener per event type.
 // However, a small number of non-SSE architectural subscribers are expected:
@@ -94,6 +101,7 @@ const LEAK_THRESHOLD = 6;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
   "runtime.verified", "runtime.observation", "agent.diff", "checkpoint.event",
+  "preview.lifecycle",
 ] as const;
 
 const _leakTimer = setInterval(() => {

@@ -2,6 +2,8 @@ import { type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { DEVICE_CONFIGS, type DeviceKey } from "./preview-types";
 import { DeviceFrame, TabletFrame } from "./device-frames";
+import { PreviewLifecycleOverlay } from "./lifecycle/PreviewLifecycleOverlay";
+import type { PreviewLifecycleState } from "./lifecycle/preview-lifecycle-types";
 
 export interface IframeViewProps {
   iframeRef: RefObject<HTMLIFrameElement>;
@@ -18,12 +20,50 @@ export interface IframeViewProps {
   onResetCustomSize: () => void;
   onPlayClick: () => void;
   onOverlayRun: () => void;
+  // Lifecycle
+  lifecycleState:   PreviewLifecycleState;
+  lifecyclePrev:    PreviewLifecycleState;
+  lifecycleMessage: string;
+  lifecycleMeta?:   Record<string, unknown>;
+  onRetry?:         () => void;
+}
+
+const IFRAME_SRC = "/preview-frame";
+
+function LifecycleAwareIframe({
+  iframeRef, iframeKey, onIframeLoad,
+  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry,
+  children,
+}: {
+  iframeRef: RefObject<HTMLIFrameElement>;
+  iframeKey: number;
+  onIframeLoad: () => void;
+  lifecycleState:   PreviewLifecycleState;
+  lifecyclePrev:    PreviewLifecycleState;
+  lifecycleMessage: string;
+  lifecycleMeta?:   Record<string, unknown>;
+  onRetry?:         () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative w-full h-full">
+      {children}
+      <PreviewLifecycleOverlay
+        state={lifecycleState}
+        prevState={lifecyclePrev}
+        message={lifecycleMessage}
+        meta={lifecycleMeta}
+        onRetry={onRetry}
+      />
+    </div>
+  );
 }
 
 export function IframeView({
   iframeRef, iframeKey, selectedDevice, customWidth, customHeight, previewContainerRef,
   isExecuting, isRunning, onIframeLoad, onSelectDevice, onResizeDragStart,
   onResetCustomSize, onPlayClick, onOverlayRun,
+  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry,
 }: IframeViewProps) {
   const cfg = DEVICE_CONFIGS[selectedDevice];
 
@@ -39,11 +79,16 @@ export function IframeView({
               transition: "aspect-ratio 0.25s cubic-bezier(0.22,1,0.36,1)",
             }}>
               <DeviceFrame deviceKey={selectedDevice}>
-                <iframe key={iframeKey} ref={iframeRef} src="http://localhost:5000"
-                  className="absolute inset-0 w-full h-full border-none"
-                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-                  title="Preview" onLoad={onIframeLoad} />
-
+                <LifecycleAwareIframe
+                  iframeRef={iframeRef} iframeKey={iframeKey} onIframeLoad={onIframeLoad}
+                  lifecycleState={lifecycleState} lifecyclePrev={lifecyclePrev}
+                  lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta} onRetry={onRetry}
+                >
+                  <iframe key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+                    className="absolute inset-0 w-full h-full border-none"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                    title="Preview" onLoad={onIframeLoad} />
+                </LifecycleAwareIframe>
               </DeviceFrame>
             </div>
           </div>
@@ -64,11 +109,16 @@ export function IframeView({
         <div className="absolute inset-0 flex items-center justify-center" style={{ background: "radial-gradient(ellipse at 40% 35%, #060606 0%, #040404 45%, #020202 100%)", padding: "32px 40px 28px" }}>
           <div style={{ aspectRatio: "16/9", height: "100%", maxWidth: "100%", maxHeight: "100%", position: "relative", flexShrink: 0, transition: "aspect-ratio 0.25s cubic-bezier(0.22,1,0.36,1)" }}>
             <TabletFrame>
-              <iframe ref={iframeRef} src="http://localhost:5000"
-                className="absolute inset-0 w-full h-full border-none"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-                title="Preview" onLoad={onIframeLoad} />
-
+              <LifecycleAwareIframe
+                iframeRef={iframeRef} iframeKey={iframeKey} onIframeLoad={onIframeLoad}
+                lifecycleState={lifecycleState} lifecyclePrev={lifecyclePrev}
+                lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta} onRetry={onRetry}
+              >
+                <iframe ref={iframeRef} src={IFRAME_SRC}
+                  className="absolute inset-0 w-full h-full border-none"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                  title="Preview" onLoad={onIframeLoad} />
+              </LifecycleAwareIframe>
             </TabletFrame>
           </div>
         </div>
@@ -79,10 +129,14 @@ export function IframeView({
   if (selectedDevice === "fullsize" && !customWidth && !customHeight) {
     return (
       <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
-        <iframe ref={iframeRef} src="http://localhost:5000"
+        <iframe ref={iframeRef} src={IFRAME_SRC}
           className="absolute inset-0 w-full h-full border-none bg-white"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
+        <PreviewLifecycleOverlay
+          state={lifecycleState} prevState={lifecyclePrev}
+          message={lifecycleMessage} meta={lifecycleMeta} onRetry={onRetry}
+        />
       </div>
     );
   }
@@ -98,10 +152,16 @@ export function IframeView({
           ? { width: customWidth ?? "100%", height: customHeight ?? 500 }
           : { width: "100%", height: "100%" }),
       }}>
-        <iframe ref={iframeRef} src="http://localhost:5000"
+        <iframe ref={iframeRef} src={IFRAME_SRC}
           className="w-full h-full border-none"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
+
+        <PreviewLifecycleOverlay
+          state={lifecycleState} prevState={lifecyclePrev}
+          message={lifecycleMessage} meta={lifecycleMeta} onRetry={onRetry}
+        />
+
         {selectedDevice === "fullsize" && (
           <>
             <div onMouseDown={(e) => onResizeDragStart(e, "right")} className="absolute top-0 right-0 w-2 h-full cursor-col-resize group z-10 flex items-center justify-center" title="Drag to resize width">
@@ -135,13 +195,6 @@ export function IframeView({
           <div className="text-center space-y-6">
             <p className="text-gray-400 text-sm">Ready to preview</p>
             <Button onClick={onPlayClick} className="bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold px-8 py-3 text-base" data-testid="button-start-now">Start Now</Button>
-          </div>
-        </div>
-      )}
-      {isExecuting && cfg?.frame !== "phone" && cfg?.frame !== "tablet" && selectedDevice !== "fullsize" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#080808] to-[#0d0d0d] bg-opacity-90">
-          <div className="text-center space-y-4">
-            <p className="text-gray-300 text-sm font-medium">Running...</p>
           </div>
         </div>
       )}

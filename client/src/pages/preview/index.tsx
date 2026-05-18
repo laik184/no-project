@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAppState } from "@/context/app-state-context";
 import { GridPreviewPage } from "@/pages/grid/grid-preview-page";
 import { GridAgentPage } from "@/pages/grid/grid-agent-page";
@@ -17,6 +17,9 @@ import { useDeviceLogic } from "@/hooks/useDeviceLogic";
 import { useNavigationLogic } from "@/hooks/useNavigationLogic";
 import { useDevToolsLogic } from "@/hooks/useDevToolsLogic";
 import { useInspectLogic } from "@/hooks/useInspectLogic";
+import { usePreviewLifecycle } from "./lifecycle/usePreviewLifecycle";
+import { useIframeAutoRefresh } from "./lifecycle/useIframeAutoRefresh";
+import { PreviewStatusPill } from "./lifecycle/PreviewStatusPill";
 import "./preview-animations.css";
 
 export default function Preview() {
@@ -39,6 +42,29 @@ export default function Preview() {
   const [networkMode, setNetworkMode] = useState<"normal" | "slow" | "offline">("normal");
   const [followSharedPreview, setFollowSharedPreview] = useState(false);
   const [devToolsTab, setDevToolsTab] = useState<any>("console");
+
+  // ── Lifecycle system ──────────────────────────────────────────────────────
+  const { snapshot: lifecycle } = usePreviewLifecycle({
+    onStateChange: (s) => {
+      if (s.state === "crashed") {
+        setCrashReason(s.message);
+      } else if (s.state === "ready") {
+        setCrashReason(null);
+      }
+    },
+  });
+
+  // Auto-refresh iframe on key transitions
+  useIframeAutoRefresh({
+    state:       lifecycle.state,
+    prevState:   lifecycle.prevState,
+    setIframeKey,
+    delayMs:     600,
+  });
+
+  const handleRetry = useCallback(() => {
+    setIframeKey(k => k + 1);
+  }, []);
 
   const device = useDeviceLogic();
 
@@ -143,7 +169,10 @@ export default function Preview() {
               setShowDevicePopup={device.setShowDevicePopup}
               devicePopupRef={device.devicePopupRef}
               handleSelectDevice={device.handleSelectDevice}
-            />
+            >
+              {/* Status pill sits inside the browser bar */}
+              <PreviewStatusPill state={lifecycle.state} />
+            </BrowserBar>
 
             <main className="flex-1 overflow-hidden bg-black relative flex flex-col">
               <ProcessingPulse />
@@ -163,6 +192,11 @@ export default function Preview() {
                 onResetCustomSize={() => { device.setCustomWidth(null); device.setCustomHeight(null); }}
                 onPlayClick={() => nav.setIsExecuting(!nav.isExecuting)}
                 onOverlayRun={nav.handleOverlayRun}
+                lifecycleState={lifecycle.state}
+                lifecyclePrev={lifecycle.prevState}
+                lifecycleMessage={lifecycle.message}
+                lifecycleMeta={lifecycle.meta}
+                onRetry={handleRetry}
               />
 
               <ErrorPanel

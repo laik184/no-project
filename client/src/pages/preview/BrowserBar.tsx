@@ -37,6 +37,8 @@ export interface BrowserBarProps {
   setShowDevicePopup: React.Dispatch<React.SetStateAction<boolean>>;
   devicePopupRef: React.RefObject<HTMLDivElement>;
   handleSelectDevice: (key: DeviceKey) => void;
+  /** Optional extra content injected after the DevTools button (e.g. status pill). */
+  children?: React.ReactNode;
 }
 
 export function BrowserBar({
@@ -47,6 +49,7 @@ export function BrowserBar({
   urlInput, setUrlInput, handleUrlInputSubmit,
   devToolsOpen, setDevToolsOpen,
   selectedDevice, showDevicePopup, setShowDevicePopup, devicePopupRef, handleSelectDevice,
+  children,
 }: BrowserBarProps) {
   return (
     <div className="bg-black border-b border-gray-700 px-3 sm:px-4 py-2 flex-shrink-0 relative z-50">
@@ -236,6 +239,9 @@ export function BrowserBar({
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
+
+        {/* Injected slot — status pill, etc. */}
+        {children}
       </div>
     </div>
   );

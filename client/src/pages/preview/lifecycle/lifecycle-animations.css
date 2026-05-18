@@ -1,0 +1,247 @@
+/* lifecycle-animations.css — Replit-style preview state animations */
+
+/* ── Overlay container ───────────────────────────────────────────────── */
+.preview-lifecycle-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         50;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  pointer-events:  none;
+  overflow:        hidden;
+}
+
+.preview-lifecycle-overlay.plc-enter {
+  animation: plc-fade-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: auto;
+}
+
+.preview-lifecycle-overlay.plc-exit {
+  animation: plc-fade-out 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes plc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes plc-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Backdrop ────────────────────────────────────────────────────────── */
+.plc-backdrop {
+  position: absolute;
+  inset:    0;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    rgba(7, 7, 14, 0.97) 0%,
+    rgba(4, 4, 8, 0.99) 100%
+  );
+  backdrop-filter: blur(4px);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────── */
+.plc-card {
+  position:        relative;
+  z-index:         1;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             12px;
+  padding:         28px 36px;
+  border-radius:   16px;
+  background:      rgba(255, 255, 255, 0.03);
+  border:          1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:      0 24px 64px rgba(0, 0, 0, 0.6);
+  animation:       plc-card-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  min-width:       220px;
+  text-align:      center;
+}
+
+@keyframes plc-card-in {
+  from { transform: translateY(8px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);    opacity: 1; }
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────── */
+.plc-icon-wrap {
+  width:  48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.plc-spinner {
+  width:        40px;
+  height:       40px;
+  border:       3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--plc-color);
+  border-radius: 50%;
+  animation:    plc-spin 0.75s linear infinite;
+}
+
+@keyframes plc-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Crash icon pulse ────────────────────────────────────────────────── */
+.plc-crash-icon {
+  animation: plc-crash-pulse 2s ease-in-out infinite;
+}
+
+@keyframes plc-crash-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.95); }
+}
+
+/* ── Reconnect icon spin ─────────────────────────────────────────────── */
+.plc-reconnect-icon {
+  animation: plc-reconnect-rotate 1.2s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes plc-reconnect-rotate {
+  0%   { transform: rotate(0deg);   }
+  80%  { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Progress bar ────────────────────────────────────────────────────── */
+.plc-progress-track {
+  width:         160px;
+  height:        3px;
+  border-radius: 2px;
+  background:    rgba(255, 255, 255, 0.06);
+  overflow:      hidden;
+}
+
+.plc-progress-bar {
+  height:        100%;
+  border-radius: 2px;
+  animation:     plc-progress-shimmer 1.6s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+@keyframes plc-progress-shimmer {
+  0%   { transform: translateX(-100%); opacity: 0.9; }
+  60%  { transform: translateX(0%);    opacity: 1;   }
+  100% { transform: translateX(100%);  opacity: 0.9; }
+}
+
+/* ── Text ────────────────────────────────────────────────────────────── */
+.plc-label {
+  font-size:   13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.plc-message {
+  font-size:  12px;
+  color:      rgba(148, 163, 184, 0.75);
+  max-width:  260px;
+  line-height: 1.5;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.plc-meta {
+  font-size:  11px;
+  color:      rgba(248, 113, 113, 0.6);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────── */
+.plc-actions {
+  display:   flex;
+  gap:       8px;
+  margin-top: 4px;
+}
+
+.plc-btn {
+  padding:       6px 20px;
+  border-radius: 8px;
+  font-size:     12px;
+  font-weight:   600;
+  border:        none;
+  cursor:        pointer;
+  transition:    opacity 0.15s, transform 0.15s;
+}
+
+.plc-btn:active {
+  transform: scale(0.97);
+}
+
+.plc-btn-primary {
+  background: var(--plc-color);
+  color:      #000;
+}
+
+.plc-btn-primary:hover {
+  opacity: 0.85;
+}
+
+/* ── Particles ───────────────────────────────────────────────────────── */
+.plc-particles {
+  position:       absolute;
+  inset:          0;
+  pointer-events: none;
+  z-index:        0;
+  overflow:       hidden;
+}
+
+.plc-particle {
+  position:      absolute;
+  width:         4px;
+  height:        4px;
+  border-radius: 50%;
+  opacity:       0;
+  top:           50%;
+  left:          50%;
+  animation:     plc-particle-float 3s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes plc-particle-float {
+  0%   { transform: translate(-50%, -50%);                          opacity: 0;   }
+  20%  { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))); opacity: 0.5; }
+  80%  { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))); opacity: 0.2; }
+  100% { transform: translate(-50%, -50%);                          opacity: 0;   }
+}
+
+/* ── Status pill (for browser bar) ──────────────────────────────────── */
+.plc-status-pill {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             5px;
+  padding:         3px 10px;
+  border-radius:   999px;
+  font-size:       11px;
+  font-weight:     500;
+  font-family:     ui-monospace, "SF Mono", Menlo, monospace;
+  transition:      background 0.3s, color 0.3s;
+  border:          1px solid rgba(255,255,255,0.07);
+  background:      rgba(255,255,255,0.04);
+  white-space:     nowrap;
+}
+
+.plc-status-dot {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+
+.plc-status-dot.pulsing {
+  animation: plc-dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes plc-dot-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}

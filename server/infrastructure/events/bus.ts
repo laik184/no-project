@@ -28,6 +28,7 @@ export type {
   ToolExecutionEvent,
   AgentDiffEvent,
   CheckpointEvent,
+  PreviewLifecycleEvent,
   BusEvents,
 } from "./types/event.types.ts";
 
