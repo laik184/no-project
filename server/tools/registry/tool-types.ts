@@ -59,7 +59,8 @@ export type ToolCategory =
   | "browser"
   | "network"
   | "auth"
-  | "agent-control";
+  | "agent-control"
+  | "memory";
 
 // ── Permission levels ─────────────────────────────────────────────────────────
 

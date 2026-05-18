@@ -3,19 +3,20 @@
  *
  * All file I/O for the .nura/ project memory directory.
  *
- * Responsibilities:
- *   - ensureMemoryDir()         — create .nura/ if absent
- *   - readContextMd/write       — project run log
- *   - readArchitectureMd/write  — architectural decisions narrative
- *   - appendRunSummary          — append one line to run-history.jsonl
- *   - readRecentRuns            — read last N runs from run-history.jsonl
- *   - readDecisions/append      — decisions.json (rolling last-20)
- *   - readFailures/append       — failures.json (rolling last-10)
+ * Files managed:
+ *   context.md          — rolling run log (one entry per run)
+ *   architecture.md     — evolving architecture narrative
+ *   run-history.jsonl   — one JSON line per completed run
+ *   decisions.json      — structured decision history (last-20)
+ *   failures.json       — structured failure history (last-10)
+ *   progress.md         — human-readable project progress tracker  [C9]
+ *   decisions.md        — human-readable architectural decisions    [C9]
+ *   failed-attempts.md  — human-readable failure log               [C9]
  *
  * Ownership: memory/persistence — I/O only, no logic.
  */
 
-import fs   from "fs/promises";
+import fs from "fs/promises";
 import {
   getMemoryDir,
   getContextPath,
@@ -23,11 +24,15 @@ import {
   getRunHistoryPath,
   getDecisionsPath,
   getFailuresPath,
+  getProgressPath,
+  getDecisionsMdPath,
+  getFailedAttemptsPath,
 } from "./memory-paths.ts";
 import type { RunSummary, FailureEntry, ArchitectureDecision } from "../types.ts";
 
 const MAX_FAILURES  = 10;
 const MAX_DECISIONS = 20;
+const MAX_MD_CHARS  = 6_000;   // rolling cap for human-readable .md files
 
 // ─── Directory ────────────────────────────────────────────────────────────────
 
@@ -116,4 +121,61 @@ export async function appendFailure(
   const existing = await readFailures(projectId);
   const updated  = [entry, ...existing].slice(0, MAX_FAILURES);
   await fs.writeFile(getFailuresPath(projectId), JSON.stringify(updated, null, 2), "utf-8");
+}
+
+// ─── progress.md  [C9] ────────────────────────────────────────────────────────
+
+const PROGRESS_HEADER = "# Project Progress\n\nTracks completed milestones and current project state across agent runs.\n\n";
+
+export async function readProgressMd(projectId: number): Promise<string> {
+  try { return await fs.readFile(getProgressPath(projectId), "utf-8"); }
+  catch { return ""; }
+}
+
+export async function appendProgressMd(projectId: number, entry: string): Promise<void> {
+  await ensureMemoryDir(projectId);
+  let existing = await readProgressMd(projectId);
+  if (!existing) existing = PROGRESS_HEADER;
+  const date    = new Date().toISOString().slice(0, 10);
+  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
+  const pruned  = updated.length > MAX_MD_CHARS ? PROGRESS_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+  await fs.writeFile(getProgressPath(projectId), pruned, "utf-8");
+}
+
+// ─── decisions.md  [C9] ───────────────────────────────────────────────────────
+
+const DECISIONS_MD_HEADER = "# Architectural Decisions\n\nKey technical and design decisions made across agent runs.\n\n";
+
+export async function readDecisionsMd(projectId: number): Promise<string> {
+  try { return await fs.readFile(getDecisionsMdPath(projectId), "utf-8"); }
+  catch { return ""; }
+}
+
+export async function appendDecisionMd(projectId: number, entry: string): Promise<void> {
+  await ensureMemoryDir(projectId);
+  let existing = await readDecisionsMd(projectId);
+  if (!existing) existing = DECISIONS_MD_HEADER;
+  const date    = new Date().toISOString().slice(0, 10);
+  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
+  const pruned  = updated.length > MAX_MD_CHARS ? DECISIONS_MD_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+  await fs.writeFile(getDecisionsMdPath(projectId), pruned, "utf-8");
+}
+
+// ─── failed-attempts.md  [C9] ─────────────────────────────────────────────────
+
+const FAILED_HEADER = "# Failed Attempts — Do NOT Repeat\n\nBroken approaches the agent must avoid repeating.\n\n";
+
+export async function readFailedAttemptsMd(projectId: number): Promise<string> {
+  try { return await fs.readFile(getFailedAttemptsPath(projectId), "utf-8"); }
+  catch { return ""; }
+}
+
+export async function appendFailedAttemptMd(projectId: number, entry: string): Promise<void> {
+  await ensureMemoryDir(projectId);
+  let existing = await readFailedAttemptsMd(projectId);
+  if (!existing) existing = FAILED_HEADER;
+  const date    = new Date().toISOString().slice(0, 10);
+  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
+  const pruned  = updated.length > MAX_MD_CHARS ? FAILED_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+  await fs.writeFile(getFailedAttemptsPath(projectId), pruned, "utf-8");
 }

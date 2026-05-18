@@ -5,8 +5,8 @@
  *
  * Preferred usage: MemoryManager.for(projectId)
  *
- * The function exports (buildProjectContext, summarizeAndPersist) are kept
- * for backwards-compatibility. New consumers should use MemoryManager.
+ * The function exports are kept for backwards-compatibility.
+ * New consumers should use MemoryManager.
  */
 
 // ── Primary API ───────────────────────────────────────────────────────────────
@@ -18,15 +18,34 @@ export { MemoryManager }               from "./manager/memory-manager.ts";
 export { buildProjectContext }         from "./context/project-context-builder.ts";
 export { summarizeAndPersist }         from "./context/run-summarizer.ts";
 
-// ── Conversation persistence ──────────────────────────────────────────────────
+// ── Conversation persistence [C8] ─────────────────────────────────────────────
 
 export { persistConversation }         from "./conversation/conversation-persister.ts";
 export { extractChatTurns }            from "./conversation/message-extractor.ts";
-export { persistChatTurn, persistChatTurns, loadChatTurns } from "./persistence/chat-message-store.ts";
+export {
+  persistChatTurn,
+  persistChatTurns,
+  loadChatTurns,
+}                                      from "./persistence/chat-message-store.ts";
 
-// ── Task memory ───────────────────────────────────────────────────────────────
+// ── Task memory [C8] ──────────────────────────────────────────────────────────
 
-export { readTasksMd, appendPendingTask, appendCompletedTask } from "./task-memory/tasks-store.ts";
+export {
+  readTasksMd,
+  appendPendingTask,
+  appendCompletedTask,
+}                                      from "./task-memory/tasks-store.ts";
+
+// ── Human-readable .md file store [C9] ───────────────────────────────────────
+
+export {
+  readProgressMd,
+  appendProgressMd,
+  readDecisionsMd,
+  appendDecisionMd,
+  readFailedAttemptsMd,
+  appendFailedAttemptMd,
+}                                      from "./persistence/memory-store.ts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -42,3 +42,17 @@ export function getDecisionsPath(projectId: number): string {
 export function getFailuresPath(projectId: number): string {
   return path.join(getMemoryDir(projectId), "failures.json");
 }
+
+// ─── Human-readable .md files (C9 additions) ─────────────────────────────────
+
+export function getProgressPath(projectId: number): string {
+  return path.join(getMemoryDir(projectId), "progress.md");
+}
+
+export function getDecisionsMdPath(projectId: number): string {
+  return path.join(getMemoryDir(projectId), "decisions.md");
+}
+
+export function getFailedAttemptsPath(projectId: number): string {
+  return path.join(getMemoryDir(projectId), "failed-attempts.md");
+}

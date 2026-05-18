@@ -109,6 +109,13 @@ export const CATEGORY_PERMISSIONS: Record<ToolCategory, ToolPermissions> = {
     allowsProcessSpawn: false,
     allowsFileWrite: false,
   },
+  memory: {
+    level: "restricted",
+    requiresSandbox: true,
+    allowsNetworkAccess: false,
+    allowsProcessSpawn: false,
+    allowsFileWrite: true,   // writes to .nura/ inside the sandbox
+  },
 };
 
 // ── Permission gate ───────────────────────────────────────────────────────────

@@ -1,0 +1,178 @@
+You are a Senior AI Memory Systems Architect.
+
+TASK:
+Deep scan the entire codebase and fix issue C9:
+"No persistent context / No conversation continuity across runs."
+
+CURRENT PROBLEM:
+Every new agent run starts with a fresh memory state.
+The AI forgets:
+- previous tasks
+- generated files
+- architectural decisions
+- runtime failures
+- fixes already applied
+- project goals
+- user preferences
+
+As a result:
+- the agent repeats work
+- rewrites existing code
+- loses project understanding
+- breaks previous implementations
+- behaves inconsistently across runs
+
+GOAL:
+Implement a production-grade persistent context system similar to Replit/Cursor/Lovable.
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+1. Deep scan and identify:
+- current memory flow
+- current run lifecycle
+- where messages reset
+- where context is lost
+- where runs initialize fresh state
+- missing persistence layers
+- missing project memory
+- missing execution summaries
+- missing architectural memory
+
+2. Design a CLEAN architecture:
+- low coupling
+- high cohesion
+- modular structure
+- scalable memory pipeline
+- reusable services
+- no circular dependencies
+
+3. STRICT CODE RULES:
+- max 250 lines per file
+- split responsibilities properly
+- avoid god classes
+- avoid deeply nested logic
+- avoid duplicated logic
+- use clear folder structure
+- use dependency injection patterns where needed
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION TARGET
+━━━━━━━━━━━━━━━━━━━━
+
+Create persistent context system:
+
+PROJECT MEMORY:
+.data/sandboxes/:projectId/.nura/
+
+FILES:
+- context.md
+- architecture.md
+- decisions.md
+- progress.md
+- failed-attempts.md
+
+SYSTEM SHOULD STORE:
+- project summary
+- completed tasks
+- pending tasks
+- important file mappings
+- runtime failures
+- previous fixes
+- package decisions
+- database decisions
+- framework decisions
+- user preferences
+- architectural patterns
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED FEATURES
+━━━━━━━━━━━━━━━━━━━━
+
+1. Context Loader
+Before every run:
+- load project memory
+- inject into system prompt
+- summarize if too large
+
+2. Context Writer
+After every successful step:
+- update context files
+- append new decisions
+- save progress
+- store failures
+
+3. Context Compression
+If context grows too large:
+- summarize intelligently
+- preserve important architectural knowledge
+- remove noise
+
+4. Cross-Run Continuity
+New run should understand:
+- what previous run built
+- current architecture
+- remaining work
+- previous failures
+
+5. Runtime Awareness
+Store:
+- server failures
+- package install failures
+- preview crashes
+- unresolved issues
+
+━━━━━━━━━━━━━━━━━━━━
+ANALYSIS REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Find exact files causing reset issues.
+
+Especially scan:
+- run lifecycle
+- tool-loop initialization
+- executeAsync()
+- runAgentLoop()
+- controller.ts
+- executor.ts
+- agent initialization
+- message array initialization
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Root cause report
+2. Current memory flow diagram
+3. New persistent memory architecture
+4. New folder structure
+5. Exact files to create
+6. Exact files to modify
+7. Dependency graph
+8. Refactor plan
+9. Memory lifecycle
+10. Compression strategy
+11. Failure recovery strategy
+12. Production-grade implementation
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+DO NOT:
+- rewrite unrelated systems
+- create monolithic memory manager
+- exceed 250 lines per file
+- tightly couple memory with runtime
+- tightly couple memory with UI
+
+ONLY:
+- create modular persistent context system
+- improve continuity
+- improve autonomous behavior
+- improve long-term project intelligence
+- keep architecture clean and scalable
+
+Perform a REAL deep scan before implementing anything.
+Use evidence-based analysis only.

@@ -7,10 +7,10 @@
  * Deterministic — no LLM calls.
  *
  * Responsibilities:
- *   1. Build a RunSummary → run-history.jsonl
+ *   1. Build RunSummary → run-history.jsonl
  *   2. Update context.md with a compact run line
- *   3. If failed → append to failures.json
- *   4. If success → append to decisions.json + update architecture.md
+ *   3. success → appendDecision (decisions.json) + updateArchitectureMd + appendDecisionMd [C9] + appendProgressMd [C9]
+ *   4. failure → appendFailure (failures.json) + appendFailedAttemptMd [C9]
  *
  * Ownership: memory/context — summarization logic only.
  * Delegates all I/O to memory-store.ts.
@@ -24,6 +24,9 @@ import {
   writeContextMd,
   readArchitectureMd,
   writeArchitectureMd,
+  appendDecisionMd,
+  appendProgressMd,
+  appendFailedAttemptMd,
 } from "../persistence/memory-store.ts";
 import type { RunSummary, FailureEntry, ArchitectureDecision } from "../types.ts";
 
@@ -101,21 +104,25 @@ export async function summarizeAndPersist(
 
     if (result.success) {
       const decision: ArchitectureDecision = {
-        runId,
-        ts,
-        goal,
+        runId, ts, goal,
         summary: result.summary.slice(0, 400),
       };
+      // decisions.json (structured) + architecture.md (narrative) + decisions.md [C9] + progress.md [C9]
       writes.push(appendDecision(projectId, decision));
       writes.push(updateArchitectureMd(projectId, decision));
+      writes.push(appendDecisionMd(projectId,
+        `Goal: ${goal.slice(0, 120)}\nOutcome: ${result.summary.slice(0, 300)}`));
+      writes.push(appendProgressMd(projectId,
+        `Completed: ${goal.slice(0, 120)}\n→ ${result.summary.slice(0, 250)}`));
     } else {
       const failure: FailureEntry = {
-        runId,
-        ts,
-        goal,
+        runId, ts, goal,
         reason: (summary.failReason ?? "Unknown failure"),
       };
+      // failures.json (structured) + failed-attempts.md [C9]
       writes.push(appendFailure(projectId, failure));
+      writes.push(appendFailedAttemptMd(projectId,
+        `Goal: ${goal.slice(0, 120)}\nReason: ${failure.reason.slice(0, 300)}`));
     }
 
     await Promise.all(writes);

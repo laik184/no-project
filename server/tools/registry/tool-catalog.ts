@@ -26,6 +26,7 @@ import { browserNavigate, browserClick, browserFill }                           
 import { networkFetch, networkPortCheck, networkDnsLookup }                      from "../categories/network-tools.ts";
 import { authScaffold, authAudit }                                                from "../categories/auth-tools.ts";
 import { agentWait, agentAskUser, agentEmitEvent, agentThink, agentFail }        from "../categories/agent-control-tools.ts";
+import { memoryUpdate, memoryRead }                                               from "../categories/memory-tools.ts";
 
 // ── Catalog definition ────────────────────────────────────────────────────────
 
@@ -104,6 +105,10 @@ const CATALOG: RegisteredTool[] = [
   { tool: agentEmitEvent,        category: "agent-control", terminal: false, defaultTimeoutMs: 5_000,   permissions: CATEGORY_PERMISSIONS["agent-control"] },
   { tool: agentThink,            category: "agent-control", terminal: false, defaultTimeoutMs: 5_000,   permissions: CATEGORY_PERMISSIONS["agent-control"] },
   { tool: agentFail,             category: "agent-control", terminal: true,  defaultTimeoutMs: 5_000,   permissions: CATEGORY_PERMISSIONS["agent-control"] },
+
+  // ── MEMORY (2) ─────────────────────────────────────────────────────────────
+  { tool: memoryUpdate,          category: "memory",        terminal: false, defaultTimeoutMs: 5_000,   permissions: CATEGORY_PERMISSIONS["memory"] },
+  { tool: memoryRead,            category: "memory",        terminal: false, defaultTimeoutMs: 5_000,   permissions: CATEGORY_PERMISSIONS["memory"] },
 ];
 
 // ── Populate registry ─────────────────────────────────────────────────────────
