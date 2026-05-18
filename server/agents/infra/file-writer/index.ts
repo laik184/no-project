@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { emitFileChange } from '../../infrastructure/events/file-change-emitter.ts';
+import { atomicWrite }       from '../../infrastructure/checkpoints/atomic-write.util.ts';
+import { backupBeforeWrite } from '../../infrastructure/checkpoints/atomic-write.util.ts';
+import { emitFileChange }    from '../../infrastructure/events/file-change-emitter.ts';
 
 export type FileAction = 'create' | 'update' | 'delete';
 
@@ -38,7 +40,7 @@ export interface FileWriterInput {
 
 export async function writeGeneratedFiles(input: FileWriterInput): Promise<Readonly<FileWriterReport>> {
   const { files, options } = input;
-  const { rootDir, projectId, overwrite = true, backup = false, mergeMode = 'overwrite' } = options;
+  const { rootDir, projectId, overwrite = true, backup = true, mergeMode = 'overwrite' } = options;
   const writtenFiles: string[] = [];
   const failedFiles: string[] = [];
   const skippedFiles: string[] = [];
@@ -52,6 +54,8 @@ export async function writeGeneratedFiles(input: FileWriterInput): Promise<Reado
     try {
       if (file.action === 'delete') {
         try {
+          // Backup before delete so it is recoverable
+          await backupBeforeWrite(absolutePath);
           await fs.unlink(absolutePath);
           writtenFiles.push(file.path);
           logs.push({ level: 'INFO', code: 'DELETED', message: `Deleted: ${file.path}` });
@@ -81,19 +85,19 @@ export async function writeGeneratedFiles(input: FileWriterInput): Promise<Reado
         continue;
       }
 
+      // Backup existing file before overwrite (safe recovery point)
       if (exists && backup) {
-        const backupPath = `${absolutePath}.bak`;
-        try {
-          const original = await fs.readFile(absolutePath, 'utf8');
-          await fs.writeFile(backupPath, original, 'utf8');
+        const backupPath = await backupBeforeWrite(absolutePath);
+        if (backupPath) {
           logs.push({ level: 'INFO', code: 'BACKUP', message: `Backup created: ${backupPath}` });
-        } catch {
+        } else {
           logs.push({ level: 'WARN', code: 'BACKUP_FAIL', message: `Backup failed: ${file.path}` });
         }
       }
 
+      // Atomic write: tmp → fsync → rename (crash-safe)
       await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-      await fs.writeFile(absolutePath, file.content ?? '', 'utf8');
+      await atomicWrite(absolutePath, file.content ?? '');
       writtenFiles.push(file.path);
       logs.push({ level: 'INFO', code: 'WRITTEN', message: `Written: ${file.path}` });
       if (projectId !== undefined) emitFileChange(projectId, exists ? 'change' : 'add', file.path);

@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import { safeWriteFile, safeDeleteFile } from '../../infrastructure/checkpoints/safe-fs.util.ts';
+import { backupBeforeWrite } from '../../infrastructure/checkpoints/atomic-write.util.ts';
 import type {
   SaveFileInput, SaveFileResult, ReadFileInput, ReadFileResult,
   RenameFileInput, RenameFileResult, DeleteFileInput, DeleteFileResult,
@@ -64,7 +66,9 @@ export class CrudService {
 
       if (createDirs) fs.mkdirSync(path.dirname(abs), { recursive: true });
 
-      fs.writeFileSync(abs, content, 'utf-8');
+      // Atomic write with backup — crash-safe, recoverable
+      const result = await safeWriteFile(abs, content);
+      if (!result.ok) throw new Error(result.error ?? 'safeWriteFile failed');
       const stat = fs.statSync(abs);
 
       this.emit({ type: existed ? 'updated' : 'created', path: filePath });
@@ -117,6 +121,9 @@ export class CrudService {
       }
 
       fs.mkdirSync(path.dirname(absNew), { recursive: true });
+
+      // Backup source before rename so the original path is recoverable
+      await backupBeforeWrite(absOld);
       fs.renameSync(absOld, absNew);
 
       this.emit({ type: 'renamed', path: newPath, oldPath });
@@ -139,11 +146,9 @@ export class CrudService {
       const stat = fs.statSync(abs);
       const wasDirectory = stat.isDirectory();
 
-      if (wasDirectory) {
-        fs.rmSync(abs, { recursive: true, force });
-      } else {
-        fs.unlinkSync(abs);
-      }
+      // Safe delete — backs up the file before removal so it is recoverable
+      const del = await safeDeleteFile(abs, force);
+      if (!del.ok) return { ok: false, targetPath, wasDirectory, error: del.error };
 
       this.emit({ type: 'deleted', path: targetPath });
       return { ok: true, targetPath, wasDirectory };

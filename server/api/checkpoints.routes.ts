@@ -27,6 +27,7 @@
 import { Router }                     from "express";
 import { getProjectDir }              from "../infrastructure/sandbox/sandbox.util.ts";
 import { checkpointStore }            from "../infrastructure/checkpoints/checkpoint.service.ts";
+import type { CheckpointMeta }        from "../infrastructure/checkpoints/checkpoint.types.ts";
 import { restoreFile }                from "../infrastructure/checkpoints/restore/restore-file.service.ts";
 import { restoreRun, listRestorableRuns } from "../infrastructure/checkpoints/restore/restore-run.service.ts";
 import { triggerEmergencyRecovery }   from "../infrastructure/checkpoints/restore/emergency-recovery.service.ts";
@@ -39,6 +40,16 @@ import {
   resetProject,
 } from "../infrastructure/recovery/recovery-manager.ts";
 
+// ── DTO mapper — aligns backend field names with frontend expectations ─────────
+function toDto(m: CheckpointMeta) {
+  return {
+    ...m,
+    id:        m.checkpointId,
+    gitSha:    m.gitCommitSha,
+    createdAt: new Date(m.createdAt).toISOString(),
+  };
+}
+
 export function createCheckpointsRouter(): Router {
   const router = Router();
 
@@ -47,7 +58,7 @@ export function createCheckpointsRouter(): Router {
     const projectId = Number(req.params.projectId);
     if (isNaN(projectId)) return res.status(400).json({ ok: false, error: "Invalid projectId" });
     const list = await checkpointStore.listForProject(projectId);
-    return res.json({ ok: true, checkpoints: list });
+    return res.json({ ok: true, checkpoints: list.map(toDto) });
   });
 
   // ── Create a manual checkpoint ────────────────────────────────────────────
@@ -57,7 +68,7 @@ export function createCheckpointsRouter(): Router {
     const sandboxRoot = getProjectDir(projectId);
     const label       = (req.body?.label as string) || "manual";
     const meta = await checkpointStore.create({ projectId, sandboxRoot, trigger: "manual", label });
-    return res.status(201).json({ ok: true, checkpoint: meta });
+    return res.status(201).json({ ok: true, checkpoint: toDto(meta) });
   });
 
   // ── Get single checkpoint ─────────────────────────────────────────────────
@@ -65,7 +76,7 @@ export function createCheckpointsRouter(): Router {
     const projectId = Number(req.params.projectId);
     const meta = await checkpointStore.get(projectId, req.params.id);
     if (!meta) return res.status(404).json({ ok: false, error: "Checkpoint not found" });
-    return res.json({ ok: true, checkpoint: meta });
+    return res.json({ ok: true, checkpoint: toDto(meta) });
   });
 
   // ── Validate checkpoint integrity ─────────────────────────────────────────
