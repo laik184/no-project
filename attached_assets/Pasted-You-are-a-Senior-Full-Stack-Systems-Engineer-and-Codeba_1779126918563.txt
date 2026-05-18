@@ -1,0 +1,206 @@
+You are a Senior Full-Stack Systems Engineer and Codebase Refactor Specialist.
+
+Your task is to DEEP SCAN the entire codebase and FIX issue:
+
+F6 — No diff visualization system
+Current problem:
+- Agent writes files directly
+- User cannot see what changed
+- No safe approval flow exists
+- No unified diff generation
+- Dangerous overwrites happen silently
+- No review layer before file modification
+
+GOAL:
+Create a REAL diff visualization + approval architecture similar to:
+- Replit
+- Cursor
+- GitHub PR diff
+- VSCode SCM
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH CAUTION MODE
+- Do NOT break existing flows
+- Do NOT rewrite unrelated systems
+- Do NOT modify working architecture unnecessarily
+- Keep backward compatibility
+
+2. LOW COUPLING
+- Avoid tight dependencies
+- Create isolated reusable services
+- Prevent circular imports
+- Prevent runtime coupling
+
+3. CLEAN FOLDER STRUCTURE
+- Follow scalable architecture
+- Separate:
+  - diff generation
+  - approval handling
+  - UI events
+  - persistence
+  - patch application
+
+4. FILE SIZE LIMIT
+- NO file should exceed 250 lines
+- If existing files are huge:
+  - split them safely
+  - extract utilities/services/types
+  - preserve imports
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan and detect:
+
+- where agent writes files
+- where fs.writeFile is used
+- where file_write tool exists
+- where sandbox writes occur
+- where overwrite risk exists
+- where file explorer updates happen
+- where SSE events are emitted
+- where approval logic is missing
+- where patch systems already exist
+- where diff queue exists
+- where UI can display diffs
+- where Monaco editor integration exists
+- where git diff utilities already exist
+
+Find:
+- duplicate file-writing systems
+- direct write bypasses
+- unsafe overwrite flows
+- missing event propagation
+- missing rollback support
+
+━━━━━━━━━━━━━━━━━━━━
+BUILD A COMPLETE DIFF SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Create architecture:
+
+USER
+→ AI generates patch
+→ unified diff created
+→ diff persisted
+→ SSE emits diff event
+→ frontend diff panel opens
+→ user approve/reject
+→ backend applies patch
+→ file explorer refresh
+→ preview refresh
+→ git checkpoint created
+
+━━━━━━━━━━━━━━━━━━━━
+BACKEND REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Build:
+
+1. Diff Engine
+- unified diff generator
+- old/new comparison
+- patch metadata
+- multi-file support
+
+2. Diff Queue System
+- pending
+- approved
+- rejected
+- applied
+- failed
+
+3. Approval Bus
+- async waitForApproval()
+- approveDiff()
+- rejectDiff()
+- timeout handling
+
+4. Safe Patch Applier
+- atomic writes
+- rollback on failure
+- validation before apply
+
+5. Event Integration
+Emit:
+- agent.diff.created
+- agent.diff.approved
+- agent.diff.rejected
+- agent.diff.applied
+
+6. Git Checkpoints
+- auto checkpoint before apply
+- rollback support
+
+━━━━━━━━━━━━━━━━━━━━
+FRONTEND REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Build:
+- diff panel
+- Monaco side-by-side diff viewer
+- approve/reject buttons
+- patch status badges
+- realtime updates via SSE
+- multi-file diff navigation
+- safe loading states
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT IMPLEMENTATION RULES
+━━━━━━━━━━━━━━━━━━━━
+
+- Use reusable services
+- Use typed contracts
+- Use isolated event emitters
+- Use minimal frontend rerenders
+- Avoid global state pollution
+- Avoid direct fs writes outside patch applier
+- All writes MUST go through diff approval system
+
+━━━━━━━━━━━━━━━━━━━━
+SECURITY REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Prevent:
+- path traversal
+- malicious patch injection
+- invalid patch apply
+- race conditions
+- concurrent overwrite corruption
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Root Cause Analysis
+2. Current Unsafe Write Flows
+3. Existing Diff-Related Systems Found
+4. Proposed Folder Structure
+5. Refactor Plan
+6. New Architecture Diagram
+7. Backend Changes
+8. Frontend Changes
+9. SSE/Event Changes
+10. Approval Flow
+11. Rollback Strategy
+12. Git Integration Plan
+13. Exact Files To Create
+14. Exact Files To Modify
+15. Dependency Graph
+16. Safety Protections
+17. Migration Strategy
+18. Final Production-Grade Diff Workflow
+
+IMPORTANT:
+- mention exact files
+- mention exact functions
+- mention exact unsafe writes
+- keep architecture modular
+- keep every file under 250 LOC
+- preserve existing working features

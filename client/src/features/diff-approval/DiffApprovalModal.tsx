@@ -78,6 +78,8 @@ export function DiffApprovalModal({ projectId }: Props) {
           <DiffViewer
             diff={current.unifiedDiff}
             filePath={current.filePath}
+            oldContent={current.oldContent}
+            newContent={current.newContent}
             maxHeight="320px"
           />
         </div>
