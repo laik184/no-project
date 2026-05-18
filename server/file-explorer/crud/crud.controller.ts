@@ -1,6 +1,29 @@
 import type { Request, Response } from 'express';
 import { crudService } from './crud.service.ts';
 import type { SaveFileInput, RenameFileInput, DeleteFileInput, CreateFolderInput } from './crud.types.ts';
+import { emitFileChange } from '../../infrastructure/events/file-change-emitter.ts';
+
+/**
+ * Resolve numeric project ID from the request.
+ * Priority: x-project-id header > query param > body field > 0.
+ * projectId=0 is accepted by all frontend file-event filters (the
+ * `!d.projectId` branch in use-file-explorer.ts) so it acts as a
+ * broadcast that every mounted explorer receives.
+ */
+function resolveProjectId(req: Request): number {
+  const header = req.headers['x-project-id'];
+  if (header) {
+    const n = parseInt(Array.isArray(header) ? header[0] : header, 10);
+    if (!isNaN(n)) return n;
+  }
+  const body = (req.body as Record<string, unknown>)?.projectId;
+  if (typeof body === 'number') return body;
+  if (typeof body === 'string') {
+    const n = parseInt(body, 10);
+    if (!isNaN(n)) return n;
+  }
+  return 0;
+}
 
 export class CrudController {
   async saveFile(req: Request, res: Response): Promise<void> {
@@ -17,7 +40,14 @@ export class CrudController {
     }
 
     const result = await crudService.save({ filePath, content, encoding, createDirs, clientMtime });
-    // 409 for conflicts so clients can distinguish from server errors
+
+    if (result.ok) {
+      // Emit onto the main EventBus so the SSE "file" topic reaches the frontend.
+      // This is the missing link — CRUD saves were previously invisible to SSE clients.
+      const projectId = resolveProjectId(req);
+      emitFileChange(projectId, result.created ? 'add' : 'change', filePath);
+    }
+
     const status = result.ok ? 200 : result.conflict ? 409 : 500;
     res.status(status).json(result);
   }
@@ -43,6 +73,13 @@ export class CrudController {
     }
 
     const result = await crudService.rename({ oldPath, newPath, overwrite });
+
+    if (result.ok) {
+      const projectId = resolveProjectId(req);
+      emitFileChange(projectId, 'unlink', oldPath);
+      emitFileChange(projectId, 'add',    newPath);
+    }
+
     res.status(result.ok ? 200 : 409).json(result);
   }
 
@@ -55,6 +92,12 @@ export class CrudController {
     }
 
     const result = await crudService.delete({ targetPath, force });
+
+    if (result.ok) {
+      const projectId = resolveProjectId(req);
+      emitFileChange(projectId, 'unlink', targetPath);
+    }
+
     res.status(result.ok ? 200 : 404).json(result);
   }
 
@@ -67,6 +110,12 @@ export class CrudController {
     }
 
     const result = crudService.createFolder({ folderPath, recursive });
+
+    if (result.ok) {
+      const projectId = resolveProjectId(req);
+      emitFileChange(projectId, 'add', folderPath);
+    }
+
     res.status(result.ok ? 201 : 500).json(result);
   }
 

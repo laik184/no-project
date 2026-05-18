@@ -90,16 +90,6 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     } catch {}
   });
 
-  // Console events — refresh tree when file-related messages arrive
-  useRealtimeEvent("console", (data) => {
-    try {
-      const d = data as Record<string, unknown>;
-      if (d.file || (d.msg && String(d.msg).includes("file"))) {
-        if (!d.projectId || String(d.projectId) === sandboxId) refreshFiles();
-      }
-    } catch {}
-  });
-
   // File-change events — refresh tree and track AI in-flight writes.
   // d.projectId is a number; sandboxId is the trailing segment of the sandbox path.
   useRealtimeEvent("file", (data) => {

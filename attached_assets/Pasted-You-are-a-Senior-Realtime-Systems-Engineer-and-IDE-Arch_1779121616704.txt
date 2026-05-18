@@ -1,0 +1,181 @@
+You are a Senior Realtime Systems Engineer and IDE Architecture Auditor.
+
+Your task is to deeply scan and fix issue:
+
+F4 — No live sync between Agent ↔ File Explorer ↔ Editor ↔ Preview
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN PROBLEM
+━━━━━━━━━━━━━━━━━━━━
+
+Current architecture has broken realtime synchronization.
+
+When:
+- AI writes files
+- User edits files
+- Runtime changes files
+- Preview rebuilds
+- Console emits changes
+
+The system does NOT synchronize correctly.
+
+Result:
+- stale editor state
+- stale file explorer
+- preview mismatch
+- overwritten user edits
+- agent/user conflicts
+- broken realtime UX
+
+━━━━━━━━━━━━━━━━━━━━
+YOUR OBJECTIVE
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan entire codebase and identify:
+
+1. where file writes happen
+2. where file events are emitted
+3. where SSE/WebSocket listeners exist
+4. where explorer refreshes
+5. where editor dirty-state is tracked
+6. where preview reload logic exists
+7. where synchronization breaks
+
+━━━━━━━━━━━━━━━━━━━━
+FOCUS AREAS
+━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- File Explorer
+- Monaco Editor
+- ChatPanel
+- Workspace
+- PreviewPanel
+- useAgentRunner
+- useLiveAgentStream
+- use-agent-ultra-stream
+- app-state-context
+- SSE hooks
+- WebSocket hooks
+
+Backend:
+- file_write tool
+- file_replace tool
+- file_delete tool
+- fs routes
+- chokidar watchers
+- EventBus
+- SSE streams
+- WebSocket streams
+- sandbox writes
+- preview runtime
+- runtime routes
+
+━━━━━━━━━━━━━━━━━━━━
+DETECT THESE BUGS
+━━━━━━━━━━━━━━━━━━━━
+
+1. Agent writes bypassing explorer updates
+2. Missing file.change events
+3. Editor dirty-state conflicts
+4. User edits overwritten by AI
+5. Preview not auto-reloading
+6. Missing HMR bridge
+7. Multiple disconnected event systems
+8. Duplicate listeners
+9. SSE listener leaks
+10. Event ordering issues
+11. File watcher race conditions
+12. Sandbox write desync
+13. Explorer stale cache
+14. Editor stale content
+15. Runtime-preview mismatch
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. DO NOT rewrite architecture unnecessarily
+2. Use LOW coupling
+3. Use HIGH cohesion
+4. Keep folder structure clean
+5. Keep each file UNDER 250 lines
+6. Reuse existing bus/events where possible
+7. Avoid duplicate event systems
+8. Do NOT create monolithic managers
+9. Prefer modular realtime services
+10. Keep frontend state normalized
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Create a unified realtime sync flow:
+
+AGENT FILE WRITE
+    ↓
+RealtimeFileSyncService
+    ↓
+EventBus.emit("file.change")
+    ↓
+SSE/WebSocket broadcast
+    ↓
+Frontend sync manager
+    ↓
+- File Explorer refresh
+- Monaco update
+- Preview reload
+- Dirty-state reconciliation
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+1. Unified File Sync Service
+2. Central file.change event schema
+3. Live editor synchronization
+4. Dirty-state conflict resolver
+5. Preview auto-reload bridge
+6. File version tracking
+7. Event deduplication
+8. Safe editor patching
+9. Runtime file sync
+10. SSE cleanup handlers
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Deep architecture scan report
+2. Exact files causing desync
+3. Exact broken flows
+4. Realtime sync blueprint
+5. Conflict-resolution strategy
+6. Event architecture design
+7. File-by-file fix plan
+8. Refactored folder structure
+9. Modular service breakdown
+10. Final implementation roadmap
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+Mention:
+- exact file paths
+- exact architecture flaws
+- exact event-flow failures
+- exact sync breakpoints
+- exact memory leak risks
+
+DO NOT:
+- give generic advice
+- hide problems
+- overengineer solution
+
+ONLY:
+- production-grade fixes
+- scalable realtime architecture
+- Replit/Cursor-level synchronization design

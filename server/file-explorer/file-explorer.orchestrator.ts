@@ -152,7 +152,15 @@ export class FileExplorerOrchestrator {
     });
 
     if (result.ok) {
+      // Notify watcher's private SSE pool (legacy path)
       watcherService.notifyFileChange('updated', filePath, projectPath);
+
+      // Also emit onto the main EventBus so frontend SSE "file" topic fires.
+      const numericId = parseInt(projectPath.split('/').filter(Boolean).pop() ?? '', 10);
+      if (!isNaN(numericId)) {
+        emitFileChange(numericId, result.created ? 'add' : 'change', filePath);
+      }
+
       searchService.invalidateIndex(projectPath);
       historyService.snapshot({ projectId: projectPath, filePath, content, author: 'user' });
       this.emit({ type: 'file-updated', payload: { filePath, projectPath } });

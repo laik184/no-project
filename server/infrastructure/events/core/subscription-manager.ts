@@ -84,10 +84,13 @@ bus.on("checkpoint.event", (e) => {
 });
 
 // ── Listener leak detection ───────────────────────────────────────────────────
-// With the hub pattern these counts should always be 1.
-// If they rise above LEAK_THRESHOLD, something is calling bus.subscribe()
-// or bus.on() outside this module — likely a regression to the old pattern.
-const LEAK_THRESHOLD = 3;
+// The hub pattern keeps SSE fan-out to exactly 1 listener per event type.
+// However, a small number of non-SSE architectural subscribers are expected:
+//   agent.event  — hub(1) + event-persist(1) + crash-responder(1) + observation-controller(1) = 4
+//   run.lifecycle — hub(1) + recovery-manager(1) + emergency-recovery(1) = 3
+// LEAK_THRESHOLD is set to 6 to catch genuine regressions (old per-connection pattern)
+// without false-positives from these known legitimate subscribers.
+const LEAK_THRESHOLD = 6;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
   "runtime.verified", "runtime.observation", "agent.diff", "checkpoint.event",
