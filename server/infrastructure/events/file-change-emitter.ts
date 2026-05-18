@@ -58,14 +58,16 @@ export function emitFileChange(
  * The SSE "file" topic carries this as type="writing".
  * The natural completion event (type="add"|"change") clears the in-flight state.
  *
- * @param projectId  Numeric project ID from ToolContext
- * @param filePath   Path relative to the project sandbox root
+ * @param projectId   Numeric project ID from ToolContext
+ * @param filePath    Path relative to the project sandbox root
+ * @param byteSize    Byte length of the content being written (for the UI badge)
  */
-export function emitFileWriting(projectId: number, filePath: string): void {
+export function emitFileWriting(projectId: number, filePath: string, byteSize?: number): void {
   bus.emit('file.change', {
     projectId,
     type: 'writing',
     path: filePath,
+    size: byteSize,
     ts: Date.now(),
   });
 }

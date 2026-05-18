@@ -35,6 +35,8 @@ export interface FileChangeEvent {
   /** "writing" = AI tool has started writing (in-flight). "add"/"change"/"unlink" = completed. */
   type:      "add" | "change" | "unlink" | "writing";
   path:      string;
+  /** Byte size of the content being written. Present only when type === "writing". */
+  size?:     number;
   ts:        number;
 }
 

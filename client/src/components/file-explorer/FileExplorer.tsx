@@ -4,6 +4,12 @@ import { ContextMenu } from "./ContextMenu";
 import { useFileExplorer } from "./use-file-explorer";
 import { useState } from "react";
 
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // Keyframe injection — done once at module scope, avoids re-injecting on re-renders
 if (typeof document !== "undefined" && !document.getElementById("__fe-anim__")) {
   const s = document.createElement("style");
@@ -58,7 +64,7 @@ interface FileExplorerProps {
 }
 
 function RenderNode({
-  node, basePath, activeFile, dirtyFiles, aiFiles, writingFiles, hoveredPath,
+  node, basePath, activeFile, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath,
   setHoveredPath, setFocusedPath, onSelect, onContextMenu,
 }: {
   node: RawTreeNode;
@@ -67,6 +73,7 @@ function RenderNode({
   dirtyFiles: Set<string>;
   aiFiles: Set<string>;
   writingFiles: Set<string>;
+  writingSizes: Map<string, number>;
   hoveredPath: string | null;
   setHoveredPath: (p: string | null) => void;
   setFocusedPath: (p: string | null) => void;
@@ -80,6 +87,7 @@ function RenderNode({
   const dirty   = dirtyFiles.has(full);
   const ai      = aiFiles.has(full);
   const writing = writingFiles.has(full);
+  const writeSize = writingSizes.get(full);
   const hovered = hoveredPath === full;
 
   const rowStyle: React.CSSProperties = {
@@ -99,7 +107,7 @@ function RenderNode({
   const writingBadge = (
     <span className="fe-writing-badge">
       <span className="fe-writing-spinner" />
-      writing
+      {writeSize !== undefined ? `writing · ${formatBytes(writeSize)}` : "writing"}
     </span>
   );
 
@@ -126,7 +134,7 @@ function RenderNode({
             node.children.map((child) => (
               <RenderNode key={child.name} node={child} basePath={full}
                 activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
-                writingFiles={writingFiles}
+                writingFiles={writingFiles} writingSizes={writingSizes}
                 hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
                 setFocusedPath={setFocusedPath} onSelect={onSelect}
                 onContextMenu={onContextMenu} />
@@ -160,7 +168,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string; isDir: boolean } | null>(null);
 
   const {
-    tree, dirtyFiles, aiFiles, writingFiles, hoveredPath, setHoveredPath,
+    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath, setHoveredPath,
     setFocusedPath, refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,
   } = useFileExplorer({ projectPath, activeFile });
@@ -223,7 +231,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
         {tree.map((node) => (
           <RenderNode key={node.name} node={node} basePath={projectPath || ""}
             activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
-            writingFiles={writingFiles}
+            writingFiles={writingFiles} writingSizes={writingSizes}
             hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
             setFocusedPath={setFocusedPath}
             onSelect={(path) => onSelect && onSelect(path)}

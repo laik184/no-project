@@ -12,7 +12,8 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   const [tree, setTree]               = useState<RawTreeNode[]>([]);
   const [dirtyFiles, setDirtyFiles]   = useState<Set<string>>(new Set());
   const [aiFiles, setAiFiles]         = useState<Set<string>>(new Set());
-  const [writingFiles, setWritingFiles] = useState<Set<string>>(new Set());
+  const [writingFiles, setWritingFiles]   = useState<Set<string>>(new Set());
+  const [writingSizes, setWritingSizes]   = useState<Map<string, number>>(new Map());
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
@@ -103,21 +104,26 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   // d.projectId is a number; sandboxId is the trailing segment of the sandbox path.
   useRealtimeEvent("file", (data) => {
     try {
-      const d = data as { projectId?: number; type?: string; path?: string };
+      const d = data as { projectId?: number; type?: string; path?: string; size?: number };
       const mine = !d.projectId || String(d.projectId) === sandboxId;
       if (!mine) return;
 
       if (d.type === "writing" && d.path) {
-        // AI has started writing — mark file as in-flight
+        // AI has started writing — mark file as in-flight and record byte size
         setWritingFiles((prev) => new Set(prev).add(d.path!));
+        if (d.size !== undefined) {
+          setWritingSizes((prev) => { const n = new Map(prev); n.set(d.path!, d.size!); return n; });
+        }
         // Safety fallback: auto-clear after 15 seconds in case completion event is missed
         setTimeout(() => {
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
+          setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }, 15_000);
       } else {
         // Write completed (add / change / unlink) — clear in-flight state and refresh tree
         if (d.path) {
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
+          setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }
         refreshFiles();
       }
@@ -181,7 +187,7 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   };
 
   return {
-    tree, dirtyFiles, aiFiles, writingFiles, focusedPath, hoveredPath,
+    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, focusedPath, hoveredPath,
     setFocusedPath, setHoveredPath,
     refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,

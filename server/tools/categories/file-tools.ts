@@ -156,7 +156,7 @@ export const fileWrite: Tool = {
       }
 
       // ── Direct write: new file or approval disabled (atomic) ─────────────────
-      emitFileWriting(ctx.projectId, filePath);
+      emitFileWriting(ctx.projectId, filePath, Buffer.byteLength(newContent, "utf-8"));
       await atomicWrite(abs, newContent);
       const stat = await fs.stat(abs);
       emitFileChange(ctx.projectId, isNewFile ? "add" : "change", filePath);
