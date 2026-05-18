@@ -1,14 +1,20 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { getAgentMode } from "@/hooks/useAgentMode";
 import { useToast } from "@/hooks/use-toast";
 import { TokenBuffer } from "@/streaming/token-buffer";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import type { ChatMessage } from "./types";
 import { useRealtime } from "@/realtime/realtime-provider";
+import { useRunRecovery } from "@/realtime/useRunRecovery";
 
 export function useAgentRunner() {
   const { toast } = useToast();
   const { subscribe } = useRealtime();
+
+  // C6: look up the active run for this project on mount so we can reattach
+  // handlers if the user refreshed mid-run.
+  const projectId = Number(window.localStorage.getItem("nura.projectId") || "1") || 1;
+  const { activeRunId } = useRunRecovery(projectId);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAgentThinking, setIsAgentThinking] = useState(false);
@@ -371,6 +377,101 @@ export function useAgentRunner() {
       close: () => { offAgent(); offCheckpoint(); offLifecycle(); },
     };
   };
+
+  // ── C6: Recovery on page refresh ─────────────────────────────────────────
+  // If the user refreshed while an agent run was in progress, re-attach a
+  // lightweight set of event handlers so the UI stays live.
+  // Full event replay is handled by the replay cache + Last-Event-ID on the
+  // SSE connection (RealtimeProvider), so we only need state + subscriptions.
+  useEffect(() => {
+    if (!activeRunId || currentRunIdRef.current) return;
+
+    currentRunIdRef.current = activeRunId;
+    setIsAgentThinking(true);
+    setActiveAction({
+      type: "action",
+      tool: "analysis.think",
+      content: "↻ Reconnected — agent is still working…",
+      status: "running",
+    });
+    setMessages([{
+      role: "agent",
+      content: "↻ Reconnected to active run. Events from before the refresh may have been replayed.",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    }]);
+
+    const offAgent = subscribe("agent", (data) => {
+      try {
+        const e = data as { eventType: string; runId?: string; payload?: any; agentName?: string };
+        if (e.runId !== activeRunId) return;
+        switch (e.eventType) {
+          case "agent.message": {
+            finalizeStream();
+            const text = typeof e.payload === "string" ? e.payload : (e.payload?.text || "");
+            if (text) setMessages((prev) => [...prev, { role: "agent", content: text, time: "just now" }]);
+            break;
+          }
+          case "agent.thinking":
+            setIsAgentThinking(true);
+            setActiveAction({ type: "action", tool: "analysis.think", content: e.payload?.text || `Thinking${e.agentName ? ` (${e.agentName})` : ""}…`, status: "running" });
+            break;
+          case "agent.tool_call": {
+            const tool = e.payload?.tool || "tool.call";
+            if (e.payload?.status === "done" || e.payload?.status === "error") break;
+            setActiveAction({ type: "action", tool, content: e.payload?.label || tool.replace(/_/g, " "), status: "running" });
+            break;
+          }
+          case "agent.stream.start":
+            isStreamingRef.current = true;
+            setIsAgentTyping(false);
+            setIsAgentThinking(false);
+            setActiveAction(null);
+            setMessages((prev) => [...prev, { role: "agent", content: "", isStreaming: true, time: "just now" }]);
+            tokenBufRef.current = new TokenBuffer((chunk) => {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "agent" && (last as { isStreaming?: boolean }).isStreaming) {
+                  return [...prev.slice(0, -1), { ...last, content: last.content + chunk }];
+                }
+                return prev;
+              });
+            });
+            break;
+          case "agent.token":
+            if (e.payload?.token && tokenBufRef.current) tokenBufRef.current.push(e.payload.token as string);
+            break;
+          case "agent.stream.end":
+            finalizeStream();
+            break;
+        }
+      } catch { }
+    });
+
+    const offLifecycle = subscribe("lifecycle", (data) => {
+      try {
+        const e = data as { status: string; runId?: string };
+        if (e.runId !== activeRunId) return;
+        if (["completed", "failed", "cancelled"].includes(e.status)) {
+          finalizeStream();
+          agentStreamRef.current?.close();
+          agentStreamRef.current = null;
+          currentRunIdRef.current = null;
+          setIsAgentThinking(false);
+          setIsAgentTyping(false);
+          setActiveAction(null);
+          const summary = e.status === "completed"
+            ? "Done."
+            : e.status === "cancelled"
+            ? "Cancelled."
+            : "Run failed — check the console for details.";
+          setMessages((prev) => [...prev, { role: "agent", content: summary, time: "just now" }]);
+        }
+      } catch { }
+    });
+
+    agentStreamRef.current = { close: () => { offAgent(); offLifecycle(); } };
+    return () => { offAgent(); offLifecycle(); };
+  }, [activeRunId, subscribe]);
 
   return { messages, setMessages, isAgentThinking, isAgentTyping, activeAction, setActiveAction, runAgent, stopAgent, handleAnswer };
 }

@@ -77,10 +77,17 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
     let backoff = 1_000;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // C6: track the last `id:` field seen so we can request replay on reconnect.
+    // MessageEvent.lastEventId reflects the most recent `id:` line the browser
+    // received — we store it here so our manual reconnect can pass it to the server.
+    let lastEventId = "";
+
     // Per-topic dispatcher — closed over handlersRef so handler additions
     // after connect() are picked up without reconnecting.
     const dispatch = (topic: string) => (ev: Event) => {
       const msg = ev as MessageEvent;
+      // Track last seen event ID for replay on next reconnect (C6)
+      if (msg.lastEventId) lastEventId = msg.lastEventId;
       const set = handlersRef.current.get(topic);
       if (!set || set.size === 0) return;
       try {
@@ -95,7 +102,12 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       if (!mounted) return;
 
       setStatus("reconnecting");
-      es = new EventSource("/api/realtime");
+      // C6: append lastEventId as a query param so the server can replay any
+      // events missed during the disconnection gap.
+      const url = lastEventId
+        ? `/api/realtime?lastEventId=${encodeURIComponent(lastEventId)}`
+        : "/api/realtime";
+      es = new EventSource(url);
 
       // Attach one listener per canonical topic.
       for (const topic of ALL_TOPICS) {

@@ -46,6 +46,20 @@ export function sseSend(res: Response, event: string, data: unknown): void {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+/**
+ * Write a named SSE event frame that includes an `id:` field.
+ * The id is the monotonic sequence number from the replay cache.
+ * Browser EventSource tracks this and sends it as Last-Event-ID on reconnect.
+ *
+ *   id: <seqId>
+ *   event: <name>
+ *   data: <json>
+ *
+ */
+export function sseSendId(res: Response, event: string, data: unknown, seqId: number): void {
+  res.write(`id: ${seqId}\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
 // ─── Heartbeat ────────────────────────────────────────────────────────────────
 
 /** SSE comment ping — keeps the connection alive through proxies. */

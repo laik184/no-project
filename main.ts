@@ -33,6 +33,7 @@ import { createSecurityRouter } from './server/security/index.ts';
 import { createDiffApprovalRouter } from './server/api/diff-approval.routes.ts';
 import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
 import { startRecoveryManager } from './server/infrastructure/recovery/recovery-manager.ts';
+import { createRecoveryRouter } from './server/api/recovery.routes.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;

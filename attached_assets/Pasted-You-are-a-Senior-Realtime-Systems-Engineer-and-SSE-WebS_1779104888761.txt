@@ -1,0 +1,205 @@
+You are a Senior Realtime Systems Engineer and SSE/WebSocket Reliability Auditor.
+
+Your task is to deeply scan and FIX the stream recovery architecture problem:
+
+BUG ID: C6 — No Stream Recovery
+Problem:
+When the browser refreshes, reconnects, network drops, tab sleeps, or SSE reconnects happen:
+- active agent state is lost
+- stream continuity breaks
+- UI loses progress
+- console state resets
+- preview state desyncs
+- duplicate listeners appear
+- frontend cannot recover active runs
+
+MAIN GOAL:
+Implement a production-grade STREAM RECOVERY SYSTEM similar to:
+- Replit
+- Cursor
+- Lovable
+- VSCode Live Sessions
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN THESE AREAS FIRST
+━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- client/src/hooks/
+- client/src/components/
+- client/src/context/
+- client/src/lib/
+- all SSE hooks
+- all EventSource usage
+- all WebSocket usage
+- stream state management
+- reconnect logic
+- cleanup logic
+
+Backend:
+- server/chat/streams/
+- server/infrastructure/events/
+- server/api/
+- server/chat/run/
+- EventBus
+- SSE endpoints
+- WebSocket handlers
+- lifecycle emitters
+- run persistence
+- runtime persistence
+
+━━━━━━━━━━━━━━━━━━━━
+DETECT ALL PROBLEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Find:
+- missing reconnect recovery
+- missing run rehydration
+- missing active-run persistence
+- duplicate EventSource creation
+- broken cleanup
+- listener leaks
+- stale subscriptions
+- race conditions
+- reconnect storms
+- missing heartbeat handling
+- missing retry strategy
+- stream desync
+- lost lifecycle events
+- lost console state
+- missing replay mechanism
+- missing last-event-id recovery
+- missing stream snapshots
+- broken unsubscribe logic
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN FIX REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Build a REAL STREAM RECOVERY SYSTEM.
+
+Requirements:
+
+1. Active Run Persistence
+- persist active runs in memory + DB
+- reconnect should restore current run state
+
+2. SSE Recovery
+- implement Last-Event-ID support
+- replay missed events after reconnect
+
+3. Reconnect Logic
+- exponential backoff
+- heartbeat validation
+- stale connection detection
+- auto resubscribe
+
+4. Event Replay
+- restore:
+  - agent events
+  - console logs
+  - lifecycle state
+  - preview state
+  - file changes
+
+5. Frontend Recovery
+- restore UI after refresh
+- reconnect active streams automatically
+- recover:
+  - thinking state
+  - console logs
+  - tool calls
+  - current task
+  - preview status
+
+6. Listener Cleanup
+- guarantee unsubscribe
+- prevent memory leaks
+- prevent duplicate subscriptions
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT IMPLEMENTATION RULES
+━━━━━━━━━━━━━━━━━━━━
+
+STRICT RULES:
+- preserve existing architecture
+- do NOT rewrite entire system
+- minimal invasive changes
+- maintain folder structure
+- maintain naming conventions
+- no overengineering
+- no giant files
+
+IMPORTANT:
+- each file MUST stay under 250 lines
+- create reusable modules
+- clear folder structure
+- modular architecture
+- production-grade cleanup
+- strongly typed events
+- centralized stream manager
+
+━━━━━━━━━━━━━━━━━━━━
+EXPECTED ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Create something like:
+
+Frontend:
+client/src/realtime/
+  stream-manager.ts
+  reconnect-manager.ts
+  event-replay.ts
+  heartbeat.ts
+  stream-store.ts
+
+Backend:
+server/realtime/
+  replay-cache.ts
+  stream-registry.ts
+  heartbeat-manager.ts
+  recovery-manager.ts
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Root Cause Analysis
+2. Broken Stream Flow
+3. Missing Recovery Points
+4. Exact File Problems
+5. Event Lifecycle Analysis
+6. Reconnect Failure Analysis
+7. Memory Leak Risks
+8. Final Recovery Architecture
+9. File-by-File Refactor Plan
+10. Exact Files To Modify
+11. New Files To Create
+12. Production-Grade Recovery Flow
+13. SSE Replay Strategy
+14. WebSocket Recovery Strategy
+15. Frontend Recovery Strategy
+16. Cleanup Strategy
+17. Final Optimized Architecture
+
+THEN:
+Implement the fix completely.
+
+IMPORTANT:
+- use evidence-based analysis
+- mention exact files
+- mention exact lines
+- preserve current working systems
+- avoid breaking preview/chat/console/file explorer
+
+GOAL:
+After refresh or reconnect:
+- active agent resumes correctly
+- console restores
+- preview reconnects
+- no duplicate listeners
+- no lost events
+- no UI desync
+- no memory leaks
