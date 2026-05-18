@@ -11,6 +11,7 @@ import { crudService }    from './crud/crud.service.ts';
 import { searchService }  from './search/search.service.ts';
 import { historyService } from './history/history.service.ts';
 import { watcherService } from './watcher/watcher.service.ts';
+import { emitFileChange } from '../infrastructure/events/file-change-emitter.ts';
 import type { CrudEventPayload } from './crud/crud.types.ts';
 import type { WatcherSnapshot }  from './watcher/watcher.types.ts';
 
@@ -70,6 +71,12 @@ export class FileExplorerOrchestrator {
     crudService.onEvent((payload: CrudEventPayload) => {
       const { type, path, oldPath, projectPath } = payload;
 
+      // Derive numeric projectId from the sandbox path tail (e.g. ".data/sandboxes/3" → 3)
+      // so we can fan the event into the main bus for SSE clients.
+      const numericId = projectPath
+        ? parseInt(projectPath.split('/').filter(Boolean).pop() ?? '', 10)
+        : NaN;
+
       // 1. Broadcast to all SSE clients watching this project
       if (projectPath) {
         watcherService.notifyFileChange(
@@ -81,6 +88,18 @@ export class FileExplorerOrchestrator {
           oldPath,
         );
         this.emit({ type: 'watcher-broadcast', payload: { type, path, projectPath } });
+      }
+
+      // 1b. Also emit onto the main event bus so useRealtimeEvent("file") on the
+      //     frontend receives file.change events originating from CRUD operations.
+      if (!isNaN(numericId)) {
+        const busType =
+          type === 'created' ? 'add' :
+          type === 'deleted' ? 'unlink' : 'change';
+        emitFileChange(numericId, busType, path);
+        if (type === 'renamed' && oldPath) {
+          emitFileChange(numericId, 'unlink', oldPath);
+        }
       }
 
       // 2. Invalidate search index so next search re-scans

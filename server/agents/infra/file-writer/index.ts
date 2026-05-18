@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { emitFileChange } from '../../infrastructure/events/file-change-emitter.ts';
 
 export type FileAction = 'create' | 'update' | 'delete';
 
@@ -11,6 +12,7 @@ export interface FileEntry {
 
 export interface FileWriterOptions {
   rootDir: string;
+  projectId?: number;
   overwrite?: boolean;
   backup?: boolean;
   mergeMode?: 'overwrite' | 'merge' | 'skip';
@@ -36,7 +38,7 @@ export interface FileWriterInput {
 
 export async function writeGeneratedFiles(input: FileWriterInput): Promise<Readonly<FileWriterReport>> {
   const { files, options } = input;
-  const { rootDir, overwrite = true, backup = false, mergeMode = 'overwrite' } = options;
+  const { rootDir, projectId, overwrite = true, backup = false, mergeMode = 'overwrite' } = options;
   const writtenFiles: string[] = [];
   const failedFiles: string[] = [];
   const skippedFiles: string[] = [];
@@ -53,6 +55,7 @@ export async function writeGeneratedFiles(input: FileWriterInput): Promise<Reado
           await fs.unlink(absolutePath);
           writtenFiles.push(file.path);
           logs.push({ level: 'INFO', code: 'DELETED', message: `Deleted: ${file.path}` });
+          if (projectId !== undefined) emitFileChange(projectId, 'unlink', file.path);
         } catch {
           logs.push({ level: 'WARN', code: 'DELETE_SKIP', message: `File not found for deletion: ${file.path}` });
           skippedFiles.push(file.path);
@@ -93,6 +96,7 @@ export async function writeGeneratedFiles(input: FileWriterInput): Promise<Reado
       await fs.writeFile(absolutePath, file.content ?? '', 'utf8');
       writtenFiles.push(file.path);
       logs.push({ level: 'INFO', code: 'WRITTEN', message: `Written: ${file.path}` });
+      if (projectId !== undefined) emitFileChange(projectId, exists ? 'change' : 'add', file.path);
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);

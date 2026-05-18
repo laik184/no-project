@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import fs from "fs/promises";
 import path from "path";
 import { getProjectDir, resolveSafe, ensureProjectDir } from "../infrastructure/sandbox/sandbox.util.ts";
+import { emitFileChange } from "../infrastructure/events/file-change-emitter.ts";
 
 export function createFsRouter(): Router {
   const router = Router();
@@ -55,8 +56,10 @@ export function createFsRouter(): Router {
       const { path: filePath, content } = req.body;
       if (!filePath) return res.status(400).json({ ok: false, error: "path is required" });
       const abs = resolveSafe(projectDir, filePath);
+      const existed = await fs.stat(abs).catch(() => null);
       await fs.mkdir(path.dirname(abs), { recursive: true });
       await fs.writeFile(abs, content || "", "utf-8");
+      emitFileChange(projectId, existed ? "change" : "add", filePath);
       res.json({ ok: true, path: filePath, written: true });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });
@@ -71,6 +74,7 @@ export function createFsRouter(): Router {
       if (!filePath) return res.status(400).json({ ok: false, error: "path query param required" });
       const abs = resolveSafe(projectDir, filePath);
       await fs.rm(abs, { recursive: true, force: true });
+      emitFileChange(projectId, "unlink", filePath);
       res.json({ ok: true, path: filePath, deleted: true });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });

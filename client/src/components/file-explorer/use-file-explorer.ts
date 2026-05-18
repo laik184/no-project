@@ -71,13 +71,19 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     };
   }, []);
 
+  // Extract the numeric project ID from the sandbox path (e.g. ".data/sandboxes/7" → "7").
+  // This is used to match against FileChangeEvent.projectId which is a number.
+  const sandboxId = projectPath
+    ? projectPath.split("/").filter(Boolean).pop() ?? projectPath
+    : "";
+
   // Agent events — highlight AI-written files and refresh tree on diffs
   useRealtimeEvent("agent", (data) => {
     try {
       const d = data as Record<string, unknown>;
       if (d.type === "diff" && (d.diff as any)?.path) {
         setAiFiles((prev) => new Set(prev).add((d.diff as any).path));
-        if (!d.projectId || d.projectId === projectPath) refreshFiles();
+        if (!d.projectId || String(d.projectId) === sandboxId) refreshFiles();
       }
     } catch {}
   });
@@ -87,16 +93,17 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     try {
       const d = data as Record<string, unknown>;
       if (d.file || (d.msg && String(d.msg).includes("file"))) {
-        if (!d.projectId || d.projectId === projectPath) refreshFiles();
+        if (!d.projectId || String(d.projectId) === sandboxId) refreshFiles();
       }
     } catch {}
   });
 
-  // File-change events — refresh tree on any file system change
+  // File-change events — refresh tree on any file system change.
+  // d.projectId is a number; sandboxId is the trailing segment of the sandbox path.
   useRealtimeEvent("file", (data) => {
     try {
       const d = data as Record<string, unknown>;
-      if (!d.projectId || String(d.projectId) === String(projectPath)) refreshFiles();
+      if (!d.projectId || String(d.projectId) === sandboxId) refreshFiles();
     } catch {}
   });
 

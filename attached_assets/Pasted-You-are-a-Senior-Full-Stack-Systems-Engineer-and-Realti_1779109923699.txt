@@ -1,0 +1,160 @@
+You are a Senior Full-Stack Systems Engineer and Realtime IDE Architecture Specialist.
+
+Your task is to deeply scan and FIX the following critical bug in the agentic IDE system.
+
+━━━━━━━━━━━━━━━━━━━━
+BUG ID: F1
+━━━━━━━━━━━━━━━━━━━━
+
+Problem:
+File Explorer does NOT auto-refresh when the AI agent writes files.
+
+Current behavior:
+- AI writes files successfully using file_write or fs.writeFile
+- Files are updated on disk
+- But frontend File Explorer UI remains stale
+- User must manually refresh
+- Realtime coding experience breaks
+
+Expected behavior:
+- Whenever AI creates/modifies/deletes files
+- frontend File Explorer should instantly update
+- Preview/runtime/editor should stay synchronized
+- Realtime IDE behavior like Replit/Cursor
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE TO INVESTIGATE
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan ALL related systems:
+
+Frontend:
+- File Explorer
+- Workspace state
+- SSE listeners
+- Event subscriptions
+- File tree refresh logic
+- React state synchronization
+- dirtyFiles / aiFiles state
+
+Backend:
+- file_write tool
+- fs routes
+- chokidar watcher
+- Event bus
+- SSE /sse/files
+- file.change events
+- sandbox write flow
+- AI file generation pipeline
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT INVESTIGATION POINTS
+━━━━━━━━━━━━━━━━━━━━
+
+Find:
+1. Where AI writes files
+2. Whether file.change event is emitted
+3. Whether EventBus receives updates
+4. Whether /sse/files streams correctly
+5. Whether frontend subscribes correctly
+6. Whether state updates trigger rerender
+7. Whether stale closures exist
+8. Whether file tree cache blocks updates
+9. Whether chokidar watches sandbox correctly
+10. Whether AI writes bypass watcher system
+
+━━━━━━━━━━━━━━━━━━━━
+EXPECTED ROOT CAUSE
+━━━━━━━━━━━━━━━━━━━━
+
+Most likely:
+- AI writes files directly via fs.writeFile
+- BUT does NOT emit:
+  bus.emit("file.change")
+
+OR
+
+- chokidar watcher does not observe AI-generated writes
+
+OR
+
+- frontend SSE listener does not invalidate tree state
+
+━━━━━━━━━━━━━━━━━━━━
+FIX REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+✅ Realtime file synchronization
+✅ Auto-refresh File Explorer
+✅ Immediate rerender after AI write
+✅ Unified file-change event pipeline
+✅ Proper event emission after:
+   - create
+   - update
+   - rename
+   - delete
+
+━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Use:
+- single source of truth
+- clean event-driven architecture
+- low coupling
+- high cohesion
+- centralized file-change system
+
+DO NOT:
+❌ duplicate watchers
+❌ create polling loops
+❌ refresh entire app unnecessarily
+❌ create memory leaks
+❌ add excessive rerenders
+❌ break editor state
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT CONSTRAINTS
+━━━━━━━━━━━━━━━━━━━━
+
+VERY IMPORTANT:
+- Keep every modified file UNDER 250 lines
+- Refactor if needed
+- Maintain clean folder structure
+- Split logic into small reusable modules
+- Avoid giant god-files
+- Use production-grade architecture
+
+━━━━━━━━━━━━━━━━━━━━
+DELIVERABLES
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Deep root-cause analysis
+2. Exact broken execution flow
+3. Exact files causing issue
+4. Event flow diagram
+5. Correct realtime sync architecture
+6. Step-by-step fix plan
+7. Refactored folder structure
+8. Minimal clean code patches
+9. Memory-safe SSE handling
+10. Final production-grade implementation
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+Use evidence-based analysis only.
+
+Mention:
+- exact files
+- exact functions
+- exact event flows
+- exact missing logic
+- exact stale state causes
+
+Goal:
+Make File Explorer behave like Replit/Cursor realtime sync.
