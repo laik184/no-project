@@ -1,0 +1,223 @@
+You are a Senior Realtime Systems Engineer and Event-Streaming Architecture Auditor.
+
+Your task is to deeply scan the entire codebase and FIX the following architectural issue:
+
+BUG ID: C4 — Duplicate Event Channels
+Impact:
+- Memory waste
+- Duplicate SSE traffic
+- Duplicate event listeners
+- Multiple subscriptions for same data
+- UI instability
+- Event desynchronization
+- Listener leaks
+- High CPU usage during concurrent sessions
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Find and eliminate ALL duplicate event channels, duplicate SSE streams, duplicate event forwarding systems, and overlapping subscriptions.
+
+The architecture must become:
+- centralized
+- minimal
+- memory-safe
+- production-grade
+- scalable
+- easy to maintain
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- client/src/hooks/
+- client/src/lib/
+- client/src/components/
+- client/src/context/
+- client/src/pages/
+
+Backend:
+- server/chat/streams/
+- server/infrastructure/events/
+- server/chat/
+- server/api/
+- server/agents/
+- server/runtime/
+
+━━━━━━━━━━━━━━━━━━━━
+DETECT ALL OF THESE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Duplicate SSE endpoints
+2. Duplicate EventSource connections
+3. Multiple hooks consuming same stream
+4. Duplicate event forwarding
+5. Duplicate bus.emit calls
+6. Multiple listeners for same event
+7. Firehose streams duplicating targeted streams
+8. Redundant WebSocket + SSE overlap
+9. Listener cleanup failures
+10. Repeated subscriptions on rerender
+11. Nested subscriptions
+12. Global stream misuse
+13. Duplicate event names
+14. Duplicate event payloads
+15. Memory-retained listeners
+16. Event replay duplication
+17. Double event writes
+18. Stream fan-out inefficiencies
+19. Event bus overload risks
+20. Cross-stream duplication
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT FILES TO AUDIT FIRST
+━━━━━━━━━━━━━━━━━━━━
+
+Backend:
+- server/chat/streams/sse.ts
+- server/infrastructure/events/bus.ts
+- server/chat/index.ts
+- server/chat/orchestrator.ts
+
+Frontend:
+- client/src/hooks/useAgentRunner.ts
+- client/src/hooks/useLiveAgentStream.ts
+- client/src/hooks/use-agent-ultra-stream.ts
+- client/src/hooks/useAgiStream.ts
+- client/src/lib/sse.ts
+- client/src/context/app-state-context.tsx
+
+━━━━━━━━━━━━━━━━━━━━
+EXPECTED OUTPUT
+━━━━━━━━━━━━━━━━━━━━
+
+1. FULL DUPLICATE EVENT MAP
+Show:
+- endpoint
+- listener source
+- duplicate target
+- overlap percentage
+- memory impact
+
+2. LISTENER LIFECYCLE REPORT
+Find:
+- listeners never cleaned
+- listeners surviving rerenders
+- stale subscriptions
+- leaked closures
+
+3. EVENT FLOW DIAGRAM
+Current:
+bus.emit()
+→ duplicate SSE
+→ duplicate hooks
+→ duplicate state updates
+
+4. MEMORY WASTE ANALYSIS
+Estimate:
+- duplicated payload count
+- duplicated connections
+- duplicated listeners
+- event amplification factor
+
+5. PRODUCTION FIX PLAN
+Design:
+- single-source event architecture
+- centralized stream manager
+- scoped subscriptions
+- topic-based filtering
+- proper cleanup lifecycle
+
+━━━━━━━━━━━━━━━━━━━━
+FIX REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Create a CLEAN architecture:
+
+BACKEND:
+- ONE unified SSE gateway
+- topic-based filtering
+- one listener per client
+- automatic cleanup
+- centralized event registry
+
+FRONTEND:
+- ONE reusable stream client
+- ONE subscription manager
+- ONE event store
+- deduplicated updates
+- shared connection pooling
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. Keep every file UNDER 250 lines
+2. Use clear folder structure
+3. Separate:
+   - stream transport
+   - event routing
+   - subscription logic
+   - state updates
+4. No giant hooks
+5. No giant SSE files
+6. No duplicated EventSource creation
+7. No duplicated bus subscriptions
+8. No nested listeners
+9. No hidden global listeners
+10. No memory-retained closures
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/
+  infrastructure/
+    events/
+      event-bus.ts
+      stream-registry.ts
+      topic-router.ts
+      connection-manager.ts
+
+client/
+  realtime/
+    stream-client.ts
+    subscription-manager.ts
+    event-store.ts
+    topic-hooks/
+      use-agent-events.ts
+      use-console-events.ts
+      use-file-events.ts
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+DO NOT:
+- rewrite unrelated systems
+- change business logic
+- break existing event payloads
+
+ONLY:
+- remove duplication
+- optimize event flow
+- reduce memory usage
+- stabilize realtime architecture
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL DELIVERABLES
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+1. Deep duplicate-event audit
+2. Exact files causing duplication
+3. Exact listener leaks
+4. Event-flow bottlenecks
+5. Memory leak analysis
+6. Refactored architecture
+7. Folder structure
+8. Step-by-step migration plan
+9. Optimized code implementation
+10. Final production-grade realtime architecture

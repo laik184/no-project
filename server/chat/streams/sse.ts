@@ -1,26 +1,24 @@
 /**
- * sse.ts — SSE endpoint router
+ * sse.ts — Unified SSE gateway (single endpoint, C4-clean)
  *
- * ┌──────────────────────────────────────────────────────────────────┐
- * │  PRIMARY ENDPOINT (use this for all new frontend connections):   │
- * │                                                                  │
- * │  GET /api/realtime                                               │
- * │                                                                  │
- * │  Unified, topic-multiplexed SSE stream. Replaces the 11 fragmented│
- * │  endpoints that caused duplicate connections and memory leaks.   │
- * └──────────────────────────────────────────────────────────────────┘
+ * GET /api/realtime
+ *   Topic-multiplexed SSE stream.  All frontend realtime connections
+ *   use this endpoint via RealtimeProvider (client/src/realtime/).
  *
- * Legacy endpoints below are kept only as fallbacks for any tooling
- * that hasn't been migrated.  Do not add new consumers against them.
+ *   Query params:
+ *     topics    comma-separated subset (default: all topics)
+ *     projectId numeric project filter
+ *     runId     string run filter (agent / lifecycle / checkpoint)
  *
- * Pattern enforced by every endpoint:
- *   1. setupSse(res)          — headers, flush, send ": connected"
- *   2. bus.subscribe(...)     — one subscription per event type
- *   3. sseSend(res, name, e)  — ONE write per event (no duplicates)
- *   4. onClose(req, ...)      — single cleanup on connection close
+ * Rules enforced here (C4 duplicate-event contract):
+ *   1. setupSse(res)          — headers + ": connected" heartbeat
+ *   2. bus.subscribe(...)     — EXACTLY ONE subscription per topic per conn
+ *   3. sseSend(res, name, e)  — single write per event, no duplicates
+ *   4. onClose(req, ...)      — all subscriptions cleaned on disconnect
  *
  * NEVER call res.write() directly — always use sseSend().
- * NEVER subscribe to the same bus event twice in one endpoint.
+ * NEVER subscribe to the same bus event twice in one handler.
+ * DO NOT add legacy endpoints — use /api/realtime with topic filtering.
  */
 
 import { Router, type Request, type Response } from "express";
@@ -127,82 +125,6 @@ export function createSseRouter(): Router {
     }
 
     onClose(req, startHeartbeat(res), ...cleanups);
-  });
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // LEGACY ENDPOINTS — kept as fallbacks; do not add new consumers
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // ── /api/agent/stream — run-scoped agent + lifecycle + checkpoint ─────
-  r.get("/api/agent/stream", (req: Request, res: Response) => {
-    setupSse(res);
-    const runIdFilter = req.query.runId as string | undefined;
-    const off1 = bus.subscribe("agent.event", (e) => {
-      if (runIdFilter && e.runId !== runIdFilter) return;
-      sseSend(res, "agent", e);
-    });
-    const off2 = bus.subscribe("run.lifecycle", (e) => {
-      if (runIdFilter && e.runId !== runIdFilter) return;
-      sseSend(res, "lifecycle", e);
-    });
-    const off3 = bus.subscribe("checkpoint.event", (e) => {
-      if (runIdFilter && e.runId && e.runId !== runIdFilter) return;
-      sseSend(res, "checkpoint", e);
-    });
-    onClose(req, startHeartbeat(res), off1, off2, off3);
-  });
-
-  // ── /sse/console — project-scoped console.log ─────────────────────────
-  r.get("/sse/console", (req: Request, res: Response) => {
-    setupSse(res);
-    const projectIdFilter = req.query.projectId ? Number(req.query.projectId) : null;
-    const off = bus.subscribe("console.log", (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "console", e);
-    });
-    onClose(req, startHeartbeat(res), off);
-  });
-
-  // ── /sse/files — project-scoped file.change ───────────────────────────
-  r.get("/sse/files", (req: Request, res: Response) => {
-    setupSse(res);
-    const projectIdFilter = req.query.projectId ? Number(req.query.projectId) : null;
-    const off = bus.subscribe("file.change", (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "file", e);
-    });
-    onClose(req, startHeartbeat(res), off);
-  });
-
-  // ── /sse/preview — console + lifecycle + runtime (project-scoped) ─────
-  r.get("/sse/preview", (req: Request, res: Response) => {
-    setupSse(res);
-    const projectIdFilter = req.query.projectId ? Number(req.query.projectId) : null;
-    const off1 = bus.subscribe("console.log", (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "preview", e);
-    });
-    const off2 = bus.subscribe("run.lifecycle",       (e) => sseSend(res, "preview", e));
-    const off3 = bus.subscribe("runtime.verified",    (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "runtime.verified", e);
-    });
-    const off4 = bus.subscribe("runtime.observation", (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "runtime.observation", e);
-    });
-    onClose(req, startHeartbeat(res), off1, off2, off3, off4);
-  });
-
-  // ── /sse/diffs — project-scoped agent.diff ────────────────────────────
-  r.get("/sse/diffs", (req: Request, res: Response) => {
-    setupSse(res);
-    const projectIdFilter = req.query.projectId ? Number(req.query.projectId) : null;
-    const off = bus.subscribe("agent.diff", (e) => {
-      if (projectIdFilter !== null && e.projectId !== projectIdFilter) return;
-      sseSend(res, "diff", e);
-    });
-    onClose(req, startHeartbeat(res), off);
   });
 
   return r;

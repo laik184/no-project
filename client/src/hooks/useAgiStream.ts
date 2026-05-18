@@ -1,8 +1,9 @@
 /**
- * useAgiStream — consume agent + lifecycle + console events.
+ * useAgiStream — consume agent + lifecycle events.
  *
- * Migrated to unified RealtimeProvider — no longer opens its own
- * EventSource connection.  Collects all three topic streams into one array.
+ * Console removed: the analytics page only needs agent/lifecycle events.
+ * Console logs are already aggregated in AppStateContext.consoleOutput —
+ * subscribing here was a duplicate listener causing extra re-renders.
  */
 
 import { useState } from "react";
@@ -16,7 +17,6 @@ export function useAgiStream(): unknown[] {
 
   useRealtimeEvent("agent",     push);
   useRealtimeEvent("lifecycle", push);
-  useRealtimeEvent("console",   push);
 
   return events;
 }
