@@ -1,0 +1,206 @@
+You are a Senior Realtime File-System Architect and Full-Stack Stability Engineer.
+
+Your task is to DEEP SCAN and FIX issue:
+
+F9 — Weak Watcher Architecture
+
+MAIN GOAL:
+The current file watching system is unreliable, inconsistent, delayed, and disconnected from agent-generated file writes.
+
+You must analyze the ENTIRE realtime file synchronization architecture and fix the watcher system using:
+- high cohesion
+- low coupling
+- clean architecture
+- production-grade realtime patterns
+
+━━━━━━━━━━━━━━━━━━━━
+PROBLEM TO FIND
+━━━━━━━━━━━━━━━━━━━━
+
+Current symptoms:
+- Agent writes files but File Explorer does not refresh instantly
+- file.change events are inconsistent
+- chokidar watchers are fragmented
+- watchers may leak memory
+- duplicate watcher instances may exist
+- watcher cleanup may fail
+- event propagation is unreliable
+- agent writes bypass watcher notification flow
+- SSE updates are delayed or missing
+- manual refresh is required sometimes
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN THESE AREAS
+━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- client/src/components/file-explorer*
+- client/src/hooks/*
+- client/src/lib/*
+- file refresh logic
+- SSE subscriptions
+- file tree refresh triggers
+- dirty state handling
+- explorer synchronization flow
+
+Backend:
+- server/chat/streams/*
+- server/infrastructure/events/*
+- server/infrastructure/sandbox/*
+- server/routes/*
+- server/agents/tools/*
+- chokidar usage
+- file.change emitters
+- watcher lifecycle
+- watcher cleanup
+- sandbox write flow
+- fs write wrappers
+
+━━━━━━━━━━━━━━━━━━━━
+DETECT ALL PROBLEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Find:
+- duplicate watchers
+- orphan watchers
+- memory leaks
+- unclosed listeners
+- multiple subscriptions
+- direct fs.writeFile bypasses
+- missing file.change emits
+- delayed propagation
+- recursive refresh loops
+- stale file trees
+- race conditions
+- file-state desync
+- event ordering problems
+- SSE propagation issues
+- missing debouncing
+- missing throttling
+- excessive refresh calls
+
+━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE RULES
+━━━━━━━━━━━━━━━━━━━━
+
+STRICTLY FOLLOW:
+
+✅ High Cohesion
+- watcher logic centralized
+- single responsibility per module
+- isolated event propagation
+
+✅ Low Coupling
+- file explorer should NOT directly depend on chokidar
+- agent tools should NOT directly control UI refresh
+- SSE layer should be abstracted
+- watchers should communicate through event bus only
+
+✅ Clean Folder Structure
+Create or refactor into:
+
+server/
+└── infrastructure/
+    └── filesystem/
+        ├── watcher/
+        │   ├── file-watcher.service.ts
+        │   ├── watcher-registry.ts
+        │   ├── watcher-events.ts
+        │   └── watcher-cleanup.ts
+        ├── events/
+        └── sync/
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+1. Unified Watcher Service
+2. Single Watcher Registry
+3. Automatic Cleanup System
+4. Centralized file.change event emitter
+5. Debounced refresh mechanism
+6. Reliable SSE propagation
+7. Agent-write synchronization bridge
+8. Watcher lifecycle manager
+9. File-tree invalidation strategy
+10. Event deduplication system
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT FIXES
+━━━━━━━━━━━━━━━━━━━━
+
+Ensure:
+- ALL file writes go through ONE write abstraction
+- ALL writes emit file.change consistently
+- watchers auto-clean on disconnect/project close
+- no duplicate watchers per project
+- frontend refreshes instantly
+- no manual refresh required
+- no memory leaks
+- no recursive event storms
+
+━━━━━━━━━━━━━━━━━━━━
+PERFORMANCE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Must support:
+- large projects
+- many file writes
+- concurrent agent operations
+- realtime updates
+- low memory usage
+- low CPU usage
+
+Use:
+- debounce
+- throttling
+- event batching
+- lazy refresh
+- incremental tree updates
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Root Cause Analysis
+2. Current Watcher Flow
+3. Broken Synchronization Points
+4. Memory Leak Risks
+5. Duplicate Watcher Problems
+6. Event Propagation Problems
+7. Correct Architecture Design
+8. Refactored Folder Structure
+9. Exact Files To Modify
+10. Exact Code Changes
+11. New Services To Create
+12. Cleanup Strategy
+13. Realtime Sync Strategy
+14. Event Bus Strategy
+15. Performance Optimizations
+16. Final Stable Watcher Architecture
+
+━━━━━━━━━━━━━━━━━━━━
+VERY IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+DO NOT:
+- rewrite unrelated systems
+- create giant files
+- create tightly coupled logic
+- exceed 250 lines per file
+- place watcher logic in routes/controllers
+- duplicate event systems
+
+ONLY:
+- create modular architecture
+- reusable services
+- centralized watcher management
+- production-grade realtime sync
+
+Every file MUST remain under:
+250 lines maximum.
+
+Use enterprise-grade architecture patterns.

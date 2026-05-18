@@ -12,6 +12,7 @@ import { searchService }  from './search/search.service.ts';
 import { historyService } from './history/history.service.ts';
 import { watcherService } from './watcher/watcher.service.ts';
 import { emitFileChange } from '../infrastructure/events/file-change-emitter.ts';
+import { watcherRegistry } from '../infrastructure/filesystem/watcher/watcher-registry.ts';
 import type { CrudEventPayload } from './crud/crud.types.ts';
 import type { WatcherSnapshot }  from './watcher/watcher.types.ts';
 
@@ -62,70 +63,29 @@ export class FileExplorerOrchestrator {
   // ─── Cross-Module Wiring ───────────────────────────────────────────────────
 
   /**
-   * Wire CRUD events to:
-   *  1. Watcher → SSE broadcast (frontend tree reloads)
-   *  2. Search  → index invalidation (search stays fresh)
-   *  3. History → auto-snapshot on save (version tracking)
+   * Wire CRUD events to propagate pipeline-level events to internal listeners.
+   *
+   * Note: projectPath is optional in CrudEventPayload. When absent (direct
+   * crudService.save() calls), project-scoped actions (search invalidation,
+   * history snapshot, watcher notification) are handled by the explicit
+   * *WithContext() methods below, which always have projectPath available.
    */
   private wireCrudEvents(): void {
     crudService.onEvent((payload: CrudEventPayload) => {
       const { type, path, oldPath, projectPath } = payload;
 
-      // Derive numeric projectId from the sandbox path tail (e.g. ".data/sandboxes/3" → 3)
-      // so we can fan the event into the main bus for SSE clients.
-      const numericId = projectPath
-        ? parseInt(projectPath.split('/').filter(Boolean).pop() ?? '', 10)
-        : NaN;
-
-      // 1. Broadcast to all SSE clients watching this project
+      // Project-scoped side-effects (only when projectPath is known)
       if (projectPath) {
         watcherService.notifyFileChange(
-          type === 'created'  ? 'created'  :
-          type === 'updated'  ? 'updated'  :
-          type === 'renamed'  ? 'renamed'  : 'deleted',
-          path,
-          projectPath,
-          oldPath,
+          type === 'created' ? 'created' :
+          type === 'updated' ? 'updated' :
+          type === 'renamed' ? 'renamed' : 'deleted',
+          path, projectPath, oldPath,
         );
-        this.emit({ type: 'watcher-broadcast', payload: { type, path, projectPath } });
-      }
-
-      // 1b. Also emit onto the main event bus so useRealtimeEvent("file") on the
-      //     frontend receives file.change events originating from CRUD operations.
-      if (!isNaN(numericId)) {
-        const busType =
-          type === 'created' ? 'add' :
-          type === 'deleted' ? 'unlink' : 'change';
-        emitFileChange(numericId, busType, path);
-        if (type === 'renamed' && oldPath) {
-          emitFileChange(numericId, 'unlink', oldPath);
-        }
-      }
-
-      // 2. Invalidate search index so next search re-scans
-      if (projectPath) {
         searchService.invalidateIndex(projectPath);
-        this.emit({ type: 'search-indexed', payload: { projectPath } });
       }
 
-      // 3. Auto-snapshot when a file is created or updated
-      if ((type === 'created' || type === 'updated') && projectPath) {
-        const readResult = crudService.read({ filePath: path });
-        if (readResult.ok && readResult.content !== undefined) {
-          const snapshotResult = historyService.snapshot({
-            projectId: projectPath,
-            filePath: path,
-            content: readResult.content,
-            author: 'system',
-            message: `Auto-snapshot on ${type}`,
-          });
-          if (snapshotResult.ok) {
-            this.emit({ type: 'history-snapshot', payload: { path, versionId: snapshotResult.version?.id } });
-          }
-        }
-      }
-
-      // Emit top-level event
+      // Emit pipeline event to any internal listeners
       const eventType: PipelineEvent['type'] =
         type === 'created' ? 'file-created'  :
         type === 'updated' ? 'file-updated'  :
@@ -226,6 +186,10 @@ export class FileExplorerOrchestrator {
         ok: true,
         details: `${watcherSnap.clientCount} SSE clients`,
       },
+      fsWatcher: {
+        ok: true,
+        details: `${watcherRegistry.getStats().count} OS-level project watchers`,
+      },
     };
 
     const allOk = Object.values(modules).every(m => m.ok);
@@ -257,6 +221,7 @@ export class FileExplorerOrchestrator {
   dispose(): void {
     this.status = 'shutting-down';
     watcherService.dispose();
+    watcherRegistry.disposeAll();
     this.listeners.clear();
   }
 }

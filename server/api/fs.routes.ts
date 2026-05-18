@@ -4,6 +4,7 @@ import path from "path";
 import { getProjectDir, resolveSafe, ensureProjectDir } from "../infrastructure/sandbox/sandbox.util.ts";
 import { emitFileChange }   from "../infrastructure/events/file-change-emitter.ts";
 import { safeWriteFile, safeDeleteFile } from "../infrastructure/checkpoints/safe-fs.util.ts";
+import { watcherRegistry }  from "../infrastructure/filesystem/watcher/watcher-registry.ts";
 
 export function createFsRouter(): Router {
   const router = Router();
@@ -30,6 +31,10 @@ export function createFsRouter(): Router {
 
       const targetDir = resolveSafe(projectDir, subPath);
       const tree = await buildTree(targetDir);
+
+      // Start OS-level watcher for this project (no-op if already watching)
+      watcherRegistry.watchProject(projectId, projectDir);
+
       res.json({ ok: true, projectId, path: subPath, tree });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });
