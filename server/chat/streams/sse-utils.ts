@@ -8,6 +8,8 @@
  *  - ONE write per event (atomic frame, no partial delivery risk)
  *  - ONE formatting strategy (`event: X\ndata: Y\n\n`)
  *  - ONE heartbeat factory
+ *  - Guaranteed cleanup even when req.destroyed races onClose registration (L3)
+ *  - Socket-level backup cleanup for proxy-dropped connections (L7)
  */
 
 import type { Request, Response } from "express";
@@ -51,7 +53,7 @@ const PING_INTERVAL_MS = 15_000;
 
 /**
  * Start a periodic SSE heartbeat and return a cancel function.
- * Caller must invoke cancel() in the req.on("close") handler.
+ * Caller must pass the returned cancel into onClose().
  */
 export function startHeartbeat(res: Response): () => void {
   const id = setInterval(() => {
@@ -64,8 +66,15 @@ export function startHeartbeat(res: Response): () => void {
 
 /**
  * Register the canonical SSE cleanup handler on a request.
- * Accepts any number of unsubscribe functions (bus.subscribe returns) and a
- * heartbeat cancel function.  All are called exactly once on connection close.
+ *
+ * Accepts any number of unsubscribe / cancel functions.
+ * All are called exactly once when the connection closes.
+ *
+ * L3 fix — guaranteed cleanup even when:
+ *   • req.destroyed is already true when onClose() is called (race condition
+ *     between setupSse and subscription registration in the handler body)
+ *   • A reverse proxy drops the TCP socket without sending a FIN, causing
+ *     req "close" to never fire — we listen on the underlying socket too (L7)
  *
  * Usage:
  *   const off1 = bus.subscribe(...);
@@ -74,5 +83,28 @@ export function startHeartbeat(res: Response): () => void {
  *   onClose(req, stopHb, off1, off2);
  */
 export function onClose(req: Request, ...cleanups: Array<() => void>): void {
-  req.on("close", () => { for (const fn of cleanups) { try { fn(); } catch {} } });
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    for (const fn of cleanups) { try { fn(); } catch {} }
+  };
+
+  // Fast-path: connection already gone before we registered
+  if ((req as any).destroyed) {
+    run();
+    return;
+  }
+
+  // Primary: HTTP request close (reliable for most clients)
+  req.once("close", run);
+
+  // Backup: underlying TCP socket close (fires when proxy drops the connection
+  // without sending a proper HTTP close, which would miss req "close").
+  // req.socket is the same socket as res.socket — both reference the underlying
+  // IncomingMessage net.Socket (the cast silences the Express type gap).
+  const sock = (req as any).socket as import("net").Socket | undefined;
+  if (sock && !sock.destroyed) {
+    sock.once("close", run);
+  }
 }

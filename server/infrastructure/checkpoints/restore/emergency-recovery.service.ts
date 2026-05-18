@@ -75,7 +75,12 @@ export function disableAutoRecovery(projectId: number): void {
 }
 
 /** Called once at server startup to wire up the auto-recovery listener */
+let _listenerStarted = false;
+
 export function startEmergencyRecoveryListener(): void {
+  if (_listenerStarted) return;
+  _listenerStarted = true;
+
   bus.on("run.lifecycle", async (event) => {
     if (event.status !== "failed") return;
     if (!autoRecoveryProjects.has(event.projectId)) return;

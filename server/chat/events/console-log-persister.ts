@@ -5,6 +5,8 @@
  * `console_logs` DB table. Called once at server startup via ChatOrchestrator.
  *
  * Batches inserts every 500 ms (up to 100 lines) to avoid per-character DB hits.
+ *
+ * L1 fix: idempotency guard + bus.subscribe() so the listener can be removed.
  */
 
 import { bus } from "../../infrastructure/events/bus.ts";
@@ -23,6 +25,7 @@ const MAX_BATCH = 100;
 
 let buffer: PendingLog[] = [];
 let flushTimer: ReturnType<typeof setInterval> | null = null;
+let unsubscribe: (() => void) | null = null;
 
 async function flush(): Promise<void> {
   if (buffer.length === 0) return;
@@ -42,7 +45,9 @@ async function flush(): Promise<void> {
 }
 
 export function startConsoleLogPersister(): void {
-  bus.on("console.log", (event) => {
+  if (unsubscribe) return;
+
+  unsubscribe = bus.subscribe("console.log", (event) => {
     buffer.push({
       projectId: event.projectId,
       stream: event.stream,
@@ -55,8 +60,14 @@ export function startConsoleLogPersister(): void {
     flush().catch(() => {});
   }, FLUSH_INTERVAL_MS);
 
-  process.once("SIGTERM", () => flush().catch(() => {}));
-  process.once("SIGINT", () => flush().catch(() => {}));
+  const shutdown = () => {
+    flush().catch(() => {});
+    unsubscribe?.();
+    unsubscribe = null;
+    if (flushTimer) { clearInterval(flushTimer); flushTimer = null; }
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
 
   console.log("[nura-x] console-log-persister: started (500 ms batch flush)");
 }

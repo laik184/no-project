@@ -12,6 +12,10 @@
  *   /ws/agent/:runId   — duplicated SSE; zero frontend consumers
  *   /ws/execute/:id    — API endpoint never existed; ExecutionClient unused
  *   /ws/files/:id      — duplicated SSE file watcher; zero frontend consumers
+ *
+ * L4 fix: child stdout/stderr/exit listeners are explicitly removed when the
+ * WebSocket closes, releasing the closure references to ws and child immediately
+ * rather than waiting for the child process to exit.
  */
 
 import type { Server as HttpServer, IncomingMessage } from "http";
@@ -88,16 +92,20 @@ async function handleTerminal(ws: WebSocket, projectId: number | null): Promise<
     return;
   }
 
-  child.stdout.on("data", (chunk: Buffer) =>
-    safeSend(ws, { type: "stdout", data: chunk.toString() }),
-  );
-  child.stderr.on("data", (chunk: Buffer) =>
-    safeSend(ws, { type: "stdout", data: chunk.toString() }),
-  );
-  child.on("exit", (code) => {
+  // Store named listener references so they can be explicitly removed on
+  // ws close — prevents closure retention of ws+child beyond child lifetime.
+  const onStdout = (chunk: Buffer) =>
+    safeSend(ws, { type: "stdout", data: chunk.toString() });
+  const onStderr = (chunk: Buffer) =>
+    safeSend(ws, { type: "stdout", data: chunk.toString() });
+  const onExit = (code: number | null) => {
     safeSend(ws, { type: "exit", data: code });
     ws.close();
-  });
+  };
+
+  child.stdout.on("data", onStdout);
+  child.stderr.on("data", onStderr);
+  child.on("exit", onExit);
 
   ws.on("message", (msg) => {
     try {
@@ -110,7 +118,13 @@ async function handleTerminal(ws: WebSocket, projectId: number | null): Promise<
     }
   });
 
-  ws.on("close", () => { try { child.kill(); } catch {} });
+  ws.on("close", () => {
+    // Explicitly remove all child listeners before killing to release closures
+    child.stdout.off("data", onStdout);
+    child.stderr.off("data", onStderr);
+    child.off("exit", onExit);
+    try { child.kill(); } catch {}
+  });
 
   safeSend(ws, { type: "ready", data: { cwd } });
 }

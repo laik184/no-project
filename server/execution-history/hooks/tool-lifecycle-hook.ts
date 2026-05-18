@@ -6,27 +6,45 @@
  * Design:
  *  - Listens to the dedicated "tool.execution" bus channel (not agent.event)
  *  - Opens a DB record on phase=start, closes it on phase=success|error
- *  - Maintains an in-memory Map<executionId, true> to avoid duplicate opens
+ *  - Maintains an in-memory Map<executionId, openedAt> to track open calls
  *  - All DB writes are fire-and-forget with error logging (never throws)
  *  - Idempotent: safe to call attachToolExecutionHook() multiple times
+ *
+ * L5 fix: store the handler reference so detachToolExecutionHook() can call
+ *   bus.off() and actually remove the listener (previously only cleared openSet).
+ * L6 fix: openSet replaced with a TTL Map — entries older than OPEN_TTL_MS are
+ *   pruned every TTL period, preventing unbounded growth when tools crash before
+ *   emitting a success/error phase.
  */
 
-import { bus } from "../../infrastructure/events/bus.ts";
+import { bus, type ToolExecutionEvent } from "../../infrastructure/events/bus.ts";
 import { openExecution, closeExecution } from "../core/execution-recorder.ts";
 
-let attached = false;
+const OPEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// Lightweight guard against duplicate open calls for the same executionId
-const openSet = new Set<string>();
+// Map: executionId → timestamp when "start" was received
+const openMap = new Map<string, number>();
+
+// Prune stale entries once per TTL window
+const pruneTimer = setInterval(() => {
+  const cutoff = Date.now() - OPEN_TTL_MS;
+  for (const [id, ts] of openMap) {
+    if (ts < cutoff) openMap.delete(id);
+  }
+}, OPEN_TTL_MS);
+pruneTimer.unref(); // don't prevent process exit
+
+let attached = false;
+let attachedHandler: ((evt: ToolExecutionEvent) => void) | null = null;
 
 export function attachToolExecutionHook(): void {
   if (attached) return;
   attached = true;
 
-  bus.on("tool.execution", (evt) => {
+  attachedHandler = (evt: ToolExecutionEvent) => {
     if (evt.phase === "start") {
-      if (openSet.has(evt.executionId)) return;
-      openSet.add(evt.executionId);
+      if (openMap.has(evt.executionId)) return;
+      openMap.set(evt.executionId, Date.now());
 
       void openExecution({
         executionId:  evt.executionId,
@@ -44,7 +62,7 @@ export function attachToolExecutionHook(): void {
     }
 
     if (evt.phase === "success" || evt.phase === "error") {
-      openSet.delete(evt.executionId);
+      openMap.delete(evt.executionId);
 
       void closeExecution({
         executionId: evt.executionId,
@@ -56,10 +74,17 @@ export function attachToolExecutionHook(): void {
         console.error("[exec-history] Failed to close execution:", evt.executionId, err);
       });
     }
-  });
+  };
+
+  bus.on("tool.execution", attachedHandler);
 }
 
-/** Remove all tracked open executions (call on server shutdown). */
+/** Remove the bus listener and clear all tracked open executions. */
 export function detachToolExecutionHook(): void {
-  openSet.clear();
+  openMap.clear();
+  if (attachedHandler) {
+    bus.off("tool.execution", attachedHandler);
+    attachedHandler = null;
+    attached = false;
+  }
 }

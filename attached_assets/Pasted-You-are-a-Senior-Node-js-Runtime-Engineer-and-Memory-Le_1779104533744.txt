@@ -1,0 +1,118 @@
+You are a Senior Node.js Runtime Engineer and Memory Leak Auditor.
+
+Your task is to deeply scan the entire SSE/EventBus/WebSocket architecture and FIX listener leak risks causing RAM growth.
+
+MAIN PROBLEM:
+Potential EventEmitter/SSE/WebSocket listener leaks are causing:
+- increasing RAM usage
+- stale listeners
+- duplicated event handlers
+- unreleased closures
+- long-running server instability
+
+FOCUS AREA:
+- server/chat/streams/
+- server/infrastructure/events/
+- SSE handlers
+- WebSocket handlers
+- EventBus subscriptions
+- req.on("close")
+- cleanup logic
+- EventEmitter usage
+- singleton bus patterns
+
+CRITICAL ANALYSIS REQUIREMENTS:
+
+1. Detect ALL places where:
+- listeners are added
+- listeners are never removed
+- cleanup may fail
+- req.on("close") is unreliable
+- WebSocket disconnect cleanup is missing
+- duplicate listeners may occur
+- subscriptions persist after disconnect
+- closures retain res/socket references
+- EventEmitter grows infinitely
+
+2. Detect:
+- setMaxListeners(0)
+- missing unsubscribe calls
+- missing finally cleanup
+- orphaned subscriptions
+- nested subscriptions
+- reconnect duplication
+- memory retention patterns
+
+3. Check ALL:
+- SSE endpoints
+- WebSocket endpoints
+- bus.subscribe()
+- bus.on()
+- EventEmitter usage
+- chokidar watchers
+- runtime listeners
+- process listeners
+- stream listeners
+
+4. Identify:
+- exact file
+- exact function
+- exact line
+- leak reason
+- RAM impact
+- lifecycle issue
+- disconnect failure path
+
+5. Add:
+- proper cleanup lifecycle
+- guaranteed unsubscribe flow
+- AbortController-based cleanup
+- timeout cleanup
+- stale connection cleanup
+- weak reference strategy where needed
+- listener counting diagnostics
+- max listener protection
+- connection registry cleanup
+
+STRICT REQUIREMENTS:
+
+✅ Keep code simple
+✅ Keep folder structure clean
+✅ Keep architecture modular
+✅ Keep files under 250 lines
+✅ Use reusable helper utilities
+✅ Avoid over-engineering
+✅ Use production-safe patterns
+✅ Add defensive programming
+✅ Add logging for leak diagnostics
+
+DO NOT:
+- rewrite unrelated systems
+- change business logic
+- break SSE streaming
+- break WebSocket functionality
+- add huge abstractions
+
+ONLY:
+- fix listener lifecycle
+- stabilize memory usage
+- prevent RAM leaks
+- improve cleanup reliability
+
+OUTPUT FORMAT:
+
+1. Listener Leak Report
+2. Exact Leak Locations
+3. Root Cause Analysis
+4. Memory Growth Paths
+5. Cleanup Failure Paths
+6. Refactor Strategy
+7. File-by-File Fix Plan
+8. New Utility Modules
+9. Final Safe Architecture
+10. Optimized Production Implementation
+
+IMPORTANT:
+Use evidence-based analysis only.
+Mention exact files and exact lines.
+Focus on production-grade memory-safe realtime architecture.
