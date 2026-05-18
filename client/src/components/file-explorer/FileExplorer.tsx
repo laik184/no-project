@@ -4,6 +4,53 @@ import { ContextMenu } from "./ContextMenu";
 import { useFileExplorer } from "./use-file-explorer";
 import { useState } from "react";
 
+// Keyframe injection — done once at module scope, avoids re-injecting on re-renders
+if (typeof document !== "undefined" && !document.getElementById("__fe-anim__")) {
+  const s = document.createElement("style");
+  s.id = "__fe-anim__";
+  s.textContent = `
+    @keyframes fe-writing-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+    @keyframes fe-writing-dots {
+      0%   { content: ""; }
+      33%  { content: "."; }
+      66%  { content: ".."; }
+      100% { content: "..."; }
+    }
+    .fe-writing-row {
+      border-left: 2px solid #7c8dff !important;
+      background: rgba(124,141,255,0.07) !important;
+    }
+    .fe-writing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: auto;
+      font-size: 10px;
+      padding: 0 5px;
+      border-radius: 6px;
+      background: rgba(124,141,255,0.18);
+      color: #a5b4fc;
+      animation: fe-writing-pulse 1.1s ease-in-out infinite;
+      white-space: nowrap;
+    }
+    .fe-writing-spinner {
+      width: 7px;
+      height: 7px;
+      border: 1.5px solid rgba(124,141,255,0.35);
+      border-top-color: #a5b4fc;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 interface FileExplorerProps {
   projectPath: string;
   onSelect?: (path: string) => void;
@@ -11,7 +58,7 @@ interface FileExplorerProps {
 }
 
 function RenderNode({
-  node, basePath, activeFile, dirtyFiles, aiFiles, hoveredPath,
+  node, basePath, activeFile, dirtyFiles, aiFiles, writingFiles, hoveredPath,
   setHoveredPath, setFocusedPath, onSelect, onContextMenu,
 }: {
   node: RawTreeNode;
@@ -19,26 +66,42 @@ function RenderNode({
   activeFile?: string;
   dirtyFiles: Set<string>;
   aiFiles: Set<string>;
+  writingFiles: Set<string>;
   hoveredPath: string | null;
   setHoveredPath: (p: string | null) => void;
   setFocusedPath: (p: string | null) => void;
   onSelect: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void;
 }) {
-  const type  = node.type === "folder" ? "directory" : node.type;
-  const full  = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
-  const isDir = type === "directory";
+  const type    = node.type === "folder" ? "directory" : node.type;
+  const full    = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
+  const isDir   = type === "directory";
   const active  = !!activeFile && activeFile === full;
   const dirty   = dirtyFiles.has(full);
   const ai      = aiFiles.has(full);
+  const writing = writingFiles.has(full);
   const hovered = hoveredPath === full;
 
   const rowStyle: React.CSSProperties = {
     padding: "2px 6px", cursor: "pointer",
     display: "flex", alignItems: "center", gap: 6,
-    background: active ? "#16355a" : hovered ? "#020617" : "transparent",
+    background: writing
+      ? "rgba(124,141,255,0.07)"
+      : active
+        ? "#16355a"
+        : hovered
+          ? "#020617"
+          : "transparent",
     color: "#f9fafb", fontSize: 13,
+    borderLeft: writing ? "2px solid #7c8dff" : "2px solid transparent",
   };
+
+  const writingBadge = (
+    <span className="fe-writing-badge">
+      <span className="fe-writing-spinner" />
+      writing
+    </span>
+  );
 
   const aiBadge = (
     <span style={{ marginLeft: "auto", fontSize: 10, padding: "0 4px",
@@ -56,13 +119,14 @@ function RenderNode({
           data-testid={`folder-${node.name}`}>
           <span>{emojiIcon(node.name, type)}</span>
           <span>{node.name}</span>
-          {ai && aiBadge}
+          {writing ? writingBadge : ai ? aiBadge : null}
         </div>
         <div style={{ paddingLeft: 12 }}>
           {Array.isArray(node.children) &&
             node.children.map((child) => (
               <RenderNode key={child.name} node={child} basePath={full}
                 activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
+                writingFiles={writingFiles}
                 hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
                 setFocusedPath={setFocusedPath} onSelect={onSelect}
                 onContextMenu={onContextMenu} />
@@ -81,8 +145,13 @@ function RenderNode({
       data-testid={`file-${node.name}`}>
       <span>{emojiIcon(node.name, type)}</span>
       <span>{node.name}</span>
-      {dirty && <span style={{ marginLeft: "auto" }}>•</span>}
-      {ai && !dirty && aiBadge}
+      {writing
+        ? writingBadge
+        : dirty
+          ? <span style={{ marginLeft: "auto" }}>•</span>
+          : ai
+            ? aiBadge
+            : null}
     </div>
   );
 }
@@ -91,7 +160,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string; isDir: boolean } | null>(null);
 
   const {
-    tree, dirtyFiles, aiFiles, hoveredPath, setHoveredPath,
+    tree, dirtyFiles, aiFiles, writingFiles, hoveredPath, setHoveredPath,
     setFocusedPath, refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,
   } = useFileExplorer({ projectPath, activeFile });
@@ -154,6 +223,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
         {tree.map((node) => (
           <RenderNode key={node.name} node={node} basePath={projectPath || ""}
             activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
+            writingFiles={writingFiles}
             hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
             setFocusedPath={setFocusedPath}
             onSelect={(path) => onSelect && onSelect(path)}

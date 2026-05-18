@@ -52,3 +52,20 @@ export function emitFileChange(
 
   _pending.set(key, timer);
 }
+
+/**
+ * Immediately signal that the AI agent has started writing a file (no debounce).
+ * The SSE "file" topic carries this as type="writing".
+ * The natural completion event (type="add"|"change") clears the in-flight state.
+ *
+ * @param projectId  Numeric project ID from ToolContext
+ * @param filePath   Path relative to the project sandbox root
+ */
+export function emitFileWriting(projectId: number, filePath: string): void {
+  bus.emit('file.change', {
+    projectId,
+    type: 'writing',
+    path: filePath,
+    ts: Date.now(),
+  });
+}

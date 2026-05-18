@@ -10,7 +10,7 @@
 import fs   from "fs/promises";
 import path from "path";
 import { getProjectDir, resolveSafe }     from "../../infrastructure/sandbox/sandbox.util.ts";
-import { emitFileChange }                  from "../../infrastructure/events/file-change-emitter.ts";
+import { emitFileChange, emitFileWriting }  from "../../infrastructure/events/file-change-emitter.ts";
 import { requestApproval, isApprovalEnabled } from "../../approvals/diff-approval.service.ts";
 import { atomicWrite }                     from "../../infrastructure/checkpoints/atomic-write.util.ts";
 import { checkpointStore }                 from "../../infrastructure/checkpoints/checkpoint.service.ts";
@@ -156,6 +156,7 @@ export const fileWrite: Tool = {
       }
 
       // ── Direct write: new file or approval disabled (atomic) ─────────────────
+      emitFileWriting(ctx.projectId, filePath);
       await atomicWrite(abs, newContent);
       const stat = await fs.stat(abs);
       emitFileChange(ctx.projectId, isNewFile ? "add" : "change", filePath);

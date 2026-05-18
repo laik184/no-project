@@ -32,7 +32,8 @@ export interface ConsoleLogEvent {
 
 export interface FileChangeEvent {
   projectId: number;
-  type:      "add" | "change" | "unlink";
+  /** "writing" = AI tool has started writing (in-flight). "add"/"change"/"unlink" = completed. */
+  type:      "add" | "change" | "unlink" | "writing";
   path:      string;
   ts:        number;
 }
