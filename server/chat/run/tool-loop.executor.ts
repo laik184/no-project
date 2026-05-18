@@ -7,21 +7,22 @@
  * it automatically compresses context and continues rather than failing
  * permanently.
  *
- * ── Memory integration (A8 + A9) ─────────────────────────────────────────────
+ * ── Memory integration ────────────────────────────────────────────────────────
+ *
  * BEFORE the loop:
  *   MemoryManager.loadContext() reads .nura/ files and returns a compressed
- *   context string that is injected into the LLM as memoryContext.
+ *   context string injected into the LLM as memoryContext.
  *   Returns null on the very first run for a project (no-op).
  *
- * AFTER the loop:
- *   MemoryManager.saveRunSummary() writes to:
- *     .nura/run-history.jsonl  — structured run record
- *     .nura/context.md         — rolling run log
- *     .nura/architecture.md    — architecture decisions (successful runs)
- *     .nura/decisions.json     — structured decision history
- *     .nura/failures.json      — failure entries (failed runs)
- *
- *   Fire-and-forget — memory writes never block or crash the agent run.
+ * AFTER the loop (all fire-and-forget — never block or crash the run):
+ *   1. saveRunSummary()      → run-history.jsonl, context.md, architecture.md,
+ *                              decisions.json, failures.json
+ *   2. persistConversation() → chat_messages DB table (user goal + assistant
+ *                              text turns, enables session replay in the UI)
+ *   3. trackTaskOutcome()    → tasks.md
+ *                              success  → appends ✅ Done entry
+ *                              max_steps → appends ⏳ Pending entry so the
+ *                              agent resumes the task on the next run
  */
 
 import { runAgentLoopWithContinuation } from "../../agents/core/tool-loop/index.ts";
@@ -67,7 +68,7 @@ export async function executeToolLoopRun(handle: RunHandle, input: RunInput): Pr
         phase:     "tool-loop",
         eventType: "agent.thinking" as any,
         payload:   {
-          text: `[memory] Project context loaded — architecture, decisions, and run history injected.`,
+          text: `[memory] Project context loaded — architecture, decisions, pending tasks, and run history injected.`,
         },
         ts: Date.now(),
       });
@@ -86,9 +87,17 @@ export async function executeToolLoopRun(handle: RunHandle, input: RunInput): Pr
       { maxContinuations },
     );
 
-    // ── Persist run summary to .nura/ ─────────────────────────────────────────
-    // Fire-and-forget — memory writes must not affect run outcome
+    // ── Persist memory — all fire-and-forget ──────────────────────────────────
+    // None of these may throw or affect the run outcome.
+
+    // 1. .nura/ file-system memory (run log, architecture, decisions, failures)
     void memory.saveRunSummary(runId, input.goal, result);
+
+    // 2. DB conversation persistence (chat_messages table → UI session replay)
+    void memory.persistConversation(runId, input.goal, result.messages);
+
+    // 3. tasks.md tracking (pending tasks visible to next run)
+    void memory.trackTaskOutcome(runId, input.goal, result);
 
     emitAgentEvent({
       runId,
@@ -96,12 +105,13 @@ export async function executeToolLoopRun(handle: RunHandle, input: RunInput): Pr
       phase:     "tool-loop",
       eventType: result.success ? "phase.completed" : "phase.failed",
       payload:   {
-        steps:        result.steps,
-        stopReason:   result.stopReason,
-        summary:      result.summary,
-        error:        result.error,
-        memoryLoaded: !!memoryContext,
-        memoryWritten: true,
+        steps:             result.steps,
+        stopReason:        result.stopReason,
+        summary:           result.summary,
+        error:             result.error,
+        memoryLoaded:      !!memoryContext,
+        memoryWritten:     true,
+        conversationSaved: true,
       },
       ts: Date.now(),
     });

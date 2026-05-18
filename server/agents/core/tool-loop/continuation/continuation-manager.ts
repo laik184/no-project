@@ -91,6 +91,7 @@ export async function runAgentLoopWithContinuation(
         steps: totalSteps,
         summary: `Stopped after ${continuationCount} continuation(s) and ${totalSteps} total steps — continuation limit reached.`,
         stopReason: "max_steps",
+        messages: lastMessages,
       };
     }
 

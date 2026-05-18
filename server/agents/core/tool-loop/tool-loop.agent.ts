@@ -92,7 +92,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   try {
     while (steps < maxSteps) {
       if (input.signal?.aborted) {
-        return { success: false, steps, summary: "Aborted by user.", stopReason: "aborted" };
+        return { success: false, steps, summary: "Aborted by user.", stopReason: "aborted", messages };
       }
 
       steps++;
@@ -117,7 +117,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       } catch (e: any) {
         const msg = e?.message || String(e);
         emit(input.runId, "agent.message", "error", { text: `LLM error (all retries exhausted): ${msg}` });
-        return { success: false, steps, summary: msg, stopReason: "error", error: msg };
+        return { success: false, steps, summary: msg, stopReason: "error", error: msg, messages };
       }
 
       // Only emit agent.message for non-streamed content (streamed text was
@@ -129,7 +129,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       if (response.toolCalls.length === 0) {
         const summary = response.content?.trim() || lastSummary || "Done.";
         emit(input.runId, "agent.message", "complete", { text: summary });
-        return { success: true, steps, summary, stopReason: "no_tool_calls" };
+        return { success: true, steps, summary, stopReason: "no_tool_calls", messages };
       }
 
       messages.push({
@@ -184,11 +184,11 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       }
 
       if (saw_complete) {
-        return { success: true, steps, summary: lastSummary, stopReason: "complete" };
+        return { success: true, steps, summary: lastSummary, stopReason: "complete", messages };
       }
     }
 
-    return { success: false, steps, summary: `Reached step limit of ${maxSteps}.`, stopReason: "max_steps", messages };
+    return { success: false, steps, summary: `Reached step limit of ${maxSteps}.`, stopReason: "max_steps", messages: [...messages] };
 
   } finally {
     releaseRetryController(input.runId);
