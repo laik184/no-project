@@ -1,49 +1,45 @@
 /**
- * sse.ts — Unified SSE gateway (single endpoint, C4-clean, C6-recoverable)
+ * sse.ts — Unified SSE gateway (single endpoint, hub fan-out pattern)
  *
  * GET /api/realtime
- *   Topic-multiplexed SSE stream.  All frontend realtime connections
+ *   Topic-multiplexed SSE stream. All frontend realtime connections
  *   use this endpoint via RealtimeProvider (client/src/realtime/).
  *
  *   Query params:
  *     topics       comma-separated subset (default: all topics)
  *     projectId    numeric project filter
- *     runId        string run filter (agent / lifecycle / checkpoint)
- *     lastEventId  last sequence ID received by client — triggers replay
- *                  of all missed events before the live subscription starts
+ *     runId        string run filter
+ *     lastEventId  last sequence ID received — triggers replay of missed events
  *
- * C6 recovery: every outgoing event gets an `id: <seqId>` SSE field.
- *   The browser EventSource tracks the last id automatically.
- *   RealtimeProvider passes it as ?lastEventId=N on reconnect.
- *   On connect the server replays all cached events with seqId > lastEventId
- *   before attaching live bus subscriptions, eliminating missed-event gaps.
+ * Architecture (hub fan-out):
+ *   ONE bus listener per event type lives in subscription-manager.ts.
+ *   This handler only:
+ *     1. Configures SSE headers (setupSse)
+ *     2. Replays missed events from the ring buffer (C6 recovery)
+ *     3. Registers the connection in the pool (sseManager.register)
+ *     4. Wires cleanup on disconnect (onClose)
  *
- * Rules (C4 duplicate-event contract, preserved):
- *   1. setupSse(res)         — headers + ": connected" heartbeat
- *   2. bus.subscribe(...)    — EXACTLY ONE subscription per topic per conn
- *   3. sseSendId(res, ...)   — single write per event, carries id: field
- *   4. onClose(req, ...)     — all subscriptions cleaned on disconnect
- *
- * NEVER call res.write() directly — always use sseSendId() or sseSend().
- * NEVER subscribe to the same bus event twice in one handler.
- * DO NOT add legacy endpoints — use /api/realtime with topic filtering.
+ * Rules:
+ *   - NEVER call bus.subscribe() in this file.
+ *   - NEVER call res.write() directly — safeWrite() in backpressure.ts handles it.
+ *   - NEVER add legacy endpoints — use /api/realtime with ?topics= filtering.
+ *   - ONE connection = ONE sseManager.register() call = ONE pool entry.
  */
 
 import { Router, type Request, type Response } from "express";
-import { bus } from "../../infrastructure/events/bus.ts";
-import { setupSse, sseSendId, startHeartbeat, onClose } from "./sse-utils.ts";
-import { ALL_TOPICS, TOPIC } from "../../infrastructure/realtime/stream-topics.ts";
-import { record, replay } from "../../realtime/replay-cache.ts";
+import { setupSse, sseSendId, onClose }      from "./sse-utils.ts";
+import { ALL_TOPICS, TOPIC }                  from "../../infrastructure/realtime/stream-topics.ts";
+import { replay }                             from "../../realtime/replay-cache.ts";
+import { sseManager }                         from "../../infrastructure/events/sse/sse-manager.ts";
 
 export function createSseRouter(): Router {
   const r = Router();
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // PRIMARY: Unified topic-multiplexed SSE endpoint
-  // ══════════════════════════════════════════════════════════════════════════
   r.get("/api/realtime", (req: Request, res: Response) => {
+    // ── 1. Establish SSE stream ──────────────────────────────────────────────
     setupSse(res);
 
+    // ── 2. Parse connection parameters ──────────────────────────────────────
     const projectId = req.query.projectId ? Number(req.query.projectId) : null;
     const runId     = req.query.runId as string | undefined;
 
@@ -52,11 +48,12 @@ export function createSseRouter(): Router {
       rawTopics ? rawTopics.split(",").map((t) => t.trim()) : ALL_TOPICS,
     );
 
-    // ── C6: Replay missed events on reconnect ────────────────────────────────
-    // lastEventId is sent by RealtimeProvider as ?lastEventId=N on every
-    // reconnect attempt (browser EventSource tracks the last `id:` it received).
+    // ── 3. C6 replay: send missed events before attaching live stream ────────
+    // lastEventId tracks the last `id:` field the client received.
+    // RealtimeProvider appends it as ?lastEventId=N on every reconnect.
     const rawLastId = (req.headers["last-event-id"] as string | undefined)
                    ?? (req.query.lastEventId as string | undefined);
+
     if (rawLastId) {
       const lastSeqId = Number(rawLastId);
       if (Number.isFinite(lastSeqId) && lastSeqId > 0) {
@@ -67,83 +64,19 @@ export function createSseRouter(): Router {
       }
     }
 
-    const cleanups: Array<() => void> = [];
+    // ── 4. Register in pool — starts receiving live events via hub fan-out ───
+    // sseManager.register() returns a cleanup fn that removes this connection
+    // from the pool when the client disconnects.
+    const cleanup = sseManager.register(res, requested, projectId, runId);
 
-    // Helper: record to replay cache + send with id field
-    const emit = (topic: string, data: unknown) => {
-      const seqId = record(topic, data);
-      sseSendId(res, topic, data, seqId);
-    };
+    // ── 5. Wire disconnect cleanup ───────────────────────────────────────────
+    // onClose handles both normal HTTP close and proxy-dropped TCP sockets.
+    onClose(req, cleanup);
+  });
 
-    // ── agent.event ───────────────────────────────────────────────────────
-    if (requested.has(TOPIC.AGENT)) {
-      cleanups.push(bus.subscribe("agent.event", (e) => {
-        if (runId     && e.runId                !== runId)      return;
-        if (projectId !== null && e.projectId   !== undefined
-                               && e.projectId   !== projectId)  return;
-        emit(TOPIC.AGENT, e);
-      }));
-    }
-
-    // ── run.lifecycle ─────────────────────────────────────────────────────
-    if (requested.has(TOPIC.LIFECYCLE)) {
-      cleanups.push(bus.subscribe("run.lifecycle", (e) => {
-        if (runId     && e.runId      !== runId)      return;
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.LIFECYCLE, e);
-      }));
-    }
-
-    // ── console.log ───────────────────────────────────────────────────────
-    if (requested.has(TOPIC.CONSOLE)) {
-      cleanups.push(bus.subscribe("console.log", (e) => {
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.CONSOLE, e);
-      }));
-    }
-
-    // ── file.change ───────────────────────────────────────────────────────
-    if (requested.has(TOPIC.FILE)) {
-      cleanups.push(bus.subscribe("file.change", (e) => {
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.FILE, e);
-      }));
-    }
-
-    // ── runtime.verified ─────────────────────────────────────────────────
-    if (requested.has(TOPIC.RUNTIME_VERIFIED)) {
-      cleanups.push(bus.subscribe("runtime.verified", (e) => {
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.RUNTIME_VERIFIED, e);
-      }));
-    }
-
-    // ── runtime.observation ──────────────────────────────────────────────
-    if (requested.has(TOPIC.RUNTIME_OBSERVATION)) {
-      cleanups.push(bus.subscribe("runtime.observation", (e) => {
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.RUNTIME_OBSERVATION, e);
-      }));
-    }
-
-    // ── agent.diff ────────────────────────────────────────────────────────
-    if (requested.has(TOPIC.DIFF)) {
-      cleanups.push(bus.subscribe("agent.diff", (e) => {
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.DIFF, e);
-      }));
-    }
-
-    // ── checkpoint.event ─────────────────────────────────────────────────
-    if (requested.has(TOPIC.CHECKPOINT)) {
-      cleanups.push(bus.subscribe("checkpoint.event", (e) => {
-        if (runId && e.runId && e.runId !== runId) return;
-        if (projectId !== null && e.projectId !== projectId) return;
-        emit(TOPIC.CHECKPOINT, e);
-      }));
-    }
-
-    onClose(req, startHeartbeat(res), ...cleanups);
+  // ── Diagnostics: pool stats for monitoring ───────────────────────────────
+  r.get("/api/realtime/stats", (_req: Request, res: Response) => {
+    res.json(sseManager.stats());
   });
 
   return r;
