@@ -1,4 +1,5 @@
-import { AlignLeft, WrapText, File, Palette, Globe, FileJson, Code2, FileType2, ImageIcon, FileText, Settings2 } from "lucide-react";
+import { AlignLeft, WrapText, File, Palette, Globe, FileJson, Code2, FileType2, ImageIcon, FileText, Settings2, Loader2, CheckCircle2, AlertCircle, AlertTriangle } from "lucide-react";
+import type { SaveStatus } from "@/features/editor/types/auto-save.types";
 
 export type WorkspaceTab = {
   id: number;
@@ -6,6 +7,7 @@ export type WorkspaceTab = {
   url?: string;
   fileContent?: string;
   fileLang?: string;
+  filePath?: string;
 };
 
 export function fileTabIcon(label: string, lang?: string): React.ReactElement {
@@ -69,10 +71,62 @@ export function ToolbarBtn({ children, onClick, title, active = false, "data-tes
   );
 }
 
+export function SaveStatusBadge({ status }: { status: SaveStatus }) {
+  if (status === "idle") return null;
+
+  if (status === "pending") {
+    return (
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(148,163,184,0.5)" }}>
+        <span className="w-1 h-1 rounded-full bg-slate-500 animate-pulse" />
+        editing
+      </span>
+    );
+  }
+
+  if (status === "saving") {
+    return (
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "#60a5fa" }}>
+        <Loader2 style={{ width: 9, height: 9 }} className="animate-spin" />
+        saving…
+      </span>
+    );
+  }
+
+  if (status === "saved") {
+    return (
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "#34d399" }}>
+        <CheckCircle2 style={{ width: 9, height: 9 }} />
+        saved
+      </span>
+    );
+  }
+
+  if (status === "conflict") {
+    return (
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "#f59e0b" }}>
+        <AlertTriangle style={{ width: 9, height: 9 }} />
+        conflict
+      </span>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "#f87171" }}>
+        <AlertCircle style={{ width: 9, height: 9 }} />
+        save failed
+      </span>
+    );
+  }
+
+  return null;
+}
+
 interface EditorToolbarProps {
   label: string;
   lang?: string;
   modified: boolean;
+  saveStatus: SaveStatus;
   wordWrap: boolean;
   line: number;
   col: number;
@@ -80,13 +134,16 @@ interface EditorToolbarProps {
   onFormat: () => void;
 }
 
-export function EditorToolbar({ label, lang, modified, wordWrap, line, col, onToggleWrap, onFormat }: EditorToolbarProps) {
+export function EditorToolbar({ label, lang, modified, saveStatus, wordWrap, line, col, onToggleWrap, onFormat }: EditorToolbarProps) {
   return (
     <div className="flex items-center justify-between px-3 flex-shrink-0" style={{ height: 30, background: "rgba(255,255,255,0.018)", borderBottom: "1px solid rgba(255,255,255,0.065)" }}>
       <div className="flex items-center gap-1.5 min-w-0">
         {fileTabIcon(label, lang)}
         <span className="text-[11px] font-medium truncate" style={{ color: "rgba(203,213,225,0.7)" }}>{label}</span>
-        {modified && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#fbbf24", boxShadow: "0 0 4px rgba(251,191,36,0.55)" }} title="Unsaved changes" />}
+        {modified && saveStatus === "idle" && (
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#fbbf24", boxShadow: "0 0 4px rgba(251,191,36,0.55)" }} title="Unsaved changes" />
+        )}
+        <SaveStatusBadge status={saveStatus} />
       </div>
       <div className="flex items-center gap-0.5 flex-shrink-0">
         <ToolbarBtn onClick={onFormat} title="Format document" data-testid="button-format">
@@ -105,7 +162,7 @@ export function EditorToolbar({ label, lang, modified, wordWrap, line, col, onTo
   );
 }
 
-export function StatusBar({ lang, modified, line, col }: { lang?: string; modified: boolean; line: number; col: number }) {
+export function StatusBar({ lang, modified, saveStatus, line, col }: { lang?: string; modified: boolean; saveStatus: SaveStatus; line: number; col: number }) {
   return (
     <div className="flex-shrink-0 flex items-center justify-between px-3" style={{ height: 22, background: "rgba(124,141,255,0.06)", borderTop: "1px solid rgba(124,141,255,0.1)" }}>
       <div className="flex items-center gap-3">
@@ -115,7 +172,10 @@ export function StatusBar({ lang, modified, line, col }: { lang?: string; modifi
         <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.3)" }}>Spaces: 2</span>
       </div>
       <div className="flex items-center gap-3">
-        {modified && <span className="text-[10px]" style={{ color: "#fbbf24" }}>● Unsaved</span>}
+        {modified && saveStatus === "idle" && (
+          <span className="text-[10px]" style={{ color: "#fbbf24" }}>● Unsaved</span>
+        )}
+        <SaveStatusBadge status={saveStatus} />
         <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.4)", fontVariantNumeric: "tabular-nums" }}>Ln {line}, Col {col}</span>
       </div>
     </div>

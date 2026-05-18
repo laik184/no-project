@@ -38,12 +38,29 @@ export class CrudService {
   }
 
   async save(input: SaveFileInput): Promise<SaveFileResult> {
-    const { filePath, content, createDirs = true } = input;
+    const { filePath, content, createDirs = true, clientMtime } = input;
     try {
       const abs = this.resolve(filePath);
       this.assertSafe(abs);
 
       const existed = fs.existsSync(abs);
+
+      // Version guard: reject if file was externally modified since client last read it.
+      // A 200ms epsilon absorbs filesystem timestamp rounding and network latency.
+      if (existed && clientMtime != null) {
+        const stat = fs.statSync(abs);
+        const serverMtime = stat.mtimeMs;
+        if (serverMtime > clientMtime + 200) {
+          return {
+            ok: false,
+            filePath,
+            created: false,
+            conflict: true,
+            serverMtime,
+            error: 'Conflict: file was modified externally since last read.',
+          };
+        }
+      }
 
       if (createDirs) fs.mkdirSync(path.dirname(abs), { recursive: true });
 
@@ -51,7 +68,7 @@ export class CrudService {
       const stat = fs.statSync(abs);
 
       this.emit({ type: existed ? 'updated' : 'created', path: filePath });
-      return { ok: true, filePath, bytesWritten: stat.size, created: !existed };
+      return { ok: true, filePath, bytesWritten: stat.size, created: !existed, serverMtime: stat.mtimeMs };
     } catch (e: any) {
       return { ok: false, filePath, created: false, error: e.message };
     }

@@ -5,6 +5,7 @@ export interface SaveFileInput {
   content: string;
   encoding?: Encoding;
   createDirs?: boolean;
+  clientMtime?: number;
 }
 
 export interface SaveFileResult {
@@ -12,6 +13,8 @@ export interface SaveFileResult {
   filePath: string;
   bytesWritten?: number;
   created: boolean;
+  conflict?: boolean;
+  serverMtime?: number;
   error?: string;
 }
 

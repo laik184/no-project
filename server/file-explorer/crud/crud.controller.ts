@@ -4,7 +4,7 @@ import type { SaveFileInput, RenameFileInput, DeleteFileInput, CreateFolderInput
 
 export class CrudController {
   async saveFile(req: Request, res: Response): Promise<void> {
-    const { filePath, content, encoding, createDirs } = req.body as SaveFileInput;
+    const { filePath, content, encoding, createDirs, clientMtime } = req.body as SaveFileInput;
 
     if (!filePath) {
       res.status(400).json({ ok: false, error: 'Field required: filePath' });
@@ -16,8 +16,10 @@ export class CrudController {
       return;
     }
 
-    const result = await crudService.save({ filePath, content, encoding, createDirs });
-    res.status(result.ok ? 200 : 500).json(result);
+    const result = await crudService.save({ filePath, content, encoding, createDirs, clientMtime });
+    // 409 for conflicts so clients can distinguish from server errors
+    const status = result.ok ? 200 : result.conflict ? 409 : 500;
+    res.status(status).json(result);
   }
 
   readFile(req: Request, res: Response): void {
