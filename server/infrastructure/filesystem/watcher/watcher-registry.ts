@@ -40,7 +40,7 @@ interface WatchEntry {
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 
-class WatcherRegistry {
+export class WatcherRegistry {
   private readonly entries = new Map<number, WatchEntry>();
 
   /**
