@@ -12,6 +12,7 @@ import { Router, type Request, type Response } from "express";
 import { spawn } from "child_process";
 import { getProjectDir } from "../infrastructure/sandbox/sandbox.util.ts";
 import { runtimeManager } from "../infrastructure/runtime/runtime-manager.ts";
+import { getLifecycleManager } from "../preview/lifecycle/preview-lifecycle.manager.ts";
 import { db } from "../infrastructure/db/index.ts";
 import { projects } from "../../shared/schema.ts";
 import { eq } from "drizzle-orm";
@@ -23,24 +24,27 @@ export function createRuntimeRouter(): Router {
   router.post("/api/runtime/:projectId/start", async (req: Request, res: Response) => {
     try {
       const projectId = Number(req.params.projectId);
+      const mgr = getLifecycleManager(projectId);
+      mgr.forceTransition("starting", "Starting project server…");
+
       const result = await runtimeManager.start(projectId);
-      if (!result.ok) return res.status(500).json({ ok: false, error: result.error });
+      if (!result.ok) {
+        mgr.forceTransition("crashed", result.error ?? "Failed to start.", { error: result.error });
+        return res.status(500).json({ ok: false, error: result.error });
+      }
 
       if (!result.alreadyRunning) {
+        mgr.forceTransition("ready", `Server ready on port ${result.port}.`, { port: result.port });
         await db
           .update(projects)
           .set({ status: "running", updatedAt: new Date() })
           .where(eq(projects.id, projectId))
           .catch(() => {});
+      } else {
+        mgr.forceTransition("ready", "Server already running.", { port: result.port });
       }
 
-      res.json({
-        ok: true,
-        already_running: result.alreadyRunning ?? false,
-        port: result.port,
-        pid: result.pid,
-        projectId,
-      });
+      res.json({ ok: true, already_running: result.alreadyRunning ?? false, port: result.port, pid: result.pid, projectId });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });
     }
@@ -50,14 +54,17 @@ export function createRuntimeRouter(): Router {
   router.post("/api/runtime/:projectId/stop", async (req: Request, res: Response) => {
     try {
       const projectId = Number(req.params.projectId);
+      const mgr = getLifecycleManager(projectId);
 
       if (!runtimeManager.isRunning(projectId)) {
+        mgr.forceTransition("idle", "Server not running.");
         return res.json({ ok: true, message: "No running server", projectId });
       }
 
       const result = runtimeManager.stop(projectId);
       if (!result.ok) return res.status(500).json({ ok: false, error: result.error });
 
+      mgr.forceTransition("idle", "Project stopped.");
       await db
         .update(projects)
         .set({ status: "idle", updatedAt: new Date() })
@@ -74,13 +81,51 @@ export function createRuntimeRouter(): Router {
   router.post("/api/runtime/:projectId/restart", async (req: Request, res: Response) => {
     try {
       const projectId = Number(req.params.projectId);
-      const result = await runtimeManager.restart(projectId);
-      if (!result.ok) return res.status(500).json({ ok: false, error: result.error });
+      const mgr = getLifecycleManager(projectId);
+      mgr.forceTransition("restarting", "Restarting project server…");
 
+      const result = await runtimeManager.restart(projectId);
+      if (!result.ok) {
+        mgr.forceTransition("crashed", result.error ?? "Restart failed.", { error: result.error });
+        return res.status(500).json({ ok: false, error: result.error });
+      }
+
+      mgr.forceTransition("ready", "Restart complete.", { port: result.port });
       res.json({ ok: true, restarted: true, port: result.port, pid: result.pid, projectId });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });
     }
+  });
+
+  // ── Lifecycle state — single project ───────────────────────────────────
+  // GET /api/lifecycle-state/:projectId — current lifecycle snapshot.
+  router.get("/api/lifecycle-state/:projectId", (req: Request, res: Response) => {
+    const projectId = Number(req.params.projectId);
+    const mgr   = getLifecycleManager(projectId);
+    const state = mgr.getState();
+    const isRunning = runtimeManager.isRunning(projectId);
+    const entry = runtimeManager.get(projectId);
+
+    // Reconcile: if manager says idle but process is running, sync to ready.
+    if (state === "idle" && isRunning) {
+      mgr.forceTransition("ready", `Server running on port ${entry?.port ?? "?"}.`, { port: entry?.port });
+    }
+
+    res.json({ ok: true, projectId, state: mgr.getState(), running: isRunning, port: entry?.port ?? null });
+  });
+
+  // ── Lifecycle state — all projects ─────────────────────────────────────
+  router.get("/api/lifecycle-state", (_req: Request, res: Response) => {
+    const all = runtimeManager.all();
+    const entries = all.map(e => {
+      const mgr   = getLifecycleManager(e.projectId);
+      const state = mgr.getState();
+      if (state === "idle" && e.status === "running") {
+        mgr.forceTransition("ready", `Server running on port ${e.port ?? "?"}.`, { port: e.port });
+      }
+      return { projectId: e.projectId, state: mgr.getState(), port: e.port, status: e.status };
+    });
+    res.json({ ok: true, entries, count: entries.length });
   });
 
   // ── Logs ───────────────────────────────────────────────────────────────

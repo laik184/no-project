@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 import { runtimeService } from './runtime.service.ts';
+import { runtimeManager } from '../../infrastructure/runtime/runtime-manager.ts';
+import { getLifecycleManager } from '../../preview/lifecycle/preview-lifecycle.manager.ts';
 import type { RunProjectInput, StopProjectInput, RestartProjectInput } from './runtime.types.ts';
 
 export class RuntimeController {
@@ -29,17 +31,55 @@ export class RuntimeController {
     res.status(status).json(result);
   }
 
+  /**
+   * POST /api/restart
+   *
+   * Two modes:
+   *  a) Body has { id, projectPath } → restart that specific project (legacy).
+   *  b) Body is empty / missing id  → restart ALL currently-running processes
+   *     using runtimeManager and emit preview.lifecycle SSE events.
+   */
   async restartProject(req: Request, res: Response): Promise<void> {
-    const { id, projectPath, command, port, reloadType } = req.body as RestartProjectInput;
+    const { id, projectPath, command, port, reloadType } = req.body as Partial<RestartProjectInput>;
 
-    if (!id || !projectPath) {
-      res.status(400).json({ ok: false, error: 'Fields required: id, projectPath' });
+    // ── Mode A: specific project (legacy callers) ──────────────────────────
+    if (id && projectPath) {
+      const result = await runtimeService.restart({ id, projectPath, command, port, reloadType });
+      const status = result.ok ? 200 : 500;
+      res.status(status).json(result);
       return;
     }
 
-    const result = await runtimeService.restart({ id, projectPath, command, port, reloadType });
-    const status = result.ok ? 200 : 500;
-    res.status(status).json(result);
+    // ── Mode B: restart all running servers (preview page "Run Project" button)
+    try {
+      const all = runtimeManager.all().filter(e => e.status === 'running' || e.status === 'starting');
+
+      if (all.length === 0) {
+        res.json({ ok: true, restarted: [], message: 'No running servers to restart.' });
+        return;
+      }
+
+      const results: Array<{ projectId: number; ok: boolean; port?: number; error?: string }> = [];
+
+      for (const entry of all) {
+        const mgr = getLifecycleManager(entry.projectId);
+        mgr.forceTransition('restarting', 'Restarting server…');
+
+        const result = await runtimeManager.restart(entry.projectId);
+
+        if (result.ok) {
+          mgr.forceTransition('ready', 'Restart complete.', { port: result.port });
+          results.push({ projectId: entry.projectId, ok: true, port: result.port });
+        } else {
+          mgr.forceTransition('crashed', result.error ?? 'Restart failed.', { error: result.error });
+          results.push({ projectId: entry.projectId, ok: false, error: result.error });
+        }
+      }
+
+      res.json({ ok: true, restarted: results });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
   }
 
   getStatus(_req: Request, res: Response): void {

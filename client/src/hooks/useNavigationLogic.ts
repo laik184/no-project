@@ -182,10 +182,19 @@ export function useNavigationLogic({
     }
   }, []);
 
-  const handleHardRestart = async () => {
+  const handleHardRestart = async (projectId?: number) => {
     try {
       setIsExecuting(true);
-      await fetch("/api/restart", { method: "POST" });
+
+      // Use project-scoped restart when we know the projectId; otherwise
+      // fall back to the legacy /api/restart which restarts all running servers.
+      const url  = projectId ? `/api/runtime/${projectId}/restart` : "/api/restart";
+      const body = projectId ? undefined : JSON.stringify({});
+      await fetch(url, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
     } catch (e) {
       console.error("Failed to restart preview server", e);
     } finally {
@@ -198,10 +207,35 @@ export function useNavigationLogic({
     }
   };
 
-  const handleOverlayRun = () => {
+  const handleOverlayRun = async (projectId?: number) => {
     setIsRunning(true);
-    handleHardRestart();
-    setTimeout(() => { setIsRunning(false); }, 5500);
+    try {
+      if (projectId) {
+        // Project-scoped start — fires lifecycle events directly
+        await fetch(`/api/runtime/${projectId}/start`, { method: "POST" });
+      } else {
+        // Check if anything is already running and restart it; otherwise
+        // use the compat restart endpoint which handles the empty case gracefully.
+        const statusRes = await fetch("/api/project-status");
+        const status    = await statusRes.json().catch(() => ({ running: [] }));
+        const running: Array<{ id: string }> = status?.running ?? [];
+
+        if (running.length > 0) {
+          await handleHardRestart();
+        } else {
+          // Nothing running yet — just refresh the iframe in case the user's
+          // project server started outside our knowledge (e.g. a long-running dev server).
+          if (iframeRef.current) {
+            iframeRef.current.src = iframeRef.current.src;
+            setLastReloadType("hot");
+          }
+        }
+      }
+    } catch (e) {
+      console.error("handleOverlayRun failed:", e);
+    } finally {
+      setTimeout(() => { setIsRunning(false); }, 3500);
+    }
   };
 
   const handleCopyUrl = () => {
