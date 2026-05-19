@@ -42,3 +42,9 @@ id = "g35H2-A3iAUntXIftHmhW"
 uri = "file://NURA_X_REPORT.md"
 type = "text"
 title = "NURA X — Architecture Audit & server/chat/ Complete Report"
+
+[[outputs]]
+id = "wIBegP_i2FdIX04qEe4Si"
+uri = "file://NURA_X_SYSTEM_REPORT.md"
+type = "text"
+title = "NURA X — Complete System Report"
