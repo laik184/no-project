@@ -54,3 +54,9 @@ id = "wBwusTyzlMeW9_6aLaVaA"
 uri = "file://NURA_X_VERIFICATION_REPORT.md"
 type = "text"
 title = "NURA X — Runtime Verification Report"
+
+[[outputs]]
+id = "ECpIxtXD8dzRoHOYZjKJV"
+uri = "file://AGENT_SYSTEM_AUDIT_REPORT.md"
+type = "text"
+title = "NURA X — Agent System Audit Report"
