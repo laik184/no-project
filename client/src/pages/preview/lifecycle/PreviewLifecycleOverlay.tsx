@@ -3,7 +3,10 @@
  *
  * Renders on top of the iframe with smooth enter/exit transitions.
  * Only visible when state !== "ready" && state !== "idle".
- * Uses pure CSS animations — no animation library dependency.
+ *
+ * Two action props:
+ *   onRun   — triggers an actual process restart (used on crashed state)
+ *   onRetry — refreshes the iframe only (lightweight reload)
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +19,10 @@ interface Props {
   prevState: PreviewLifecycleState;
   message:   string;
   meta?:     Record<string, unknown>;
-  onRetry?:  () => void;
+  /** Full process restart — shown on crash state */
+  onRun?:   () => void;
+  /** Lightweight iframe reload — shown as secondary on crash state */
+  onRetry?: () => void;
 }
 
 const VISIBLE_STATES = new Set<PreviewLifecycleState>([
@@ -24,21 +30,18 @@ const VISIBLE_STATES = new Set<PreviewLifecycleState>([
   "updating", "refreshing", "crashed", "reconnecting",
 ]);
 
-export function PreviewLifecycleOverlay({ state, message, meta, onRetry }: Props) {
-  const cfg          = STATE_CONFIG[state];
+export function PreviewLifecycleOverlay({ state, message, meta, onRun, onRetry }: Props) {
+  const cfg           = STATE_CONFIG[state];
   const [show, setShow] = useState(false);
-  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-
     if (VISIBLE_STATES.has(state)) {
       setShow(true);
     } else {
-      // Delay hide so the fade-out animation can play
       timerRef.current = setTimeout(() => setShow(false), 600);
     }
-
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [state]);
 
@@ -56,6 +59,7 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRetry }: Props
 
       {/* Card */}
       <div className="plc-card">
+
         {/* State icon / spinner */}
         <div className="plc-icon-wrap">
           {cfg.showSpinner && !cfg.isError && (
@@ -65,13 +69,10 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRetry }: Props
           {state === "reconnecting" && <ReconnectIcon color={cfg.color} />}
         </div>
 
-        {/* Progress bar */}
+        {/* Progress bar for active build/install states */}
         {cfg.showBar && (
           <div className="plc-progress-track">
-            <div
-              className="plc-progress-bar"
-              style={{ background: cfg.color }}
-            />
+            <div className="plc-progress-bar" style={{ background: cfg.color }} />
           </div>
         )}
 
@@ -88,17 +89,36 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRetry }: Props
           <div className="plc-meta">Exit code: {String(meta.exitCode)}</div>
         )}
 
-        {/* Action buttons */}
-        <div className="plc-actions">
-          {cfg.isError && onRetry && (
-            <button className="plc-btn plc-btn-primary" onClick={onRetry}>
-              Restart
-            </button>
-          )}
-        </div>
+        {/* ── Crash action buttons ─────────────────────────────────── */}
+        {cfg.isError && (
+          <div className="plc-actions">
+            {onRun && (
+              <button
+                className="plc-btn plc-btn-primary"
+                onClick={onRun}
+                data-testid="button-overlay-restart"
+              >
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ marginRight: 5, display: "inline" }}>
+                  <path d="M9.5 5.5a4 4 0 1 1-1.17-2.83" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  <path d="M9.5 2v3.5H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+                Restart
+              </button>
+            )}
+            {onRetry && (
+              <button
+                className="plc-btn plc-btn-secondary"
+                onClick={onRetry}
+                data-testid="button-overlay-reload"
+              >
+                Reload
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Particle dots for active states */}
+      {/* Particle dots for active (non-error) states */}
       {cfg.showSpinner && !cfg.isError && (
         <div className="plc-particles">
           {[0,1,2,3,4].map(i => (
@@ -119,7 +139,7 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRetry }: Props
   );
 }
 
-// ── Sub-icons ─────────────────────────────────────────────────────────────────
+// ── Sub-icons ──────────────────────────────────────────────────────────────────
 
 function CrashIcon({ color }: { color: string }) {
   return (
@@ -134,11 +154,7 @@ function CrashIcon({ color }: { color: string }) {
 function ReconnectIcon({ color }: { color: string }) {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-reconnect-icon">
-      <path
-        d="M8 20a12 12 0 1 1 2 6.9"
-        stroke={color} strokeWidth="2.5" strokeLinecap="round"
-        fill="none"
-      />
+      <path d="M8 20a12 12 0 1 1 2 6.9" stroke={color} strokeWidth="2.5" strokeLinecap="round" fill="none" />
       <path d="M8 28v-8h8" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );

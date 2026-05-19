@@ -52,14 +52,17 @@ function LifecycleAwareIframe({
   return (
     <div className="relative w-full h-full">
       {children}
-      {lifecycleState === "idle" && (
-        <PreviewPlaceholder onRun={onRun} />
-      )}
+      {/* Idle placeholder — clean waiting screen, no run button */}
+      {lifecycleState === "idle" && <PreviewPlaceholder />}
+      {/* Overlay handles building/installing/starting/crashed states.
+          onRun  → full process restart (shown on crash)
+          onRetry → lightweight iframe reload (secondary on crash) */}
       <PreviewLifecycleOverlay
         state={lifecycleState}
         prevState={lifecyclePrev}
         message={lifecycleMessage}
         meta={lifecycleMeta}
+        onRun={onRun}
         onRetry={onRetry}
       />
     </div>
@@ -143,10 +146,11 @@ export function IframeView({
           className="absolute inset-0 w-full h-full border-none bg-[#0d0d0f]"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
-        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
+        {lifecycleState === "idle" && <PreviewPlaceholder />}
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
-          message={lifecycleMessage} meta={lifecycleMeta} onRetry={onRetry}
+          message={lifecycleMessage} meta={lifecycleMeta}
+          onRun={onRun} onRetry={onRetry}
         />
       </div>
     );
@@ -169,11 +173,12 @@ export function IframeView({
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
 
-        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
+        {lifecycleState === "idle" && <PreviewPlaceholder />}
 
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
-          message={lifecycleMessage} meta={lifecycleMeta} onRetry={onRetry}
+          message={lifecycleMessage} meta={lifecycleMeta}
+          onRun={onRun} onRetry={onRetry}
         />
 
         {selectedDevice === "fullsize" && (

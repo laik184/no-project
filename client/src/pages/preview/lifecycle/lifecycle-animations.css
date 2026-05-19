@@ -186,6 +186,17 @@
   opacity: 0.85;
 }
 
+.plc-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color:      rgba(148, 163, 184, 0.85);
+  border:     1px solid rgba(255, 255, 255, 0.08);
+}
+
+.plc-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color:      rgba(255, 255, 255, 0.95);
+}
+
 /* ── Particles ───────────────────────────────────────────────────────── */
 .plc-particles {
   position:       absolute;

@@ -2,33 +2,29 @@
  * PreviewPlaceholder.tsx
  *
  * Shown inside the iframe area when lifecycle state is "idle" —
- * i.e. no project is running yet. Mirrors the Replit-style
- * "Preview will be available soon" UX with NURA X branding.
+ * no project is running yet. Clean waiting screen — NO run button.
+ * The AI agent will automatically start the project; the user doesn't
+ * need to trigger it manually from here.
+ *
+ * The crash state has its own restart button in PreviewLifecycleOverlay.
  */
 
 import { useEffect, useRef, useState } from "react";
 import "./placeholder-animations.css";
 
-interface Props {
-  onRun?: () => void;
-}
-
 const DOT_GRID = [
-  // row 0
   { filled: true,  delay: 0.0  },
   { filled: true,  delay: 0.1  },
   { filled: false, delay: 0.2  },
-  // row 1
   { filled: true,  delay: 0.15 },
   { filled: false, delay: 0.05 },
   { filled: true,  delay: 0.25 },
-  // row 2
   { filled: false, delay: 0.3  },
   { filled: true,  delay: 0.1  },
   { filled: true,  delay: 0.2  },
 ];
 
-export function PreviewPlaceholder({ onRun }: Props) {
+export function PreviewPlaceholder() {
   const [mounted, setMounted] = useState(false);
   const [tick, setTick] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -70,26 +66,12 @@ export function PreviewPlaceholder({ onRun }: Props) {
       {/* Hint row */}
       <div className="nph-hint">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="nph-hint-icon">
-          <rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.25" strokeDasharray="2 1.5" />
-          <path d="M5 9 L9 5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-          <circle cx="9" cy="5" r="1" fill="currentColor" />
+          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.25" />
+          <path d="M5.5 5.5 C5.5 4.5 8.5 4.5 8.5 6.5 C8.5 7.5 7 7.5 7 8.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+          <circle cx="7" cy="10" r="0.75" fill="currentColor" />
         </svg>
-        <span>Run your project to see it live here</span>
+        <span>Ask the AI agent to run your project</span>
       </div>
-
-      {/* Optional run button */}
-      {onRun && (
-        <button
-          className="nph-run-btn"
-          onClick={onRun}
-          data-testid="button-placeholder-run"
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <path d="M3.5 2.5 L10.5 6.5 L3.5 10.5 Z" fill="currentColor" />
-          </svg>
-          Run Project
-        </button>
-      )}
 
       {/* Pulse dots at bottom */}
       <div className="nph-pulse-row">
