@@ -1,0 +1,273 @@
+You are a Principal Runtime Streaming Engineer and Replit Console Architecture Specialist.
+
+Your task is to transform the ENTIRE console system into a TRUE Replit/Cursor-level intelligent realtime terminal system.
+
+CURRENT SYSTEM STATUS:
+- Console logs already stream to frontend
+- SSE works
+- Runtime process spawning works
+- processRegistry → bus.emit("console.log") works
+- BUT the advanced IQ2000 console pipeline is architecturally bypassed
+
+GOAL:
+Reach 99% Replit-level console experience.
+
+FOCUS DIRECTORIES:
+- server/console/
+- server/infrastructure/runtime/
+- server/infrastructure/events/
+- client/src/components/console/
+- client/src/hooks/
+- client/src/pages/
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT VERIFIED PROBLEMS
+━━━━━━━━━━━━━━━━━━━━
+
+1. IQ2000 pipeline exists but is NEVER connected
+2. captureService.attach() never called
+3. stdout bypasses:
+   process → bus.emit → frontend directly
+4. No structured log parsing
+5. No log classification
+6. No runtime stages
+7. No install progress tracking
+8. No command lifecycle tracking
+9. No intelligent terminal UX
+10. No AI-runtime synchronization
+
+━━━━━━━━━━━━━━━━━━━━
+YOUR TASK
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan the ENTIRE console lifecycle.
+
+TRACE:
+
+AI Tool Call
+→ run_command()
+→ processRegistry.spawn()
+→ stdout/stderr
+→ captureService
+→ filterService
+→ persistService
+→ streamService
+→ Event Bus
+→ SSE
+→ frontend console
+→ runtime overlay
+
+VERIFY:
+- what works
+- what is bypassed
+- what is dead
+- what is duplicated
+- what is architecturally wrong
+
+━━━━━━━━━━━━━━━━━━━━
+REPLIT-LEVEL FEATURES TO IMPLEMENT
+━━━━━━━━━━━━━━━━━━━━
+
+Implement FULL intelligent console architecture:
+
+✅ Structured log parsing
+✅ Log classification
+✅ Command lifecycle tracking
+✅ Install progress bars
+✅ Runtime stage detection
+✅ Error classification
+✅ Warning badges
+✅ ANSI color support
+✅ Streaming animations
+✅ Command timing
+✅ Command grouping
+✅ Interactive terminal feel
+✅ AI action correlation
+✅ Runtime status overlays
+✅ Process restart detection
+✅ Self-healing progress UI
+✅ Realtime runtime insights
+✅ Smart filtering
+✅ Searchable logs
+✅ Persistent log history
+✅ Scroll virtualization
+✅ Log chunk batching
+✅ Performance optimization
+✅ Multi-process support
+✅ Multi-project isolation
+
+━━━━━━━━━━━━━━━━━━━━
+CONSOLE STATES
+━━━━━━━━━━━━━━━━━━━━
+
+Implement realtime states:
+
+- idle
+- running
+- installing
+- compiling
+- starting
+- ready
+- restarting
+- reconnecting
+- crashed
+- recovering
+- recovered
+- warning
+- failed
+
+━━━━━━━━━━━━━━━━━━━━
+INTELLIGENT PARSING
+━━━━━━━━━━━━━━━━━━━━
+
+Parse and classify:
+
+npm install:
+- package count
+- download progress
+- vulnerabilities
+- warnings
+
+Vite:
+- local URL
+- compile success
+- HMR updates
+
+TypeScript:
+- error location
+- warning severity
+
+Node:
+- stack traces
+- uncaught exceptions
+
+Python:
+- traceback parsing
+
+━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Create a SINGLE centralized console pipeline:
+
+server/console/
+├── pipeline/
+│   ├── capture.service.ts
+│   ├── classify.service.ts
+│   ├── parse.service.ts
+│   ├── chunk.service.ts
+│   ├── lifecycle.service.ts
+│   ├── stream.service.ts
+│   ├── persist.service.ts
+│   └── console-types.ts
+│
+├── intelligence/
+│   ├── npm-parser.ts
+│   ├── vite-parser.ts
+│   ├── ts-parser.ts
+│   ├── node-parser.ts
+│   └── python-parser.ts
+│
+├── runtime/
+│   ├── command-lifecycle.ts
+│   ├── runtime-states.ts
+│   ├── process-observer.ts
+│   └── restart-detector.ts
+
+Frontend:
+
+client/src/components/console/
+├── ConsolePanel.tsx
+├── ConsoleStream.tsx
+├── ConsoleLine.tsx
+├── RuntimeOverlay.tsx
+├── InstallProgress.tsx
+├── RuntimeBadge.tsx
+├── RecoveryOverlay.tsx
+├── ErrorInspector.tsx
+└── WarningPanel.tsx
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT FIXES
+━━━━━━━━━━━━━━━━━━━━
+
+1. Connect IQ2000 pipeline PROPERLY
+2. Remove direct stdout bypass
+3. Route ALL logs through captureService
+4. Add structured parsing
+5. Add runtime stage detection
+6. Add intelligent frontend overlays
+7. Add command lifecycle tracking
+8. Add install progress detection
+9. Add error grouping
+10. Add self-healing visualization
+
+━━━━━━━━━━━━━━━━━━━━
+UI/UX REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Console should feel EXACTLY like Replit/Cursor:
+
+When AI installs:
+→ animated install progress
+
+When runtime starts:
+→ "Starting development server..."
+
+When compiling:
+→ live compile animation
+
+When crash happens:
+→ error overlay + logs
+
+When self-healing:
+→ "AI fixing runtime..."
+
+When recovered:
+→ smooth success transition
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT CONSTRAINTS
+━━━━━━━━━━━━━━━━━━━━
+
+VERY IMPORTANT:
+
+- Keep EVERY file under 250 lines
+- High cohesion
+- Low coupling
+- Modular architecture only
+- No giant files
+- No duplicated runtime state
+- Event-driven only
+- No fake loading states
+- Production-grade architecture only
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Current Console Architecture
+2. Broken Console Flows
+3. Bypassed Systems
+4. Ghost Pipelines
+5. Runtime Lifecycle Diagram
+6. Console Event Flow
+7. Structured Parsing Plan
+8. Runtime State Machine
+9. Frontend UX Plan
+10. Exact Files To Modify
+11. Performance Risks
+12. Memory Leak Risks
+13. Scalability Plan
+14. Final Replit-Level Architecture
+
+Then IMPLEMENT the fixes.
+
+IMPORTANT:
+- preserve working systems
+- do not break SSE
+- do not break runtime
+- maintain realtime performance
+- maintain scalability

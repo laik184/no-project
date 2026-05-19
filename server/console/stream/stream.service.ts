@@ -1,9 +1,9 @@
 /**
  * IQ 2000 — Console · Stream Service
  *
- * Manages Server-Sent Events (SSE) connections from browser clients.
+ * Manages SSE connections from browser clients.
  * Each client subscribes to a specific projectId; the orchestrator
- * calls broadcast() for every captured ConsoleLine.
+ * calls broadcast() for every ConsoleLine — including structured meta.
  */
 
 import { randomUUID } from 'crypto';
@@ -15,10 +15,6 @@ class StreamService {
 
   // ─── Client lifecycle ──────────────────────────────────────────────────
 
-  /**
-   * Register an Express Response as an SSE channel.
-   * Returns the client ID so the caller can clean up on disconnect.
-   */
   addClient(projectId: number, res: Response): string {
     const id = randomUUID();
 
@@ -32,7 +28,6 @@ class StreamService {
     this.clients.set(id, client);
 
     this.sendToClient(client, { type: 'connected', clientId: id, projectId });
-
     return id;
   }
 
@@ -43,34 +38,55 @@ class StreamService {
   // ─── Broadcasting ──────────────────────────────────────────────────────
 
   /**
-   * Push a ConsoleLine to all SSE clients watching the same projectId.
+   * Push a ConsoleLine (with optional meta) to all SSE clients watching
+   * the same projectId. Meta is included so the frontend can render
+   * install progress, runtime states, error badges, etc.
    */
   broadcast(line: ConsoleLine): void {
+    const payload: Record<string, unknown> = {
+      type:   'console',
+      id:     line.id,
+      kind:   line.kind,
+      stream: line.kind === 'stderr' || line.kind === 'error' ? 'stderr' : 'stdout',
+      line:   line.text,
+      ts:     line.ts.toISOString(),
+    };
+
+    // Attach parsed meta when present so frontend can react to it
+    if (line.meta && Object.keys(line.meta).length > 0) {
+      payload['meta'] = line.meta;
+    }
+
     for (const client of this.clients.values()) {
       if (client.projectId === line.projectId) {
-        this.sendToClient(client, {
-          type: 'console',
-          id: line.id,
-          kind: line.kind,
-          stream: line.kind === 'stderr' || line.kind === 'error' ? 'stderr' : 'stdout',
-          line: line.text,
-          ts: line.ts.toISOString(),
-        });
+        this.sendToClient(client, payload);
       }
     }
   }
 
   /**
-   * Send a raw system notification to all clients of a project
-   * (e.g. "agent started", "build complete").
+   * Push a runtime state change event to all clients watching a project.
+   * Called by runtimeStates when a transition occurs.
+   */
+  broadcastState(projectId: number, state: string, prev: string, message: string): void {
+    const payload = { type: 'runtime.state', state, prev, message, ts: new Date().toISOString() };
+    for (const client of this.clients.values()) {
+      if (client.projectId === projectId) {
+        this.sendToClient(client, payload);
+      }
+    }
+  }
+
+  /**
+   * Send a raw system notification to all clients of a project.
    */
   notify(projectId: number, message: string): void {
     const line: ConsoleLine = {
-      id: `notify-${Date.now()}`,
+      id:        `notify-${Date.now()}`,
       projectId,
-      kind: 'system',
-      text: message,
-      ts: new Date(),
+      kind:      'system',
+      text:      message,
+      ts:        new Date(),
     };
     this.broadcast(line);
   }
@@ -95,7 +111,7 @@ class StreamService {
 
   private sendToClient(client: SseClient, data: Record<string, unknown>): void {
     try {
-      const event = data.type as string;
+      const event = data['type'] as string;
       client.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     } catch {
       this.clients.delete(client.id);
