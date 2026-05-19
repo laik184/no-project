@@ -1,17 +1,5 @@
 {
   "version": 1,
-  "savedAt": 1779189225046,
-  "entries": [
-    {
-      "projectId": null,
-      "pid": 569,
-      "port": 34855,
-      "status": "running",
-      "startedAt": 1779189221910,
-      "command": "npm run dev",
-      "cwd": "/home/runner/workspace/.data/sandboxes/NaN",
-      "restartCount": 0,
-      "lastHeartbeat": 1779189225045
-    }
-  ]
+  "savedAt": 1779190455694,
+  "entries": []
 }

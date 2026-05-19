@@ -34,6 +34,7 @@ import { createDiffApprovalRouter } from './server/api/diff-approval.routes.ts';
 import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
 import { startRecoveryManager } from './server/infrastructure/recovery/recovery-manager.ts';
 import { createRecoveryRouter } from './server/api/recovery.routes.ts';
+import { createImportRouter } from './server/api/import/import.routes.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -73,6 +74,7 @@ app.use('/api/security', createSecurityRouter());
 app.use('/api/approvals', createDiffApprovalRouter());
 app.use('/api/checkpoints', createCheckpointsRouter());
 app.use('/api/chat', chatOrchestrator.buildChatRouter());
+app.use('/api/import', createImportRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
