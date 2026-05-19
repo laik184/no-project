@@ -1,16 +1,20 @@
 /**
  * preview-lifecycle-bridge.ts — wires global bus events → lifecycle state machine.
  *
- * Listens for existing bus events (file.change, run.lifecycle, tool.execution,
- * runtime.observation) and maps them to lifecycle transitions so every
+ * Listens for existing bus events and maps them to lifecycle transitions so every
  * event source drives the preview state automatically.
  *
- * Mount once at server startup (called from preview.orchestrator.ts).
- * Low coupling: the bridge only imports bus + lifecycle manager — nothing else.
+ * New in v2:
+ *   - debug.lifecycle events → self_healing / debugging / patching states
+ *   - CSS-only file changes  → hot_reloading (no iframe reload needed)
+ *   - tool.execution "start_server" → verifying intermediate state
+ *   - runtime.verified → verifying → ready (two-step for visual feedback)
  */
 
 import { bus } from "../../infrastructure/events/bus.ts";
 import { getLifecycleManager } from "./preview-lifecycle.manager.ts";
+
+const CSS_EXTS = new Set(["css", "less", "scss", "sass", "styl"]);
 
 let mounted = false;
 
@@ -18,28 +22,39 @@ export function mountLifecycleBridge(): void {
   if (mounted) return;
   mounted = true;
 
-  // ── file.change → building / updating ──────────────────────────────────────
+  // ── file.change → building / updating / hot_reloading ──────────────────────
   bus.on("file.change", (e) => {
     const mgr  = getLifecycleManager(e.projectId);
     const curr = mgr.getState();
 
     if (e.type === "writing") {
       const ext = e.path.split(".").pop() ?? "";
-      const isSrc = ["ts","tsx","js","jsx","py","go","rs","css","html"].includes(ext);
-      if (isSrc && curr === "ready") {
-        mgr.transition("updating", `Updating ${e.path.split("/").pop()}…`, { path: e.path });
+      const isSrc = ["ts","tsx","js","jsx","py","go","rs","css","html","scss","less"].includes(ext);
+      if (!isSrc) return;
+
+      if (curr === "ready") {
+        // CSS-only change → hot_reloading (browser can patch without restart)
+        if (CSS_EXTS.has(ext)) {
+          mgr.transition("hot_reloading", `Hot-reloading ${e.path.split("/").pop()}…`, { path: e.path, cssOnly: true });
+        } else {
+          mgr.transition("updating", `Updating ${e.path.split("/").pop()}…`, { path: e.path });
+        }
       }
       return;
     }
 
     if (e.type === "add" || e.type === "change") {
+      const ext = e.path.split(".").pop() ?? "";
       if (curr === "updating") {
         mgr.transition("refreshing", "Refreshing preview…");
+      } else if (curr === "hot_reloading" && CSS_EXTS.has(ext)) {
+        // CSS write complete — snap back to ready (no iframe reload)
+        mgr.forceTransition("ready", "CSS updated.", { hotReload: true });
       }
     }
   });
 
-  // ── run.lifecycle → starting / crashed / idle ───────────────────────────────
+  // ── run.lifecycle → starting / verifying / crashed / idle ──────────────────
   bus.on("run.lifecycle", (e) => {
     const mgr = getLifecycleManager(e.projectId);
     switch (e.status) {
@@ -58,7 +73,7 @@ export function mountLifecycleBridge(): void {
     }
   });
 
-  // ── tool.execution → building / installing ──────────────────────────────────
+  // ── tool.execution → building / installing / starting / verifying ───────────
   bus.on("tool.execution", (e) => {
     if (!e.projectId) return;
     const mgr  = getLifecycleManager(e.projectId);
@@ -73,7 +88,7 @@ export function mountLifecycleBridge(): void {
       return;
     }
 
-    if (e.toolName === "install_packages" || e.toolName?.includes("npm")) {
+    if (e.toolName === "install_packages" || e.toolName?.includes("npm") || e.toolName?.includes("pip")) {
       if (curr !== "installing") {
         mgr.forceTransition("installing", "Installing packages…");
       }
@@ -81,36 +96,95 @@ export function mountLifecycleBridge(): void {
     }
 
     if (e.toolName === "run_command" || e.toolName === "start_server") {
-      const curr2 = mgr.getState();
-      if (curr2 === "building" || curr2 === "installing" || curr2 === "idle") {
+      if (curr === "building" || curr === "installing" || curr === "idle") {
         mgr.transition("starting", "Starting server…");
       }
     }
   });
 
-  // ── runtime.observation → ready / crashed ──────────────────────────────────
+  // ── runtime.observation → verifying / ready / crashed ──────────────────────
   bus.on("runtime.observation", (e) => {
     const mgr  = getLifecycleManager(e.projectId);
     const curr = mgr.getState();
 
-    if (e.status === "healthy" && curr !== "ready") {
-      mgr.forceTransition("ready", `Server ready on port ${e.port ?? "?"}.`, { port: e.port });
+    if (e.status === "healthy") {
+      if (curr === "starting") {
+        // Two-step: starting → verifying → ready (visual feedback)
+        mgr.forceTransition("verifying", `Verifying server on port ${e.port ?? "?"}…`, { port: e.port });
+        setTimeout(() => {
+          const nowState = mgr.getState();
+          if (nowState === "verifying") {
+            mgr.forceTransition("ready", `Server ready on port ${e.port ?? "?"}.`, { port: e.port });
+          }
+        }, 1200);
+      } else if (curr !== "ready" && curr !== "verifying") {
+        mgr.forceTransition("ready", `Server healthy on port ${e.port ?? "?"}.`, { port: e.port });
+      }
       return;
     }
 
-    if (e.status === "crashed" && curr !== "crashed") {
+    if (e.status === "crashed" && curr !== "crashed" && curr !== "self_healing" && curr !== "debugging" && curr !== "patching") {
       const topErr = e.recentErrors[0] ?? "Process exited unexpectedly.";
       mgr.forceTransition("crashed", topErr, { errorCount: e.errorCount });
     }
   });
 
-  // ── runtime.verified → ready / crashed ─────────────────────────────────────
+  // ── runtime.verified → verifying → ready / crashed ─────────────────────────
   bus.on("runtime.verified", (e) => {
     const mgr  = getLifecycleManager(e.projectId);
+    const curr = mgr.getState();
+
     if (e.outcome === "healthy") {
-      mgr.forceTransition("ready", e.summary, { port: e.port });
+      if (curr !== "ready") {
+        if (curr === "starting" || curr === "restarting") {
+          mgr.forceTransition("verifying", "Running health checks…", { port: e.port });
+          setTimeout(() => {
+            if (mgr.getState() === "verifying") {
+              mgr.forceTransition("ready", e.summary, { port: e.port });
+            }
+          }, 800);
+        } else {
+          mgr.forceTransition("ready", e.summary, { port: e.port });
+        }
+      }
     } else if (e.outcome === "crashed" || e.outcome === "error") {
       mgr.forceTransition("crashed", e.summary);
+    }
+  });
+
+  // ── debug.lifecycle → self_healing / debugging / patching ──────────────────
+  // Emitted by the crash-responder and AI self-heal agent to show live progress.
+  bus.on("debug.lifecycle", (e) => {
+    const mgr  = getLifecycleManager(e.projectId);
+    const phase = e.eventType;
+
+    switch (phase) {
+      case "analyzing":
+      case "reading_logs":
+        mgr.forceTransition("debugging",    "AI is reading logs and diagnosing…",  { sessionId: e.sessionId });
+        break;
+      case "self_healing_start":
+        mgr.forceTransition("self_healing", "AI is analyzing the crash…",           { sessionId: e.sessionId });
+        break;
+      case "patching":
+      case "applying_patch":
+        mgr.forceTransition("patching",     "AI is applying a targeted patch…",     { sessionId: e.sessionId });
+        break;
+      case "restarting":
+        mgr.forceTransition("restarting",   "Restarting after patch…",              { sessionId: e.sessionId });
+        break;
+      case "complete":
+      case "success":
+        mgr.forceTransition("verifying",    "Verifying fix…",                       { sessionId: e.sessionId });
+        setTimeout(() => {
+          if (mgr.getState() === "verifying") {
+            mgr.forceTransition("ready", "Self-heal complete. Server is healthy.");
+          }
+        }, 1000);
+        break;
+      case "failed":
+        mgr.forceTransition("crashed",      String((e.payload as any)?.error ?? "Self-heal failed."));
+        break;
     }
   });
 }

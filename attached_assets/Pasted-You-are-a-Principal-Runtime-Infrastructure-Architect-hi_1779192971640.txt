@@ -1,0 +1,360 @@
+You are a Principal Runtime Infrastructure Architect hired to push NURA X Preview System from 74/100 → 99/100 Replit-level production quality.
+
+Your mission is NOT basic bug fixing.
+
+Your mission is to transform the Preview Runtime into a WORLD-CLASS realtime autonomous preview engine like:
+- Replit
+- Cursor
+- Lovable
+- StackBlitz
+- CodeSandbox
+
+FOCUS DIRECTORIES:
+- server/preview/
+- server/runtime/
+- server/infrastructure/
+- client/src/pages/preview/
+- client/src/hooks/
+- client/src/components/
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT VERIFIED STATE
+━━━━━━━━━━━━━━━━━━━━
+
+Already working:
+✅ realtime SSE
+✅ iframe reload
+✅ file sync
+✅ process registry
+✅ self-healing
+✅ Event Bus
+✅ preview lifecycle
+✅ reconnect logic
+
+Current score:
+74/100
+
+Main remaining weaknesses:
+⚠️ console pipeline bypass
+⚠️ runtime desync risks
+⚠️ tunnelService port mismatch
+⚠️ missing preview lifecycle states
+⚠️ incomplete runtime UX
+⚠️ weak runtime observability
+⚠️ weak structured console
+⚠️ missing visual runtime intelligence
+
+━━━━━━━━━━━━━━━━━━━━
+MISSION
+━━━━━━━━━━━━━━━━━━━━
+
+Push Preview System to:
+99/100 Replit-Level Experience
+
+Make preview feel:
+- alive
+- intelligent
+- realtime
+- cinematic
+- self-healing
+- visually responsive
+- production-grade
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT WORLD-CLASS FEATURES
+━━━━━━━━━━━━━━━━━━━━
+
+1. COMPLETE PREVIEW STATE MACHINE
+
+Implement FULL runtime lifecycle:
+
+IDLE
+↓
+THINKING
+↓
+PLANNING
+↓
+WRITING_FILES
+↓
+INSTALLING
+↓
+STARTING_RUNTIME
+↓
+VERIFYING
+↓
+READY
+↓
+UPDATING
+↓
+HOT_RELOADING
+↓
+RECONNECTING
+↓
+SELF_HEALING
+↓
+RECOVERING
+↓
+READY
+
+Crash path:
+CRASHED
+↓
+DEBUGGING
+↓
+PATCHING
+↓
+RESTARTING
+↓
+VERIFYING
+↓
+READY
+
+━━━━━━━━━━━━━━━━━━━━
+2. REALTIME VISUAL PREVIEW ENGINE
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- animated rebuilding overlay
+- install progress UI
+- runtime health indicator
+- reconnect animation
+- live server status
+- runtime timeline
+- visual loading transitions
+- smooth iframe fade reload
+- compile progress
+- error overlays
+- dependency install animation
+- runtime activity indicators
+- CPU/memory indicators
+- websocket status indicator
+
+Preview must FEEL alive.
+
+━━━━━━━━━━━━━━━━━━━━
+3. TRUE HOT RELOAD SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- smart iframe reload
+- partial reload detection
+- CSS-only hot updates
+- JS patch reload
+- full runtime restart only if needed
+- debounce runtime restarts
+- runtime stabilization delay
+- diff-aware reload strategy
+
+Avoid:
+❌ full iframe reload on every change
+
+━━━━━━━━━━━━━━━━━━━━
+4. STRUCTURED CONSOLE SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Fix ghost IQ2000 pipeline.
+
+Implement:
+- structured logs
+- error classification
+- warning detection
+- npm install parsing
+- progress indicators
+- clickable stack traces
+- runtime phases
+- grouped logs
+- filtered logs
+- syntax-highlighted console
+
+Console should feel like:
+- Vercel
+- Replit
+- Railway
+- Cursor terminal
+
+━━━━━━━━━━━━━━━━━━━━
+5. ADVANCED RUNTIME OBSERVABILITY
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- runtime heartbeat
+- websocket heartbeat
+- process metrics
+- port health checks
+- memory usage monitoring
+- CPU monitoring
+- preview FPS monitor
+- runtime diagnostics
+- event tracing
+- runtime timeline
+- live health graph
+
+━━━━━━━━━━━━━━━━━━━━
+6. SELF-HEALING PREVIEW INTELLIGENCE
+━━━━━━━━━━━━━━━━━━━━
+
+When crash happens:
+
+AI should:
+- read logs
+- inspect runtime state
+- inspect preview state
+- inspect failed requests
+- inspect missing modules
+- inspect stack traces
+- generate patch
+- apply patch
+- restart runtime
+- verify preview visually
+
+Frontend should show:
+"AI fixing runtime..."
+with live progress.
+
+━━━━━━━━━━━━━━━━━━━━
+7. VISUAL VERIFICATION ENGINE
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- preview screenshot capture
+- visual diff checking
+- blank screen detection
+- hydration failure detection
+- runtime stuck detection
+- white screen detection
+- missing render detection
+
+AI should be able to:
+SEE preview failures.
+
+━━━━━━━━━━━━━━━━━━━━
+8. PRODUCTION-GRADE PROCESS MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- unified process registry
+- zero desync architecture
+- guaranteed port synchronization
+- zombie cleanup
+- orphan process cleanup
+- crash-safe restart
+- queued restart manager
+- runtime locking
+- process isolation
+- resource quotas
+
+━━━━━━━━━━━━━━━━━━━━
+9. PERFECT SSE + STREAMING
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- guaranteed event ordering
+- event replay
+- event persistence
+- stream compression
+- connection recovery
+- stale event cleanup
+- stream diagnostics
+- runtime-aware throttling
+
+━━━━━━━━━━━━━━━━━━━━
+10. REPLIT-LEVEL UX POLISH
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+- animated status pills
+- cinematic transitions
+- smooth runtime state changes
+- intelligent empty states
+- skeleton loading
+- progressive hydration
+- reconnect countdown
+- live deployment feel
+- optimistic updates
+- runtime notifications
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT ARCHITECTURE RULES
+━━━━━━━━━━━━━━━━━━━━
+
+STRICTLY ENFORCE:
+
+✅ HIGH COHESION
+✅ LOW COUPLING
+✅ SMALL FILES (<250 lines)
+✅ MODULAR SERVICES
+✅ SINGLE SOURCE OF TRUTH
+✅ EVENT-DRIVEN DESIGN
+✅ CLEAN RUNTIME BOUNDARIES
+✅ PRODUCTION-GRADE TYPES
+✅ NO DUPLICATED STATE
+✅ NO HACKY POLLING
+
+AVOID:
+❌ giant files
+❌ duplicated runtime maps
+❌ fake loading states
+❌ random timers
+❌ fragmented preview systems
+❌ direct iframe hacks
+❌ uncontrolled process spawning
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/
+├── preview/
+│   ├── orchestrator/
+│   ├── lifecycle/
+│   ├── runtime/
+│   ├── metrics/
+│   ├── diagnostics/
+│   ├── recovery/
+│   ├── visual-verification/
+│   └── streaming/
+
+client/src/pages/preview/
+├── runtime/
+├── overlays/
+├── animations/
+├── metrics/
+├── reconnect/
+├── diagnostics/
+├── visual-health/
+└── streaming/
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Full Preview Runtime Audit
+2. Current Weaknesses
+3. Replit vs NURA Gap Analysis
+4. Runtime Synchronization Audit
+5. iframe Lifecycle Audit
+6. Process Lifecycle Audit
+7. SSE Architecture Audit
+8. Console Pipeline Audit
+9. Visual UX Audit
+10. Runtime Observability Audit
+11. Missing Lifecycle States
+12. Missing Runtime Events
+13. Missing Runtime Intelligence
+14. Production-Grade Refactor Plan
+15. Exact Files To Create
+16. Exact Files To Modify
+17. Migration Strategy
+18. Runtime Safety Plan
+19. Final 99/100 Architecture
+
+Then IMPLEMENT everything step-by-step safely.
+
+IMPORTANT:
+Do NOT rewrite working systems unnecessarily.
+Preserve all realtime behavior.
+Preserve existing Event Bus.
+Preserve existing self-healing architecture.
+Only evolve the system into elite production-grade architecture.

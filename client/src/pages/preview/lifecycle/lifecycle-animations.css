@@ -1,4 +1,4 @@
-/* lifecycle-animations.css — Replit-style preview state animations */
+/* lifecycle-animations.css — Replit-style preview state animations v2 */
 
 /* ── Overlay container ───────────────────────────────────────────────── */
 .preview-lifecycle-overlay {
@@ -61,6 +61,12 @@
   text-align:      center;
 }
 
+.plc-card-hot {
+  border-color: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.08), 0 24px 64px rgba(0,0,0,0.6);
+  animation: plc-card-in 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @keyframes plc-card-in {
   from { transform: translateY(8px) scale(0.97); opacity: 0; }
   to   { transform: translateY(0)   scale(1);    opacity: 1; }
@@ -109,6 +115,110 @@
   0%   { transform: rotate(0deg);   }
   80%  { transform: rotate(360deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* ── Verify icon — draw circle then checkmark ────────────────────────── */
+@keyframes plc-verify-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes plc-check-draw {
+  from { opacity: 0; stroke-dasharray: 0 30; }
+  to   { opacity: 1; stroke-dasharray: 30 0; }
+}
+
+/* ── Heal icon ───────────────────────────────────────────────────────── */
+.plc-heal-icon {
+  filter: drop-shadow(0 0 8px rgba(232, 121, 249, 0.5));
+}
+
+/* ── Hot reload icon flash ───────────────────────────────────────────── */
+.plc-hotreload-icon {
+  animation: plc-hotreload-pulse 0.6s ease-out;
+}
+
+@keyframes plc-hotreload-pulse {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Debug icon scan ─────────────────────────────────────────────────── */
+@keyframes plc-debug-scan {
+  0%, 100% { transform: translate(0, 0); }
+  25%       { transform: translate(-2px, -2px); }
+  75%       { transform: translate(2px, 2px); }
+}
+
+/* ── Patch icon spin ─────────────────────────────────────────────────── */
+@keyframes plc-patch-spin {
+  to { transform: rotate(360deg); }
+}
+.plc-patch-icon { transform-origin: center; }
+
+/* ── Hot reload flash ring ───────────────────────────────────────────── */
+.plc-hot-flash {
+  position:      absolute;
+  inset:         0;
+  border-radius: 0;
+  pointer-events: none;
+  border:        2px solid;
+  animation:     plc-hot-ring 0.5s ease-out forwards;
+  opacity:       0;
+}
+
+@keyframes plc-hot-ring {
+  0%   { opacity: 0.8; transform: scale(0.98); }
+  100% { opacity: 0;   transform: scale(1.02); }
+}
+
+/* ── Hot reload badge ────────────────────────────────────────────────── */
+.plc-hot-badge {
+  font-size:   10px;
+  font-weight: 500;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  opacity:     0.6;
+  letter-spacing: 0.03em;
+}
+
+/* ── Self-heal phase list ────────────────────────────────────────────── */
+.plc-heal-phases {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  text-align:     left;
+  min-width:      200px;
+}
+
+.plc-heal-phase {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   11px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  transition:  color 0.3s, opacity 0.3s;
+}
+
+.plc-heal-phase.pending { color: rgba(148,163,184,0.3); }
+.plc-heal-phase.active  { color: rgba(232,121,249,0.95); }
+.plc-heal-phase.done    { color: rgba(74,222,128,0.7); }
+
+.plc-heal-dot {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  flex-shrink:   0;
+  background:    currentColor;
+  transition:    background 0.3s;
+}
+
+.plc-heal-phase.active .plc-heal-dot {
+  animation: plc-dot-pulse 0.8s ease-in-out infinite;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.plc-heal-phase.done .plc-heal-dot {
+  background: #4ade80;
 }
 
 /* ── Progress bar ────────────────────────────────────────────────────── */
@@ -182,9 +292,7 @@
   color:      #000;
 }
 
-.plc-btn-primary:hover {
-  opacity: 0.85;
-}
+.plc-btn-primary:hover { opacity: 0.85; }
 
 .plc-btn-secondary {
   background: rgba(255, 255, 255, 0.06);
@@ -195,6 +303,22 @@
 .plc-btn-secondary:hover {
   background: rgba(255, 255, 255, 0.1);
   color:      rgba(255, 255, 255, 0.95);
+}
+
+.plc-btn-heal {
+  background:    transparent;
+  border:        1px solid;
+  padding:       5px 14px;
+  border-radius: 8px;
+  font-size:     11px;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    opacity 0.15s, transform 0.15s, background 0.15s;
+}
+
+.plc-btn-heal:hover {
+  background: rgba(232, 121, 249, 0.08);
+  opacity: 0.9;
 }
 
 /* ── Particles ───────────────────────────────────────────────────────── */
@@ -235,7 +359,7 @@
   font-size:       11px;
   font-weight:     500;
   font-family:     ui-monospace, "SF Mono", Menlo, monospace;
-  transition:      background 0.3s, color 0.3s;
+  transition:      background 0.3s, color 0.3s, border-color 0.3s;
   border:          1px solid rgba(255,255,255,0.07);
   background:      rgba(255,255,255,0.04);
   white-space:     nowrap;
@@ -246,6 +370,7 @@
   height:        6px;
   border-radius: 50%;
   flex-shrink:   0;
+  transition:    background 0.3s;
 }
 
 .plc-status-dot.pulsing {
@@ -255,4 +380,14 @@
 @keyframes plc-dot-pulse {
   0%, 100% { opacity: 1;   transform: scale(1);    }
   50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── Iframe fade-in on reload ────────────────────────────────────────── */
+.iframe-fade-in {
+  animation: iframe-appear 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes iframe-appear {
+  from { opacity: 0; transform: scale(0.995); }
+  to   { opacity: 1; transform: scale(1); }
 }

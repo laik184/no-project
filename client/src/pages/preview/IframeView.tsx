@@ -1,4 +1,4 @@
-import { type RefObject } from "react";
+import { type RefObject, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DEVICE_CONFIGS, type DeviceKey } from "./preview-types";
 import { DeviceFrame, TabletFrame } from "./device-frames";
@@ -21,17 +21,26 @@ export interface IframeViewProps {
   onResetCustomSize: () => void;
   onPlayClick: () => void;
   onOverlayRun: () => void;
-  // Lifecycle
   lifecycleState:   PreviewLifecycleState;
   lifecyclePrev:    PreviewLifecycleState;
   lifecycleMessage: string;
   lifecycleMeta?:   Record<string, unknown>;
   onRetry?:         () => void;
-  /** Called when user clicks "Run Project" inside the idle placeholder. */
   onRun?:           () => void;
 }
 
 const IFRAME_SRC = "/preview-frame";
+
+/** Smooth fade-in hook — adds the animation class whenever the key changes. */
+function useFadeClass(iframeKey: number) {
+  const [cls, setCls] = useState("");
+  useEffect(() => {
+    setCls("iframe-fade-in");
+    const t = setTimeout(() => setCls(""), 450);
+    return () => clearTimeout(t);
+  }, [iframeKey]);
+  return cls;
+}
 
 function LifecycleAwareIframe({
   iframeRef, iframeKey, onIframeLoad,
@@ -45,18 +54,14 @@ function LifecycleAwareIframe({
   lifecyclePrev:    PreviewLifecycleState;
   lifecycleMessage: string;
   lifecycleMeta?:   Record<string, unknown>;
-  onRetry?:         () => void;
-  onRun?:           () => void;
+  onRetry?:  () => void;
+  onRun?:    () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="relative w-full h-full">
       {children}
-      {/* Idle placeholder — clean waiting screen, no run button */}
       {lifecycleState === "idle" && <PreviewPlaceholder />}
-      {/* Overlay handles building/installing/starting/crashed states.
-          onRun  → full process restart (shown on crash)
-          onRetry → lightweight iframe reload (secondary on crash) */}
       <PreviewLifecycleOverlay
         state={lifecycleState}
         prevState={lifecyclePrev}
@@ -75,7 +80,8 @@ export function IframeView({
   onResetCustomSize, onPlayClick, onOverlayRun,
   lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry, onRun,
 }: IframeViewProps) {
-  const cfg = DEVICE_CONFIGS[selectedDevice];
+  const cfg      = DEVICE_CONFIGS[selectedDevice];
+  const fadeClass = useFadeClass(iframeKey);
 
   if (cfg?.frame === "phone") {
     return (
@@ -95,10 +101,12 @@ export function IframeView({
                   lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta}
                   onRetry={onRetry} onRun={onRun}
                 >
-                  <iframe key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
-                    className="absolute inset-0 w-full h-full border-none"
+                  <iframe
+                    key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+                    className={`absolute inset-0 w-full h-full border-none ${fadeClass}`}
                     sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-                    title="Preview" onLoad={onIframeLoad} />
+                    title="Preview" onLoad={onIframeLoad}
+                  />
                 </LifecycleAwareIframe>
               </DeviceFrame>
             </div>
@@ -126,10 +134,12 @@ export function IframeView({
                 lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta}
                 onRetry={onRetry} onRun={onRun}
               >
-                <iframe ref={iframeRef} src={IFRAME_SRC}
-                  className="absolute inset-0 w-full h-full border-none"
+                <iframe
+                  key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+                  className={`absolute inset-0 w-full h-full border-none ${fadeClass}`}
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-                  title="Preview" onLoad={onIframeLoad} />
+                  title="Preview" onLoad={onIframeLoad}
+                />
               </LifecycleAwareIframe>
             </TabletFrame>
           </div>
@@ -142,10 +152,12 @@ export function IframeView({
   if (selectedDevice === "fullsize" && !customWidth && !customHeight) {
     return (
       <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
-        <iframe ref={iframeRef} src={IFRAME_SRC}
-          className="absolute inset-0 w-full h-full border-none bg-[#0d0d0f]"
+        <iframe
+          key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+          className={`absolute inset-0 w-full h-full border-none bg-[#0d0d0f] ${fadeClass}`}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-          title="Preview" onLoad={onIframeLoad} />
+          title="Preview" onLoad={onIframeLoad}
+        />
         {lifecycleState === "idle" && <PreviewPlaceholder />}
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
@@ -168,10 +180,12 @@ export function IframeView({
           ? { width: customWidth ?? "100%", height: customHeight ?? 500 }
           : { width: "100%", height: "100%" }),
       }}>
-        <iframe ref={iframeRef} src={IFRAME_SRC}
-          className="w-full h-full border-none"
+        <iframe
+          key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+          className={`w-full h-full border-none ${fadeClass}`}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-          title="Preview" onLoad={onIframeLoad} />
+          title="Preview" onLoad={onIframeLoad}
+        />
 
         {lifecycleState === "idle" && <PreviewPlaceholder />}
 

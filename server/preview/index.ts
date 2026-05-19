@@ -17,6 +17,7 @@ import filesRouter from './files/files.router.ts';
 import tunnelRouter from './tunnel/tunnel.router.ts';
 import devtoolsRouter from './devtools/devtools.router.ts';
 import stateRouter from './state/state.router.ts';
+import metricsRouter from './metrics/metrics.router.ts';
 
 // ─── Pipeline Stage Registry ──────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
   { name: 'tunnel',  router: tunnelRouter,  mountPath: '/' },
   { name: 'devtools',router: devtoolsRouter,mountPath: '/' },
   { name: 'state',   router: stateRouter,   mountPath: '/' },
+  { name: 'metrics', router: metricsRouter, mountPath: '/' },
 ];
 
 // ─── Pipeline Controller ───────────────────────────────────────────────────────

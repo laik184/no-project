@@ -20,6 +20,7 @@ import { useInspectLogic } from "@/hooks/useInspectLogic";
 import { usePreviewLifecycle } from "./lifecycle/usePreviewLifecycle";
 import { useIframeAutoRefresh } from "./lifecycle/useIframeAutoRefresh";
 import { PreviewStatusPill } from "./lifecycle/PreviewStatusPill";
+import { RuntimeHealthWidget } from "./RuntimeHealthWidget";
 import "./preview-animations.css";
 
 export default function Preview() {
@@ -170,8 +171,9 @@ export default function Preview() {
               devicePopupRef={device.devicePopupRef}
               handleSelectDevice={device.handleSelectDevice}
             >
-              {/* Status pill sits inside the browser bar */}
+              {/* Status pill + runtime health sit inside the browser bar */}
               <PreviewStatusPill state={lifecycle.state} />
+              <RuntimeHealthWidget projectId={lifecycle.meta?.projectId as number | undefined} />
             </BrowserBar>
 
             <main className="flex-1 overflow-hidden bg-black relative flex flex-col">
