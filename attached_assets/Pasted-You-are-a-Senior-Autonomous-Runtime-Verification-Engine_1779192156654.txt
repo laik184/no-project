@@ -1,0 +1,202 @@
+You are a Senior Autonomous Runtime Verification Engineer.
+
+Your task is NOT to fix anything.
+
+Your ONLY task is to VERIFY whether my system ACTUALLY behaves like a Replit/Cursor-style realtime autonomous coding IDE.
+
+FOCUS DIRECTORIES:
+- server/
+- server/preview/
+- server/chat/
+- server/infrastructure/
+- client/src/pages/preview/
+- client/src/hooks/
+- client/src/components/
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Verify whether this COMPLETE realtime lifecycle ACTUALLY works:
+
+USER IDEA
+→ AI THINKING
+→ TOOL CALLS
+→ FILE WRITES
+→ PACKAGE INSTALL
+→ SERVER START
+→ PROCESS REGISTRATION
+→ PREVIEW UPDATE
+→ IFRAME RELOAD
+→ LIVE RUNTIME STATUS
+→ ERROR DETECTION
+→ AUTO RECOVERY
+→ FINAL READY STATE
+
+DO NOT ASSUME.
+VERIFY EVERYTHING WITH REAL CODE FLOW.
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY THESE EXACT FLOWS
+━━━━━━━━━━━━━━━━━━━━
+
+1. AI writes code
+CHECK:
+- does file actually write?
+- does file.change emit?
+- does frontend refresh?
+- does file explorer update instantly?
+- does preview detect changes?
+
+2. AI installs packages
+CHECK:
+- npm install logs captured?
+- logs streamed realtime?
+- console updates live?
+- install status shown in preview?
+
+3. AI starts server
+CHECK:
+- child_process.spawn works?
+- process stored correctly?
+- port assigned correctly?
+- runtime registry updated?
+- preview proxy receives correct port?
+- iframe loads app?
+
+4. Preview Lifecycle
+CHECK:
+- preview.ready emitted?
+- iframe auto reload works?
+- reconnect logic works?
+- runtime states update live?
+- loading animations connected to real events?
+- crash detection works?
+
+5. Runtime Synchronization
+CHECK:
+- single source of truth exists?
+- multiple process maps exist?
+- preview/runtime desync exists?
+- stale runtime state possible?
+- zombie processes possible?
+
+6. Realtime Streaming
+CHECK:
+- SSE streams realtime?
+- duplicate events?
+- event leaks?
+- frontend listeners working?
+- Event Bus flow correct?
+
+7. Error Recovery
+CHECK:
+- if app crashes:
+  - does preview detect?
+  - does UI update?
+  - does reconnect happen?
+  - does runtime restart?
+  - does AI observe logs?
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY REPLIT-LIKE EXPERIENCE
+━━━━━━━━━━━━━━━━━━━━
+
+Check if system REALLY behaves like Replit:
+
+✅ realtime rebuilding
+✅ updating animation
+✅ restarting animation
+✅ preview auto refresh
+✅ runtime reconnect
+✅ live console logs
+✅ instant file sync
+✅ runtime health detection
+✅ runtime status updates
+✅ self-healing runtime
+✅ stable iframe lifecycle
+
+OR
+
+❌ fake loading states
+❌ passive preview
+❌ disconnected runtime
+❌ stale iframe
+❌ broken reload
+❌ preview desync
+❌ runtime state mismatch
+❌ event inconsistencies
+
+━━━━━━━━━━━━━━━━━━━━
+TRACE COMPLETE FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Trace ACTUAL runtime lifecycle:
+
+AI tool call
+→ file_write
+→ Event Bus
+→ file.change
+→ watcher
+→ runtime update
+→ server restart
+→ process registry
+→ preview proxy
+→ iframe reload
+→ frontend preview state
+→ final rendered app
+
+VERIFY EVERY STEP.
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+DO NOT:
+- fix code
+- rewrite architecture
+- suggest generic improvements
+- assume functionality
+
+ONLY:
+- verify actual implementation
+- trace real execution paths
+- identify exact breakpoints
+- identify fake flows
+- identify disconnected systems
+- identify missing lifecycle events
+- identify runtime desync
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. VERIFIED Working Systems
+2. Fake / Broken Systems
+3. Preview Lifecycle Verification
+4. Runtime Synchronization Verification
+5. File Write Verification
+6. Console Streaming Verification
+7. SSE/Event Bus Verification
+8. Process Registry Verification
+9. iframe Reload Verification
+10. Runtime Recovery Verification
+11. Replit-Like Experience Score (/100)
+12. Exact Break Points
+13. Exact Missing Events
+14. Exact Missing Runtime States
+15. Exact Missing Connections
+16. Full Runtime Lifecycle Diagram
+17. Current vs Replit Comparison
+18. Final Verdict:
+   - "REALTIME REPLIT-LIKE"
+   OR
+   - "PARTIALLY FUNCTIONAL"
+   OR
+   - "ARCHITECTURALLY FAKE"
+
+IMPORTANT:
+Use evidence-based verification only.
+Mention exact files and exact flow paths.

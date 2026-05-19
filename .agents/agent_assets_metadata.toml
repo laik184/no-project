@@ -48,3 +48,9 @@ id = "wIBegP_i2FdIX04qEe4Si"
 uri = "file://NURA_X_SYSTEM_REPORT.md"
 type = "text"
 title = "NURA X — Complete System Report"
+
+[[outputs]]
+id = "wBwusTyzlMeW9_6aLaVaA"
+uri = "file://NURA_X_VERIFICATION_REPORT.md"
+type = "text"
+title = "NURA X — Runtime Verification Report"
