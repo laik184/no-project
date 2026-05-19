@@ -1,4 +1,4 @@
-# test-figma
+# figma-test
 
 Imported from Figma.
 

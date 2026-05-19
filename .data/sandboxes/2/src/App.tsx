@@ -1,6 +1,6 @@
-// Auto-generated from Figma: test-figma
+// Auto-generated from Figma: figma-test
 // Pages: Main
 
 export default function App() {
-  return <div className="app"><h1>test-figma</h1></div>;
+  return <div className="app"><h1>figma-test</h1></div>;
 }
