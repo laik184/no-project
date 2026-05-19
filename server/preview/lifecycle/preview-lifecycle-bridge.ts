@@ -22,6 +22,33 @@ export function mountLifecycleBridge(): void {
   if (mounted) return;
   mounted = true;
 
+  // ── agent.event (phase=runtime) → lifecycle state machine ──────────────────
+  // Ensures direct processRegistry events (not going through previewOrchestrator)
+  // still drive the lifecycle overlay correctly.
+  bus.on("agent.event", (e) => {
+    if (e.phase !== "runtime" || !e.projectId) return;
+    const mgr = getLifecycleManager(e.projectId);
+    const pl  = e.payload as Record<string, unknown>;
+
+    switch (e.eventType) {
+      case "process.started":
+        mgr.transition("starting", `Process starting (pid: ${pl?.["pid"] ?? "?"})…`);
+        break;
+      case "process.crashed":
+        mgr.forceTransition("crashed", String(pl?.["error"] ?? "Process crashed."), pl);
+        break;
+      case "process.stopped":
+        // Only reset to idle if not already in a higher-level state
+        if (mgr.getState() !== "building" && mgr.getState() !== "installing") {
+          mgr.forceTransition("idle", "Process stopped.");
+        }
+        break;
+      case "process.restarted":
+        mgr.forceTransition("restarting", "Runtime restarting…");
+        break;
+    }
+  });
+
   // ── file.change → building / updating / hot_reloading ──────────────────────
   bus.on("file.change", (e) => {
     const mgr  = getLifecycleManager(e.projectId);

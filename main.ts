@@ -35,6 +35,8 @@ import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
 import { startRecoveryManager } from './server/infrastructure/recovery/recovery-manager.ts';
 import { createRecoveryRouter } from './server/api/recovery.routes.ts';
 import { createImportRouter } from './server/api/import/import.routes.ts';
+import { runtimeStore }             from './server/infrastructure/runtime/runtime-store/runtime-store.ts';
+import { createRuntimeSyncRouter }  from './server/infrastructure/runtime/runtime-store/runtime-sync.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -79,6 +81,9 @@ app.use('/api/import', createImportRouter());
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
 app.use(createRuntimeRouter());
+
+// Runtime store sync — aggregated state + SSE hydration endpoints
+app.use('/api/runtime', createRuntimeSyncRouter());
 
 // IQ2000 Preview Pipeline — runtime/files/tunnel/devtools/state modules
 app.use('/api', previewPipeline);
@@ -160,6 +165,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`[nura-x] Environment: ${process.env.NODE_ENV || 'development'}`);
   // Load persisted runtime state, reconcile against live PIDs, start health monitor
   await runtimeManager.init();
+  // Initialize aggregated runtime store — must be after runtimeManager.init()
+  runtimeStore.init();
   // Load autonomous debug recovery memory from disk (survives restarts)
   await initMemory();
   // Start autonomous crash recovery — subscribes to process.crashed bus events

@@ -18,7 +18,7 @@
 import { isPidAlive } from "./process-recovery.ts";
 import type { ProcessStatus } from "./process-types.ts";
 
-const HEALTH_INTERVAL_MS = 15_000; // 15 seconds
+const HEALTH_INTERVAL_MS = 3_000; // 3 seconds (was 15s — faster crash detection)
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -28,6 +28,8 @@ export interface ProcessEntry {
   cwd: string;
   restartCount: number;
   lastHeartbeat: number;
+  /** Timestamp of last stdout/stderr byte — used for stale-process detection. */
+  lastActivity:  number;
 }
 
 // ─── Persisted entry (serialisable — no ChildProcess reference) ──────────────
