@@ -58,6 +58,7 @@
     "date-fns": "^4.1.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.22.1",
     "http-proxy-middleware": "^3.0.5",
@@ -67,6 +68,9 @@
     "marked": "^14.1.4",
     "monaco-editor": "^0.55.1",
     "multer": "^2.1.1",
+    "openai": "^6.38.0",
+    "p-limit": "^7.3.0",
+    "p-retry": "^7.1.1",
     "pg": "^8.20.0",
     "prismjs": "^1.30.0",
     "qrcode.react": "^4.2.0",
@@ -83,7 +87,8 @@
     "vaul": "^1.1.2",
     "wouter": "^3.9.0",
     "ws": "^8.20.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zod-validation-error": "^5.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

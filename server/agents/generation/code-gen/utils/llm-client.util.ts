@@ -12,7 +12,7 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1/chat/completions";
 
 export function createLlmClient(config: LlmConfig = {}): LlmClient {
-  const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY ?? process.env.OPENROUTER_API_KEY;
+  const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY ?? process.env.OPENROUTER_API_KEY ?? process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY;
   const baseUrl = config.baseUrl ?? process.env.LLM_BASE_URL ?? DEFAULT_BASE_URL;
   const model = config.model ?? process.env.LLM_MODEL ?? DEFAULT_MODEL;
 

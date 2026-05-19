@@ -43,7 +43,8 @@ const PORT = Number(process.env.PORT) || 3001;
 
 // ── Startup: warn loudly if critical env vars are missing ──────────────
 const MISSING_VARS: string[] = [];
-if (!process.env.OPENROUTER_API_KEY) MISSING_VARS.push('OPENROUTER_API_KEY');
+const hasOpenRouterKey = !!(process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY);
+if (!hasOpenRouterKey) MISSING_VARS.push('OPENROUTER_API_KEY');
 if (!process.env.DATABASE_URL) MISSING_VARS.push('DATABASE_URL');
 if (MISSING_VARS.length > 0) {
   console.warn(`[nura-x] ⚠  Missing required environment variables: ${MISSING_VARS.join(', ')}`);
@@ -110,7 +111,7 @@ app.get('/health', (_req, res) => {
 
 // LLM key health — frontend can call this to show a clear banner
 app.get('/api/health/llm', (_req, res) => {
-  const hasKey = !!process.env.OPENROUTER_API_KEY;
+  const hasKey = !!(process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY);
   res.status(hasKey ? 200 : 503).json({
     ok: hasKey,
     llm: hasKey ? 'ready' : 'missing_key',

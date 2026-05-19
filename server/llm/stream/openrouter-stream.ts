@@ -35,8 +35,8 @@ export async function streamChatWithTools(
   tools:    ToolDef[],
   opts:     StreamOptions = {},
 ): Promise<ChatResponse> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set.");
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("No OpenRouter API key found. Add OPENROUTER_API_KEY in Replit Secrets.");
 
   const model = process.env.LLM_MODEL || "openai/gpt-4o-mini";
 

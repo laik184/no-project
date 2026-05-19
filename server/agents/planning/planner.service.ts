@@ -17,9 +17,9 @@ async function callPlannerLLM(
   userPrompt: string,
   signal?: AbortSignal
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY is not set — cannot generate plan.");
+    throw new Error("No OpenRouter API key found — cannot generate plan.");
   }
 
   const response = await fetch(BASE_URL, {

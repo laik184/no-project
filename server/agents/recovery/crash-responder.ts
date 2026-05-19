@@ -26,7 +26,7 @@ import { handleCrash, resetProject, getOrchestratorState } from "../autonomous-d
 function onAgentEvent(event: AgentEvent): void {
   if (event.eventType !== "process.crashed") return;
   if (!event.projectId) return;
-  if (!process.env.OPENROUTER_API_KEY) return;
+  if (!process.env.OPENROUTER_API_KEY && !process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY) return;
 
   handleCrash(event.projectId, event.payload).catch((err) =>
     console.error(`[crash-responder] unhandled error: ${err?.message}`)
