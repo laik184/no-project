@@ -166,6 +166,31 @@ export class ConsoleOrchestrator {
     captureService.onLine((line: ConsoleLine) => {
       this.routeLine(line);
     });
+
+    // ── Bus bridge ────────────────────────────────────────────────────────
+    // processRegistry emits console.log directly to the bus (bypassing
+    // captureService).  This listener catches those events and routes them
+    // through the full IQ2000 persist → stream pipeline so DB writes and
+    // SSE fan-out actually happen.  We intentionally skip bus re-emission
+    // here (routeLine already does that) to prevent an infinite loop.
+    bus.on('console.log', (e) => {
+      const line: ConsoleLine = {
+        id:        `bus-${e.projectId}-${e.ts}`,
+        projectId: e.projectId,
+        kind:      e.stream === 'stderr' ? 'stderr' : 'stdout',
+        text:      e.line,
+        ts:        new Date(e.ts),
+      };
+
+      if (line.kind === 'stderr') {
+        persistService.persistNow(line).catch(() => {});
+      } else {
+        persistService.enqueue(line);
+      }
+
+      streamService.broadcast(line);
+      this.lineCount++;
+    });
   }
 
   private routeLine(line: ConsoleLine): void {

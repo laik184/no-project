@@ -69,7 +69,14 @@ export class PreviewOrchestrator {
 
     if (result.ok) {
       const tunnelInfo = tunnelService.getTunnelInfo();
-      stateService.setUrl(tunnelInfo.url ?? `http://localhost:${result.port}`);
+      // Use the preview proxy path so the iframe always routes through
+      // preview-proxy.ts → runtimeManager.get(projectId).port (the real
+      // dynamically-allocated port).  Pointing directly to tunnelInfo.url
+      // would hardcode port 5000 and cause a desync with the actual process.
+      const previewUrl = tunnelInfo.isReplit && tunnelInfo.domain
+        ? `https://${tunnelInfo.domain}/preview/${id}`
+        : `http://localhost:${result.port}`;
+      stateService.setUrl(previewUrl);
       devtoolsService.pushConsoleLog({
         type: 'info',
         message: `[IQ2000] Project "${id}" started on port ${result.port}`,

@@ -90,6 +90,28 @@ bus.on("preview.lifecycle", (e) => {
   pool.fanOut(TOPIC.PREVIEW_LIFECYCLE, e, seqId, (conn) => matchesPreviewLifecycle(conn, e));
 });
 
+// ── debug.lifecycle ───────────────────────────────────────────────────────────
+// Streams autonomous debug/recovery session events to the browser so the
+// AgentActionFeed can show live "Self-healing..." progress.
+bus.on("debug.lifecycle", (e) => {
+  const seqId = record(TOPIC.DEBUG_LIFECYCLE, e);
+  pool.fanOut(
+    TOPIC.DEBUG_LIFECYCLE, e, seqId,
+    (conn) => conn.projectId === null || conn.projectId === e.projectId,
+  );
+});
+
+// ── tool.execution ────────────────────────────────────────────────────────────
+// Streams tool start/success/error phases so the browser can show live
+// tool-call progress in the execution history panel and agent feed.
+bus.on("tool.execution", (e) => {
+  const seqId = record(TOPIC.TOOL_EXECUTION, e);
+  pool.fanOut(
+    TOPIC.TOOL_EXECUTION, e, seqId,
+    (conn) => conn.projectId === null || conn.projectId === e.projectId,
+  );
+});
+
 // ── Listener leak detection ───────────────────────────────────────────────────
 // The hub pattern keeps SSE fan-out to exactly 1 listener per event type.
 // However, a small number of non-SSE architectural subscribers are expected:
@@ -101,7 +123,7 @@ const LEAK_THRESHOLD = 6;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
   "runtime.verified", "runtime.observation", "agent.diff", "checkpoint.event",
-  "preview.lifecycle",
+  "preview.lifecycle", "debug.lifecycle", "tool.execution",
 ] as const;
 
 const _leakTimer = setInterval(() => {

@@ -167,16 +167,17 @@ class ProcessRegistry {
       return { ok: false, error: "Could not allocate a free port" };
     }
 
-    const [cmd, ...args] = command.split(" ");
     const logs: string[] = [];
     const restartCount = (existing?.restartCount ?? 0);
 
-    const proc = spawn(cmd, args, {
+    // Use shell:true so quoted args and compound commands work correctly.
+    // e.g. "npm run dev -- --port 3000" or "python -c 'print(1)'"
+    const proc = spawn(command, {
       cwd,
       env: { ...process.env, PORT: String(port), NODE_ENV: "development", ...env },
-      shell: false,
+      shell: true,
       detached: false,
-    });
+    } as any);
 
     if (!proc.pid) return { ok: false, error: "Failed to spawn process — no PID" };
 
