@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DEVICE_CONFIGS, type DeviceKey } from "./preview-types";
 import { DeviceFrame, TabletFrame } from "./device-frames";
 import { PreviewLifecycleOverlay } from "./lifecycle/PreviewLifecycleOverlay";
+import { PreviewPlaceholder } from "./lifecycle/PreviewPlaceholder";
 import type { PreviewLifecycleState } from "./lifecycle/preview-lifecycle-types";
 
 export interface IframeViewProps {
@@ -26,13 +27,15 @@ export interface IframeViewProps {
   lifecycleMessage: string;
   lifecycleMeta?:   Record<string, unknown>;
   onRetry?:         () => void;
+  /** Called when user clicks "Run Project" inside the idle placeholder. */
+  onRun?:           () => void;
 }
 
 const IFRAME_SRC = "/preview-frame";
 
 function LifecycleAwareIframe({
   iframeRef, iframeKey, onIframeLoad,
-  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry,
+  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry, onRun,
   children,
 }: {
   iframeRef: RefObject<HTMLIFrameElement>;
@@ -43,11 +46,15 @@ function LifecycleAwareIframe({
   lifecycleMessage: string;
   lifecycleMeta?:   Record<string, unknown>;
   onRetry?:         () => void;
+  onRun?:           () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="relative w-full h-full">
       {children}
+      {lifecycleState === "idle" && (
+        <PreviewPlaceholder onRun={onRun} />
+      )}
       <PreviewLifecycleOverlay
         state={lifecycleState}
         prevState={lifecyclePrev}
@@ -63,7 +70,7 @@ export function IframeView({
   iframeRef, iframeKey, selectedDevice, customWidth, customHeight, previewContainerRef,
   isExecuting, isRunning, onIframeLoad, onSelectDevice, onResizeDragStart,
   onResetCustomSize, onPlayClick, onOverlayRun,
-  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry,
+  lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry, onRun,
 }: IframeViewProps) {
   const cfg = DEVICE_CONFIGS[selectedDevice];
 
@@ -82,7 +89,8 @@ export function IframeView({
                 <LifecycleAwareIframe
                   iframeRef={iframeRef} iframeKey={iframeKey} onIframeLoad={onIframeLoad}
                   lifecycleState={lifecycleState} lifecyclePrev={lifecyclePrev}
-                  lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta} onRetry={onRetry}
+                  lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta}
+                  onRetry={onRetry} onRun={onRun}
                 >
                   <iframe key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
                     className="absolute inset-0 w-full h-full border-none"
@@ -112,7 +120,8 @@ export function IframeView({
               <LifecycleAwareIframe
                 iframeRef={iframeRef} iframeKey={iframeKey} onIframeLoad={onIframeLoad}
                 lifecycleState={lifecycleState} lifecyclePrev={lifecyclePrev}
-                lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta} onRetry={onRetry}
+                lifecycleMessage={lifecycleMessage} lifecycleMeta={lifecycleMeta}
+                onRetry={onRetry} onRun={onRun}
               >
                 <iframe ref={iframeRef} src={IFRAME_SRC}
                   className="absolute inset-0 w-full h-full border-none"
@@ -126,13 +135,15 @@ export function IframeView({
     );
   }
 
+  /* ── fullsize, no custom dimensions (most common) ── */
   if (selectedDevice === "fullsize" && !customWidth && !customHeight) {
     return (
       <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
         <iframe ref={iframeRef} src={IFRAME_SRC}
-          className="absolute inset-0 w-full h-full border-none bg-white"
+          className="absolute inset-0 w-full h-full border-none bg-[#0d0d0f]"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
+        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
           message={lifecycleMessage} meta={lifecycleMeta} onRetry={onRetry}
@@ -141,6 +152,7 @@ export function IframeView({
     );
   }
 
+  /* ── custom size / 16:9 ── */
   return (
     <div className={`flex-1 flex flex-col items-center justify-center overflow-auto gap-4 ${customWidth ? "bg-[#060606] p-4" : ""}`}>
       <div ref={previewContainerRef} className="relative flex-shrink-0" style={{
@@ -156,6 +168,8 @@ export function IframeView({
           className="w-full h-full border-none"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad} />
+
+        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
 
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
@@ -178,6 +192,7 @@ export function IframeView({
           </>
         )}
       </div>
+
       {selectedDevice === "16:9" && (
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ color: "rgba(148,163,184,0.7)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>16:9 · 1280 × 720</span>

@@ -1,0 +1,142 @@
+/* ── PreviewPlaceholder animations ─────────────────────────────────────────── */
+
+.nph-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #0d0d0f;
+  z-index: 20;
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: all;
+  user-select: none;
+}
+
+.nph-root.nph-in {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Radial glow ── */
+.nph-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(99, 102, 241, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Logo dot grid ── */
+.nph-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nph-dot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 18px);
+  grid-template-rows: repeat(3, 18px);
+  gap: 6px;
+}
+
+.nph-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  animation: nph-dot-pulse 2s ease-in-out infinite;
+  animation-delay: var(--dot-delay, 0s);
+}
+
+.nph-dot-filled {
+  background: rgba(124, 141, 255, 0.75);
+  box-shadow: 0 0 8px rgba(124, 141, 255, 0.35);
+}
+
+.nph-dot-empty {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes nph-dot-pulse {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  45%       { opacity: 0.45; transform: scale(0.82); }
+  55%       { opacity: 0.45; transform: scale(0.82); }
+}
+
+/* ── Title ── */
+.nph-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Hint row ── */
+.nph-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(148, 163, 184, 0.55);
+  font-size: 11.5px;
+}
+
+.nph-hint-icon {
+  flex-shrink: 0;
+  color: rgba(148, 163, 184, 0.45);
+}
+
+/* ── Run button ── */
+.nph-run-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  margin-top: 4px;
+}
+
+.nph-run-btn:hover {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+}
+
+.nph-run-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Pulse dots ── */
+.nph-pulse-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.nph-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(124, 141, 255, 0.5);
+  animation: nph-bounce 1.4s ease-in-out infinite;
+  animation-delay: var(--pd-delay, 0s);
+}
+
+@keyframes nph-bounce {
+  0%, 80%, 100% { transform: translateY(0);   opacity: 0.5; }
+  40%            { transform: translateY(-5px); opacity: 1;   }
+}

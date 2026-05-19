@@ -197,6 +197,7 @@ export default function Preview() {
                 lifecycleMessage={lifecycle.message}
                 lifecycleMeta={lifecycle.meta}
                 onRetry={handleRetry}
+                onRun={nav.handleOverlayRun}
               />
 
               <ErrorPanel
