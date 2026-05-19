@@ -60,3 +60,9 @@ id = "ECpIxtXD8dzRoHOYZjKJV"
 uri = "file://AGENT_SYSTEM_AUDIT_REPORT.md"
 type = "text"
 title = "NURA X — Agent System Audit Report"
+
+[[outputs]]
+id = "y2OBmZkED2Hm4w_TBpIVu"
+uri = "file://NURA_X_SYSTEM_DEEP_REPORT.md"
+type = "text"
+title = "NURA X — Complete System Deep Report"
