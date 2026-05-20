@@ -37,6 +37,7 @@ import { createRecoveryRouter } from './server/api/recovery.routes.ts';
 import { createImportRouter } from './server/api/import/import.routes.ts';
 import { runtimeStore }             from './server/infrastructure/runtime/runtime-store/runtime-store.ts';
 import { createRuntimeSyncRouter }  from './server/infrastructure/runtime/runtime-store/runtime-sync.ts';
+import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -78,6 +79,7 @@ app.use('/api/approvals', createDiffApprovalRouter());
 app.use('/api/checkpoints', createCheckpointsRouter());
 app.use('/api/chat', chatOrchestrator.buildChatRouter());
 app.use('/api/import', createImportRouter());
+app.use('/api/orchestration', createOrchestrationRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
@@ -178,6 +180,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   initExecutionHistory();
   // Start recovery manager (lock-guarded, timeout-protected, crash-aware)
   startRecoveryManager();
+  // Initialize unified orchestration layer — wires all agent systems together
+  initOrchestration();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
