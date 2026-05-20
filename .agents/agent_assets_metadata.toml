@@ -66,3 +66,9 @@ id = "y2OBmZkED2Hm4w_TBpIVu"
 uri = "file://NURA_X_SYSTEM_DEEP_REPORT.md"
 type = "text"
 title = "NURA X — Complete System Deep Report"
+
+[[outputs]]
+id = "nFaCa2CXUuPqxqMw9WllY"
+uri = "file://NURA_X_PRODUCTION_ARCHITECTURE.md"
+type = "text"
+title = "NURA X — Production Architecture Redesign (Principal Architect Document)"
