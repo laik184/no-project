@@ -22,7 +22,7 @@ import { createPreviewProxy } from './server/infrastructure/proxy/preview-proxy.
 import { runtimeManager }          from './server/infrastructure/runtime/runtime-manager.ts';
 import { crashResponder }           from './server/agents/recovery/crash-responder.ts';
 import { observationController }    from './server/runtime/index.ts';
-import { initMemory }               from './server/agents/autonomous-debug/index.ts';
+import { initMemory }               from './server/debug/index.ts';
 import { createObservationRouter }  from './server/api/observation.routes.ts';
 import { createToolsRouter }         from './server/api/tools.routes.ts';
 import previewPipeline from './server/preview/index.ts';

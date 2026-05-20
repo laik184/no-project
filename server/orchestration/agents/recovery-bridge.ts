@@ -9,7 +9,7 @@ import {
   recoverFromCrash,
   undoRun,
 } from "../../infrastructure/recovery/recovery-manager.ts";
-import { handleCrash }           from "../../agents/autonomous-debug/index.ts";
+import { handleCrash }           from "../../debug/index.ts";
 import { emitAgentCoordination } from "../core/orchestration-events.ts";
 import { recordSpanStart, recordSpanEnd } from "../telemetry/orchestration-trace.ts";
 import { incrementCounter }      from "../telemetry/orchestration-metrics.ts";

@@ -14,10 +14,10 @@
  * No LLM calls.  Delegates to runtime layer.
  */
 
-import { verifyStartup }  from "../../../runtime/verification/startup-verifier.ts";
-import { logBuffer }      from "../../../runtime/observer/log-buffer.ts";
-import { analyzeLines }   from "../../../runtime/observer/log-analyzer.ts";
-import { runtimeManager } from "../../../infrastructure/runtime/runtime-manager.ts";
+import { verifyStartup }  from "../../runtime/verification/startup-verifier.ts";
+import { logBuffer }      from "../../runtime/observer/log-buffer.ts";
+import { analyzeLines }   from "../../runtime/observer/log-analyzer.ts";
+import { runtimeManager } from "../../infrastructure/runtime/runtime-manager.ts";
 import type { DebugVerdict } from "../types/debug-types.ts";
 
 // ─── Config ───────────────────────────────────────────────────────────────────

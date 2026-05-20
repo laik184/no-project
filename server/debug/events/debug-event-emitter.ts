@@ -19,7 +19,7 @@
  * Ownership: autonomous-debug/events — single responsibility: bus emission.
  */
 
-import { bus } from "../../../infrastructure/events/bus.ts";
+import { bus } from "../../infrastructure/events/bus.ts";
 import type { DebugVerdict, ErrorCorrelation, EscalationEvent } from "../types/debug-types.ts";
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

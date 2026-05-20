@@ -16,8 +16,8 @@
  */
 
 import { randomUUID }            from "crypto";
-import { logBuffer }             from "../../../runtime/observer/log-buffer.ts";
-import { getProjectDir }         from "../../../infrastructure/sandbox/sandbox.util.ts";
+import { logBuffer }             from "../../runtime/observer/log-buffer.ts";
+import { getProjectDir }         from "../../infrastructure/sandbox/sandbox.util.ts";
 import { extractErrors, extractAffectedFiles } from "../analyzers/stack-trace-extractor.ts";
 import { correlateErrors }       from "../analyzers/error-correlator.ts";
 import { createCheckpoint }      from "../patchers/file-checkpoint.ts";

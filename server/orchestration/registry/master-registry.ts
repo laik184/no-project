@@ -104,7 +104,7 @@ const serviceOrchestrators: OrchestratorEntry[] = [
     ['autonomous-debug', 'crash-recovery', 'auto-debug', 'error-crash', 'debug-orchestrator'],
     'AutonomousDebugOrchestrator — crash detection, session build, log extract, correlate, checkpoint',
     async () => {
-      const { handleCrash, getOrchestratorState, resetProject } = await import('../../agents/autonomous-debug/core/debug-orchestrator.ts');
+      const { handleCrash, getOrchestratorState, resetProject } = await import('../../debug/core/debug-orchestrator.ts');
       return (i: any) => {
         if (i?.action === 'reset') return resetProject(i.projectId);
         if (i?.action === 'state') return getOrchestratorState(i.projectId);

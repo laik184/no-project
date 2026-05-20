@@ -19,7 +19,7 @@
  */
 
 import { bus, type AgentEvent }                            from "../../infrastructure/events/bus.ts";
-import { handleCrash, resetProject, getOrchestratorState } from "../autonomous-debug/index.ts";
+import { handleCrash, resetProject, getOrchestratorState } from "../../debug/index.ts";
 
 // ─── Bus subscriber ───────────────────────────────────────────────────────────
 
