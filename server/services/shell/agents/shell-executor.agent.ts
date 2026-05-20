@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import type { ProcessInfo, ValidatedCommand } from "../types.js";
-import { spawnCommand } from "../../../../../services/shell/spawn.service.js";
+import { spawnCommand } from "../spawn.service.js";
 
 export interface ExecutionHandle {
   readonly process: ChildProcessWithoutNullStreams;

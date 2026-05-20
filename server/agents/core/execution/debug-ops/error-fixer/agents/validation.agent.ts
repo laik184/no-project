@@ -1,7 +1,7 @@
 import type { ValidationResult } from "../types.js";
-import { validateCommand } from "../../../shell/agents/command-validator.agent.js";
-import { executeCommand } from "../../../shell/agents/shell-executor.agent.js";
-import { monitorProcess } from "../../../shell/agents/process-monitor.agent.js";
+import { validateCommand } from "../../../../../services/shell/agents/command-validator.agent.js";
+import { executeCommand } from "../../../../../services/shell/agents/shell-executor.agent.js";
+import { monitorProcess } from "../../../../../services/shell/agents/process-monitor.agent.js";
 
 function splitCommand(command: string): { command: string; args: readonly string[] } {
   const parts = command.trim().split(/\s+/).filter(Boolean);
