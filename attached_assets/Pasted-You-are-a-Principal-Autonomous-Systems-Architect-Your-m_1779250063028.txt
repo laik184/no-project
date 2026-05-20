@@ -1,0 +1,407 @@
+You are a Principal Autonomous Systems Architect.
+
+Your mission is to evolve NURA X from an advanced realtime AI IDE into a TRUE 99% Replit/Cursor-level Autonomous Software Operating System.
+
+CURRENT VERIFIED STATUS:
+✅ Runtime architecture strong
+✅ SSE architecture enterprise-grade
+✅ Self-healing exists
+✅ File sync production-grade
+✅ Runtime state machine exists
+✅ Event-driven architecture exists
+
+MAIN WEAK AREAS:
+⚠️ Verification weak
+⚠️ Planning intelligence medium
+❌ Parallel execution missing
+❌ Multi-agent orchestration missing
+❌ Semantic memory missing
+
+Your job is to SAFELY upgrade these systems to production-grade autonomous intelligence WITHOUT breaking current runtime infrastructure.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform NURA X into:
+
+- deterministic
+- self-healing
+- parallel-thinking
+- semantically aware
+- multi-agent
+- browser-verifying
+- production-grade
+- autonomous coding OS
+
+similar to:
+- Replit Agent
+- Cursor
+- Devin
+- Lovable
+- OpenHands
+
+BUT:
+more modular
+more observable
+more deterministic
+more recoverable
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — REAL VERIFICATION ENGINE
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Verification only checks:
+- logs
+- HTTP status
+- process alive
+
+This allows:
+❌ white screens
+❌ broken React hydration
+❌ invisible JS crashes
+❌ broken buttons
+❌ fake success states
+
+IMPLEMENT:
+
+server/verification/
+├── browser/
+│   ├── playwright-manager.ts
+│   ├── browser-verifier.ts
+│   ├── screenshot-analyzer.ts
+│   ├── console-monitor.ts
+│   ├── dom-validator.ts
+│   ├── interaction-runner.ts
+│   └── verification-types.ts
+
+REQUIRED FEATURES:
+✅ Playwright integration
+✅ JS console error capture
+✅ DOM verification
+✅ screenshot capture
+✅ blank screen detection
+✅ hydration error detection
+✅ failed network request detection
+✅ button interaction tests
+✅ form interaction tests
+✅ visual verification
+✅ accessibility verification
+✅ screenshot diffing
+✅ runtime verification reports
+
+AI must VERIFY:
+- app renders
+- UI visible
+- interactions work
+- no JS runtime crashes
+- no white screen
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — ADVANCED PLANNING INTELLIGENCE
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Planning uses heuristics:
+- word count
+- verb density
+- component count
+
+IMPLEMENT:
+
+server/engine/planning/
+├── complexity/
+│   ├── complexity-scorer.ts
+│   ├── task-analyzer.ts
+│   ├── dependency-detector.ts
+│   ├── risk-estimator.ts
+│   └── planning-types.ts
+│
+├── planner/
+│   ├── planner-agent.ts
+│   ├── task-decomposer.ts
+│   ├── execution-strategy.ts
+│   ├── milestone-builder.ts
+│   └── planning-memory.ts
+
+REQUIRED FEATURES:
+✅ LLM complexity scoring
+✅ dependency graph creation
+✅ milestone planning
+✅ risk scoring
+✅ task decomposition
+✅ execution estimation
+✅ rollback-aware planning
+✅ verification-aware planning
+✅ runtime-aware planning
+
+AI should:
+- break big goals into subtasks
+- estimate risks
+- understand dependencies
+- build execution strategy
+- generate recovery plans
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — PARALLEL EXECUTION ENGINE
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Current:
+while(step < 25)
+sequential execution only
+
+IMPLEMENT DAG EXECUTION ENGINE:
+
+server/engine/graph/
+├── graph-engine.ts
+├── execution-graph.ts
+├── node-scheduler.ts
+├── dependency-resolver.ts
+├── parallel-runner.ts
+├── rollback-graph.ts
+├── graph-state.ts
+└── graph-types.ts
+
+REQUIRED FEATURES:
+✅ DAG execution
+✅ dependency-aware scheduling
+✅ parallel safe execution
+✅ execution batching
+✅ node retry system
+✅ transactional graph execution
+✅ rollback graph
+✅ execution checkpoints
+✅ graph replay
+✅ partial graph recovery
+
+EXAMPLE:
+Instead of:
+- install package
+- create files
+- update configs
+
+Sequentially...
+
+Run:
+- create files
+- install package
+in parallel safely.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — MULTI-AGENT SUPERVISOR
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+ONE monolithic AI loop does:
+- planning
+- coding
+- debugging
+- runtime monitoring
+- verification
+
+This creates:
+❌ context overload
+❌ hallucination risk
+❌ weak specialization
+
+IMPLEMENT:
+
+server/agents/supervisor/
+├── supervisor-agent.ts
+├── agent-router.ts
+├── consensus-engine.ts
+├── context-partitioner.ts
+├── task-coordinator.ts
+├── hallucination-detector.ts
+├── arbitration-engine.ts
+└── supervisor-types.ts
+
+SPECIALIZED AGENTS:
+
+1. PlannerAgent
+- planning only
+
+2. BuilderAgent
+- code generation only
+
+3. RuntimeAgent
+- runtime monitoring only
+
+4. VerificationAgent
+- Playwright/browser checks only
+
+5. RecoveryAgent
+- crash fixing only
+
+6. MemoryAgent
+- semantic retrieval only
+
+7. ReviewAgent
+- architecture validation only
+
+REQUIRED FEATURES:
+✅ context partitioning
+✅ inter-agent communication
+✅ task delegation
+✅ consensus validation
+✅ hallucination detection
+✅ evidence-based execution
+✅ supervisor arbitration
+✅ confidence scoring
+✅ rollback approval
+✅ multi-agent memory sharing
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — SEMANTIC MEMORY ENGINE
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Current memory:
+- file-based
+- string similarity
+- non-semantic
+- unbounded growth
+
+IMPLEMENT:
+
+server/memory/
+├── vector/
+│   ├── embedding-engine.ts
+│   ├── semantic-search.ts
+│   ├── memory-ranking.ts
+│   ├── temporal-weighting.ts
+│   ├── context-builder.ts
+│   └── vector-types.ts
+│
+├── storage/
+│   ├── pgvector-store.ts
+│   ├── memory-indexer.ts
+│   ├── memory-cleaner.ts
+│   └── memory-cache.ts
+
+REQUIRED FEATURES:
+✅ pgvector integration
+✅ semantic retrieval
+✅ temporal weighting
+✅ architecture memory
+✅ cross-project learning
+✅ failure pattern memory
+✅ code pattern memory
+✅ runtime incident memory
+✅ execution history memory
+✅ memory deduplication
+✅ context compression
+✅ relevant-memory injection
+
+AI should remember:
+- previous fixes
+- architecture patterns
+- runtime failures
+- user preferences
+- successful implementations
+- failed strategies
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — AUTONOMOUS INTELLIGENCE
+━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENT:
+
+Observe
+→ Think
+→ Plan
+→ Execute
+→ Verify
+→ Reflect
+→ Retry
+→ Heal
+→ Learn
+→ Store Memory
+
+LOOP.
+
+Add:
+✅ reflection engine
+✅ execution scoring
+✅ hallucination detection
+✅ confidence estimation
+✅ strategy comparison
+✅ alternative generation
+✅ adaptive retries
+✅ predictive recovery
+✅ execution telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ production-grade architecture only
+✅ event-driven systems only
+✅ deterministic runtime behavior
+✅ replayable execution
+✅ modular bounded contexts
+✅ high cohesion
+✅ low coupling
+✅ files under 250 lines
+✅ typed events everywhere
+✅ no fake loading states
+✅ evidence-based verification
+✅ recoverable execution
+✅ rollback-safe execution
+
+❌ NO giant files
+❌ NO monolithic agents
+❌ NO sequential bottlenecks
+❌ NO duplicated state
+❌ NO hallucinated success
+❌ NO runtime assumptions
+❌ NO hidden failures
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT SAFETY RULES
+━━━━━━━━━━━━━━━━━━━━
+
+DO NOT:
+- rewrite entire architecture
+- break existing runtime
+- replace stable SSE infrastructure
+- destroy current self-healing system
+- introduce unstable abstractions
+
+ONLY:
+- incrementally evolve architecture
+- preserve current working systems
+- add production-safe upgrades
+- feature-flag advanced systems
+- maintain backward compatibility
+
+━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Current vs Target Intelligence Architecture
+2. Verification Gap Analysis
+3. Planning Intelligence Gap Analysis
+4. Execution Engine Gap Analysis
+5. Multi-Agent Gap Analysis
+6. Memory System Gap Analysis
+7. Hallucination Risk Analysis
+8. Runtime Safety Analysis
+9. Parallel Execution Safety Plan
+10. Agent Coordination Architecture
+11. Semantic Memory Architecture
+12. Browser Verification Architecture
+13. DAG Execution Architecture
+14. Multi-Agent Supervisor Architecture
+15. Autonomous Intelligence Loop Design
+16. Incremental Migration Strategy
+17. Feature Flag Rollout Plan
+18. Production Safety Boundaries
+19. Performance Impact Analysis
+20. Final 99% Replit-Level Architecture
+
+Then IMPLEMENT safe incremental upgrades.

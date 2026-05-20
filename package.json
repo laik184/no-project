@@ -72,6 +72,7 @@
     "p-limit": "^7.3.0",
     "p-retry": "^7.1.1",
     "pg": "^8.20.0",
+    "playwright": "^1.60.0",
     "prismjs": "^1.30.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
