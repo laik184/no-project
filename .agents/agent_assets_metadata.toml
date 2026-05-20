@@ -90,3 +90,9 @@ id = "70nA1lHFsxs-oPS3r8PQ7"
 uri = "file://NURA_X_BACKEND_INFRASTRUCTURE_XRAY.md"
 type = "text"
 title = "NURA X Backend Infrastructure X-Ray Report"
+
+[[outputs]]
+id = "yM66vlZovVeUMXa4LNPgi"
+uri = "file://NURA_X_REFACTOR_EXECUTION_REPORT.md"
+type = "text"
+title = "NURA X Refactor Execution Report"

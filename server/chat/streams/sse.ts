@@ -29,7 +29,7 @@
 import { Router, type Request, type Response } from "express";
 import { setupSse, sseSendId, onClose }      from "./sse-utils.ts";
 import { ALL_TOPICS, TOPIC }                  from "../../infrastructure/realtime/stream-topics.ts";
-import { replay }                             from "../../realtime/replay-cache.ts";
+import { replay }                             from "../../infrastructure/realtime/replay-cache.ts";
 import { sseManager }                         from "../../infrastructure/events/sse/sse-manager.ts";
 
 export function createSseRouter(): Router {

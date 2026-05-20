@@ -1,4 +1,4 @@
-import { writeGeneratedFiles } from "../../../../../infra/file-writer/index.js";
+import { writeGeneratedFiles } from "../../../../../../services/file-writer/index.js";
 import type { FixResult, Patch } from "../types.js";
 
 export async function rollbackFix(

@@ -17,7 +17,7 @@
 
 import { bus } from "../bus.ts";
 import { pool, CONSOLE_THROTTLE_MS, OBSERVATION_THROTTLE_MS } from "../sse/connection-pool.ts";
-import { record } from "../../../realtime/replay-cache.ts";
+import { record } from "../../realtime/replay-cache.ts";
 import { TOPIC } from "../../realtime/stream-topics.ts";
 import { matchesAgent }               from "../channels/agent-channel.ts";
 import { matchesLifecycle }           from "../channels/lifecycle-channel.ts";

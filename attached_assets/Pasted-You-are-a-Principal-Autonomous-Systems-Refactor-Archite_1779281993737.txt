@@ -1,0 +1,335 @@
+You are a Principal Autonomous Systems Refactor Architect.
+
+Your mission is to CLEAN, CONSOLIDATE, and RESTRUCTURE the ENTIRE backend architecture into a TRUE production-grade bounded-context system.
+
+You MUST perform:
+- ULTRA DEEP SCAN
+- dependency tracing
+- import tracing
+- runtime tracing
+- orchestration tracing
+- event tracing
+- lifecycle tracing
+
+ROOT:
+server/
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into:
+
+✅ clean architecture
+✅ bounded contexts
+✅ high cohesion
+✅ low coupling
+✅ deterministic runtime ownership
+✅ production-grade folder structure
+✅ Replit/Cursor-level organization
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL TASKS
+━━━━━━━━━━━━━━━━━━━━
+
+1. REMOVE DEAD SYSTEMS
+2. REMOVE DUPLICATE SYSTEMS
+3. MOVE MISPLACED SYSTEMS
+4. FIX DOMAIN POLLUTION
+5. CLEAN ROOT STRUCTURE
+6. CENTRALIZE SERVICES
+7. ISOLATE AGENTS
+8. STABILIZE ORCHESTRATION
+9. VERIFY IMPORT SAFETY
+10. VERIFY RUNTIME SAFETY
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT DOMAIN RULES
+━━━━━━━━━━━━━━━━━━━━
+
+ONLY AI/LLM SYSTEMS allowed inside:
+
+server/agents/
+
+Examples:
+✅ planners
+✅ builders
+✅ tool-loop
+✅ supervisor
+✅ memory-agents
+✅ recovery-agents
+✅ generation-agents
+✅ reasoning-agents
+✅ verification-agents
+
+━━━━━━━━━━━━━━━━━━━━
+NOT ALLOWED INSIDE AGENTS/
+━━━━━━━━━━━━━━━━━━━━
+
+❌ infrastructure
+❌ filesystem
+❌ deploy systems
+❌ git systems
+❌ shell systems
+❌ process managers
+❌ runtime managers
+❌ SSE systems
+❌ event systems
+❌ reusable services
+❌ checkpoints
+❌ rollback systems
+❌ preview systems
+
+Move ALL non-agent systems OUT of agents/.
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ROOT STRUCTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/
+├── agents/               ← ONLY AI/LLM systems
+├── api/
+├── chat/
+├── console/
+├── debug/
+├── execution-history/
+├── file-explorer/
+├── infrastructure/       ← ALL infra/runtime/process/events
+├── intelligence/
+├── observability/
+├── orchestration/
+├── preview/
+├── publishing/
+├── runtime/
+├── security/
+├── services/             ← ALL reusable services
+├── tools/
+└── verification/
+
+━━━━━━━━━━━━━━━━━━━━
+REMOVE DEAD SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+DELETE COMPLETELY:
+
+server/agents/data/redis/
+server/agents/deployer/
+server/agents/core/memory/    ← only if NO active callers
+server/agents/governance/
+
+VERIFY:
+- imports
+- references
+- registrations
+- runtime hooks
+- event hooks
+
+BEFORE deletion.
+
+━━━━━━━━━━━━━━━━━━━━
+MOVE MISPLACED SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+MOVE:
+
+server/agents/infra/file-writer/
+→ server/services/file-writer/
+
+server/agents/infrastructure/deploy/
+→ server/infrastructure/deploy/
+
+server/agents/infrastructure/git/
+→ server/infrastructure/git/
+
+server/agents/infrastructure/events/
+→ merge into server/infrastructure/events/
+
+server/realtime/realtime/chat-feature-generator/
+→ server/agents/generation/realtime/chat-feature-generator/
+
+server/realtime/realtime/websocket-server-generator/
+→ server/agents/generation/realtime/websocket-server-generator/
+
+━━━━━━━━━━━━━━━━━━━━
+FIX ROOT POLLUTION
+━━━━━━━━━━━━━━━━━━━━
+
+FLATTEN:
+server/security/security/
+→ server/security/
+
+REMOVE:
+server/realtime/realtime/
+
+VERIFY:
+- no broken imports
+- no circular dependencies
+- no runtime failures
+
+━━━━━━━━━━━━━━━━━━━━
+RECOVERY CONSOLIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+Current:
+❌ 3 recovery systems
+
+TARGET:
+✅ CrashResponder
+✅ RecoveryManager
+
+Evaluate:
+server/agents/core/recovery/
+
+If orphaned:
+→ DELETE
+
+If partially useful:
+→ MERGE patterns into:
+server/infrastructure/recovery/recovery-manager.ts
+
+━━━━━━━━━━━━━━━━━━━━
+MEMORY CONSOLIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+KEEP ONLY:
+server/agents/memory/
+
+REMOVE:
+server/agents/core/memory/
+
+BUT:
+verify ALL:
+- imports
+- references
+- execution paths
+- runtime injections
+- planners
+- supervisor
+- tool-loop
+
+before removal.
+
+━━━━━━━━━━━━━━━━━━━━
+ULTRA DEEP ANALYSIS REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+TRACE:
+
+1. imports
+2. exports
+3. singleton ownership
+4. runtime ownership
+5. orchestration ownership
+6. event ownership
+7. process ownership
+8. SSE ownership
+9. preview ownership
+10. recovery ownership
+11. memory ownership
+12. verification ownership
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY BEFORE EVERY MOVE
+━━━━━━━━━━━━━━━━━━━━
+
+Before ANY delete/move:
+
+CHECK:
+✅ imports
+✅ event subscriptions
+✅ runtime hooks
+✅ singleton registration
+✅ orchestration registration
+✅ tool registration
+✅ startup initialization
+✅ side effects
+✅ dynamic imports
+✅ lazy loading
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ HIGH COHESION
+✅ LOW COUPLING
+✅ SINGLE RESPONSIBILITY
+✅ EVENT-DRIVEN
+✅ BOUNDED CONTEXTS
+✅ DETERMINISTIC OWNERSHIP
+✅ MODULAR ARCHITECTURE
+✅ SAFE INCREMENTAL REFACTOR
+
+❌ NO giant files
+❌ NO architecture rewrites
+❌ NO blind deletion
+❌ NO unsafe moves
+❌ NO broken imports
+❌ NO circular dependencies
+❌ NO runtime assumptions
+
+━━━━━━━━━━━━━━━━━━━━
+FILE RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ every file under 250 lines
+✅ strongly typed
+✅ no hidden side effects
+✅ no singleton abuse
+✅ no cross-domain mutations
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+NURA_X_REFACTOR_EXECUTION_REPORT.md
+
+Include:
+
+1. Full Before/After Folder Tree
+2. Exact Files Deleted
+3. Exact Files Moved
+4. Exact Imports Updated
+5. Exact Runtime Hooks Updated
+6. Exact Event Hooks Updated
+7. Exact Registrations Updated
+8. Duplicate Systems Removed
+9. Dead Systems Removed
+10. Cross-Domain Pollution Fixed
+11. Recovery Consolidation Report
+12. Memory Consolidation Report
+13. Service Consolidation Report
+14. Infrastructure Consolidation Report
+15. Circular Dependency Check
+16. Runtime Safety Verification
+17. Event Bus Verification
+18. SSE Verification
+19. Preview Verification
+20. Tool Registry Verification
+21. Orchestration Verification
+22. DAG Verification
+23. Recovery Verification
+24. Memory Verification
+25. Final Dependency Graph
+26. Final Ownership Graph
+27. Final Bounded Context Map
+28. Architecture Quality Score
+29. Infrastructure Stability Score
+30. Replit-Level Similarity %
+31. Remaining Weak Areas
+32. Recommended Next Refactors
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Convert backend from:
+“partially polluted advanced prototype”
+
+INTO:
+
+“clean, production-grade autonomous operating system backend”
+
+Perform SAFE incremental refactor only.
+Evidence-based changes only.

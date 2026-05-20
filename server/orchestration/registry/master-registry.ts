@@ -145,7 +145,7 @@ const serviceOrchestrators: OrchestratorEntry[] = [
     ['git', 'git-action', 'commit', 'branch', 'merge', 'checkout', 'git-log', 'git-status'],
     'GitOrchestrator — git operations: commit, branch, checkout, merge, log, status',
     async () => {
-      const { runGitAction } = await import('../../agents/infrastructure/git/orchestrator.ts');
+      const { runGitAction } = await import('../../infrastructure/git/orchestrator.ts');
       return (i: any) => runGitAction(i?.action, i?.payload ?? i);
     },
   ),
