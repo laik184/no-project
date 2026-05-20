@@ -125,6 +125,40 @@ export interface PreviewLifecycleEvent {
   ts:        number;
 }
 
+/**
+ * Emitted by RuntimeStore on every validated phase transition.
+ * Carries the full aggregated snapshot so consumers need no secondary lookup.
+ * Intentionally mirrors RuntimeSyncEvent from runtime-types.ts — kept inline
+ * here to preserve the zero-local-imports guarantee of this module.
+ */
+export interface RuntimeSyncEvent {
+  projectId:  number;
+  snapshot: {
+    projectId:     number;
+    phase:         string;
+    message:       string;
+    ts:            number;
+    pid?:          number;
+    port?:         number;
+    command?:      string;
+    startedAt?:    number;
+    uptimeMs?:     number;
+    restartCount?: number;
+    processStatus?:string;
+    lastActivity:  number;
+    healthy:       boolean;
+    crashReason?:  string;
+    crashCount:    number;
+    previewUrl?:   string;
+  };
+  transition: {
+    from:    string;
+    to:      string;
+    message: string;
+    ts:      number;
+  };
+}
+
 export type BusEvents = {
   "agent.event":         (event: AgentEvent) => void;
   "run.lifecycle":       (event: RunLifecycleEvent) => void;
@@ -132,6 +166,7 @@ export type BusEvents = {
   "file.change":         (event: FileChangeEvent) => void;
   "runtime.verified":    (event: RuntimeVerifiedEvent) => void;
   "runtime.observation": (event: RuntimeObservationEvent) => void;
+  "runtime.sync":        (event: RuntimeSyncEvent) => void;
   "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
   "tool.execution":      (event: ToolExecutionEvent) => void;
   "agent.diff":          (event: AgentDiffEvent) => void;

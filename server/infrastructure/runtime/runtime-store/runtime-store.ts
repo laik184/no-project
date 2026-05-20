@@ -149,7 +149,7 @@ class RuntimeStore {
   }
 
   private broadcastSync(projectId: number, from: RuntimePhase, to: RuntimePhase): void {
-    (bus as any).emit("runtime.sync", {
+    bus.emit("runtime.sync", {
       projectId,
       snapshot:   this.get(projectId),
       transition: { from, to, message: this.entries.get(projectId)!.message, ts: Date.now() },

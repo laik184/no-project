@@ -24,7 +24,8 @@ import { matchesLifecycle }           from "../channels/lifecycle-channel.ts";
 import { matchesConsole }             from "../channels/console-channel.ts";
 import { matchesFile }                from "../channels/file-channel.ts";
 import { matchesRuntimeVerified,
-         matchesRuntimeObservation }  from "../channels/runtime-channel.ts";
+         matchesRuntimeObservation,
+         matchesRuntimeSync }         from "../channels/runtime-channel.ts";
 import { matchesDiff }                from "../channels/diff-channel.ts";
 import { matchesCheckpoint }          from "../channels/checkpoint-channel.ts";
 import { matchesPreviewLifecycle }    from "../channels/preview-lifecycle-channel.ts";
@@ -60,6 +61,12 @@ bus.on("file.change", (e) => {
 bus.on("runtime.verified", (e) => {
   const seqId = record(TOPIC.RUNTIME_VERIFIED, e);
   pool.fanOut(TOPIC.RUNTIME_VERIFIED, e, seqId, (conn) => matchesRuntimeVerified(conn, e));
+});
+
+// ── runtime.sync — phase transitions from RuntimeStore ────────────────────────
+bus.on("runtime.sync", (e) => {
+  const seqId = record(TOPIC.RUNTIME_SYNC, e);
+  pool.fanOut(TOPIC.RUNTIME_SYNC, e, seqId, (conn) => matchesRuntimeSync(conn, e));
 });
 
 // ── runtime.observation (throttled: ≤1 delivery/2s per connection) ────────────

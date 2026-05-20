@@ -9,7 +9,10 @@ import type { ExecutionPlan, PlannerInput } from "./planner.types.ts";
 import { PLANNER_SYSTEM_PROMPT, buildPlannerUserPrompt } from "./planner.prompts.ts";
 import { validatePlan, fallbackPlan } from "./planner.validators.ts";
 
-const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const BASE_URL =
+  process.env.LLM_BASE_URL ??
+  process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL ??
+  "https://openrouter.ai/api/v1/chat/completions";
 const PLANNER_MODEL = "openai/gpt-4o-mini";
 
 async function callPlannerLLM(

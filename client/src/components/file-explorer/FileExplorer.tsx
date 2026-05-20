@@ -189,7 +189,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
     if (!name) return;
     const full = (base.endsWith("/") ? base : base + "/") + name;
     try { await apiSaveFile(full, ""); refreshFiles(full); }
-    catch (e) { console.error(e); alert("New file failed."); }
+    catch (e) { console.error("[FileExplorer] create file failed:", e); }
     finally { closeContextMenu(); }
   };
 
@@ -202,7 +202,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
     if (!name) return;
     const full = (base.endsWith("/") ? base : base + "/") + name + "/.keep";
     try { await apiSaveFile(full, ""); refreshFiles(full); }
-    catch (e) { console.error(e); alert("New folder failed."); }
+    catch (e) { console.error("[FileExplorer] create folder failed:", e); }
     finally { closeContextMenu(); }
   };
 

@@ -17,6 +17,7 @@ export const TOPIC = {
   FILE:                "file",
   RUNTIME_VERIFIED:    "runtime.verified",
   RUNTIME_OBSERVATION: "runtime.observation",
+  RUNTIME_SYNC:        "runtime.sync",
   DIFF:                "diff",
   CHECKPOINT:          "checkpoint",
   PREVIEW_LIFECYCLE:   "preview.lifecycle",

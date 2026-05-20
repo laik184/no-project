@@ -1,0 +1,210 @@
+You are a Principal Autonomous Systems Engineer.
+
+Your task is to SAFELY begin transforming the current NURA X architecture into the Production-Grade Replit-Level Architecture described in:
+
+NURA_X_PRODUCTION_ARCHITECTURE.md
+
+IMPORTANT:
+This is NOT a full rewrite.
+
+Your job is to:
+- deeply scan existing implementation
+- compare with target architecture
+- identify exact gaps
+- safely refactor incrementally
+- preserve existing functionality
+- avoid breaking runtime
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade NURA X from:
+
+- partially connected autonomous IDE
+→ into
+- deterministic
+- scalable
+- modular
+- self-healing
+- event-driven
+- production-grade AI operating system
+
+WITHOUT breaking current working systems.
+
+━━━━━━━━━━━━━━━━━━━━
+FIRST TASK — DEEP GAP ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan entire codebase.
+
+Compare CURRENT implementation vs TARGET architecture from report.
+
+Verify:
+
+1. runtime synchronization
+2. preview lifecycle
+3. agent loop architecture
+4. tool orchestration
+5. verification system
+6. recovery engine
+7. memory system
+8. event bus
+9. process management
+10. SSE/WebSocket lifecycle
+11. context compression
+12. runtime observation
+13. planning engine
+14. execution graph support
+15. self-healing flow
+16. console pipeline
+17. orchestration architecture
+
+━━━━━━━━━━━━━━━━━━━━
+IDENTIFY
+━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+- tight coupling
+- giant files
+- duplicated state
+- multiple runtime truth sources
+- fake verification
+- fragmented runtime lifecycle
+- hardcoded configs
+- missing cleanup
+- stale listeners
+- memory leaks
+- sequential bottlenecks
+- hallucination risks
+- runtime desync risks
+- unsafe tool execution
+- missing recovery logic
+
+━━━━━━━━━━━━━━━━━━━━
+DO NOT
+━━━━━━━━━━━━━━━━━━━━
+
+❌ DO NOT rewrite everything
+❌ DO NOT introduce unstable architecture
+❌ DO NOT break current realtime systems
+❌ DO NOT replace working runtime flow blindly
+❌ DO NOT create giant abstractions
+❌ DO NOT create files over 250 lines
+❌ DO NOT duplicate runtime state
+❌ DO NOT introduce fake loading states
+
+━━━━━━━━━━━━━━━━━━━━
+SAFE MIGRATION STRATEGY
+━━━━━━━━━━━━━━━━━━━━
+
+Implement ONLY production-safe incremental upgrades.
+
+PRIORITY ORDER:
+
+PHASE 1 — CRITICAL STABILITY
+1. Runtime synchronization
+2. Single runtime source of truth
+3. Port synchronization
+4. SSE/WebSocket cleanup
+5. Listener lifecycle fixes
+6. Console pipeline activation
+7. Preview lifecycle consistency
+8. Runtime state machine
+
+PHASE 2 — REAL VERIFICATION
+9. Playwright verification engine
+10. Screenshot validation
+11. Runtime health verification
+12. JS console error detection
+
+PHASE 3 — EXECUTION INTELLIGENCE
+13. Planning engine
+14. Complexity scoring
+15. DAG execution graph
+16. Parallel execution support
+
+PHASE 4 — MULTI AGENT
+17. Agent supervisor
+18. Context partitioning
+19. Hallucination detection
+20. Consensus verification
+
+PHASE 5 — MEMORY
+21. Vector memory
+22. Semantic retrieval
+23. Deterministic context compression
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED ARCHITECTURE RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ Single source of truth
+✅ Event-driven systems
+✅ Typed runtime lifecycle
+✅ Deterministic state machine
+✅ Replayable runtime state
+✅ Modular bounded contexts
+✅ High cohesion
+✅ Low coupling
+✅ Structured observability
+✅ Transaction-safe execution
+✅ Recoverable runtime
+✅ Self-healing architecture
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET RUNTIME STATES
+━━━━━━━━━━━━━━━━━━━━
+
+IDLE
+BUILDING
+INSTALLING
+STARTING
+VERIFYING
+READY
+UPDATING
+RESTARTING
+RECONNECTING
+CRASHED
+RECOVERING
+FAILED
+
+Invalid transitions MUST be rejected.
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED OUTPUT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Current Architecture Analysis
+2. Critical Runtime Risks
+3. Tight Coupling Report
+4. Runtime Desync Report
+5. Preview Lifecycle Problems
+6. Tool Execution Problems
+7. Verification Weaknesses
+8. Recovery Weaknesses
+9. Memory Weaknesses
+10. Exact Files To Refactor
+11. Exact Migration Order
+12. Safe Refactor Boundaries
+13. Runtime State Machine Design
+14. Event Bus Refactor Plan
+15. Production-Grade Runtime Architecture
+16. Step-by-Step Incremental Upgrade Plan
+
+Then IMPLEMENT ONLY:
+- safe
+- modular
+- production-grade
+- incremental
+refactors.
+
+IMPORTANT:
+Preserve current working systems.
+Refactor incrementally.
+No unstable rewrites.
+No architecture fantasy.
+Evidence-based engineering only.

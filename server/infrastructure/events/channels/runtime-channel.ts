@@ -7,7 +7,7 @@
  *   flooding clients monitoring many projects.
  */
 
-import type { RuntimeVerifiedEvent, RuntimeObservationEvent } from "../types/event.types.ts";
+import type { RuntimeVerifiedEvent, RuntimeObservationEvent, RuntimeSyncEvent } from "../types/event.types.ts";
 import type { PooledConnection } from "../types/connection.types.ts";
 import { OBSERVATION_THROTTLE_MS } from "../sse/connection-pool.ts";
 
@@ -29,6 +29,18 @@ export function matchesRuntimeVerified(
 export function matchesRuntimeObservation(
   conn:  PooledConnection,
   event: RuntimeObservationEvent,
+): boolean {
+  if (conn.projectId !== null && event.projectId !== conn.projectId) return false;
+  return true;
+}
+
+/**
+ * Returns true if this runtime.sync event should be delivered to the connection.
+ * No throttle — transitions are low-frequency and always meaningful.
+ */
+export function matchesRuntimeSync(
+  conn:  PooledConnection,
+  event: RuntimeSyncEvent,
 ): boolean {
   if (conn.projectId !== null && event.projectId !== conn.projectId) return false;
   return true;

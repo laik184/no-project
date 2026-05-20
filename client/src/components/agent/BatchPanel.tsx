@@ -52,7 +52,7 @@ export default function BatchPanel({ onClose, onApplyDone }) {
             onApplyDone && onApplyDone(data);
           }
         }
-      }catch(e){}
+      }catch(e){ console.error("[BatchPanel] SSE parse error:", e); }
     };
   }
 

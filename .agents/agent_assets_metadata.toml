@@ -72,3 +72,9 @@ id = "nFaCa2CXUuPqxqMw9WllY"
 uri = "file://NURA_X_PRODUCTION_ARCHITECTURE.md"
 type = "text"
 title = "NURA X — Production Architecture Redesign (Principal Architect Document)"
+
+[[outputs]]
+id = "3N2bOVpqBfWa5wUbaD_VR"
+uri = "file://NURA_X_GAP_ANALYSIS.md"
+type = "text"
+title = "NURA X — Gap Analysis & Safe Migration Plan"
