@@ -78,3 +78,9 @@ id = "3N2bOVpqBfWa5wUbaD_VR"
 uri = "file://NURA_X_GAP_ANALYSIS.md"
 type = "text"
 title = "NURA X — Gap Analysis & Safe Migration Plan"
+
+[[outputs]]
+id = "pZHGVGD71K9Vrm95Ce80v"
+uri = "file://NURA_X_PHASE1_6_IMPLEMENTATION_REPORT.md"
+type = "text"
+title = "NURA X — Phase 1–6 Complete Implementation Report"
