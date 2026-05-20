@@ -1,91 +1,75 @@
-import { branchAgent } from './agents/branch.agent.js';
-import { checkoutAgent } from './agents/checkout.agent.js';
-import { commitChangesAgent } from './agents/commit.agent.js';
-import { logAgent } from './agents/log.agent.js';
-import { mergeAgent } from './agents/merge.agent.js';
-import { statusAgent } from './agents/status.agent.js';
-import { getGitState, updateGitState } from './state.js';
-import { GitAction, GitActionPayloadMap, GitResult } from './types.js';
-import { normalizeGitError } from './utils/error-normalizer.util.js';
-import { runGitCommand } from './utils/git-command.util.js';
+import type { GitAction } from './types.ts';
+import { getGitState, updateGitState } from './state.ts';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { getProjectDir } from '../../../infrastructure/sandbox/sandbox.util.ts';
 
-const buildOutput = (result: GitResult): Readonly<GitResult> => Object.freeze(result);
+const execAsync = promisify(exec);
 
-const syncStateFromGit = async (): Promise<void> => {
-  const [branchResult, hashResult] = await Promise.all([
-    runGitCommand(['branch', '--show-current']),
-    runGitCommand(['rev-parse', 'HEAD']),
-  ]);
+export async function runGitAction(action: GitAction, payload: unknown): Promise<unknown> {
+  const p = payload as Record<string, unknown>;
+  const projectId = (p?.projectId as number) ?? 0;
+  const cwd = getProjectDir(projectId);
 
-  updateGitState((state) => {
-    state.currentBranch = branchResult.stdout.trim();
-    state.lastCommitHash = hashResult.stdout.trim();
-  });
-};
-
-const routeAction = async <T extends GitAction>(
-  action: T,
-  payload: GitActionPayloadMap[T],
-): Promise<GitResult> => {
-  switch (action) {
-    case 'commit':
-      return commitChangesAgent(payload as GitActionPayloadMap['commit']);
-    case 'branch':
-      return branchAgent(payload as GitActionPayloadMap['branch']);
-    case 'checkout':
-      return checkoutAgent(payload as GitActionPayloadMap['checkout']);
-    case 'merge':
-      return mergeAgent(payload as GitActionPayloadMap['merge']);
-    case 'status':
-      return statusAgent();
-    case 'log':
-      return logAgent(payload as GitActionPayloadMap['log']);
-    default:
-      throw new Error(`Unsupported action: ${String(action)}`);
-  }
-};
-
-export const runGitAction = async <T extends GitAction>(
-  action: T,
-  payload: GitActionPayloadMap[T],
-): Promise<Readonly<GitResult>> => {
-  updateGitState((state) => {
-    state.status = 'RUNNING';
-  });
+  updateGitState({ status: 'RUNNING', lastAction: action });
 
   try {
-    const result = await routeAction(action, payload);
-
-    await syncStateFromGit();
-    updateGitState((state) => {
-      state.status = result.success ? 'SUCCESS' : 'FAILED';
-      state.logs.push(...result.logs);
-    });
-
-    return buildOutput(result);
-  } catch (error) {
-    const normalizedError = normalizeGitError(error);
-
-    updateGitState((state) => {
-      state.status = 'FAILED';
-      state.errors.push(normalizedError);
-    });
-
-    return buildOutput({
-      success: false,
-      action,
-      result: null,
-      logs: [...getGitState().logs],
-      error: normalizedError,
-    });
+    let result: unknown;
+    switch (action) {
+      case 'status': {
+        const { stdout } = await execAsync('git status --porcelain', { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      case 'log': {
+        const { stdout } = await execAsync('git log --oneline -20', { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      case 'commit': {
+        const message = (p?.message as string) || 'Auto-commit';
+        await execAsync('git add -A', { cwd });
+        const { stdout } = await execAsync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      case 'branch': {
+        const name = (p?.name as string) || '';
+        const { stdout } = await execAsync(`git checkout -b "${name}"`, { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      case 'checkout': {
+        const branch = (p?.branch as string) || 'main';
+        const { stdout } = await execAsync(`git checkout "${branch}"`, { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      case 'merge': {
+        const branch = (p?.branch as string) || '';
+        const { stdout } = await execAsync(`git merge "${branch}"`, { cwd });
+        result = { ok: true, output: stdout };
+        break;
+      }
+      default:
+        result = { ok: false, error: `Unknown git action: ${action}` };
+    }
+    updateGitState({ status: 'SUCCESS' });
+    return result;
+  } catch (err: any) {
+    updateGitState({ status: 'FAILED' });
+    return { ok: false, error: err?.message ?? String(err) };
   }
-};
+}
 
-export const commitChanges = (options: GitActionPayloadMap['commit']): Promise<Readonly<GitResult>> =>
-  runGitAction('commit', options);
+export async function commitChanges(projectId: number, message: string): Promise<unknown> {
+  return runGitAction('commit', { projectId, message });
+}
 
-export const createBranch = (name: string): Promise<Readonly<GitResult>> =>
-  runGitAction('branch', { operation: 'create', name });
+export async function createBranch(projectId: number, name: string): Promise<unknown> {
+  return runGitAction('branch', { projectId, name });
+}
 
-export const mergeBranch = (source: string, target?: string): Promise<Readonly<GitResult>> =>
-  runGitAction('merge', { source, target });
+export async function mergeBranch(projectId: number, branch: string): Promise<unknown> {
+  return runGitAction('merge', { projectId, branch });
+}

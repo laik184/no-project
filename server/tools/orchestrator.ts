@@ -1,151 +1,30 @@
-/**
- * server/tools/orchestrator.ts
- *
- * ToolOrchestrator — thin adapter over the unified tool registry.
- * All tool logic lives in server/tools/categories/ and server/tools/registry/.
- */
+import './registry/tool-catalog.ts';
+import { unifiedRegistry } from './registry/tool-registry.ts';
+import type { ToolContext, ToolDef } from './registry/tool-types.ts';
 
-import "./index.ts";
+export type { ToolContext };
 
-import { unifiedRegistry } from "./registry/tool-registry.ts";
-import type {
-  Tool,
-  ToolContext,
-  ToolResult,
-  ToolDef,
-  ToolCategory,
-  ToolMetrics,
-  RegistryStats,
-  ExecuteOptions,
-} from "./registry/tool-types.ts";
-
-export type { ToolCategory, ToolMetrics, ExecuteOptions, ToolContext };
-
-class ToolOrchestrator {
-  async execute(
-    name: string,
-    args: Record<string, unknown>,
-    ctx: ToolContext,
-    opts: ExecuteOptions = {},
-  ): Promise<ToolResult> {
-    return unifiedRegistry.execute(name, args, ctx, opts);
-  }
-
-  async executeMany(
-    calls: Array<{ name: string; args: Record<string, unknown> }>,
-    ctx: ToolContext,
-    opts: ExecuteOptions = {},
-  ): Promise<Array<{ name: string; result: ToolResult }>> {
-    return unifiedRegistry.executeMany(calls, ctx, opts);
-  }
-
-  getTool(name: string): Tool | undefined {
-    return unifiedRegistry.getTool(name);
-  }
-
-  getEntry(name: string) {
-    return unifiedRegistry.getEntry(name);
-  }
-
-  getByCategory(category: ToolCategory) {
-    return unifiedRegistry.getByCategory(category);
-  }
-
-  isTerminal(name: string): boolean {
-    return unifiedRegistry.isTerminal(name);
-  }
-
+export const toolOrchestrator = {
   has(name: string): boolean {
     return unifiedRegistry.has(name);
-  }
+  },
+  async execute(name: string, args: Record<string, unknown>, ctx: ToolContext) {
+    return unifiedRegistry.execute(name, args, ctx);
+  },
+};
 
-  list() {
-    return unifiedRegistry.list();
-  }
+export const TERMINAL_TOOL_NAMES: Set<string> = unifiedRegistry.terminalToolNames;
 
-  get toolDefs(): ToolDef[] {
-    return unifiedRegistry.toolDefs;
-  }
-
-  get totalCount(): number {
-    return unifiedRegistry.totalCount;
-  }
-
-  getStats(): RegistryStats {
-    return unifiedRegistry.getStats();
-  }
-
-  getToolMetrics(name: string): ToolMetrics | undefined {
-    return unifiedRegistry.getMetrics(name);
-  }
-
-  resetMetrics(): void {
-    unifiedRegistry.resetMetrics();
-  }
-}
-
-export const toolOrchestrator = new ToolOrchestrator();
-
-export const TOOLS = unifiedRegistry.list().map((e) => unifiedRegistry.getTool(e.name)!);
 export const TOOL_DEFS: ToolDef[] = unifiedRegistry.toolDefs;
-export const TERMINAL_TOOL_NAMES = unifiedRegistry.terminalToolNames;
-
-export function getTool(name: string): Tool | undefined {
-  return unifiedRegistry.getTool(name);
-}
-
-export type ToolsOpKind = "execute" | "executeMany" | "list" | "list-category" | "stats" | "get";
-
-export interface ToolsOperationInput {
-  op?: ToolsOpKind;
-  tool?: string;
-  args?: Record<string, unknown>;
-  ctx?: { projectId: number; runId: string; signal?: AbortSignal };
-  calls?: Array<{ name: string; args: Record<string, unknown> }>;
-  category?: string;
-}
 
 export async function runToolsOperation(input: unknown): Promise<unknown> {
-  const inp = (input ?? {}) as ToolsOperationInput;
-  const op: ToolsOpKind = inp.op ?? "stats";
-
-  switch (op) {
-    case "execute": {
-      if (!inp.tool) throw new Error("[tools:orchestrator] execute — missing: tool");
-      if (!inp.ctx)  throw new Error("[tools:orchestrator] execute — missing: ctx");
-      return unifiedRegistry.execute(inp.tool, inp.args ?? {}, inp.ctx as ToolContext);
-    }
-    case "executeMany": {
-      if (!inp.ctx)   throw new Error("[tools:orchestrator] executeMany — missing: ctx");
-      if (!inp.calls) throw new Error("[tools:orchestrator] executeMany — missing: calls");
-      return unifiedRegistry.executeMany(inp.calls, inp.ctx as ToolContext);
-    }
-    case "list": {
-      return { tools: unifiedRegistry.list(), total: unifiedRegistry.totalCount };
-    }
-    case "list-category": {
-      if (!inp.category) throw new Error("[tools:orchestrator] list-category — missing: category");
-      const entries = unifiedRegistry.getByCategory(inp.category as ToolCategory);
-      return { category: inp.category, tools: entries.map((e) => e.tool.name), count: entries.length };
-    }
-    case "stats": {
-      return unifiedRegistry.getStats();
-    }
-    case "get": {
-      if (!inp.tool) throw new Error("[tools:orchestrator] get — missing: tool");
-      const entry = unifiedRegistry.getEntry(inp.tool);
-      if (!entry) return { found: false, tool: inp.tool };
-      return {
-        found:       true,
-        name:        entry.tool.name,
-        category:    entry.category,
-        description: entry.tool.description,
-        terminal:    entry.terminal,
-        permissions: entry.permissions,
-        metrics:     unifiedRegistry.getMetrics(entry.tool.name),
-      };
-    }
-    default:
-      throw new Error(`[tools:orchestrator] Unknown op: "${op}"`);
-  }
+  const req = input as Record<string, unknown>;
+  const name = req?.tool as string;
+  const args = (req?.args ?? {}) as Record<string, unknown>;
+  const ctx: ToolContext = {
+    projectId: (req?.projectId as number) ?? 0,
+    runId:     (req?.runId     as string) ?? 'tools-op',
+  };
+  if (!name) return { ok: false, error: 'Missing tool name' };
+  return unifiedRegistry.execute(name, args, ctx);
 }
