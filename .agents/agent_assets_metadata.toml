@@ -84,3 +84,9 @@ id = "pZHGVGD71K9Vrm95Ce80v"
 uri = "file://NURA_X_PHASE1_6_IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "NURA X — Phase 1–6 Complete Implementation Report"
+
+[[outputs]]
+id = "70nA1lHFsxs-oPS3r8PQ7"
+uri = "file://NURA_X_BACKEND_INFRASTRUCTURE_XRAY.md"
+type = "text"
+title = "NURA X Backend Infrastructure X-Ray Report"
