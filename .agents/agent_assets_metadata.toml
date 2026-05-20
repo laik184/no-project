@@ -96,3 +96,9 @@ id = "yM66vlZovVeUMXa4LNPgi"
 uri = "file://NURA_X_REFACTOR_EXECUTION_REPORT.md"
 type = "text"
 title = "NURA X Refactor Execution Report"
+
+[[outputs]]
+id = "SV88h4ipliRDwEw6FHPnF"
+uri = "file://NURA_X_AGENTS_FOLDER_REPORT.md"
+type = "text"
+title = "NURA X — Agents Folder Deep Scan Report"
