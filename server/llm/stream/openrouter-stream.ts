@@ -10,7 +10,7 @@
  */
 
 import { parseStreamLine } from "./stream-parser.ts";
-import type { ToolMessage, ToolDef, ChatResponse, ToolCallResult } from "../../agents/llm/openrouter.client.ts";
+import type { ToolMessage, ToolDef, ChatResponse, ToolCallResult } from "../openrouter.client.ts";
 
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
