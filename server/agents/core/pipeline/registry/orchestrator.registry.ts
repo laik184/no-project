@@ -1,3 +1,29 @@
+/**
+ * server/agents/core/pipeline/registry/orchestrator.registry.ts
+ *
+ * WORKER + PHASE + PLATFORM REGISTRY — pipeline sub-registry.
+ *
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  MASTER AUTHORITY: server/orchestration/registry/               ║
+ * ║                                                                  ║
+ * ║  This file is a SUB-REGISTRY used by the pipeline dispatcher.   ║
+ * ║  The canonical master registry that owns ALL orchestrators is:  ║
+ * ║    server/orchestration/registry/master-registry.ts             ║
+ * ║    server/orchestration/registry/orchestrator-hub.ts            ║
+ * ║                                                                  ║
+ * ║  Use `orchestratorHub` from server/orchestration/ for:          ║
+ * ║    • Listing all registered orchestrators                       ║
+ * ║    • Invoking any orchestrator by ID                            ║
+ * ║    • Status/health checks across all subsystems                 ║
+ * ║    • REST API: GET /api/orchestration/hub/registry              ║
+ * ╚══════════════════════════════════════════════════════════════════╝
+ *
+ * This file's exports (ORCHESTRATOR_REGISTRY, PHASE_ORCHESTRATOR_REGISTRY,
+ * PLATFORM_SERVICES_REGISTRY) are imported by master-registry.ts and the
+ * internal pipeline dispatcher (dispatcher.ts). Do not modify the export
+ * names — master-registry.ts depends on them.
+ */
+
 export type OrchestratorDomain =
   | 'generation'
   | 'intelligence'

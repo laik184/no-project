@@ -2,7 +2,8 @@
  * orchestration.routes.ts
  *
  * REST API for the orchestration layer.
- * Exposes run management, debug, metrics, traces, and health endpoints.
+ * Exposes run management, debug, metrics, traces, health endpoints,
+ * AND the master orchestrator hub registry (list, invoke, status, find).
  */
 
 import { Router }                   from "express";
@@ -14,6 +15,8 @@ import { snapshotMetrics, orchestrationHealthSummary } from "./telemetry/orchest
 import { getRunTrace, traceStats }  from "./telemetry/orchestration-trace.ts";
 import { queryLogs }                from "./telemetry/orchestration-logs.ts";
 import { getEngineVersion }         from "./core/orchestration-engine.ts";
+import { orchestratorHub, getMasterStats, masterFindByCapability, masterFindByDomain } from "./registry/index.ts";
+import type { OrchestratorDomain }  from "./registry/index.ts";
 
 export function createOrchestrationRouter(): Router {
   const router = Router();
@@ -21,8 +24,19 @@ export function createOrchestrationRouter(): Router {
   // ── Health ─────────────────────────────────────────────────────────────────
 
   router.get("/health", (_req, res) => {
-    const check = orchestrationHealthCheck();
-    res.status(check.status === "unhealthy" ? 503 : 200).json({ ok: true, ...check });
+    const check     = orchestrationHealthCheck();
+    const hubStatus = orchestratorHub.status();
+    res.status(check.status === "unhealthy" ? 503 : 200).json({
+      ok: true,
+      ...check,
+      hub: {
+        initialized:  hubStatus.initialized,
+        integrityOk:  hubStatus.integrityOk,
+        healthy:      orchestratorHub.isHealthy,
+        total:        hubStatus.totalRegistered,
+        uptime:       hubStatus.uptime,
+      },
+    });
   });
 
   router.get("/version", (_req, res) => {
@@ -106,6 +120,106 @@ export function createOrchestrationRouter(): Router {
     const level     = req.query.level as any;
     const logs      = queryLogs({ projectId, level, limit });
     res.json({ ok: true, logs, total: logs.length });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // MASTER ORCHESTRATOR HUB — Registry & Control Endpoints
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Hub Status ─────────────────────────────────────────────────────────────
+
+  router.get("/hub/status", (_req, res) => {
+    const status = orchestratorHub.status();
+    res.json({
+      ok:      true,
+      hub:     status,
+      healthy: orchestratorHub.isHealthy,
+      invokes: orchestratorHub.invokeCount,
+      errors:  orchestratorHub.errorCount,
+    });
+  });
+
+  // ── Hub Stats ──────────────────────────────────────────────────────────────
+
+  router.get("/hub/stats", (_req, res) => {
+    const stats = getMasterStats();
+    res.json({ ok: true, stats });
+  });
+
+  // ── Registry — List all orchestrators ────────────────────────────────────
+
+  router.get("/hub/registry", (req, res) => {
+    const domain = req.query.domain as OrchestratorDomain | undefined;
+    const group  = req.query.group as any;
+    const list   = orchestratorHub.list({ domain, group });
+    res.json({ ok: true, orchestrators: list, total: list.length });
+  });
+
+  // ── Registry — Find by capability ─────────────────────────────────────────
+
+  router.get("/hub/find", (req, res) => {
+    const capability = req.query.capability as string;
+    const domain     = req.query.domain as OrchestratorDomain | undefined;
+
+    if (!capability && !domain) {
+      return res.status(400).json({ ok: false, error: "Provide ?capability=... or ?domain=..." });
+    }
+
+    let results = capability
+      ? masterFindByCapability(capability)
+      : masterFindByDomain(domain!);
+
+    res.json({ ok: true, results, total: results.length });
+  });
+
+  // ── Registry — Get single orchestrator ────────────────────────────────────
+
+  router.get("/hub/registry/:id(*)", (req, res) => {
+    const entry = orchestratorHub.findById(req.params.id);
+    if (!entry) {
+      return res.status(404).json({ ok: false, error: `Orchestrator "${req.params.id}" not found` });
+    }
+    res.json({
+      ok: true,
+      orchestrator: {
+        id:           entry.id,
+        domain:       entry.domain,
+        description:  entry.description,
+        capabilities: entry.capabilities,
+      },
+    });
+  });
+
+  // ── Hub — Invoke any orchestrator ─────────────────────────────────────────
+
+  router.post("/hub/invoke/:id(*)", async (req, res) => {
+    const { id } = req.params;
+    const input  = req.body;
+
+    const result = await orchestratorHub.invoke(id, input);
+
+    res.status(result.success ? 200 : 502).json({ ok: result.success, ...result });
+  });
+
+  // ── Hub — Batch invoke ────────────────────────────────────────────────────
+
+  router.post("/hub/invoke-batch", async (req, res) => {
+    const { requests } = req.body;
+
+    if (!Array.isArray(requests)) {
+      return res.status(400).json({ ok: false, error: "requests must be an array of { id, input }" });
+    }
+
+    const results = await orchestratorHub.invokeBatch(requests);
+    const succeeded = results.filter((r) => r.success).length;
+
+    res.json({
+      ok:        succeeded > 0,
+      total:     results.length,
+      succeeded,
+      failed:    results.length - succeeded,
+      results,
+    });
   });
 
   return router;

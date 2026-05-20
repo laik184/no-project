@@ -7,6 +7,8 @@
  * Boot sequence:
  *   1. initOrchestration() — called once from main.ts after runtimeStore.init()
  *   2. createOrchestrationRouter() — mounts API at /api/orchestration
+ *
+ * server/orchestration/ IS THE BOSS — all orchestrators are registered here.
  */
 
 // ── Core ──────────────────────────────────────────────────────────────────────
@@ -16,6 +18,35 @@ export { createContext, getContext, requireContext, clearContext } from "./core/
 export { createState, getState, transitionPhase, markStatus }     from "./core/orchestration-state.ts";
 export { captureCheckpoint, getLatestCheckpoint, buildReplayPlan } from "./core/orchestration-replay.ts";
 export * from "./core/orchestration-types.ts";
+
+// ── Master Registry & Hub ─────────────────────────────────────────────────────
+export {
+  orchestratorHub,
+  OrchestratorHub,
+  MASTER_REGISTRY,
+  WORKER_REGISTRY,
+  PHASE_REGISTRY,
+  PLATFORM_REGISTRY,
+  SERVICE_REGISTRY,
+  MASTER_FORBIDDEN_IDS,
+  masterFindById,
+  masterFindByCapability,
+  masterFindByDomain,
+  getMasterStats,
+  assertMasterIntegrity,
+  findWorkerByCapability,
+  findWorkerById,
+  findWorkerByDomain,
+  getWorkerStats,
+} from "./registry/index.ts";
+
+export type {
+  OrchestratorEntry,
+  OrchestratorDomain,
+  HubInvokeResult,
+  HubStatus,
+  HubListEntry,
+} from "./registry/index.ts";
 
 // ── Bridges ───────────────────────────────────────────────────────────────────
 export { supervisorBridge }   from "./agents/supervisor-bridge.ts";
@@ -53,6 +84,7 @@ import { initRuntimeSync }           from "./execution/runtime-sync.ts";
 import { previewOrchestrator }       from "./runtime/preview-orchestrator.ts";
 import { recoveryOrchestrator }      from "./runtime/recovery-orchestrator.ts";
 import { getEngineVersion }          from "./core/orchestration-engine.ts";
+import { orchestratorHub }           from "./registry/index.ts";
 
 export function initOrchestration(): void {
   // Wire telemetry to the event bus
@@ -70,6 +102,16 @@ export function initOrchestration(): void {
   // Start auto-recovery integration
   recoveryOrchestrator.init();
 
+  // Boot the master orchestrator hub — registers ALL orchestrators system-wide
+  orchestratorHub.init();
+
   console.log(`[orchestration] Initialized — ${getEngineVersion()}`);
-  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓");
+  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓");
+
+  const status = orchestratorHub.status();
+  console.log(
+    `[orchestration] Master Hub — ${status.totalRegistered} orchestrators registered` +
+    ` (workers=${status.workers} phase=${status.phaseOrchestrators}` +
+    ` platform=${status.platformServices} services=${status.serviceOrchestrators})`,
+  );
 }
