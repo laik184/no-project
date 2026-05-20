@@ -5,7 +5,7 @@
  * Runs on a scheduled interval — does NOT block the main execution path.
  */
 
-import { pool }         from "../../infrastructure/db/index.ts";
+import { pool }         from "../../../infrastructure/db/index.ts";
 import { deleteMemory } from "./pgvector-store.ts";
 import type { MemoryCategory } from "../vector/vector-types.ts";
 

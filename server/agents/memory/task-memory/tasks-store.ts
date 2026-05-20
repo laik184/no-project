@@ -15,7 +15,7 @@
 
 import fs   from "fs/promises";
 import path from "path";
-import { getProjectDir } from "../../infrastructure/sandbox/sandbox.util.ts";
+import { getProjectDir } from "../../../infrastructure/sandbox/sandbox.util.ts";
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 

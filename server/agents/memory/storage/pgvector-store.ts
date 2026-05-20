@@ -5,7 +5,7 @@
  * Gracefully degrades to JSON storage if pgvector extension is unavailable.
  */
 
-import { pool } from "../../infrastructure/db/index.ts";
+import { pool } from "../../../infrastructure/db/index.ts";
 import { generateEmbedding } from "../vector/embedding-engine.ts";
 import { EMBEDDING_DIM } from "../vector/vector-types.ts";
 import type { MemoryEntry, MemoryCategory, VectorStoreStats } from "../vector/vector-types.ts";

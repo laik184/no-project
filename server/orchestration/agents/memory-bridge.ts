@@ -5,7 +5,7 @@
  * Injects semantic context into planning, recovery, and verification prompts.
  */
 
-import { MemoryManager }        from "../../memory/index.ts";
+import { MemoryManager }        from "../../agents/memory/index.ts";
 import { emitAgentCoordination } from "../core/orchestration-events.ts";
 import { recordSpanStart, recordSpanEnd } from "../telemetry/orchestration-trace.ts";
 import { incrementCounter }     from "../telemetry/orchestration-metrics.ts";

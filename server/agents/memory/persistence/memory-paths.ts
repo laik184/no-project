@@ -15,7 +15,7 @@
  */
 
 import path from "path";
-import { getProjectDir } from "../../infrastructure/sandbox/sandbox.util.ts";
+import { getProjectDir } from "../../../infrastructure/sandbox/sandbox.util.ts";
 
 export const NURA_DIR_NAME = ".nura";
 

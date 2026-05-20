@@ -50,7 +50,7 @@ import {
 }                                 from "../persistence/memory-store.ts";
 import type { SummarizableResult } from "../context/run-summarizer.ts";
 import type { ArchitectureDecision, RunSummary, FailureEntry } from "../types.ts";
-import type { ToolMessage }       from "../../llm/openrouter.client.ts";
+import type { ToolMessage }       from "../../../llm/openrouter.client.ts";
 
 export class MemoryManager {
   private constructor(private readonly projectId: number) {}

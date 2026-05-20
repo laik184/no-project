@@ -23,7 +23,7 @@
  */
 
 import type { Tool, ToolContext, ToolResult } from "../registry/tool-types.ts";
-import { MemoryManager } from "../../memory/index.ts";
+import { MemoryManager } from "../../agents/memory/index.ts";
 
 // ─── memory_update ────────────────────────────────────────────────────────────
 

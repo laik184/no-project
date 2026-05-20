@@ -9,10 +9,10 @@
  * Ownership: memory/persistence — DB I/O only, no logic.
  */
 
-import { db }          from "../../infrastructure/db/index.ts";
-import { chatMessages } from "../../../shared/schema.ts";
+import { db }          from "../../../infrastructure/db/index.ts";
+import { chatMessages } from "../../../../shared/schema.ts";
 import { eq, asc }     from "drizzle-orm";
-import type { ChatMessage } from "../../../shared/schema.ts";
+import type { ChatMessage } from "../../../../shared/schema.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

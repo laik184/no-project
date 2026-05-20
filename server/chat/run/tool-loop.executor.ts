@@ -28,7 +28,7 @@
 import { runAgentLoopWithContinuation } from "../../agents/core/tool-loop/index.ts";
 import { ensureProjectDir }             from "../../infrastructure/sandbox/sandbox.util.ts";
 import { emitAgentEvent, withRunLifecycle } from "./run-lifecycle.ts";
-import { MemoryManager }                from "../../memory/index.ts";
+import { MemoryManager }                from "../../agents/memory/index.ts";
 import type { RunHandle, RunInput }     from "./types.ts";
 
 const DEFAULT_MAX_STEPS        = 25;
