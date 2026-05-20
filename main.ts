@@ -45,7 +45,7 @@ const PORT = Number(process.env.PORT) || 3001;
 // ── Startup: warn loudly if critical env vars are missing ──────────────
 const MISSING_VARS: string[] = [];
 const hasOpenRouterKey = !!(process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY);
-if (!hasOpenRouterKey) MISSING_VARS.push('OPENROUTER_API_KEY');
+if (!hasOpenRouterKey) MISSING_VARS.push('OPENROUTER_API_KEY (or AI_INTEGRATIONS_OPENROUTER_API_KEY)');
 if (!process.env.DATABASE_URL) MISSING_VARS.push('DATABASE_URL');
 if (MISSING_VARS.length > 0) {
   console.warn(`[nura-x] ⚠  Missing required environment variables: ${MISSING_VARS.join(', ')}`);
@@ -119,8 +119,8 @@ app.get('/api/health/llm', (_req, res) => {
     llm: hasKey ? 'ready' : 'missing_key',
     model: process.env.LLM_MODEL || 'openai/gpt-oss-120b:free',
     message: hasKey
-      ? 'OPENROUTER_API_KEY is set — agent runs are enabled.'
-      : 'OPENROUTER_API_KEY is not set. Add it in Replit Secrets to enable agent runs.',
+      ? 'OpenRouter API key is set — agent runs are enabled.'
+      : 'No OpenRouter API key found. Add OPENROUTER_API_KEY in Replit Secrets to enable agent runs.',
   });
 });
 
