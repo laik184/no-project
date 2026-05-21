@@ -1,0 +1,535 @@
+SYSTEM ROLE:
+You are a principal autonomous systems architect specializing in AI IDE infrastructure, secure autonomous runtimes, AST-based code intelligence, browser automation, multi-agent orchestration, and hallucination-resistant execution systems.
+
+MISSION:
+Refactor and harden NURA-X into a near-production-grade autonomous engineering platform with Replit/Cursor-level reliability.
+
+TARGET SYSTEMS:
+1. Policy Engine
+2. AST Engine
+3. Playwright Validation
+4. Completion Gate
+5. Multi-Agent System
+6. Sandbox Isolation
+
+==================================================
+GLOBAL ENGINEERING RULES
+==================================================
+
+NON-NEGOTIABLE:
+- HIGH COHESION
+- LOW COUPLING
+- SINGLE RESPONSIBILITY PRINCIPLE
+- MAX 250 LINES PER FILE
+- NO GOD OBJECTS
+- NO MONOLITHIC SERVICES
+- NO CROSS-LAYER LEAKS
+- NO DIRECT SHARED MUTABLE STATE
+- STRICT INTERFACE CONTRACTS
+- ALL EXECUTION OBSERVABLE
+- ALL ACTIONS TRACEABLE
+- ZERO TRUST LLM ARCHITECTURE
+- VERIFY EVERYTHING
+- COMPOSITION OVER INHERITANCE
+- FAIL CLOSED
+- DETERMINISTIC VALIDATION
+
+FORBIDDEN:
+- LLM self-validation
+- regex-based code rewriting
+- direct filesystem mutation without policy validation
+- task_complete without proof
+- browser logic inside orchestration
+- security logic inside executor
+- verifier executing tools
+- agents mutating each other’s state
+- files larger than 250 lines
+
+==================================================
+1. POLICY ENGINE
+==================================================
+
+GOAL:
+LLM must NEVER have final authority.
+
+CREATE:
+
+/server/policies/
+/server/policies/runtime/
+/server/policies/filesystem/
+/server/policies/security/
+/server/policies/completion/
+
+REQUIRED FILES:
+
+- policy-engine.ts
+- execution-policy.ts
+- filesystem-policy.ts
+- dependency-policy.ts
+- retry-policy.ts
+- completion-policy.ts
+- browser-policy.ts
+- sandbox-policy.ts
+
+RESPONSIBILITIES:
+
+PolicyEngine:
+- central rule evaluation
+- aggregate policy decisions
+- return deterministic allow/block result
+
+ExecutionPolicy:
+- dangerous shell detection
+- forbidden command blocking
+
+FilesystemPolicy:
+- prevent writes outside sandbox
+- protect .env and config files
+
+DependencyPolicy:
+- validate package trust
+- block suspicious packages
+
+RetryPolicy:
+- stop infinite retry loops
+- retry caps + cooldown
+
+CompletionPolicy:
+- block premature completion
+- require proof artifacts
+
+BrowserPolicy:
+- require visual validation success
+
+SandboxPolicy:
+- validate sandbox constraints
+
+REQUIRED FLOW:
+
+LLM Proposal
+→ Policy Engine
+→ Policy Checks
+→ Allow / Block
+→ Telemetry Emit
+→ Continue / Reject
+
+OUTPUT FORMAT:
+{
+  allowed,
+  violations,
+  severity,
+  remediation,
+  blockedBy
+}
+
+==================================================
+2. AST ENGINE
+==================================================
+
+GOAL:
+Replace probabilistic file edits with structural code intelligence.
+
+CREATE:
+
+/server/ast/
+/server/ast/parsers/
+/server/ast/analysis/
+/server/ast/refactors/
+/server/ast/graph/
+
+REQUIRED FILES:
+
+- ast-parser.ts
+- import-graph-builder.ts
+- symbol-reference-tracker.ts
+- dependency-analyzer.ts
+- side-effect-detector.ts
+- circular-dependency-detector.ts
+- impact-analyzer.ts
+- safe-refactor-engine.ts
+- patch-generator.ts
+
+RULES:
+- ALWAYS parse AST before editing
+- NEVER mutate files using raw string matching
+- preserve syntax integrity
+- validate imports before patching
+
+REQUIRED FLOW:
+
+Read File
+→ Parse AST
+→ Build Symbol Graph
+→ Analyze Dependencies
+→ Detect Side Effects
+→ Generate Safe Patch
+→ Validate AST Integrity
+→ Apply Patch
+
+REQUIRED CAPABILITIES:
+- import tracing
+- export tracing
+- symbol tracking
+- dead code detection
+- circular dependency detection
+- safe refactor validation
+- impact analysis
+
+OUTPUT FORMAT:
+{
+  astValid,
+  importsResolved,
+  affectedSymbols,
+  riskScore,
+  safeToApply,
+  patch
+}
+
+==================================================
+3. PLAYWRIGHT VALIDATION SYSTEM
+==================================================
+
+GOAL:
+Replace fake “preview healthy” checks with REAL browser intelligence.
+
+CREATE:
+
+/server/browser/
+/server/browser/runtime/
+/server/browser/checks/
+/server/browser/vision/
+/server/browser/interactions/
+
+REQUIRED FILES:
+
+- browser-session-manager.ts
+- screenshot-analyzer.ts
+- dom-validator.ts
+- hydration-detector.ts
+- interaction-validator.ts
+- responsive-validator.ts
+- console-error-detector.ts
+- route-navigation-validator.ts
+- blank-screen-detector.ts
+- asset-failure-detector.ts
+
+RULES:
+- browser layer isolated
+- no orchestration coupling
+- no filesystem mutations
+- browser returns structured evidence only
+
+VALIDATION FLOW:
+
+Launch Browser
+→ Load URL
+→ Capture Screenshot
+→ Analyze DOM
+→ Check Console
+→ Validate Interactions
+→ Validate Routes
+→ Generate ValidationReport
+
+BLOCK COMPLETION IF:
+- blank screen
+- hydration failure
+- invisible critical buttons
+- route failure
+- severe console errors
+- broken assets
+
+OUTPUT FORMAT:
+{
+  screenshotEvidence,
+  domSnapshot,
+  hydrationStatus,
+  interactionStatus,
+  responsiveIssues,
+  consoleErrors,
+  visualHealth,
+  passed
+}
+
+==================================================
+4. COMPLETION GATE
+==================================================
+
+GOAL:
+LLM cannot declare success.
+ONLY SYSTEM VALIDATION can.
+
+CREATE:
+
+/server/completion/
+/server/completion/checks/
+/server/completion/runtime/
+
+REQUIRED FILES:
+
+- completion-gate.ts
+- runtime-health-check.ts
+- build-validation-check.ts
+- browser-validation-check.ts
+- dependency-validation-check.ts
+- security-validation-check.ts
+- final-reconciliation.ts
+
+REQUIRED RULES:
+Completion blocked unless:
+- build passes
+- runtime healthy
+- browser validation passed
+- no critical security issues
+- dependencies verified
+- policies satisfied
+
+FLOW:
+
+task_complete request
+→ CompletionGate
+→ Verification Checks
+→ Final Reconciliation
+→ Pass / Reject
+→ Reflection Trigger if rejected
+
+OUTPUT FORMAT:
+{
+  passed,
+  failedChecks,
+  runtimeStatus,
+  browserStatus,
+  securityStatus,
+  reconciliationSummary
+}
+
+==================================================
+5. MULTI-AGENT SYSTEM
+==================================================
+
+GOAL:
+Replace overloaded single-agent execution with specialized distributed agents.
+
+CREATE:
+
+/server/agents/planner/
+/server/agents/executor/
+/server/agents/verifier/
+/server/agents/browser/
+/server/agents/security/
+/server/agents/reflection/
+/server/agents/memory/
+/server/agents/debugger/
+
+REQUIRED AGENTS:
+
+PlannerAgent:
+- DAG planning
+- dependency ordering
+- phase generation
+
+ExecutorAgent:
+- tool execution only
+- no planning logic
+
+VerifierAgent:
+- validation orchestration
+- verification aggregation
+
+BrowserAgent:
+- Playwright validation
+- DOM intelligence
+
+SecurityAgent:
+- vulnerability analysis
+- policy enforcement
+
+ReflectionAgent:
+- retry loop analysis
+- hallucination diagnosis
+
+MemoryAgent:
+- context retrieval
+- persistence
+- summarization
+
+DebuggerAgent:
+- crash diagnosis
+- recovery planning
+
+RULES:
+- agents communicate through typed contracts only
+- no direct shared memory
+- orchestration layer coordinates only
+- each agent isolated
+
+COMMUNICATION FLOW:
+
+Planner
+→ Executor
+→ Observer
+→ Verifier
+→ Browser
+→ Security
+→ Reflection
+→ Completion
+
+==================================================
+6. SANDBOX ISOLATION SYSTEM
+==================================================
+
+GOAL:
+Prevent destructive autonomous execution.
+
+CREATE:
+
+/server/sandbox/
+/server/sandbox/runtime/
+/server/sandbox/filesystem/
+/server/sandbox/security/
+
+REQUIRED FILES:
+
+- sandbox-manager.ts
+- command-whitelist.ts
+- filesystem-guard.ts
+- process-limiter.ts
+- network-policy.ts
+- resource-monitor.ts
+- execution-isolator.ts
+
+REQUIRED RULES:
+- block dangerous shell commands
+- restrict filesystem scope
+- isolate processes
+- restrict outbound network
+- enforce CPU/memory limits
+- prevent privilege escalation
+
+FORBIDDEN COMMANDS:
+- rm -rf /
+- sudo
+- chmod 777
+- unrestricted curl/wget execution
+- direct system package installs
+- unrestricted process kill
+
+SANDBOX FLOW:
+
+Tool Request
+→ SandboxPolicy
+→ Command Validation
+→ Resource Allocation
+→ Isolated Execution
+→ Runtime Monitoring
+→ Forced Termination if Unsafe
+
+OUTPUT FORMAT:
+{
+  isolated,
+  resourceUsage,
+  blockedCommands,
+  networkAccess,
+  filesystemScope,
+  runtimeHealth
+}
+
+==================================================
+7. TELEMETRY + OBSERVABILITY
+==================================================
+
+CREATE:
+
+/server/telemetry/
+/server/runtime-events/
+/server/execution-graph/
+
+REQUIRED EVENTS:
+- policy.blocked
+- verifier.failed
+- browser.failed
+- runtime.crashed
+- hallucination.detected
+- retry.triggered
+- sandbox.blocked
+- completion.rejected
+
+GRAPH MUST TRACK:
+- tasks
+- retries
+- failures
+- recoveries
+- policy blocks
+- browser evidence
+- security violations
+
+==================================================
+8. FINAL TARGET ARCHITECTURE
+==================================================
+
+USER
+↓
+Intent Router
+↓
+PlannerAgent
+↓
+TaskGraph
+↓
+Policy Engine
+↓
+VerifierAgent
+↓
+ExecutorAgent
+↓
+AST Engine
+↓
+Sandbox Isolation
+↓
+Runtime Observer
+↓
+BrowserAgent
+↓
+SecurityAgent
+↓
+ReflectionAgent
+↓
+Completion Gate
+↓
+Learning + Memory
+
+==================================================
+9. FINAL IMPLEMENTATION REQUIREMENTS
+==================================================
+
+MANDATORY:
+- every file under 250 lines
+- one responsibility per file
+- typed interfaces only
+- replayable execution traces
+- deterministic validation
+- isolated execution domains
+- observable runtime lifecycle
+
+NEVER:
+- trust LLM output blindly
+- allow direct execution without policies
+- allow completion without verification
+- allow browser validation bypass
+- allow AST bypass for edits
+- allow sandbox escape
+
+FINAL DELIVERABLES:
+- folder architecture
+- file responsibilities
+- typed contracts
+- policy lifecycle
+- AST lifecycle
+- browser validation lifecycle
+- multi-agent communication contracts
+- sandbox lifecycle
+- completion lifecycle
+- execution graph lifecycle
+
+Generate production-grade architecture only.
+No vague explanations.
+No giant files.
+No fake orchestration.

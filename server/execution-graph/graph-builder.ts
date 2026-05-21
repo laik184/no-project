@@ -5,7 +5,9 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
+import { bus }          from "../infrastructure/events/bus.ts";
 import type { ExecutionGraph, GraphNode, GraphEdge, NodeKind } from "./types.ts";
+import { storeGraph }   from "./graph-store.ts";
 
 export interface AgentEventInput {
   eventType: string;
@@ -74,4 +76,21 @@ function eventStatus(eventType: string): GraphNode["status"] {
   if (eventType.includes("failed") || eventType.includes("error"))    return "failed";
   if (eventType.includes("skipped"))  return "skipped";
   return "pending";
+}
+
+// ── Incremental live wiring (bus-driven) ──────────────────────────────────────
+// Accumulates events per-run and rebuilds graph on each event.
+const runEventBuffers = new Map<string, { projectId: number; events: AgentEventInput[] }>();
+
+export function wireGraphBus(): void {
+  bus.on("agent.event", (e: any) => {
+    if (!e?.runId) return;
+
+    const entry = runEventBuffers.get(e.runId) ?? { projectId: e.projectId ?? 0, events: [] };
+    entry.events.push({ eventType: e.eventType, phase: e.phase, payload: e.payload, ts: e.ts ?? Date.now() });
+    runEventBuffers.set(e.runId, entry);
+
+    const graph = buildGraph(e.runId, entry.projectId, entry.events);
+    storeGraph(e.runId, graph);
+  });
 }

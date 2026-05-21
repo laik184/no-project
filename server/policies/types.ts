@@ -12,7 +12,13 @@ export type PolicyName =
   | "ToolUsagePolicy"
   | "DependencyTrustPolicy"
   | "RuntimeHealthPolicy"
-  | "BrowserValidationPolicy";
+  | "BrowserValidationPolicy"
+  | "FilesystemPolicy"
+  | "CompletionPolicy"
+  | "RetryPolicy"
+  | "DependencyPolicy"
+  | "BrowserPolicy"
+  | "SandboxPolicy";
 
 export type PolicyDecision = "allow" | "block" | "escalate";
 export type PolicySeverity = "low" | "medium" | "high" | "critical";

@@ -13,6 +13,7 @@ export { detectAssetFailures }      from "./checks/asset-failure-detector.ts";
 export { analyzeScreenshot }        from "./vision/screenshot-analyzer.ts";
 export { detectResponsiveIssues }   from "./vision/responsive-overflow-detector.ts";
 export { validateInteractions }     from "./interactions/interaction-validator.ts";
+export { validateRoutes }           from "./interactions/route-navigation-validator.ts";
 export type {
   BrowserValidationReport, BrowserSession,
   ScreenshotAnalysis, DOMSnapshot,

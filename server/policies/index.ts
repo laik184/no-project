@@ -12,4 +12,10 @@ export { applyToolUsagePolicy, incrementToolCount, clearToolCounts } from "./exe
 export { applyVerifiedCompletionPolicy } from "./validation/verified-completion-policy.ts";
 export { applyDependencyTrustPolicy }   from "./validation/dependency-trust-policy.ts";
 export { applyBrowserValidationPolicy } from "./validation/browser-validation-policy.ts";
+export { applyFilesystemPolicy }        from "./filesystem/filesystem-policy.ts";
+export { applyCompletionPolicy }        from "./completion/completion-policy.ts";
+export { applyRetryPolicy }             from "./runtime/retry-policy.ts";
+export { applyDependencyPolicy }        from "./security/dependency-policy.ts";
+export { applyBrowserPolicy }           from "./validation/browser-policy.ts";
+export { applySandboxPolicy }           from "./security/sandbox-policy.ts";
 export type { PolicyContext, PolicyResult, PolicyReport, PolicyName, PolicyDecision, PolicySeverity } from "./types.ts";

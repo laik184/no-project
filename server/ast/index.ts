@@ -10,6 +10,10 @@ export { detectCircularDependencies, detectFromParsed }               from "./an
 export { detectDeadCode }                                             from "./analysis/dead-code-detector.ts";
 export { detectSideEffects }                                          from "./analysis/side-effect-detector.ts";
 export { analyzeRefactorImpact }                                      from "./refactors/refactor-impact-analyzer.ts";
+export { buildDependencyMap, analyzeDependencies }                    from "./analysis/dependency-analyzer.ts";
+export { analyzeImpact, analyzeMultiFileImpact }                      from "./analysis/impact-analyzer.ts";
+export { validateRefactor }                                           from "./refactors/safe-refactor-engine.ts";
+export { generatePatch, applyPatchToContent }                         from "./refactors/patch-generator.ts";
 export type {
   ASTParseResult, ImportRecord, ExportRecord,
   SymbolReference, ImportGraph, RefactorImpact,

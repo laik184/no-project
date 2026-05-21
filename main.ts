@@ -41,6 +41,8 @@ import { initOrchestration, createOrchestrationRouter } from './server/orchestra
 import { createTruthEngineRouter }   from './server/api/truth-engine.routes.ts';
 import { createMemoryRouter }        from './server/api/memory.routes.ts';
 import { createFailClosedRouter }    from './server/api/fail-closed.routes.ts';
+import { initRuntimeEvents }         from './server/runtime-events/index.ts';
+import { summarizeRun, getViolations } from './server/telemetry/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -151,6 +153,19 @@ app.get('/api/enterprise', (_req, res) => {
   res.json({ feature: 'enterprise-analytics', enabled: true });
 });
 
+// ── Telemetry API ─────────────────────────────────────────────────────────────
+app.get('/api/telemetry/:runId/summary', (req: Request, res: Response) => {
+  const { runId } = req.params;
+  const summary = summarizeRun(runId);
+  res.json({ ok: true, runId, summary });
+});
+
+app.get('/api/telemetry/:runId/violations', (req: Request, res: Response) => {
+  const { runId } = req.params;
+  const violations = getViolations(runId);
+  res.json({ ok: true, runId, count: violations.length, violations });
+});
+
 // ── Global error handler — must be last middleware ─────────────────────
 // Catches any unhandled synchronous throws in route handlers and returns
 // a consistent JSON envelope instead of Express's default HTML error page.
@@ -188,6 +203,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   startRecoveryManager();
   // Initialize unified orchestration layer — wires all agent systems together
   initOrchestration();
+  // Wire runtime events: telemetry bus + execution-graph live tracking
+  initRuntimeEvents();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
