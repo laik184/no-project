@@ -12,6 +12,11 @@
 import { spawn } from "child_process";
 import { bus } from "../events/bus.ts";
 import { findFreePort } from "../runtime/port-manager.ts";
+import {
+  parseAndValidateRuntimeCommand,
+  emitSpawnStarted,
+  emitSpawnFailed,
+} from "../../security/runtime-command-policy/index.ts";
 import { captureService } from "../../console/capture/capture.service.ts";
 import {
   loadPersistedEntries, saveEntries,
@@ -102,13 +107,26 @@ class ProcessRegistry {
     try { port = await findFreePort(); }
     catch { return { ok: false, error: "Could not allocate a free port" }; }
 
-    const logs: string[] = [];
-    const proc = spawn(command, {
-      cwd, shell: true, detached: false,
-      env: { ...process.env, PORT: String(port), NODE_ENV: "development", ...env },
-    } as any);
+    // Validate and parse command before any spawn — fail closed on any violation
+    const validated = parseAndValidateRuntimeCommand(command, projectId);
+    if (!validated.ok || !validated.parsed) {
+      emitSpawnFailed(command, validated.reason ?? "command validation failed", projectId);
+      return { ok: false, error: validated.reason ?? "command blocked by security policy" };
+    }
 
-    if (!proc.pid) return { ok: false, error: "Failed to spawn process — no PID" };
+    const { cmd, args: cmdArgs } = validated.parsed;
+    const logs: string[] = [];
+    const proc = spawn(cmd, cmdArgs, {
+      cwd, shell: false, detached: false,
+      env: { ...process.env, PORT: String(port), NODE_ENV: "development", ...env },
+    });
+
+    if (!proc.pid) {
+      emitSpawnFailed(cmd, "no PID after spawn", projectId);
+      return { ok: false, error: "Failed to spawn process — no PID" };
+    }
+
+    emitSpawnStarted(cmd, proc.pid, port, projectId);
 
     const now = Date.now();
     this.entries.set(projectId, {
