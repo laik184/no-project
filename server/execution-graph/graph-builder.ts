@@ -91,6 +91,11 @@ export function wireGraphBus(): void {
     runEventBuffers.set(e.runId, entry);
 
     const graph = buildGraph(e.runId, entry.projectId, entry.events);
-    storeGraph(e.runId, graph);
+    storeGraph(graph);
   });
+}
+
+/** Release the event buffer for a completed/failed run. Called by run-cleanup-manager. */
+export function evictRunBuffer(runId: string): void {
+  runEventBuffers.delete(runId);
 }

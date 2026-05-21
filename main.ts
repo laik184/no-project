@@ -43,6 +43,7 @@ import { createMemoryRouter }        from './server/api/memory.routes.ts';
 import { createFailClosedRouter }    from './server/api/fail-closed.routes.ts';
 import { initRuntimeEvents }         from './server/runtime-events/index.ts';
 import { summarizeRun, getViolations } from './server/telemetry/index.ts';
+import { initRunCleanupManager }    from './server/infrastructure/memory/run-cleanup-manager.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -205,6 +206,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   initOrchestration();
   // Wire runtime events: telemetry bus + execution-graph live tracking
   initRuntimeEvents();
+  // Start per-run memory cleanup — replay-safe TTL eviction of all per-run stores
+  initRunCleanupManager();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

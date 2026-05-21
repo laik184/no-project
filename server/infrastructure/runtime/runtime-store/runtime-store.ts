@@ -148,6 +148,11 @@ class RuntimeStore {
     return this.entries.get(projectId)!;
   }
 
+  /** Remove a project's entry when it is permanently deleted. */
+  remove(projectId: number): void {
+    this.entries.delete(projectId);
+  }
+
   private broadcastSync(projectId: number, from: RuntimePhase, to: RuntimePhase): void {
     bus.emit("runtime.sync", {
       projectId,

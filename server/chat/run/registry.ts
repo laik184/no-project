@@ -28,3 +28,9 @@ export function isCancelled(runId: string): boolean {
 export function clearCancel(runId: string): void {
   cancellations.delete(runId);
 }
+
+/** Remove a completed/failed/cancelled run handle. Called by run-cleanup-manager. */
+export function unregisterRun(runId: string): void {
+  runs.delete(runId);
+  cancellations.delete(runId);
+}
