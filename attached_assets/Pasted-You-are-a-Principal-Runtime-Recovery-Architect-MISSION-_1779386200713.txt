@@ -1,0 +1,366 @@
+You are a Principal Runtime Recovery Architect.
+
+MISSION:
+Implement FULL AUTONOMOUS AUTO-RESTART after crash recovery so the runtime system reaches Replit-level lifecycle continuity.
+
+ROOT TARGETS:
+server/infrastructure/recovery/
+server/infrastructure/runtime/
+server/runtime/
+server/preview/
+server/orchestration/
+server/infrastructure/events/
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL OBJECTIVE
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT FLOW ❌
+
+process crash
+→ rollback
+→ runtime stopped
+→ agent manually restarts
+
+TARGET FLOW ✅
+
+process crash
+→ rollback
+→ runtime auto restart
+→ waitForPort()
+→ runtime verification
+→ preview restoration
+→ lifecycle sync
+→ completion gate
+
+NO manual restart allowed.
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ HIGH COHESION
+✅ LOW COUPLING
+✅ FAIL-CLOSED DESIGN
+✅ EVENT-DRIVEN ARCHITECTURE
+✅ DETERMINISTIC RUNTIME OWNERSHIP
+✅ SAFE RECOVERY ORCHESTRATION
+✅ PRODUCTION-GRADE ERROR HANDLING
+✅ TELEMETRY FOR EVERY STEP
+
+❌ NO giant files
+❌ NO hacks
+❌ NO hidden side effects
+❌ NO direct cross-module mutation
+❌ NO circular dependencies
+❌ NO unsafe retries
+❌ NO duplicate recovery triggers
+
+━━━━━━━━━━━━━━━━━━━━
+FILE SIZE RULE
+━━━━━━━━━━━━━━━━━━━━
+
+NO file may exceed:
+250 lines
+
+If logic grows:
+→ split into focused modules.
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE ANALYSIS FIRST
+━━━━━━━━━━━━━━━━━━━━
+
+Before coding:
+deeply trace WHY runtime stops after recovery.
+
+Trace:
+- RecoveryManager
+- CrashRecovery
+- RuntimeRecovery
+- RuntimeManager
+- RunController
+- PreviewLifecycleManager
+- VerificationCoordinator
+- CompletionAuthority
+
+Find:
+- exact missing restart handoff
+- exact lifecycle break point
+- exact ownership gap
+
+DO NOT patch symptoms.
+Fix root orchestration gap.
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT REQUIRED FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+REQUIRED EXECUTION FLOW:
+
+process.crashed
+    ↓
+RecoveryLock.acquire()
+    ↓
+Checkpoint restore
+    ↓
+runtime.restore.prepare()
+    ↓
+runtime.restart.required
+    ↓
+RuntimeRestartCoordinator
+    ↓
+runtimeManager.start(projectId)
+    ↓
+waitForPort()
+    ↓
+runtime.health.verify()
+    ↓
+PreviewLifecycleManager
+    ↓
+ready
+    ↓
+VerificationCoordinator
+    ↓
+CompletionAuthority
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED NEW COMPONENTS
+━━━━━━━━━━━━━━━━━━━━
+
+CREATE ONLY IF MISSING.
+
+1. RuntimeRestartCoordinator
+Purpose:
+- centralized restart orchestration
+- prevent duplicate restart
+- enforce retry policy
+
+Suggested location:
+server/infrastructure/runtime/restart/
+
+2. RestartStateTracker
+Purpose:
+- track restarting projects
+- prevent restart races
+
+3. RecoveryRestartBridge
+Purpose:
+- bridge RecoveryManager → RuntimeRestartCoordinator
+
+4. RestartTelemetry
+Purpose:
+- structured restart lifecycle logging
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY EXISTING SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+VERIFY:
+- RuntimeManager.start()
+- processRegistry.spawn()
+- PortManager
+- PreviewLifecycleBridge
+- RuntimeStore
+- VerificationCoordinator
+- StartupVerifier
+
+DO NOT duplicate existing runtime logic.
+
+Reuse existing infrastructure safely.
+
+━━━━━━━━━━━━━━━━━━━━
+RESTART REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENT:
+
+✅ auto restart after successful rollback
+✅ waitForPort()
+✅ runtime verification after restart
+✅ preview restoration
+✅ lifecycle sync
+✅ SSE sync
+✅ frontend realtime updates
+✅ retry protection
+✅ timeout protection
+✅ restart mutex
+✅ telemetry logging
+✅ fail-closed completion gating
+
+━━━━━━━━━━━━━━━━━━━━
+WAIT FOR PORT
+━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENT:
+waitForPort(port, timeout)
+
+Requirements:
+✅ polling
+✅ timeout
+✅ exponential backoff
+✅ safe cancellation
+✅ telemetry events
+
+DO NOT rely only on health polling.
+
+━━━━━━━━━━━━━━━━━━━━
+RESTART SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+Prevent:
+❌ infinite restart loops
+❌ duplicate starts
+❌ race conditions
+❌ stale preview state
+❌ orphaned runtime state
+❌ zombie processes
+
+IMPLEMENT:
+- max retry count
+- cooldown
+- restart mutex
+- deterministic ownership
+
+━━━━━━━━━━━━━━━━━━━━
+PREVIEW RESTORATION
+━━━━━━━━━━━━━━━━━━━━
+
+After successful restart:
+
+Emit:
+- runtime.restarting
+- runtime.ready
+- preview.restoring
+- preview.ready
+
+Verify:
+- iframe reload
+- lifecycle overlay updates
+- frontend sync
+- RuntimeStore synchronization
+
+━━━━━━━━━━━━━━━━━━━━
+FAIL-CLOSED VALIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+Completion MUST FAIL if:
+❌ runtime unhealthy
+❌ waitForPort timeout
+❌ verification fails
+❌ preview unreachable
+❌ restart exceeds retries
+
+CompletionAuthority MUST gate success.
+
+━━━━━━━━━━━━━━━━━━━━
+TELEMETRY REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Log ALL events:
+
+- restart.started
+- restart.retry
+- restart.failed
+- restart.completed
+- restart.timeout
+- restart.blocked
+- runtime.ready
+- preview.restored
+
+Include:
+- projectId
+- runId
+- retryCount
+- duration
+- failureReason
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY FULL FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Perform REAL execution verification:
+
+1. Force runtime crash
+2. Verify rollback
+3. Verify auto restart
+4. Verify waitForPort
+5. Verify preview restoration
+6. Verify SSE updates
+7. Verify RuntimeStore updates
+8. Verify frontend sync
+9. Verify CompletionAuthority gating
+10. Verify retry limits
+11. Verify no duplicate restart
+
+NO fake verification.
+
+━━━━━━━━━━━━━━━━━━━━
+CODE REVIEW REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Review:
+- architecture boundaries
+- coupling
+- retry safety
+- restart safety
+- memory safety
+- runtime ownership
+- telemetry completeness
+
+Reject:
+- hacks
+- giant files
+- duplicate runtime ownership
+- direct mutation patterns
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+AUTO_RESTART_IMPLEMENTATION_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Root Cause Analysis
+2. Exact Runtime Gap
+3. Exact Files Modified
+4. Exact Files Created
+5. Runtime Restart Architecture
+6. Restart Ownership Graph
+7. Recovery → Restart Flow
+8. waitForPort Implementation
+9. Restart Mutex Verification
+10. Retry Policy Verification
+11. Runtime Verification Results
+12. Preview Restoration Results
+13. SSE Sync Verification
+14. RuntimeStore Sync Verification
+15. CompletionAuthority Verification
+16. Telemetry Verification
+17. Crash Simulation Results
+18. Restart Success Metrics
+19. Restart Failure Handling
+20. Race Condition Prevention
+21. Production Safety Analysis
+22. Remaining Weak Areas
+23. Replit Similarity Improvement %
+24. Production Readiness Improvement %
+25. Final Runtime Lifecycle Diagram
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade runtime system from:
+
+“advanced runtime manager”
+
+TO:
+
+“fully autonomous self-healing runtime lifecycle system”
+
+with deterministic crash recovery and automatic preview restoration.

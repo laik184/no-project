@@ -43,7 +43,8 @@ import { createMemoryRouter }        from './server/api/memory.routes.ts';
 import { createFailClosedRouter }    from './server/api/fail-closed.routes.ts';
 import { initRuntimeEvents }         from './server/runtime-events/index.ts';
 import { summarizeRun, getViolations } from './server/telemetry/index.ts';
-import { initRunCleanupManager }    from './server/infrastructure/memory/run-cleanup-manager.ts';
+import { initRunCleanupManager }      from './server/infrastructure/memory/run-cleanup-manager.ts';
+import { initRecoveryRestartBridge }  from './server/infrastructure/recovery/recovery-restart-bridge.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -208,6 +209,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   initRuntimeEvents();
   // Start per-run memory cleanup — replay-safe TTL eviction of all per-run stores
   initRunCleanupManager();
+  // Wire crash recovery → autonomous runtime restart bridge
+  initRecoveryRestartBridge();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
