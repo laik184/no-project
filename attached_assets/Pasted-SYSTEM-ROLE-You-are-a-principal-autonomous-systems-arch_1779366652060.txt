@@ -1,0 +1,416 @@
+SYSTEM ROLE:
+You are a principal autonomous systems architect specializing in hallucination-resistant AI IDE infrastructure, browser automation, AST intelligence, distributed agent orchestration, security validation, and deterministic execution systems.
+
+MISSION:
+Upgrade NURA X into a near-production-grade autonomous engineering runtime with Replit/Cursor-level reliability.
+
+PRIMARY OBJECTIVES:
+1. Playwright + visual intelligence
+2. AST-based code understanding
+3. Multi-agent specialization
+4. Security validation layer
+5. Constraint/policy engine
+
+NON-NEGOTIABLE RULES:
+- HIGH COHESION
+- LOW COUPLING
+- SINGLE RESPONSIBILITY PRINCIPLE
+- MAX 250 LINES PER FILE
+- NO GOD OBJECTS
+- NO CROSS-LAYER LEAKS
+- NO HIDDEN SIDE EFFECTS
+- STRICT INTERFACE BOUNDARIES
+- COMPOSITION OVER MONOLITHS
+- VERIFY EVERYTHING
+- ZERO TRUST LLM ARCHITECTURE
+- ALL MODULES MUST BE TESTABLE
+- ALL EXECUTION MUST BE OBSERVABLE
+- ALL SYSTEMS MUST EMIT TELEMETRY
+
+==================================================
+1. PLAYWRIGHT + VISUAL INTELLIGENCE SYSTEM
+==================================================
+
+GOAL:
+Replace fake “preview healthy” checks with REAL browser intelligence.
+
+CREATE:
+
+/server/browser/
+/server/browser/runtime/
+/server/browser/checks/
+/server/browser/vision/
+/server/browser/interactions/
+
+REQUIRED MODULES:
+
+- BrowserSessionManager
+- ScreenshotAnalyzer
+- DOMStabilityChecker
+- HydrationFailureDetector
+- ConsoleErrorCollector
+- InteractionValidator
+- ResponsiveOverflowDetector
+- BlankScreenDetector
+- RouteNavigationTester
+- AssetFailureDetector
+
+RULES:
+- each validator isolated
+- one responsibility only
+- no browser logic inside orchestration
+- no direct filesystem mutations
+- browser layer only returns structured reports
+
+VALIDATION FLOW:
+
+Launch Browser
+→ Load URL
+→ Capture Screenshot
+→ Analyze DOM
+→ Detect Errors
+→ Run Interactions
+→ Generate ValidationReport
+
+REQUIRED OUTPUT:
+{
+  visualStatus,
+  hydrationStatus,
+  interactionStatus,
+  consoleErrors,
+  screenshotEvidence,
+  domSnapshot,
+  responsiveIssues
+}
+
+BLOCK COMPLETION IF:
+- blank screen
+- hydration crash
+- repeated console errors
+- invisible critical buttons
+- route navigation failure
+
+==================================================
+2. AST-BASED CODE UNDERSTANDING
+==================================================
+
+GOAL:
+Replace probabilistic file reasoning with structural code intelligence.
+
+CREATE:
+
+/server/ast/
+/server/ast/parsers/
+/server/ast/analysis/
+/server/ast/refactors/
+/server/ast/graph/
+
+REQUIRED MODULES:
+
+- ASTParser
+- ImportGraphBuilder
+- SymbolReferenceTracker
+- DependencyUsageAnalyzer
+- SideEffectDetector
+- UnsafeMutationDetector
+- DeadCodeDetector
+- CircularDependencyDetector
+- RefactorImpactAnalyzer
+
+RULES:
+- NEVER edit files via raw string matching
+- ALWAYS parse AST before modification
+- edits must preserve syntax integrity
+- all imports validated structurally
+
+REQUIRED CAPABILITIES:
+- understand exports/imports
+- trace references
+- detect unused symbols
+- validate refactor safety
+- prevent broken imports
+- detect side effects
+
+REQUIRED FLOW:
+
+Read File
+→ Parse AST
+→ Build Symbol Graph
+→ Analyze Impact
+→ Approve Edit
+→ Generate Patch
+→ Verify AST Integrity
+
+FORBIDDEN:
+- regex-based refactors
+- blind overwrite_file calls
+- unverified import insertion
+
+==================================================
+3. MULTI-AGENT SPECIALIZATION SYSTEM
+==================================================
+
+GOAL:
+Replace single overloaded agent with specialized distributed agents.
+
+CREATE:
+
+/server/agents/planner/
+/server/agents/executor/
+/server/agents/debugger/
+/server/agents/verifier/
+/server/agents/security/
+/server/agents/browser/
+/server/agents/memory/
+/server/agents/reflection/
+
+REQUIRED AGENTS:
+
+PlannerAgent:
+- DAG generation
+- dependency ordering
+- task decomposition
+
+ExecutorAgent:
+- tool execution only
+- no planning
+- no scoring
+
+VerifierAgent:
+- runtime validation
+- build validation
+- completion gating
+
+DebuggerAgent:
+- failure diagnosis
+- recovery strategy generation
+
+BrowserAgent:
+- Playwright checks
+- visual validation
+- interaction verification
+
+SecurityAgent:
+- security scanning
+- unsafe code detection
+
+MemoryAgent:
+- context retrieval
+- persistence
+- summarization
+
+ReflectionAgent:
+- retry loop analysis
+- strategy correction
+- hallucination detection
+
+RULES:
+- agents communicate only through typed contracts
+- no direct cross-agent mutations
+- orchestration layer coordinates only
+- no agent owns global state
+
+==================================================
+4. SECURITY VALIDATION LAYER
+==================================================
+
+GOAL:
+Prevent unsafe autonomous execution.
+
+CREATE:
+
+/server/security/
+/server/security/scanners/
+/server/security/policies/
+/server/security/runtime/
+
+REQUIRED DETECTORS:
+
+- SecretLeakDetector
+- UnsafeEvalDetector
+- CommandInjectionDetector
+- SSRFDetector
+- PathTraversalDetector
+- DangerousDependencyDetector
+- EnvironmentMutationDetector
+- PrivilegeEscalationDetector
+
+REQUIRED RULES:
+- block unsafe shell commands
+- block root filesystem writes
+- block .env exposure
+- block arbitrary eval
+- validate package trust
+- restrict network access
+
+SECURITY FLOW:
+
+Generated Code
+→ Security Scan
+→ Risk Score
+→ Policy Validation
+→ Allow / Block / Escalate
+
+OUTPUT:
+{
+  severity,
+  blocked,
+  reason,
+  affectedFiles,
+  remediation
+}
+
+==================================================
+5. CONSTRAINT / POLICY ENGINE
+==================================================
+
+GOAL:
+Prevent LLM from bypassing architectural rules.
+
+CREATE:
+
+/server/policies/
+/server/policies/runtime/
+/server/policies/filesystem/
+/server/policies/execution/
+/server/policies/validation/
+
+REQUIRED POLICIES:
+
+- MaxRetryPolicy
+- SafeFilesystemPolicy
+- SafeExecutionPolicy
+- VerifiedCompletionPolicy
+- ToolUsagePolicy
+- DependencyTrustPolicy
+- RuntimeHealthPolicy
+- BrowserValidationPolicy
+
+RULES:
+- policies MUST override LLM decisions
+- LLM suggestions are NEVER authoritative
+- execution blocked if policy violated
+
+REQUIRED FLOW:
+
+LLM Proposal
+→ Policy Engine
+→ Constraint Validation
+→ Allowed?
+   YES → Execute
+   NO  → Reject + Reflection Trigger
+
+FORBIDDEN:
+- task_complete without verification
+- unsafe command execution
+- unverified dependency install
+- file deletion outside sandbox
+- skipping browser validation
+
+==================================================
+6. OBSERVABILITY + EXECUTION GRAPH
+==================================================
+
+CREATE:
+
+/server/telemetry/
+/server/runtime-events/
+/server/execution-graph/
+
+REQUIRED EVENTS:
+- tool.called
+- tool.failed
+- verifier.blocked
+- runtime.crashed
+- browser.failed
+- hallucination.detected
+- retry.triggered
+- policy.blocked
+
+EXECUTION GRAPH MUST TRACK:
+- tasks
+- retries
+- failures
+- recoveries
+- validations
+- policy blocks
+- browser results
+
+GRAPH REQUIREMENTS:
+- replayable
+- causal
+- rollback-safe
+- visualizable
+
+==================================================
+7. FINAL TARGET ARCHITECTURE
+==================================================
+
+USER
+↓
+IntentRouter
+↓
+PlannerAgent
+↓
+TaskGraph
+↓
+PolicyEngine
+↓
+VerifierLayer
+↓
+ExecutorAgent
+↓
+RuntimeObserver
+↓
+ASTAnalyzer
+↓
+BrowserAgent
+↓
+SecurityAgent
+↓
+ReflectionAgent
+↓
+LearningEngine
+↓
+ScoringEngine
+↓
+CompletionGate
+
+==================================================
+8. FINAL IMPLEMENTATION RULES
+==================================================
+
+MANDATORY:
+- max 250 lines per file
+- one responsibility per file
+- typed interfaces only
+- no hidden globals
+- no circular imports
+- isolated execution domains
+- deterministic validation
+- replayable execution traces
+
+NEVER:
+- trust LLM output blindly
+- mix orchestration with business logic
+- allow verifier to execute tools
+- allow browser layer to mutate runtime
+- allow agents to bypass policies
+
+FINAL DELIVERABLES:
+- folder architecture
+- file responsibilities
+- typed contracts
+- event schemas
+- policy lifecycle
+- browser validation lifecycle
+- AST analysis lifecycle
+- security lifecycle
+- multi-agent communication flow
+- retry/recovery lifecycle
+- execution graph lifecycle
+
+Generate production-grade architecture only.
+No vague explanations.
+No giant files.
+No fake orchestration.
