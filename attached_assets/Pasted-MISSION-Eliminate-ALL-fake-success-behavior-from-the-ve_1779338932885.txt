@@ -1,0 +1,257 @@
+MISSION:
+Eliminate ALL fake-success behavior from the verification pipeline.
+
+STRICT ARCHITECTURE RULES:
+- High cohesion
+- Low coupling
+- Single responsibility per file
+- Deterministic behavior only
+- Fail-closed system
+- No hidden shared state
+- Runtime truth > LLM claims
+- No file >250 LOC
+- No mixed concerns
+- One module = one responsibility
+
+CORE BUG:
+Current system incorrectly returns:
+ok:true
+after verification exhaustion.
+
+THIS MUST NEVER HAPPEN.
+
+==================================================
+TARGET BEHAVIOR
+==================================================
+
+OLD:
+verification failed x3
+→ ok:true
+→ task marked completed
+
+NEW:
+verification failed
+→ deterministic failure state
+→ rollback trigger
+→ recovery verification
+→ run marked FAILED
+→ full evidence report returned
+
+NO EXCEPTIONS.
+
+==================================================
+ARCHITECTURE REFACTOR
+==================================================
+
+Design a fully modular fake-success elimination system.
+
+Split into isolated modules:
+
+/verification/core/
+  verification-runner.ts
+  verification-result.ts
+  verification-errors.ts
+
+/verification/policies/
+  fail-closed.policy.ts
+  retry.policy.ts
+  exhaustion.policy.ts
+
+/verification/runtime/
+  runtime-health.check.ts
+  typescript.check.ts
+  import-graph.check.ts
+  http-health.check.ts
+
+/recovery/core/
+  rollback.executor.ts
+  checkpoint.validator.ts
+  recovery-orchestrator.ts
+
+/governance/
+  failure-governor.ts
+  escalation.policy.ts
+
+/evidence/
+  evidence-log.store.ts
+  verification-evidence.ts
+
+==================================================
+MANDATORY RULES
+==================================================
+
+1. NEVER RETURN ok:true AFTER FAILURE
+
+Delete ALL logic paths where:
+- retries exhausted
+- verification incomplete
+- runtime unknown
+- checks skipped
+- partial validation passed
+
+and system still returns success.
+
+==================================================
+2. FAIL-CLOSED POLICY
+==================================================
+
+Implement centralized policy:
+
+FailClosedPolicy.decide()
+
+Rules:
+- any mandatory verification fails → FAILED
+- timeout → FAILED
+- unknown runtime state → FAILED
+- missing evidence → FAILED
+- skipped checks → FAILED
+
+No score-based success.
+Binary only:
+PASS | FAIL
+
+==================================================
+3. VERIFICATION RUNNER
+==================================================
+
+Create deterministic VerificationRunner.
+
+Responsibilities ONLY:
+- execute checks
+- collect evidence
+- aggregate binary results
+
+NO:
+- retries
+- rollback
+- LLM interaction
+- recovery logic
+
+Each check isolated.
+
+==================================================
+4. REAL TYPESCRIPT VALIDATION
+==================================================
+
+REMOVE:
+log scanning.
+
+ADD:
+actual subprocess:
+
+tsc --noEmit
+
+Requirements:
+- exit code required
+- stderr captured
+- timeout protection
+- structured result object
+
+==================================================
+5. RUNTIME TRUTH VALIDATION
+==================================================
+
+Verification success REQUIRES:
+
+- process alive
+- HTTP stable
+- import graph valid
+- TypeScript valid
+- no fatal logs
+- runtime state VERIFIED
+
+No inferred state allowed.
+
+==================================================
+6. EXHAUSTION POLICY
+==================================================
+
+If retries exhausted:
+
+OLD:
+return ok:true
+
+NEW:
+throw VerificationExhaustedError
+
+Then:
+- RecoveryOrchestrator invoked
+- rollback required
+- post-rollback verification required
+- run marked FAILED if verification still fails
+
+==================================================
+7. ROLLBACK VALIDATION
+==================================================
+
+Rollback success requires:
+- file hashes restored
+- process starts
+- HTTP healthy
+- tsc passes
+
+Rollback metadata alone is NOT enough.
+
+==================================================
+8. EVIDENCE SYSTEM
+==================================================
+
+Every verification check must generate evidence:
+
+interface VerificationEvidence {
+  checkId: string;
+  timestamp: number;
+  passed: boolean;
+  rawOutput: string;
+  durationMs: number;
+}
+
+NO success without evidence.
+
+==================================================
+9. GOVERNANCE RULES
+==================================================
+
+FailureGovernor responsibilities:
+- prevent fake completion
+- detect repeated failed verification
+- block unsafe continuation
+- escalate unstable runs
+
+==================================================
+10. FILE DESIGN RULES
+==================================================
+
+MAX 250 LOC per file.
+
+Each file:
+- one responsibility only
+- explicit exports only
+- no circular imports
+- dependency inversion where needed
+- interfaces separated from implementation
+
+==================================================
+11. OUTPUT REQUIRED
+==================================================
+
+Generate:
+
+1. Folder structure
+2. Module responsibilities
+3. Interfaces/types
+4. Execution flow
+5. Fail-closed lifecycle
+6. Verification pipeline
+7. Rollback lifecycle
+8. Evidence flow
+9. Governance flow
+10. Example TypeScript implementations
+
+Focus ONLY on:
+fake-success elimination architecture.
+
+No generic AI discussion.
+No marketing language.
+No monoliths.
+No giant files.

@@ -1,0 +1,193 @@
+MISSION: REMOVE ALL FAKE SUCCESS PATHS FROM THE SYSTEM.
+
+ARCHITECTURE RULES:
+- High Cohesion
+- Low Coupling
+- Fail-Closed Only
+- Single Responsibility Per File
+- Deterministic Verification
+- Runtime Truth > LLM Claims
+- No Cross-Module Hidden State
+- Small Focused Files Only
+- Max 250 LOC per file
+- Clear Boundaries
+- Observable State Transitions
+- Immutable Verification Results
+
+PRIMARY GOAL:
+The system must NEVER report success unless success is externally verified.
+
+==================================================
+CORE BUG
+==================================================
+
+Current bad flow:
+
+verification_failed
+→ retries_exhausted
+→ ok:true
+→ fake success returned
+
+This must be fully eliminated.
+
+==================================================
+TARGET BEHAVIOR
+==================================================
+
+New flow:
+
+verification_failed
+→ retry budget exhausted
+→ RecoveryOrchestrator.trigger()
+→ rollback()
+→ mark FAILED
+→ generate evidence report
+→ stop execution
+
+NEVER:
+- return ok:true after failed verification
+- silently continue
+- degrade to warning state
+- trust LLM self-completion
+
+==================================================
+SYSTEM REDESIGN REQUIREMENTS
+==================================================
+
+1. Create a strict fail-closed verification pipeline.
+
+2. Separate responsibilities into isolated modules.
+
+3. Each file must handle ONE responsibility only.
+
+4. Max 250 LOC per file.
+
+5. No verification logic inside:
+- planners
+- agents
+- tool routers
+- memory managers
+
+Verification must exist ONLY inside:
+- VerificationEngine
+- RuntimeTruthEngine
+
+==================================================
+MODULE STRUCTURE
+==================================================
+
+Create/refactor these modules:
+
+/verification/
+  verification-engine.ts
+  verification-result.ts
+  verification-errors.ts
+  verification-policy.ts
+
+/runtime-truth/
+  runtime-truth-engine.ts
+  runtime-observer.ts
+  runtime-assertions.ts
+
+/recovery/
+  recovery-orchestrator.ts
+  rollback-manager.ts
+  checkpoint-validator.ts
+
+/governance/
+  fail-closed-policy.ts
+  execution-guard.ts
+
+==================================================
+REQUIRED RULES
+==================================================
+
+RULE 1:
+Verification exhaustion MUST return FAILED.
+
+RULE 2:
+No warning-based success states allowed.
+
+RULE 3:
+All verification outcomes immutable.
+
+RULE 4:
+VerificationEngine is sole authority for completion.
+
+RULE 5:
+LLM cannot self-mark task complete.
+
+RULE 6:
+RuntimeTruthEngine must verify:
+- process alive
+- HTTP stable
+- TypeScript compile
+- import graph valid
+
+RULE 7:
+Rollback required before final failure state.
+
+RULE 8:
+Every failure must generate:
+- evidence log
+- runtime snapshot
+- failure classification
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+1. Remove all:
+- ok:true fallbacks
+- exhausted-but-successful paths
+- warning success states
+
+2. Add explicit result enum:
+
+VerificationStatus:
+- VERIFIED
+- FAILED
+- ROLLED_BACK
+- BLOCKED
+- UNKNOWN
+
+3. Add deterministic state transitions only.
+
+4. Add immutable VerificationResult objects.
+
+5. Add evidence-based completion gates.
+
+==================================================
+OUTPUT REQUIREMENTS
+==================================================
+
+Generate:
+
+1. New architecture
+2. File-by-file responsibilities
+3. Execution flow
+4. State machine
+5. Failure lifecycle
+6. Rollback lifecycle
+7. Verification lifecycle
+8. Refactored module map
+9. Dependency graph
+10. Type-safe interfaces
+11. Runtime truth flow
+12. Governance enforcement flow
+
+IMPORTANT:
+- Keep every file under 250 LOC
+- High cohesion
+- Low coupling
+- No God files
+- No mixed responsibilities
+- No hidden shared mutable state
+- Use dependency injection where needed
+- Prefer composition over inheritance
+
+FINAL RULE:
+
+If verification fails,
+the system MUST fail visibly,
+not succeed politely.
