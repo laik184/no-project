@@ -138,3 +138,9 @@ id = "wMId70roQYDe6mihKorCK"
 uri = "file://AGENTIC_AI_BLUEPRINT.md"
 type = "text"
 title = "🔵 HVP Blueprint — Agentic Vibe Coder AI (Complete Guide)"
+
+[[outputs]]
+id = "EyHm9abGw_Xl9ksgim3O9"
+uri = "file://REFACTOR_REPORT.md"
+type = "text"
+title = "NURA-X Refactor Report"
