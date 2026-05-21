@@ -1,64 +1,115 @@
 /**
- * typescript-validator.ts
+ * server/verification/runtime/typescript-validator.ts
  *
- * Scan recent log lines for TypeScript compile errors.
+ * Real TypeScript validation via deterministic compiler execution.
+ * Replaces the previous log-scanning / regex-heuristic approach entirely.
  *
- * Detects patterns like:
- *   - "error TS2345: Argument of type..."
- *   - "error TS2307: Cannot find module..."
- *   - "Type 'X' is not assignable to type 'Y'"
- *   - "Property 'X' does not exist on type 'Y'"
+ * GUARANTEE: "passed" is returned if and only if `tsc --noEmit` exits 0.
+ *            No log scanning. No hot-reload assumptions. No regex heuristics.
  *
- * Ownership: verification/runtime — TS error detection only. Pure, no I/O.
+ * Ownership: verification/runtime — adapter between the new TS verification
+ * subsystem and the legacy CheckResult interface expected by the engine.
  */
 
-import { logBuffer }        from "../../runtime/observer/log-buffer.ts";
-import type { CheckResult } from "../types.ts";
+import path from "path";
+import { verifyTypeScript }       from "../typescript/index.ts";
+import { VerificationResultParser } from "../typescript/result-parser.ts";
+import type { CheckResult }        from "../types.ts";
 
-// ─── Patterns ─────────────────────────────────────────────────────────────────
+const DEFAULT_WORKSPACE = process.cwd();
+const TIMEOUT_MS        = 45_000;
+const MAX_RETRIES       = 1;
 
-const TS_ERROR_PATTERNS: RegExp[] = [
-  /error TS\d+:/i,
-  /typescript.*error/i,
-  /type '\S+' is not assignable/i,
-  /property '\S+' does not exist on type/i,
-  /cannot find module/i,
-  /does not satisfy the constraint/i,
-  /has no exported member/i,
-  /argument of type '\S+' is not assignable/i,
-  /object is possibly 'undefined'/i,
-  /object is possibly 'null'/i,
-  /compilation.*failed/i,
-  /\berror\b.*\.ts\(\d+,\d+\)/i,
-];
+const _parser = new VerificationResultParser();
 
-const LOG_TAIL = 80;
+// ─── Public API (matches legacy signature) ────────────────────────────────────
 
-// ─── Validator ────────────────────────────────────────────────────────────────
-
-export async function checkTypeScript(projectId: number): Promise<CheckResult> {
-  const lines = logBuffer.tail(projectId, LOG_TAIL);
-  const tsErrors: string[] = [];
-
-  for (const { text } of lines) {
-    if (TS_ERROR_PATTERNS.some(p => p.test(text))) {
-      tsErrors.push(text.slice(0, 200));
-      if (tsErrors.length >= 5) break; // cap
-    }
+export async function checkTypeScript(
+  _projectId: number,
+  workspacePath: string = DEFAULT_WORKSPACE
+): Promise<CheckResult> {
+  let result;
+  try {
+    result = await verifyTypeScript({
+      workspacePath,
+      timeoutMs:  TIMEOUT_MS,
+      maxRetries: MAX_RETRIES,
+      skipCache:  false,
+    });
+  } catch (err) {
+    // Hard crash in the orchestrator itself — treat as CORRUPTED, not passed
+    return {
+      name:    "typescript_errors",
+      status:  "failed",
+      message: "TypeScript verification subsystem threw unexpectedly.",
+      detail:  String(err),
+    };
   }
 
-  if (tsErrors.length === 0) {
+  // ── PASSED ────────────────────────────────────────────────────────────────
+  if (result.passed) {
+    const notice = result.warningCount > 0
+      ? ` (${result.warningCount} warning(s) present)`
+      : "";
     return {
       name:    "typescript_errors",
       status:  "passed",
-      message: "No TypeScript compile errors detected in recent logs.",
+      message: `TypeScript compilation passed — tsc --noEmit exited 0${notice}.`,
     };
   }
+
+  // ── CANCELLED ─────────────────────────────────────────────────────────────
+  if (result.state === "CANCELLED") {
+    return {
+      name:    "typescript_errors",
+      status:  "failed",
+      message: "TypeScript verification was cancelled.",
+      detail:  "Re-run verification once the agent completes its current action.",
+    };
+  }
+
+  // ── TIMEOUT ───────────────────────────────────────────────────────────────
+  if (result.state === "TIMEOUT") {
+    return {
+      name:    "typescript_errors",
+      status:  "failed",
+      message: `TypeScript verification timed out after ${TIMEOUT_MS / 1000}s.`,
+      detail:  "The project may have an unusually large type graph. Consider splitting tsconfig files.",
+    };
+  }
+
+  // ── CORRUPTED ─────────────────────────────────────────────────────────────
+  if (result.state === "CORRUPTED") {
+    return {
+      name:    "typescript_errors",
+      status:  "failed",
+      message: "TypeScript compiler produced unparseable output.",
+      detail:  result.failureReason ?? "Output could not be parsed into typed diagnostics.",
+    };
+  }
+
+  // ── No tsconfig found ─────────────────────────────────────────────────────
+  if (!result.tsconfigPath) {
+    return {
+      name:    "typescript_errors",
+      status:  "failed",
+      message: "No tsconfig.json found in workspace.",
+      detail:  `Add a tsconfig.json to ${workspacePath}.`,
+    };
+  }
+
+  // ── FAILED with diagnostics ───────────────────────────────────────────────
+  const errors = result.diagnostics.filter(d => d.severity === "error");
+  const summary = _parser.summarise(result.diagnostics, 8);
 
   return {
     name:    "typescript_errors",
     status:  "failed",
-    message: `${tsErrors.length} TypeScript error(s) detected.`,
-    detail:  `Errors:\n${tsErrors.map(e => `  • ${e}`).join("\n")}\nFix these type errors and restart the server.`,
+    message: `${errors.length} TypeScript error(s) detected — tsc --noEmit exited ${result.execution.exitCode}.`,
+    detail:  [
+      "Fix all type errors before marking the task complete.",
+      "",
+      summary,
+    ].join("\n"),
   };
 }
