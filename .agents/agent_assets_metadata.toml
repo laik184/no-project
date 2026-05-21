@@ -144,3 +144,9 @@ id = "EyHm9abGw_Xl9ksgim3O9"
 uri = "file://REFACTOR_REPORT.md"
 type = "text"
 title = "NURA-X Refactor Report"
+
+[[outputs]]
+id = "Kzf42JJZgEurJRXTfSfA1"
+uri = "file://RUNTIME_MANAGER_XRAY_REPORT.md"
+type = "text"
+title = "Runtime Manager X-Ray Report"
