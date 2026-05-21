@@ -114,3 +114,9 @@ id = "jrvfD20UKsRBd1bh_8hjk"
 uri = "file://NURA_X_FAIL_CLOSED_ARCHITECTURE.md"
 type = "text"
 title = "NURA X — Fail-Closed Verification Architecture"
+
+[[outputs]]
+id = "pQahsFSMMDoh_KdnEFFq_"
+uri = "file://NURA_X_IMPLEMENTATION_SPEC.md"
+type = "text"
+title = "NURA X — Fail-Closed Implementation Specification"
