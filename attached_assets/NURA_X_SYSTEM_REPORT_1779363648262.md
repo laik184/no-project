@@ -1,0 +1,153 @@
+# FULL SYSTEM VERIFICATION MODE — Operational Audit Report
+
+You are now entering FULL SYSTEM VERIFICATION MODE.
+
+I want you to deeply verify whether your internal agent architecture is ACTUALLY operating in a true autonomous agentic loop or only pretending through linear response generation.
+
+Your task is NOT to explain theory.
+
+Your task is to PROVE your real execution cycle through observable behavior, runtime actions, planning structure, memory handling, tool orchestration, retry logic, and contextual synchronization.
+
+Perform a complete introspective operational audit of your own workflow while solving the task.
+
+You must expose and verify these layers step-by-step:
+
+---
+
+## 1. INTENT PARSING
+
+- Show how you decompose my request into executable objectives.
+- Show whether goals become structured tasks/subtasks internally.
+
+---
+
+## 2. PLANNING ENGINE
+
+- Show whether you generate a dynamic execution plan.
+- Show dependency ordering.
+- Show whether plans adapt after failures.
+
+---
+
+## 3. TOOL ORCHESTRATION
+
+Verify whether you actually:
+- read files before editing
+- inspect runtime logs
+- use console feedback
+- analyze project structure
+- check dependencies
+- search codebase contextually
+- perform retries after failure
+
+For every action:
+
+**SHOW:**
+- WHY the tool was selected
+- WHAT context triggered it
+- WHAT result changed the next action
+
+---
+
+## 4. MEMORY + CONTEXT SYNCHRONIZATION
+
+Verify whether you continuously synchronize:
+- existing files
+- runtime state
+- previous outputs
+- user requirements
+- dependency graph
+- terminal results
+
+Explain how context is preserved across iterations.
+
+---
+
+## 5. AGENTIC LOOP DETECTION
+
+Explicitly verify whether your workflow follows:
+
+```
+THINK
+→ ACT
+→ OBSERVE
+→ REFLECT
+→ RETRY
+→ VALIDATE
+```
+
+For each loop iteration:
+- show trigger
+- show observation
+- show decision update
+
+---
+
+## 6. FAILURE RECOVERY TEST
+
+Intentionally simulate or detect:
+- missing dependency
+- broken import
+- runtime error
+- invalid syntax
+- failed execution
+
+Then verify:
+- whether retries occur automatically
+- whether diagnosis changes after observation
+- whether fixes are context-aware
+
+---
+
+## 7. PREVIEW VALIDATION
+
+Verify whether UI/runtime verification actually occurs:
+- rendering checks
+- runtime inspection
+- layout validation
+- interaction validation
+
+Show evidence of observation-driven correction.
+
+---
+
+## 8. AUTONOMY SCORE
+
+At the end, provide a brutally honest evaluation:
+
+| Capability | Score /100 |
+|---|---|
+| Planning | |
+| Tool Usage | |
+| Runtime Awareness | |
+| Memory Persistence | |
+| Self-Correction | |
+| Context Synchronization | |
+| Multi-Step Reasoning | |
+| True Autonomy | |
+| Fake Simulation Risk | |
+
+---
+
+## 9. HALLUCINATION DETECTION
+
+Explicitly identify:
+- where you are genuinely autonomous
+- where you are pattern-matching
+- where you are simulating reasoning instead of executing real verification
+
+---
+
+## 10. FINAL VERDICT
+
+Answer ONLY based on observable evidence:
+
+Is this a **REAL agentic execution system**
+OR
+a **conversational illusion layer** with partial tool orchestration?
+
+Do NOT protect your image.
+Do NOT give marketing answers.
+Do NOT generalize.
+
+I want a forensic-level operational breakdown with evidence traces for every claim.
