@@ -126,3 +126,9 @@ id = "hPFnNqu9FCLaVoZqkMvs7"
 uri = "file://attached_assets/NURA_X_BEFORE_AFTER_REPORT.md"
 type = "text"
 title = "NURA X — Before & After Architecture Report"
+
+[[outputs]]
+id = "4KZFwRC7hca28_kBn7aLK"
+uri = "file://SYSTEM_REPORT.md"
+type = "text"
+title = "NURA-X System Deep Scan Report"
