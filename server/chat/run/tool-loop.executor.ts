@@ -7,28 +7,15 @@
  * it automatically compresses context and continues rather than failing
  * permanently.
  *
- * ── Memory integration ────────────────────────────────────────────────────────
- *
- * BEFORE the loop:
- *   MemoryManager.loadContext() reads .nura/ files and returns a compressed
- *   context string injected into the LLM as memoryContext.
- *   Returns null on the very first run for a project (no-op).
- *
- * AFTER the loop (all fire-and-forget — never block or crash the run):
- *   1. saveRunSummary()      → run-history.jsonl, context.md, architecture.md,
- *                              decisions.json, failures.json
- *   2. persistConversation() → chat_messages DB table (user goal + assistant
- *                              text turns, enables session replay in the UI)
- *   3. trackTaskOutcome()    → tasks.md
- *                              success  → appends ✅ Done entry
- *                              max_steps → appends ⏳ Pending entry so the
- *                              agent resumes the task on the next run
+ * After the loop: writes ExecutionStats to the registry so the orchestration
+ * engine can run real post-execution engines (reflection, scoring, learning).
  */
 
 import { runAgentLoopWithContinuation } from "../../agents/core/tool-loop/index.ts";
 import { ensureProjectDir }             from "../../infrastructure/sandbox/sandbox.util.ts";
 import { emitAgentEvent, withRunLifecycle } from "./run-lifecycle.ts";
 import { MemoryManager }                from "../../agents/memory/index.ts";
+import { storeExecutionStats }          from "../../orchestration/execution/execution-result-registry.ts";
 import type { RunHandle, RunInput }     from "./types.ts";
 
 const DEFAULT_MAX_STEPS        = 25;
@@ -63,67 +50,88 @@ export async function executeToolLoopRun(handle: RunHandle, input: RunInput): Pr
 
     if (memoryContext) {
       emitAgentEvent({
-        runId,
-        projectId,
+        runId, projectId,
         phase:     "tool-loop",
         eventType: "agent.thinking" as any,
-        payload:   {
-          text: `[memory] Project context loaded — architecture, decisions, pending tasks, and run history injected.`,
-        },
+        payload:   { text: `[memory] Project context loaded — architecture, decisions, pending tasks, and run history injected.` },
         ts: Date.now(),
       });
     }
 
     // ── Execute agent loop ────────────────────────────────────────────────────
     const result = await runAgentLoopWithContinuation(
-      {
-        projectId,
-        runId,
-        goal:          input.goal,
-        systemPrompt:  input.systemPrompt,
-        maxSteps,
-        memoryContext: memoryContext ?? undefined,
-      },
+      { projectId, runId, goal: input.goal, systemPrompt: input.systemPrompt,
+        maxSteps, memoryContext: memoryContext ?? undefined },
       { maxContinuations },
     );
 
+    // ── Compute tool call stats from message history ──────────────────────────
+    const { totalToolCalls, unknownToolCalls, failedToolCalls } =
+      extractToolStats(result.messages ?? []);
+
+    // ── Publish execution stats for post-execution engines ────────────────────
+    // Fire-and-forget: never block or crash the run.
+    storeExecutionStats({
+      runId, projectId,
+      goal:                input.goal,
+      success:             result.success,
+      totalSteps:          result.steps,
+      stopReason:          result.stopReason,
+      summary:             result.summary,
+      verificationRetries: 0,   // retry controller tracks this separately
+      totalToolCalls,
+      unknownToolCalls,
+      failedToolCalls,
+      messages:            result.messages ?? [],
+      error:               result.error,
+    });
+
     // ── Persist memory — all fire-and-forget ──────────────────────────────────
-    // None of these may throw or affect the run outcome.
-
-    // 1. .nura/ file-system memory (run log, architecture, decisions, failures)
     void memory.saveRunSummary(runId, input.goal, result);
-
-    // 2. DB conversation persistence (chat_messages table → UI session replay)
     void memory.persistConversation(runId, input.goal, result.messages);
-
-    // 3. tasks.md tracking (pending tasks visible to next run)
     void memory.trackTaskOutcome(runId, input.goal, result);
 
     emitAgentEvent({
-      runId,
-      projectId,
+      runId, projectId,
       phase:     "tool-loop",
       eventType: result.success ? "phase.completed" : "phase.failed",
       payload:   {
-        steps:             result.steps,
-        stopReason:        result.stopReason,
-        summary:           result.summary,
-        error:             result.error,
-        memoryLoaded:      !!memoryContext,
-        memoryWritten:     true,
-        conversationSaved: true,
+        steps: result.steps, stopReason: result.stopReason,
+        summary: result.summary, error: result.error,
+        memoryLoaded: !!memoryContext, memoryWritten: true, conversationSaved: true,
       },
       ts: Date.now(),
     });
 
     return {
       success: result.success,
-      result:  {
-        steps:      result.steps,
-        stopReason: result.stopReason,
-        summary:    result.summary,
-        error:      result.error,
-      },
+      result:  { steps: result.steps, stopReason: result.stopReason,
+                 summary: result.summary, error: result.error },
     };
   });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function extractToolStats(messages: unknown[]): {
+  totalToolCalls:   number;
+  unknownToolCalls: number;
+  failedToolCalls:  number;
+} {
+  let totalToolCalls = 0, unknownToolCalls = 0, failedToolCalls = 0;
+
+  for (const msg of messages as any[]) {
+    if (msg?.role === "tool") {
+      totalToolCalls++;
+      try {
+        const parsed = JSON.parse(msg.content ?? "{}");
+        if (parsed?.ok === false) {
+          if (/unknown tool/i.test(parsed?.error ?? "")) unknownToolCalls++;
+          else failedToolCalls++;
+        }
+      } catch { /* non-JSON tool result — count as success */ }
+    }
+  }
+
+  return { totalToolCalls, unknownToolCalls, failedToolCalls };
 }
