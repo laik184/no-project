@@ -38,8 +38,9 @@ import { createImportRouter } from './server/api/import/import.routes.ts';
 import { runtimeStore }             from './server/infrastructure/runtime/runtime-store/runtime-store.ts';
 import { createRuntimeSyncRouter }  from './server/infrastructure/runtime/runtime-store/runtime-sync.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { createTruthEngineRouter } from './server/api/truth-engine.routes.ts';
-import { createMemoryRouter }      from './server/api/memory.routes.ts';
+import { createTruthEngineRouter }   from './server/api/truth-engine.routes.ts';
+import { createMemoryRouter }        from './server/api/memory.routes.ts';
+import { createFailClosedRouter }    from './server/api/fail-closed.routes.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -82,8 +83,9 @@ app.use('/api/checkpoints', createCheckpointsRouter());
 app.use('/api/chat', chatOrchestrator.buildChatRouter());
 app.use('/api/import', createImportRouter());
 app.use('/api/orchestration', createOrchestrationRouter());
-app.use('/api/truth', createTruthEngineRouter());
+app.use('/api/truth',  createTruthEngineRouter());
 app.use('/api/memory', createMemoryRouter());
+app.use('/api/verify', createFailClosedRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
