@@ -102,3 +102,9 @@ id = "SV88h4ipliRDwEw6FHPnF"
 uri = "file://NURA_X_AGENTS_FOLDER_REPORT.md"
 type = "text"
 title = "NURA X — Agents Folder Deep Scan Report"
+
+[[outputs]]
+id = "JTJ2OGkDYWDUJNbclTbrj"
+uri = "file://NURA_X_RELIABILITY_ARCHITECTURE.md"
+type = "text"
+title = "NURA X — Maximum Reliability Architecture"
