@@ -120,3 +120,9 @@ id = "pQahsFSMMDoh_KdnEFFq_"
 uri = "file://NURA_X_IMPLEMENTATION_SPEC.md"
 type = "text"
 title = "NURA X — Fail-Closed Implementation Specification"
+
+[[outputs]]
+id = "hPFnNqu9FCLaVoZqkMvs7"
+uri = "file://attached_assets/NURA_X_BEFORE_AFTER_REPORT.md"
+type = "text"
+title = "NURA X — Before & After Architecture Report"
