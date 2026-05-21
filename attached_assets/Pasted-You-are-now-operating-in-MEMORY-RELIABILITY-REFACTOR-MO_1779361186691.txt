@@ -1,0 +1,499 @@
+You are now operating in MEMORY RELIABILITY REFACTOR MODE.
+
+Your task is to redesign and implement a production-grade memory architecture for an autonomous AI agent system.
+
+PRIMARY GOAL:
+Eliminate hallucination propagation caused by unverified memory injection.
+
+Target:
+Transform the current memory system into a deterministic, evidence-driven, Replit-level reliability architecture using strict separation between VERIFIED facts and AGENT claims.
+
+==================================================
+CRITICAL ENGINEERING RULES
+==================================================
+
+STRICTLY FOLLOW:
+
+- Every file MUST remain under 250 LOC
+- High cohesion
+- Low coupling
+- No God files
+- No mixed responsibilities
+- No hidden shared mutable state
+- Use dependency injection where needed
+- Prefer composition over inheritance
+- Functional/core architecture preferred
+- Immutable data wherever possible
+- Explicit interfaces/contracts only
+- No singleton global stores
+- Every module must have ONE responsibility
+- Every dependency must be explicit
+- No magic implicit state sharing
+- No circular dependencies
+- All writes append-only unless explicitly transactional
+- Event-driven communication preferred
+- Fail-closed architecture only
+
+==================================================
+CURRENT PROBLEM
+==================================================
+
+Current memory system is unsafe because:
+
+- LLM claims are treated as truth
+- Unverified assumptions persist across runs
+- Context compression introduces hallucinated summaries
+- Stale memories contaminate future execution
+- Memory has no integrity verification
+- Agent-written history becomes canonical truth
+- No distinction between:
+  - observed reality
+  - inferred assumptions
+  - speculative claims
+  - verified runtime evidence
+
+This creates recursive hallucination amplification.
+
+==================================================
+TARGET MEMORY ARCHITECTURE
+==================================================
+
+Design and implement a complete memory subsystem with STRICT separation:
+
+1. VERIFIED_FACTS_STORE
+2. AGENT_CLAIMS_STORE
+3. IMMUTABLE_EVENT_LOG
+4. CONTEXT_VERIFICATION_LAYER
+5. MEMORY_RETRIEVAL_ENGINE
+6. MEMORY_EXPIRATION_ENGINE
+7. CONTRADICTION_DETECTOR
+8. FACT_PROMOTION_PIPELINE
+9. MEMORY_GOVERNANCE_LAYER
+
+==================================================
+SECTION 1 — VERIFIED FACTS STORE
+==================================================
+
+Requirements:
+
+ONLY runtime/tool verified information may enter VERIFIED_FACTS.
+
+Facts MUST require evidence.
+
+Examples:
+- "server running"
+- "auth route returns 200"
+- "file exists"
+- "TypeScript passes"
+- "package installed"
+
+Each fact MUST contain:
+
+```ts
+type VerifiedFact = {
+  id: string
+  key: string
+  value: unknown
+  evidenceIds: string[]
+  verifiedAt: number
+  verifier: string
+  confidence: 1.0
+  checksum: string
+  expiresAt?: number
+}
+
+Rules:
+
+Facts immutable after creation
+
+Facts never written directly by LLM
+
+Facts only promoted through verification pipeline
+
+Facts require multi-source verification
+
+Facts must support contradiction invalidation
+
+
+================================================== SECTION 2 — AGENT CLAIMS STORE
+
+This store contains:
+
+assumptions
+
+speculative reasoning
+
+inferred architecture beliefs
+
+incomplete work
+
+temporary hypotheses
+
+
+Claims are NEVER trusted.
+
+Example:
+
+"authentication probably complete"
+
+"frontend likely fixed"
+
+"this package should work"
+
+
+Each claim MUST contain:
+
+type AgentClaim = {
+  id: string
+  claim: string
+  createdAt: number
+  sourceRunId: string
+  confidence: number
+  verificationStatus:
+    | "unverified"
+    | "verified"
+    | "contradicted"
+    | "expired"
+  relatedEvidenceIds: string[]
+}
+
+Rules:
+
+Claims expire automatically
+
+Claims cannot become facts directly
+
+Claims require verification promotion
+
+Claims injected into prompts ONLY with explicit markers: [CLAIM — UNVERIFIED]
+
+
+================================================== SECTION 3 — FACT PROMOTION PIPELINE
+
+Build deterministic promotion pipeline:
+
+CLAIM → observation request → tool execution → evidence collection → validation → fact promotion → immutable fact creation
+
+Rules:
+
+no direct promotion
+
+no LLM self-verification
+
+all promotions externally validated
+
+failed verification marks claim contradicted
+
+
+================================================== SECTION 4 — IMMUTABLE EVENT LOG
+
+Implement append-only event sourcing.
+
+Every memory action becomes immutable event:
+
+type MemoryEvent =
+  | FactVerified
+  | ClaimCreated
+  | ClaimExpired
+  | ClaimContradicted
+  | FactInvalidated
+  | ContextBuilt
+  | VerificationExecuted
+
+Requirements:
+
+hash-chained events
+
+replayable
+
+append-only
+
+tamper evident
+
+deterministic reconstruction
+
+
+================================================== SECTION 5 — MEMORY RETRIEVAL ENGINE
+
+Current problem: memory pollution.
+
+Redesign retrieval with:
+
+scoped retrieval
+
+freshness scoring
+
+confidence weighting
+
+contradiction filtering
+
+checksum validation
+
+namespace isolation
+
+project-local context
+
+task-local retrieval
+
+
+Requirements:
+
+retrieval NEVER returns contradicted claims
+
+stale claims excluded
+
+verified facts prioritized
+
+retrieval deterministic
+
+no semantic drift injection
+
+
+================================================== SECTION 6 — MEMORY EXPIRATION ENGINE
+
+Implement automatic expiration.
+
+Rules:
+
+unverified claims expire quickly
+
+stale facts require revalidation
+
+old context decays
+
+expired claims excluded from retrieval
+
+
+Support:
+
+TTL policies
+
+freshness windows
+
+confidence decay
+
+inactivity expiration
+
+
+================================================== SECTION 7 — CONTRADICTION DETECTOR
+
+Implement contradiction engine.
+
+Examples:
+
+claim says "server healthy"
+
+runtime says "process crashed"
+
+
+→ claim becomes contradicted.
+
+Rules:
+
+contradiction invalidates trust
+
+contradicted memories quarantined
+
+contradiction events immutable
+
+future retrieval excludes contradictions
+
+
+================================================== SECTION 8 — CONTEXT BUILDING ENGINE
+
+Current issue: unsafe context injection.
+
+Build deterministic context assembly:
+
+Priority:
+
+1. VERIFIED_FACTS
+
+
+2. RECENT_RUNTIME_OBSERVATIONS
+
+
+3. ACTIVE_TASK_CONTEXT
+
+
+4. UNVERIFIED_CLAIMS (explicitly labeled)
+
+
+
+Rules:
+
+no hidden context merging
+
+every injected item traceable
+
+every context block checksum validated
+
+context must support provenance tracing
+
+
+================================================== SECTION 9 — MEMORY GOVERNANCE LAYER
+
+Implement governance protections:
+
+Detect:
+
+stale memory reuse
+
+recursive hallucination
+
+self-confirmation loops
+
+contradictory state
+
+memory explosion
+
+context drift
+
+
+Add:
+
+confidence thresholds
+
+retrieval limits
+
+provenance scoring
+
+replay validation
+
+memory audits
+
+
+================================================== SECTION 10 — HIGH COHESION / LOW COUPLING
+
+MANDATORY ARCHITECTURE RULES:
+
+Every module:
+
+single responsibility
+
+explicit interfaces
+
+no shared mutable globals
+
+injected dependencies only
+
+isolated storage access
+
+deterministic outputs
+
+
+REQUIRED STRUCTURE:
+
+memory/ facts/ claims/ events/ retrieval/ expiration/ verification/ governance/ context/ contracts/ infrastructure/
+
+Each folder:
+
+max 1 responsibility
+
+no cross-layer leakage
+
+composition-based design
+
+
+================================================== SECTION 11 — FILE SIZE CONSTRAINTS
+
+STRICT:
+
+every file under 250 LOC
+
+split aggressively
+
+no giant managers
+
+no monolithic services
+
+extract validators/helpers
+
+isolate policies from storage
+
+isolate orchestration from domain logic
+
+
+================================================== SECTION 12 — OUTPUT REQUIREMENTS
+
+Provide:
+
+1. Full folder architecture
+
+
+2. File-by-file responsibilities
+
+
+3. Interfaces/contracts
+
+
+4. Event schemas
+
+
+5. Fact promotion lifecycle
+
+
+6. Claim invalidation lifecycle
+
+
+7. Context assembly flow
+
+
+8. Dependency graph
+
+
+9. Anti-hallucination safeguards
+
+
+10. Expiration strategies
+
+
+11. Governance policies
+
+
+12. Replay architecture
+
+
+13. Verification pipelines
+
+
+14. Example implementations
+
+
+15. Example event flows
+
+
+16. Suggested tests
+
+
+17. Migration strategy
+
+
+18. Failure-mode analysis
+
+
+19. Concurrency handling
+
+
+20. Deterministic retrieval model
+
+
+
+IMPORTANT: Do NOT generate vague architecture prose.
+
+Generate:
+
+real engineering structure
+
+production-grade modular architecture
+
+strongly separated responsibilities
+
+deterministic flows
+
+operational safeguards
+
+implementation-oriented design
+
+
+The result should feel like a senior staff engineer designing the memory core of a next-generation autonomous AI IDE.
