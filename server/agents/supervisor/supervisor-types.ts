@@ -11,7 +11,10 @@ export type AgentRole =
   | "verification"
   | "recovery"
   | "memory"
-  | "review";
+  | "review"
+  | "coordination"
+  | "reflection"
+  | "browser";
 
 export type AgentStatus = "idle" | "busy" | "waiting" | "terminated" | "error";
 
@@ -123,6 +126,9 @@ export const ROLE_TOKEN_BUDGETS: Record<AgentRole, number> = {
   recovery:     8_000,
   memory:       4_000,
   review:       6_000,
+  coordination: 2_000,
+  reflection:   6_000,
+  browser:      4_000,
 };
 
 /** Tools each agent role is allowed to use. */
@@ -134,4 +140,7 @@ export const ROLE_ALLOWED_TOOLS: Record<AgentRole, string[]> = {
   recovery:     ["write_file", "read_file", "shell_exec", "install_package", "task_complete"],
   memory:       ["memory_update", "task_complete"],
   review:       ["read_file", "list_dir", "search_code", "task_complete"],
+  coordination: ["task_complete"],
+  reflection:   ["read_file", "memory_update", "task_complete"],
+  browser:      ["shell_exec", "task_complete"],
 };
