@@ -13,6 +13,7 @@ import { buildRollbackPlan, executeRollback, skipBlockedNodes } from "./rollback
 import { createCheckpoint, prepareReplay }      from "./graph-state.ts";
 import { setGraphStatus, hasCriticalFailure, isGraphComplete, graphSummary, setNodeStatus } from "./execution-graph.ts";
 import { bus }                                  from "../../infrastructure/events/bus.ts";
+import { WaveAggregator }                       from "../../quantum/aggregation/index.ts";
 import type { ExecutionGraph, GraphResult }     from "./graph-types.ts";
 import type { NodeExecutor }                    from "./parallel-runner.ts";
 import type { RollbackExecutor }               from "./rollback-graph.ts";
@@ -95,6 +96,33 @@ export async function runGraph(
         onNodeComplete: n    => console.log(`[graph-engine] ✓ ${n.label} (${n.durationMs}ms)`),
         onNodeFailed:  (n, e) => console.error(`[graph-engine] ✗ ${n.label}: ${e.message}`),
       });
+
+      // ── Result Aggregation — collapse parallel outputs to one safe state ──
+      if (passed.length > 0) {
+        try {
+          const collapsed = await WaveAggregator.run({
+            runId:     graph.id,
+            projectId: graph.projectId,
+            waveIndex,
+            nodes:     wave,
+            graph,
+          });
+          if (!collapsed.safe) {
+            console.error(`[graph-engine] Wave ${waveIndex}: aggregation unsafe — blocking`);
+            setGraphStatus(graph, "failed");
+            break;
+          }
+          console.log(
+            `[graph-engine] Wave ${waveIndex}: aggregated ${collapsed.successfulNodes} result(s), ` +
+            `${collapsed.mergedFiles.length} file(s) merged, confidence=${collapsed.overallConfidence.toFixed(2)}`,
+          );
+        } catch (aggErr) {
+          const msg = aggErr instanceof Error ? aggErr.message : String(aggErr);
+          console.warn(`[graph-engine] Wave ${waveIndex}: aggregation skipped — ${msg}`);
+          // Non-blocking: aggregation failure is logged but does not stop wave progression
+          // unless the graph is explicitly set to "failed" above.
+        }
+      }
 
       events.onWaveEnd(waveIndex, passed.length, failed.length);
 

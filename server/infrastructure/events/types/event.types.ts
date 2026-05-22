@@ -244,6 +244,36 @@ export interface MemoryWriteEvent {
   ts:          number;
 }
 
+// ── Quantum Aggregation events ────────────────────────────────────────────────
+
+/**
+ * Emitted by the DAG-Wave Result Aggregation Layer.
+ * Covers the full pipeline: collect → merge → validate → collapse.
+ */
+export interface QuantumAggregationEvent {
+  /** Canonical run identifier. */
+  runId:       string;
+  projectId:   number;
+  /** Zero-based wave index within the DAG run. */
+  waveIndex:   number;
+  /** Number of agent nodes in this wave. */
+  nodeCount?:  number;
+  /** Wall-clock duration of the aggregation pipeline (ms). */
+  durationMs?: number;
+  /** Conflict count — present on merge.conflict events. */
+  conflictCount?: number;
+  /** Kind of conflict — present on merge.conflict events. */
+  conflictKind?: string;
+  /** File path involved in a conflict or collapse. */
+  filePath?:   string;
+  /** Whether the collapsed state is safe to proceed with. */
+  safe?:       boolean;
+  /** Why the aggregation or collapse was blocked. */
+  reason?:     string;
+  /** Unix epoch ms. */
+  ts:          number;
+}
+
 export type BusEvents = {
   "agent.event":           (event: AgentEvent) => void;
   "run.lifecycle":         (event: RunLifecycleEvent) => void;
