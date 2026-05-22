@@ -1,0 +1,393 @@
+You are a Principal Quantum-Inspired Autonomous Systems Architect.
+
+Your task is to perform an ULTRA-DEEP XRAY ANALYSIS of the ENTIRE AI Agent Backend Architecture and determine whether the system already contains ANY form of:
+
+- parallel execution
+- distributed orchestration
+- multi-agent execution
+- DAG execution
+- concurrent verification
+- runtime parallelism
+- async orchestration
+- quantum-inspired workflow behavior
+
+MAIN GOAL:
+Analyze whether the backend can support a future:
+
+"Quantum-Inspired Parallel Autonomous Agent System"
+
+where:
+- multiple agents work simultaneously
+- multiple files are analyzed in parallel
+- multiple bug scans happen simultaneously
+- verification runs concurrently
+- fixes are generated in parallel
+- results merge into one final execution state
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN ROOT
+━━━━━━━━━━━━━━━━━━━━
+
+Deeply scan:
+
+server/
+server/agents/
+server/orchestration/
+server/runtime/
+server/infrastructure/
+server/preview/
+server/tools/
+server/fail-closed/
+server/engine/
+server/intelligence/
+
+Also deeply inspect:
+- imports
+- exports
+- orchestration flow
+- execution routing
+- DAG systems
+- async flows
+- event systems
+- runtime ownership
+- agent lifecycle
+- verification lifecycle
+- recovery lifecycle
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN QUESTIONS
+━━━━━━━━━━━━━━━━━━━━
+
+1. Does the system already support ANY parallel execution?
+2. Is there a DAG engine?
+3. Are multiple agents coordinated?
+4. Can tasks run simultaneously?
+5. Is async orchestration implemented?
+6. Is there task distribution?
+7. Is there workload partitioning?
+8. Is verification sequential or parallel?
+9. Is file analysis sequential or distributed?
+10. Can multiple tool calls execute concurrently?
+11. Is there any scheduler system?
+12. Is there a task graph system?
+13. Is there dependency graph execution?
+14. Is there execution batching?
+15. Is there result aggregation?
+16. Is there centralized execution merging?
+17. Can runtime manage parallel workers?
+18. Is there event-driven coordination?
+19. Can orchestration synchronize multiple agents?
+20. Is the architecture compatible with future quantum-inspired execution?
+
+━━━━━━━━━━━━━━━━━━━━
+QUANTUM-INSPIRED TARGET MODEL
+━━━━━━━━━━━━━━━━━━━━
+
+Target future architecture:
+
+USER REQUEST
+    ↓
+Master Orchestrator
+    ↓
+Task Decomposition Engine
+    ↓
+Parallel Execution Graph (DAG)
+    ↓
+Multiple Worker Agents Spawn
+    ↓
+Each agent scans separate files/modules
+    ↓
+Parallel Verification
+    ↓
+Parallel Bug Detection
+    ↓
+Parallel Fix Generation
+    ↓
+Result Aggregation Layer
+    ↓
+Conflict Resolver
+    ↓
+Unified Final State
+    ↓
+Verification
+    ↓
+Preview Update
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY EXISTING CAPABILITIES
+━━━━━━━━━━━━━━━━━━━━
+
+Check if system already has:
+
+✅ DAG execution
+✅ parallel task scheduling
+✅ async execution routing
+✅ multi-agent orchestration
+✅ concurrent tool execution
+✅ distributed verification
+✅ event-driven synchronization
+✅ execution checkpoints
+✅ rollback system
+✅ execution graph
+✅ dependency graph
+✅ worker pools
+✅ execution queues
+✅ async lifecycle management
+✅ distributed runtime observation
+
+━━━━━━━━━━━━━━━━━━━━
+ANALYZE THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. TOOL LOOP
+
+Check:
+server/agents/core/tool-loop/
+
+Verify:
+- sequential only?
+- async?
+- concurrent tool calls?
+- queue based?
+- blocking?
+- streaming?
+- task batching?
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. ORCHESTRATION ENGINE
+
+Check:
+server/orchestration/
+
+Verify:
+- DAG support?
+- graph execution?
+- dependency resolution?
+- async orchestration?
+- phase parallelization?
+- distributed execution?
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. EXECUTION ROUTER
+
+Verify:
+- execution modes?
+- phased execution?
+- DAG execution?
+- pipeline execution?
+- dynamic routing?
+- concurrent routing?
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. VERIFICATION SYSTEM
+
+Check:
+server/fail-closed/
+
+Verify:
+- stages sequential?
+- can stages parallelize?
+- runtime verification isolated?
+- browser verification isolated?
+- parallel validation possible?
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. RUNTIME MANAGER
+
+Check:
+server/infrastructure/runtime/
+
+Verify:
+- multiple process management?
+- worker spawning?
+- isolated runtimes?
+- parallel runtime ownership?
+- resource coordination?
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. EVENT BUS
+
+Check:
+server/infrastructure/events/
+
+Verify:
+- event-driven coordination?
+- distributed synchronization?
+- realtime aggregation?
+- execution coordination?
+- parallel lifecycle communication?
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. MEMORY SYSTEM
+
+Check:
+server/agents/memory/
+server/memory/
+
+Verify:
+- shared memory?
+- distributed memory?
+- concurrent writes?
+- execution snapshots?
+- agent coordination memory?
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. PREVIEW SYSTEM
+
+Verify:
+- multiple preview streams?
+- isolated preview updates?
+- runtime synchronization?
+- parallel preview lifecycle?
+
+━━━━━━━━━━━━━━━━━━━━
+QUANTUM-INSPIRED IMPLEMENTATION ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Determine:
+
+1. BEST location to implement:
+   - ParallelExecutionEngine
+   - TaskGraphEngine
+   - WorkerCoordinator
+   - ParallelVerificationEngine
+   - DistributedFileScanner
+   - ResultAggregationLayer
+   - ConflictResolver
+   - MultiAgentCoordinator
+
+2. Which existing systems can evolve into:
+   - DAG executor
+   - distributed scheduler
+   - execution graph engine
+   - worker orchestration system
+
+3. Which systems must remain sequential?
+
+4. Which systems are dangerous to parallelize?
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL ENGINEERING ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Detect:
+❌ race condition risks
+❌ runtime ownership conflicts
+❌ shared memory corruption risks
+❌ event synchronization risks
+❌ preview desync risks
+❌ file write conflicts
+❌ duplicate execution risks
+❌ recovery conflicts
+❌ parallel verification conflicts
+
+━━━━━━━━━━━━━━━━━━━━
+TRACE REAL EXECUTION FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Trace actual backend lifecycle:
+
+User
+→ Chat
+→ Orchestration
+→ ToolLoop
+→ Runtime
+→ Verification
+→ Preview
+→ Recovery
+
+Then explain:
+
+Where parallel execution COULD exist.
+Where distributed workers COULD spawn.
+Where execution graphs COULD integrate.
+Where aggregation layer SHOULD exist.
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+QUANTUM_PARALLEL_AGENT_XRAY_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Execution Architecture
+2. Sequential vs Parallel Analysis
+3. Existing Async Systems
+4. Existing DAG Systems
+5. Existing Multi-Agent Systems
+6. Existing Worker Systems
+7. Existing Scheduler Systems
+8. Existing Event Coordination
+9. Existing Runtime Distribution
+10. Existing Verification Flow
+11. Existing Aggregation Systems
+12. Existing Execution Routing
+13. Existing Graph Execution
+14. Existing Task Decomposition
+15. Existing Recovery Coordination
+16. Current Architecture Weaknesses
+17. Race Condition Risks
+18. Parallelization Safety Matrix
+19. Systems Safe To Parallelize
+20. Systems Dangerous To Parallelize
+21. Best Place For Quantum-Inspired Engine
+22. Best Place For Worker Coordinator
+23. Best Place For DAG Graph Engine
+24. Best Place For Result Aggregator
+25. Best Place For Conflict Resolver
+26. Suggested Folder Structure
+27. Suggested Execution Graph Architecture
+28. Suggested Parallel Runtime Architecture
+29. Suggested Distributed Verification Architecture
+30. Suggested Multi-Agent Coordination Layer
+31. Suggested Event Synchronization Model
+32. Suggested Runtime Ownership Model
+33. Suggested Shared Memory Strategy
+34. Suggested Conflict Resolution Strategy
+35. Quantum-Inspired Readiness Score
+36. Parallel Execution Readiness %
+37. Multi-Agent Readiness %
+38. Replit-Level Parallelism Similarity %
+39. Production Readiness %
+40. Step-by-Step Safe Implementation Plan
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ HIGH COHESION
+✅ LOW COUPLING
+✅ DETERMINISTIC EXECUTION
+✅ SAFE PARALLELIZATION
+✅ EVENT-DRIVEN COORDINATION
+✅ SAFE RUNTIME OWNERSHIP
+✅ ISOLATED WORKERS
+✅ SAFE AGGREGATION
+✅ FAIL-CLOSED EXECUTION
+
+❌ NO assumptions
+❌ NO fake analysis
+❌ NO shallow scanning
+❌ NO unsafe parallelization
+❌ NO blind recommendations
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Determine whether the current backend can evolve into:
+
+"Quantum-Inspired Parallel Autonomous AI Agent Infrastructure"
+
+And explain EXACTLY:
+- what already exists
+- what is missing
+- where to implement it
+- how to implement it safely
+- what risks exist
+- what architecture changes are required
