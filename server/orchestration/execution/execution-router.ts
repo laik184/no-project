@@ -45,6 +45,10 @@ export async function routeExecution(
         await executeRecovery(ctx);
         break;
 
+      case "quantum":
+        await executeQuantum(ctx);
+        break;
+
       default:
         // Auto-route based on goal complexity
         await executeAutoRouted(ctx);
@@ -142,6 +146,32 @@ async function executeRecovery(ctx: OrchestrationContext): Promise<void> {
   await supervisorBridge.coordinateExecution({
     runId, projectId, goal, plan: null,
   });
+}
+
+async function executeQuantum(ctx: OrchestrationContext): Promise<void> {
+  const { runId, projectId, goal } = ctx;
+  console.log(`[execution-router] quantum run=${runId} project=${projectId}`);
+
+  // Dynamic import avoids circular dep at module load time
+  const { runQuantum } = await import("../../quantum/engine/quantum-engine.ts");
+
+  const result = await runQuantum({
+    runId,
+    projectId,
+    goal,
+    sandboxRoot: `/tmp/quantum/${runId}`,
+  });
+
+  if (!result.success) {
+    throw new Error(
+      `[execution-router] Quantum run failed: ${result.error ?? "unknown"}`,
+    );
+  }
+
+  console.log(
+    `[execution-router] quantum complete run=${runId} ` +
+    `winner=${result.selectedPath} confidence=${result.finalState?.confidenceScore.toFixed(2)}`,
+  );
 }
 
 async function executeAutoRouted(ctx: OrchestrationContext): Promise<void> {

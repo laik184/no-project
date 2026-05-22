@@ -12,7 +12,8 @@ export type OrchestrationMode =
   | "planned"
   | "pipeline"
   | "dag"
-  | "recovery";
+  | "recovery"
+  | "quantum";
 
 export type OrchestrationPhase =
   | "observe"
