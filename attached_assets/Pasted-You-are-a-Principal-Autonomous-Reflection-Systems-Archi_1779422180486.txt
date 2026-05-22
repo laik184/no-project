@@ -1,0 +1,463 @@
+You are a Principal Autonomous Reflection Systems Architect.
+
+Your mission is to DESIGN, FIX, and FULLY INTEGRATE a production-grade Reflection Engine for the autonomous runtime operating system.
+
+ROOT TARGETS:
+- server/engine/
+- server/orchestration/
+- server/fail-closed/
+- server/runtime/
+- server/agents/
+- server/infrastructure/
+- server/console/
+- server/preview/
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Build a TRUE autonomous Reflection Engine that can:
+
+✅ analyze failures
+✅ identify root causes
+✅ generate repair strategies
+✅ coordinate retries
+✅ inject fixes back into execution
+✅ prevent infinite retry loops
+✅ learn from failures
+✅ integrate with verification/recovery/runtime
+
+This MUST behave like:
+- Replit Agent
+- Cursor Runtime Recovery
+- Devin-style autonomous debugging
+
+NOT:
+❌ fake retry wrapper
+❌ simple catch(error)
+❌ random LLM retry loop
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION / LOW COUPLING
+- Every module must have ONE responsibility.
+- Reflection logic must NOT directly mutate runtime/process state.
+- Use event-driven architecture only.
+
+2. FILE SIZE LIMIT
+- No file may exceed 250 lines.
+- Split into bounded-context modules.
+
+3. TARGETED PLACEMENT
+- Place files ONLY in logically correct folders.
+- No architecture pollution.
+
+4. ROOT CAUSE ANALYSIS REQUIRED
+- Reflection must analyze WHY failure happened.
+- Never retry blindly.
+
+5. PRODUCTION-GRADE STANDARDS
+- Strong typing
+- Readable naming
+- Scalable architecture
+- No hacks
+- No shortcuts
+
+6. CODE REVIEW SAFETY
+- Add verification and review checkpoints.
+- Every reflection action must be traceable.
+
+7. FAIL-CLOSED EXECUTION
+- Execution success ONLY if:
+  ✅ runtime healthy
+  ✅ verification passes
+  ✅ preview loads
+  ✅ policies pass
+  ✅ recovery stabilized
+
+8. TELEMETRY REQUIRED
+Log ALL:
+- reflection start
+- root cause analysis
+- retry decision
+- patch generation
+- retry attempts
+- recovery actions
+- verification failures
+- reflection completion
+
+━━━━━━━━━━━━━━━━━━━━
+DEEP XRAY REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Before implementing:
+Perform ultra-deep scan of:
+
+- runtime crash flows
+- verification failures
+- recovery flows
+- orchestration lifecycle
+- event bus flows
+- console intelligence
+- preview lifecycle
+- tool-loop execution
+- telemetry systems
+
+Trace:
+- imports
+- runtime ownership
+- event ownership
+- retry ownership
+- verification ownership
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY EXISTING SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Check whether these already exist partially:
+
+- reflection-engine.ts
+- debug orchestrator
+- crash responder
+- recovery manager
+- verification coordinator
+- observation controller
+- console intelligence parsers
+- patch generators
+- retry systems
+- telemetry collectors
+
+Reuse existing infrastructure where possible.
+
+DO NOT rewrite working systems.
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/
+├── engine/
+│   ├── reflection/
+│   │   ├── reflection-engine.ts
+│   │   ├── reflection-analyzer.ts
+│   │   ├── reflection-classifier.ts
+│   │   ├── retry-strategy.ts
+│   │   ├── patch-strategy.ts
+│   │   ├── retry-guard.ts
+│   │   ├── reflection-memory.ts
+│   │   ├── reflection-events.ts
+│   │   ├── reflection-types.ts
+│   │   └── reflection-telemetry.ts
+│   │
+│   └── intelligence/
+│
+├── orchestration/
+├── fail-closed/
+├── infrastructure/
+└── agents/
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED REFLECTION FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Failure detected:
+(runtime crash / verification fail / preview fail)
+
+        ↓
+
+ReflectionEngine.start()
+
+        ↓
+
+ReflectionAnalyzer:
+- inspect logs
+- inspect runtime state
+- inspect verification failures
+- inspect preview state
+- inspect recent tool calls
+- inspect patch history
+
+        ↓
+
+ReflectionClassifier:
+classify:
+- syntax error
+- dependency issue
+- runtime crash
+- hydration error
+- port failure
+- build failure
+- infinite loop
+- preview blank
+- process crash
+- missing env
+- timeout
+- policy violation
+
+        ↓
+
+PatchStrategy:
+generate:
+- retry plan
+- patch plan
+- dependency fix
+- rollback decision
+- restart decision
+
+        ↓
+
+RetryGuard:
+prevent:
+- infinite retries
+- same failure loops
+- unsafe retries
+- unstable runtime loops
+
+        ↓
+
+ReflectionDecision:
+choose:
+- retry
+- patch
+- rollback
+- restart
+- escalate
+- abort
+
+        ↓
+
+VerificationCoordinator:
+re-run:
+- runtime verification
+- preview verification
+- build verification
+- reconcile verification
+
+        ↓
+
+Telemetry:
+log everything
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED FEATURES
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. ROOT CAUSE ANALYSIS
+
+Reflection MUST:
+✅ inspect stack traces
+✅ inspect runtime logs
+✅ inspect npm logs
+✅ inspect vite logs
+✅ inspect preview lifecycle
+✅ inspect verification failures
+✅ inspect runtime state
+
+NOT:
+❌ generic retry
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. FAILURE CLASSIFICATION
+
+Build robust classification system.
+
+Examples:
+- syntax_error
+- dependency_missing
+- runtime_crash
+- build_failure
+- hydration_failure
+- preview_proxy_failure
+- infinite_render_loop
+- memory_leak
+- process_exit
+- timeout
+- verification_failure
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. RETRY STRATEGY
+
+Retry policy MUST support:
+✅ exponential backoff
+✅ retry limits
+✅ failure fingerprints
+✅ cooldown windows
+✅ retry history
+✅ retry locks
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. PATCH STRATEGY
+
+System MUST:
+✅ generate targeted fixes
+✅ avoid unrelated changes
+✅ track patch history
+✅ validate before apply
+✅ rollback unsafe patches
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. REFLECTION MEMORY
+
+Store:
+✅ previous failures
+✅ successful fixes
+✅ repeated failures
+✅ retry history
+✅ runtime crash patterns
+
+Use:
+- semantic matching
+- fingerprint matching
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. EVENT BUS INTEGRATION
+
+Emit:
+- reflection.started
+- reflection.classified
+- reflection.retrying
+- reflection.patching
+- reflection.rollback
+- reflection.aborted
+- reflection.completed
+
+Integrate with:
+- SSE
+- telemetry
+- orchestration
+- preview lifecycle
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. PREVIEW INTEGRATION
+
+If preview blank:
+Reflection MUST:
+- inspect proxy
+- inspect runtime
+- inspect iframe state
+- inspect lifecycle state
+- decide:
+  restart / reload / rollback
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. VERIFICATION INTEGRATION
+
+Reflection success ONLY if:
+✅ preview healthy
+✅ runtime healthy
+✅ build passes
+✅ verification passes
+
+━━━━━━━━━━━━━━━━━━━━
+# 9. SAFETY SYSTEMS
+
+Prevent:
+❌ infinite retry loops
+❌ recursive reflection
+❌ unstable patch spam
+❌ runaway runtime restart loops
+❌ memory explosion
+
+━━━━━━━━━━━━━━━━━━━━
+# 10. TELEMETRY + OBSERVABILITY
+
+Log:
+- failure type
+- retry count
+- patch decisions
+- rollback decisions
+- execution duration
+- success rate
+- repeated failures
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY RUNTIME INTEGRATION
+━━━━━━━━━━━━━━━━━━━━
+
+Verify integration with:
+- RuntimeManager
+- RuntimeStore
+- PreviewLifecycleManager
+- RecoveryManager
+- CrashResponder
+- ToolLoopAgent
+- VerificationCoordinator
+- EventBus
+- ConsolePipeline
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT IMPLEMENTATION RULES
+━━━━━━━━━━━━━━━━━━━━
+
+✅ High cohesion
+✅ Low coupling
+✅ Event-driven
+✅ Modular bounded contexts
+✅ Deterministic retry ownership
+✅ Strong typing
+✅ Safe incremental refactor
+
+❌ No giant reflection file
+❌ No hardcoded retries
+❌ No direct runtime mutation
+❌ No infinite recursion
+❌ No fake retries
+❌ No architecture pollution
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+REFLECTION_ENGINE_IMPLEMENTATION_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Reflection Architecture Map
+2. Failure Classification Graph
+3. Retry Strategy Design
+4. Patch Strategy Design
+5. Reflection Memory Design
+6. Runtime Integration Map
+7. Verification Integration Map
+8. Preview Integration Map
+9. EventBus Integration Map
+10. Telemetry Flow
+11. Retry Loop Protection
+12. Reflection Safety Analysis
+13. Files Created
+14. Files Modified
+15. Imports Updated
+16. Event Flows Added
+17. Runtime Hooks Added
+18. Verification Hooks Added
+19. Preview Hooks Added
+20. Reflection Stability Score
+21. Autonomous Recovery Score
+22. Replit Reflection Similarity %
+23. Remaining Weak Areas
+24. Recommended Next Upgrades
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the current runtime system from:
+
+“advanced runtime manager”
+
+INTO:
+
+“autonomous self-healing AI runtime operating system”
+
+using:
+- true reflection
+- deterministic recovery
+- intelligent retries
+- safe patch orchestration
+- production-grade runtime stabilization.

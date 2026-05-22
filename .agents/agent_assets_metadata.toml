@@ -162,3 +162,9 @@ id = "hPD3nyefGXsioAEA5yvtG"
 uri = "file://SPAWN_LOCK_IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "Spawn Concurrency Lock — Implementation Report"
+
+[[outputs]]
+id = "yKasHz23gFx39FPElujC3"
+uri = "file://REFLECTION_ENGINE_IMPLEMENTATION_REPORT.md"
+type = "text"
+title = "Reflection Engine — Implementation Report"
