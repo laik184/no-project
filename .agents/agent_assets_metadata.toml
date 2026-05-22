@@ -168,3 +168,9 @@ id = "yKasHz23gFx39FPElujC3"
 uri = "file://REFLECTION_ENGINE_IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "Reflection Engine — Implementation Report"
+
+[[outputs]]
+id = "pG1-_B6Jc8DfLi88X9YRD"
+uri = "file://DAG_EXECUTION_XRAY_REPORT.md"
+type = "text"
+title = "DAG Execution X-Ray Report"

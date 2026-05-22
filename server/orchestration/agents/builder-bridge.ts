@@ -10,7 +10,12 @@ import { createGraph, addNode }  from "../../engine/graph/execution-graph.ts";
 import { emitAgentCoordination } from "../core/orchestration-events.ts";
 import { recordSpanStart, recordSpanEnd } from "../telemetry/orchestration-trace.ts";
 import { incrementCounter }      from "../telemetry/orchestration-metrics.ts";
-import { bus }                   from "../../infrastructure/events/bus.ts";
+import { createNodeExecutor }    from "../../engine/execution/node-executor.ts";
+// bus import removed — no longer needed (createNodeExecutor handles bus events)
+import { createDagBusEvents }    from "../../engine/dag/dag-telemetry.ts";
+import { dagCheckpointStore }    from "../../engine/checkpoints/dag-checkpoint-store.ts";
+import { graphStateStore }       from "../../engine/state/graph-state-store.ts";
+import { createCheckpoint }      from "../../engine/graph/graph-state.ts";
 import type { BridgeResult }     from "../core/orchestration-types.ts";
 import type { ExecutionPlan }    from "./planner-bridge.ts";
 
@@ -81,25 +86,26 @@ class BuilderBridge {
         });
       }
 
-      let toolsExecuted = 0;
+      // Register graph in state store for observability
+      graphStateStore.register(graph);
+
+      // Real node executor — dispatches tools/agents, emits dag.node.* bus events
+      const executor  = createNodeExecutor({ runId, projectId });
+      const busEvents = createDagBusEvents({ runId, projectId, graphId: runId });
+
       const graphResult = await runGraph(graph, {
-        executor: async (node) => {
-          toolsExecuted++;
-          bus.emit("agent.event", {
-            runId,
-            projectId,
-            phase:     "builder.dag",
-            agentName: "builder",
-            eventType: "node.execute",
-            payload:   { nodeId: node.id, label: node.label, goal: (node.args as any)?.goal },
-            ts:        Date.now(),
-          });
-          return { nodeId: node.id, completed: true };
-        },
+        executor,
+        events:         busEvents,
         autoRollback:   true,
         nodeTimeoutMs:  120_000,
         graphTimeoutMs: 900_000,
       });
+
+      // Persist final checkpoint
+      if (graph.checkpointAt) {
+        const cp = createCheckpoint(graph, graph.checkpointAt);
+        dagCheckpointStore.save(runId, projectId, cp);
+      }
 
       const success = graphResult.stopReason === "complete";
       incrementCounter(
@@ -113,7 +119,7 @@ class BuilderBridge {
         data: {
           filesModified:  graphResult.completed,
           filesCreated:   0,
-          toolsExecuted,
+          toolsExecuted:  graphResult.completed,
           durationMs:     graphResult.totalMs,
           checkpointId:   graph.checkpointAt,
         },

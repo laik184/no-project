@@ -46,6 +46,7 @@ import { summarizeRun, getViolations } from './server/telemetry/index.ts';
 import { initRunCleanupManager }      from './server/infrastructure/memory/run-cleanup-manager.ts';
 import { initRecoveryRestartBridge }  from './server/infrastructure/recovery/recovery-restart-bridge.ts';
 import { startReflectionEngine }      from './server/engine/reflection/index.ts';
+import { initDagMetricsCollector }    from './server/engine/telemetry/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -214,6 +215,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   initRecoveryRestartBridge();
   // Start Reflection Engine — wires to process.crashed + run.lifecycle failed bus events
   startReflectionEngine();
+  // Initialize DAG metrics collector — listens to dag.* bus events
+  initDagMetricsCollector();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
