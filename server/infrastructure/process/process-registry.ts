@@ -17,6 +17,7 @@ import {
   emitSpawnStarted,
   emitSpawnFailed,
 } from "../../security/runtime-command-policy/index.ts";
+import { spawnLock } from "./spawn-lock/index.ts";
 import { captureService } from "../../console/capture/capture.service.ts";
 import {
   loadPersistedEntries, saveEntries,
@@ -95,7 +96,25 @@ class ProcessRegistry {
     console.log("[process-registry] Shutdown complete");
   }
 
+  /**
+   * Start a project's dev server under a per-project spawn concurrency lock.
+   *
+   * Concurrent callers for the same projectId receive the SAME promise —
+   * the spawn function is executed exactly ONCE per project, regardless of
+   * how many callers arrive simultaneously (tool-loop, HTTP API, orchestrator,
+   * recovery restart, preview service, publisher).
+   *
+   * The lock is automatically released on success, failure, or 45s timeout.
+   */
   async start(opts: StartOptions): Promise<StartResult> {
+    return spawnLock.withLock(
+      opts.projectId,
+      "process-registry",
+      () => this._doStart(opts),
+    );
+  }
+
+  private async _doStart(opts: StartOptions): Promise<StartResult> {
     const { projectId, cwd, env } = opts;
     const command = opts.command ?? "npm run dev";
 

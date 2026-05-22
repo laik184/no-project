@@ -156,3 +156,9 @@ id = "7n1EDd0lMdcuJTwljXmJR"
 uri = "file://WAIT_FOR_PORT_IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "waitForPort() Implementation Report"
+
+[[outputs]]
+id = "hPD3nyefGXsioAEA5yvtG"
+uri = "file://SPAWN_LOCK_IMPLEMENTATION_REPORT.md"
+type = "text"
+title = "Spawn Concurrency Lock — Implementation Report"
