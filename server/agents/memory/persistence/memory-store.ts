@@ -9,11 +9,18 @@
  *   run-history.jsonl   — one JSON line per completed run
  *   decisions.json      — structured decision history (last-20)
  *   failures.json       — structured failure history (last-10)
- *   progress.md         — human-readable project progress tracker  [C9]
- *   decisions.md        — human-readable architectural decisions    [C9]
- *   failed-attempts.md  — human-readable failure log               [C9]
+ *   progress.md         — human-readable project progress tracker
+ *   decisions.md        — human-readable architectural decisions
+ *   failed-attempts.md  — human-readable failure log
  *
  * Ownership: memory/persistence — I/O only, no logic.
+ *
+ * ALL writes are routed through memoryWriteQueue to guarantee:
+ *   ✅ serialised per-project execution
+ *   ✅ atomic commit via temp-file + fsync + rename
+ *   ✅ format validation before commit
+ *   ✅ rollback on failure
+ *   ✅ full telemetry
  */
 
 import fs from "fs/promises";
@@ -29,18 +36,21 @@ import {
   getFailedAttemptsPath,
 } from "./memory-paths.ts";
 import type { RunSummary, FailureEntry, ArchitectureDecision } from "../types.ts";
+import { memoryWriteQueue } from "../../../quantum/memory/index.ts";
 
 const MAX_FAILURES  = 10;
 const MAX_DECISIONS = 20;
-const MAX_MD_CHARS  = 6_000;   // rolling cap for human-readable .md files
+const MAX_MD_CHARS  = 6_000;
 
-// ─── Directory ────────────────────────────────────────────────────────────────
+const OWNER = "memory-store";
+
+// ── Directory ─────────────────────────────────────────────────────────────────
 
 export async function ensureMemoryDir(projectId: number): Promise<void> {
   await fs.mkdir(getMemoryDir(projectId), { recursive: true });
 }
 
-// ─── context.md ──────────────────────────────────────────────────────────────
+// ── context.md ────────────────────────────────────────────────────────────────
 
 export async function readContextMd(projectId: number): Promise<string> {
   try { return await fs.readFile(getContextPath(projectId), "utf-8"); }
@@ -49,10 +59,17 @@ export async function readContextMd(projectId: number): Promise<string> {
 
 export async function writeContextMd(projectId: number, content: string): Promise<void> {
   await ensureMemoryDir(projectId);
-  await fs.writeFile(getContextPath(projectId), content, "utf-8");
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getContextPath(projectId),
+    content,
+    fileType: "markdown",
+    ownerId:  OWNER,
+    runId:    "system",
+  });
 }
 
-// ─── architecture.md ─────────────────────────────────────────────────────────
+// ── architecture.md ───────────────────────────────────────────────────────────
 
 export async function readArchitectureMd(projectId: number): Promise<string> {
   try { return await fs.readFile(getArchitecturePath(projectId), "utf-8"); }
@@ -61,17 +78,32 @@ export async function readArchitectureMd(projectId: number): Promise<string> {
 
 export async function writeArchitectureMd(projectId: number, content: string): Promise<void> {
   await ensureMemoryDir(projectId);
-  await fs.writeFile(getArchitecturePath(projectId), content, "utf-8");
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getArchitecturePath(projectId),
+    content,
+    fileType: "markdown",
+    ownerId:  OWNER,
+    runId:    "system",
+  });
 }
 
-// ─── run-history.jsonl ────────────────────────────────────────────────────────
+// ── run-history.jsonl ─────────────────────────────────────────────────────────
 
 export async function appendRunSummary(
   projectId: number,
   summary:   RunSummary,
 ): Promise<void> {
   await ensureMemoryDir(projectId);
-  await fs.appendFile(getRunHistoryPath(projectId), JSON.stringify(summary) + "\n", "utf-8");
+  const line = JSON.stringify(summary) + "\n";
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getRunHistoryPath(projectId),
+    fileType: "jsonl",
+    ownerId:  OWNER,
+    runId:    summary.runId ?? "system",
+    mutator:  (current) => current + line,
+  });
 }
 
 export async function readRecentRuns(
@@ -85,7 +117,7 @@ export async function readRecentRuns(
   } catch { return []; }
 }
 
-// ─── decisions.json ───────────────────────────────────────────────────────────
+// ── decisions.json ────────────────────────────────────────────────────────────
 
 export async function readDecisions(projectId: number): Promise<ArchitectureDecision[]> {
   try {
@@ -99,12 +131,21 @@ export async function appendDecision(
   decision:  ArchitectureDecision,
 ): Promise<void> {
   await ensureMemoryDir(projectId);
-  const existing = await readDecisions(projectId);
-  const updated  = [decision, ...existing].slice(0, MAX_DECISIONS);
-  await fs.writeFile(getDecisionsPath(projectId), JSON.stringify(updated, null, 2), "utf-8");
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getDecisionsPath(projectId),
+    fileType: "json",
+    ownerId:  OWNER,
+    runId:    "system",
+    mutator:  (current) => {
+      const existing = current ? (JSON.parse(current) as ArchitectureDecision[]) : [];
+      const updated  = [decision, ...existing].slice(0, MAX_DECISIONS);
+      return JSON.stringify(updated, null, 2);
+    },
+  });
 }
 
-// ─── failures.json ────────────────────────────────────────────────────────────
+// ── failures.json ─────────────────────────────────────────────────────────────
 
 export async function readFailures(projectId: number): Promise<FailureEntry[]> {
   try {
@@ -118,12 +159,21 @@ export async function appendFailure(
   entry:     FailureEntry,
 ): Promise<void> {
   await ensureMemoryDir(projectId);
-  const existing = await readFailures(projectId);
-  const updated  = [entry, ...existing].slice(0, MAX_FAILURES);
-  await fs.writeFile(getFailuresPath(projectId), JSON.stringify(updated, null, 2), "utf-8");
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getFailuresPath(projectId),
+    fileType: "json",
+    ownerId:  OWNER,
+    runId:    "system",
+    mutator:  (current) => {
+      const existing = current ? (JSON.parse(current) as FailureEntry[]) : [];
+      const updated  = [entry, ...existing].slice(0, MAX_FAILURES);
+      return JSON.stringify(updated, null, 2);
+    },
+  });
 }
 
-// ─── progress.md  [C9] ────────────────────────────────────────────────────────
+// ── progress.md ───────────────────────────────────────────────────────────────
 
 const PROGRESS_HEADER = "# Project Progress\n\nTracks completed milestones and current project state across agent runs.\n\n";
 
@@ -134,15 +184,22 @@ export async function readProgressMd(projectId: number): Promise<string> {
 
 export async function appendProgressMd(projectId: number, entry: string): Promise<void> {
   await ensureMemoryDir(projectId);
-  let existing = await readProgressMd(projectId);
-  if (!existing) existing = PROGRESS_HEADER;
-  const date    = new Date().toISOString().slice(0, 10);
-  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
-  const pruned  = updated.length > MAX_MD_CHARS ? PROGRESS_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
-  await fs.writeFile(getProgressPath(projectId), pruned, "utf-8");
+  const date = new Date().toISOString().slice(0, 10);
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getProgressPath(projectId),
+    fileType: "markdown",
+    ownerId:  OWNER,
+    runId:    "system",
+    mutator:  (current) => {
+      const existing = current || PROGRESS_HEADER;
+      const updated  = existing + `\n## [${date}]\n${entry.trim()}\n`;
+      return updated.length > MAX_MD_CHARS ? PROGRESS_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+    },
+  });
 }
 
-// ─── decisions.md  [C9] ───────────────────────────────────────────────────────
+// ── decisions.md ──────────────────────────────────────────────────────────────
 
 const DECISIONS_MD_HEADER = "# Architectural Decisions\n\nKey technical and design decisions made across agent runs.\n\n";
 
@@ -153,15 +210,22 @@ export async function readDecisionsMd(projectId: number): Promise<string> {
 
 export async function appendDecisionMd(projectId: number, entry: string): Promise<void> {
   await ensureMemoryDir(projectId);
-  let existing = await readDecisionsMd(projectId);
-  if (!existing) existing = DECISIONS_MD_HEADER;
-  const date    = new Date().toISOString().slice(0, 10);
-  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
-  const pruned  = updated.length > MAX_MD_CHARS ? DECISIONS_MD_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
-  await fs.writeFile(getDecisionsMdPath(projectId), pruned, "utf-8");
+  const date = new Date().toISOString().slice(0, 10);
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getDecisionsMdPath(projectId),
+    fileType: "markdown",
+    ownerId:  OWNER,
+    runId:    "system",
+    mutator:  (current) => {
+      const existing = current || DECISIONS_MD_HEADER;
+      const updated  = existing + `\n## [${date}]\n${entry.trim()}\n`;
+      return updated.length > MAX_MD_CHARS ? DECISIONS_MD_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+    },
+  });
 }
 
-// ─── failed-attempts.md  [C9] ─────────────────────────────────────────────────
+// ── failed-attempts.md ────────────────────────────────────────────────────────
 
 const FAILED_HEADER = "# Failed Attempts — Do NOT Repeat\n\nBroken approaches the agent must avoid repeating.\n\n";
 
@@ -172,10 +236,17 @@ export async function readFailedAttemptsMd(projectId: number): Promise<string> {
 
 export async function appendFailedAttemptMd(projectId: number, entry: string): Promise<void> {
   await ensureMemoryDir(projectId);
-  let existing = await readFailedAttemptsMd(projectId);
-  if (!existing) existing = FAILED_HEADER;
-  const date    = new Date().toISOString().slice(0, 10);
-  const updated = existing + `\n## [${date}]\n${entry.trim()}\n`;
-  const pruned  = updated.length > MAX_MD_CHARS ? FAILED_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
-  await fs.writeFile(getFailedAttemptsPath(projectId), pruned, "utf-8");
+  const date = new Date().toISOString().slice(0, 10);
+  await memoryWriteQueue.enqueue({
+    queueKey: String(projectId),
+    filePath: getFailedAttemptsPath(projectId),
+    fileType: "markdown",
+    ownerId:  OWNER,
+    runId:    "system",
+    mutator:  (current) => {
+      const existing = current || FAILED_HEADER;
+      const updated  = existing + `\n## [${date}]\n${entry.trim()}\n`;
+      return updated.length > MAX_MD_CHARS ? FAILED_HEADER + updated.slice(-MAX_MD_CHARS) : updated;
+    },
+  });
 }

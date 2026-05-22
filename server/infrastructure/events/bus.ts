@@ -30,6 +30,7 @@ export type {
   AgentDiffEvent,
   CheckpointEvent,
   PreviewLifecycleEvent,
+  MemoryWriteEvent,
   BusEvents,
 } from "./types/event.types.ts";
 

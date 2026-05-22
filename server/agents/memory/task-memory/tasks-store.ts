@@ -11,16 +11,23 @@
  * so the agent knows what unfinished work exists before starting a new run.
  *
  * Ownership: memory/task-memory — I/O + format only, no orchestration logic.
+ *
+ * ALL writes are routed through memoryWriteQueue:
+ *   ✅ serialised per-project execution
+ *   ✅ atomic commit via temp-file + fsync + rename
+ *   ✅ rollback on failure
  */
 
 import fs   from "fs/promises";
 import path from "path";
 import { getProjectDir } from "../../../infrastructure/sandbox/sandbox.util.ts";
+import { memoryWriteQueue } from "../../../quantum/memory/index.ts";
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 
 const NURA_DIR   = ".nura";
 const TASKS_FILE = "tasks.md";
+const OWNER      = "tasks-store";
 
 function getTasksPath(projectId: number): string {
   return path.join(getProjectDir(projectId), NURA_DIR, TASKS_FILE);
@@ -30,16 +37,11 @@ async function ensureNuraDir(projectId: number): Promise<void> {
   await fs.mkdir(path.join(getProjectDir(projectId), NURA_DIR), { recursive: true });
 }
 
-// ─── Read / Write ─────────────────────────────────────────────────────────────
+// ─── Read ─────────────────────────────────────────────────────────────────────
 
 export async function readTasksMd(projectId: number): Promise<string> {
   try { return await fs.readFile(getTasksPath(projectId), "utf-8"); }
   catch { return ""; }
-}
-
-export async function writeTasksMd(projectId: number, content: string): Promise<void> {
-  await ensureNuraDir(projectId);
-  await fs.writeFile(getTasksPath(projectId), content, "utf-8");
 }
 
 // ─── Entry builders ───────────────────────────────────────────────────────────
@@ -60,9 +62,7 @@ export async function appendPendingTask(
   stepsUsed: number,
 ): Promise<void> {
   try {
-    let content = await readTasksMd(projectId);
-    if (!content) content = HEADER;
-
+    await ensureNuraDir(projectId);
     const entry = [
       "",
       `## ⏳ Pending: ${goal.slice(0, 80)}`,
@@ -73,8 +73,18 @@ export async function appendPendingTask(
       "",
     ].join("\n");
 
-    const updated = content + entry;
-    await writeTasksMd(projectId, updated.slice(-MAX_CHARS));
+    await memoryWriteQueue.enqueue({
+      queueKey: String(projectId),
+      filePath: getTasksPath(projectId),
+      fileType: "markdown",
+      ownerId:  OWNER,
+      runId,
+      mutator:  (current) => {
+        const base    = current || HEADER;
+        const updated = base + entry;
+        return updated.slice(-MAX_CHARS);
+      },
+    });
   } catch (e) {
     console.warn("[tasks-store] appendPendingTask failed (non-fatal):", (e as Error).message);
   }
@@ -90,9 +100,7 @@ export async function appendCompletedTask(
   goal:      string,
 ): Promise<void> {
   try {
-    let content = await readTasksMd(projectId);
-    if (!content) content = HEADER;
-
+    await ensureNuraDir(projectId);
     const entry = [
       "",
       `## ✅ Done: ${goal.slice(0, 80)}`,
@@ -101,8 +109,18 @@ export async function appendCompletedTask(
       "",
     ].join("\n");
 
-    const updated = content + entry;
-    await writeTasksMd(projectId, updated.slice(-MAX_CHARS));
+    await memoryWriteQueue.enqueue({
+      queueKey: String(projectId),
+      filePath: getTasksPath(projectId),
+      fileType: "markdown",
+      ownerId:  OWNER,
+      runId,
+      mutator:  (current) => {
+        const base    = current || HEADER;
+        const updated = base + entry;
+        return updated.slice(-MAX_CHARS);
+      },
+    });
   } catch (e) {
     console.warn("[tasks-store] appendCompletedTask failed (non-fatal):", (e as Error).message);
   }

@@ -1,0 +1,426 @@
+You are a Principal Reliability Infrastructure Engineer.
+
+Your task is to DESIGN and IMPLEMENT a production-grade MEMORY WRITE SAFETY SYSTEM for the autonomous multi-agent backend.
+
+MAIN GOAL:
+Eliminate ALL risks of:
+- memory corruption
+- concurrent writes
+- race conditions
+- partial writes
+- inconsistent memory state
+- duplicate memory updates
+
+WITHOUT rewriting the existing memory architecture.
+
+Implement SAFE incremental infrastructure only.
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL CONTEXT
+━━━━━━━━━━━━━━━━━━━━
+
+Current problem:
+
+Multiple agents can write simultaneously to:
+
+- run-history.jsonl
+- context.md
+- decisions.json
+- architecture.md
+- memory snapshots
+- semantic memory files
+
+This creates:
+❌ race conditions
+❌ corrupted JSONL
+❌ lost writes
+❌ partial writes
+❌ non-deterministic memory state
+
+Current architecture:
+- async-native
+- multi-agent
+- DAG execution
+- parallel execution
+- shared project memory
+
+This system MUST become:
+✅ deterministic
+✅ serialized
+✅ traceable
+✅ recoverable
+✅ fail-safe
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION, LOW COUPLING
+- Every module must have ONE responsibility only.
+- No tight dependencies.
+- No cross-domain mutation.
+
+2. FILE SIZE LIMIT
+- NO file over 250 lines.
+- Split cleanly into modules.
+
+3. TARGETED PLACEMENT
+- Place code ONLY where logically correct.
+- No random utilities.
+- Respect bounded contexts.
+
+4. ROOT CAUSE FIXES ONLY
+- Do NOT patch symptoms.
+- Solve true concurrency/write ownership issues.
+
+5. SENIOR-LEVEL STANDARDS
+- readable naming
+- typed interfaces
+- scalable design
+- secure file operations
+- no hacks
+- no shortcuts
+
+6. CODE REVIEW READY
+- modular
+- testable
+- deterministic
+- observable
+
+7. FAIL-SAFE DESIGN
+- No memory commit without validation.
+- Failed writes MUST rollback safely.
+
+8. CONSISTENT TELEMETRY
+- ALL writes
+- retries
+- lock waits
+- failures
+- recoveries
+MUST emit telemetry events.
+
+NO exceptions.
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/quantum/locks/
+server/quantum/memory/
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. MEMORY WRITE QUEUE
+
+Create:
+
+server/quantum/memory/memory-write-queue.ts
+
+Responsibilities:
+✅ serialize writes per projectId
+✅ FIFO queue
+✅ prevent concurrent writes
+✅ queue retry support
+✅ queue timeout support
+✅ cancellation support
+✅ telemetry emission
+✅ queue state inspection
+
+Architecture:
+Map<projectId, WriteQueue>
+
+Each project has:
+- isolated write lane
+- deterministic ordering
+- retry-safe execution
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. FILE LOCK MANAGER
+
+Create:
+
+server/quantum/locks/file-lock-manager.ts
+
+Responsibilities:
+✅ exclusive write lease
+✅ per-file locking
+✅ timeout auto-release
+✅ dead lock prevention
+✅ stale lock cleanup
+✅ ownership tracking
+✅ telemetry events
+
+Requirements:
+- lock by normalized file path
+- lock expiration
+- safe release
+- ownership validation
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. MEMORY TRANSACTION LAYER
+
+Create:
+
+server/quantum/memory/memory-transaction.ts
+
+Responsibilities:
+✅ atomic write lifecycle
+✅ temporary write file
+✅ checksum validation
+✅ rollback on failure
+✅ commit verification
+✅ safe file replacement
+
+Flow:
+1. acquire lock
+2. write temp file
+3. validate content
+4. fsync
+5. atomic rename
+6. verify checksum
+7. release lock
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. MEMORY VALIDATOR
+
+Create:
+
+server/quantum/memory/memory-validator.ts
+
+Responsibilities:
+✅ validate JSON
+✅ validate JSONL
+✅ validate markdown integrity
+✅ detect corruption
+✅ detect partial writes
+✅ schema verification
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. MEMORY TELEMETRY
+
+Create:
+
+server/quantum/memory/memory-telemetry.ts
+
+Emit events:
+
+memory.write.started
+memory.write.completed
+memory.write.failed
+memory.lock.wait
+memory.lock.acquired
+memory.lock.released
+memory.rollback
+memory.retry
+
+Integrate with:
+server/infrastructure/events/bus.ts
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. MEMORY RECOVERY
+
+Create:
+
+server/quantum/memory/memory-recovery.ts
+
+Responsibilities:
+✅ detect corrupted memory files
+✅ recover from temp files
+✅ restore previous snapshot
+✅ quarantine broken files
+✅ emit recovery telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. WRITE OWNERSHIP MODEL
+
+Implement strict ownership:
+
+ONLY:
+MemoryWriteQueue
+can mutate memory files.
+
+Direct fs.writeFile to memory paths:
+❌ FORBIDDEN
+
+Detect:
+- unsafe writes
+- bypassed queue
+- rogue writes
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN EXISTING MEMORY SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan:
+
+server/agents/memory/
+server/memory/
+server/intelligence/
+server/orchestration/
+server/fail-closed/
+
+Find:
+- all memory write locations
+- all fs.writeFile usage
+- all appendFile usage
+- all memory mutation flows
+- all async write patterns
+
+━━━━━━━━━━━━━━━━━━━━
+REFACTOR REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Replace unsafe patterns:
+
+❌ fs.writeFile(...)
+❌ appendFile(...)
+❌ direct mutation
+
+WITH:
+
+✅ memoryWriteQueue.enqueue(...)
+✅ transactionalMemoryWrite(...)
+✅ validated commits
+
+━━━━━━━━━━━━━━━━━━━━
+QUEUE DESIGN
+━━━━━━━━━━━━━━━━━━━━
+
+Each projectId gets:
+
+WriteQueue {
+  activeWrite
+  pendingWrites[]
+  retryPolicy
+  timeoutMs
+  telemetry
+}
+
+Requirements:
+✅ strict FIFO
+✅ retry-safe
+✅ cancellation-safe
+✅ crash-safe
+✅ deterministic order
+
+━━━━━━━━━━━━━━━━━━━━
+LOCK DESIGN
+━━━━━━━━━━━━━━━━━━━━
+
+FileLock {
+  filePath
+  ownerId
+  acquiredAt
+  expiresAt
+}
+
+Requirements:
+✅ auto cleanup
+✅ stale lock detection
+✅ timeout release
+✅ safe ownership validation
+
+━━━━━━━━━━━━━━━━━━━━
+VALIDATION RULES
+━━━━━━━━━━━━━━━━━━━━
+
+Before commit:
+✅ schema valid
+✅ no truncated content
+✅ valid JSONL
+✅ checksum valid
+✅ file readable
+✅ atomic replacement successful
+
+━━━━━━━━━━━━━━━━━━━━
+FAIL-SAFE RULES
+━━━━━━━━━━━━━━━━━━━━
+
+If ANY validation fails:
+❌ DO NOT COMMIT
+
+Instead:
+✅ rollback
+✅ restore previous state
+✅ emit telemetry
+✅ quarantine corrupted temp
+
+━━━━━━━━━━━━━━━━━━━━
+OBSERVABILITY
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+- queue depth metrics
+- lock wait metrics
+- retry metrics
+- write latency metrics
+- corruption recovery metrics
+
+━━━━━━━━━━━━━━━━━━━━
+TEST REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Create tests for:
+✅ concurrent writes
+✅ stale locks
+✅ timeout recovery
+✅ corrupted temp files
+✅ JSONL corruption
+✅ queue ordering
+✅ rollback correctness
+✅ retry correctness
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+MEMORY_WRITE_SAFETY_IMPLEMENTATION_REPORT.md
+
+Include:
+
+1. Root Cause Analysis
+2. Existing Unsafe Write Locations
+3. Existing Race Conditions
+4. Existing Corruption Risks
+5. New Queue Architecture
+6. New Lock Architecture
+7. Transaction Flow
+8. Validation Pipeline
+9. Recovery Pipeline
+10. Telemetry Flow
+11. Ownership Enforcement
+12. Exact Files Created
+13. Exact Files Modified
+14. Exact Unsafe Writes Replaced
+15. Queue Flow Diagram
+16. Lock Lifecycle Diagram
+17. Transaction Lifecycle Diagram
+18. Recovery Lifecycle Diagram
+19. Remaining Risks
+20. Scalability Analysis
+21. Determinism Analysis
+22. Fail-Safe Verification
+23. Production Readiness Score
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform memory infrastructure from:
+
+"unsafe shared async writes"
+
+INTO:
+
+"deterministic transactional autonomous memory system"
+
+WITHOUT breaking orchestration,
+runtime,
+agents,
+or existing memory APIs.

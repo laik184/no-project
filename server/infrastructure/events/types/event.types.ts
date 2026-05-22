@@ -181,18 +181,59 @@ export interface RuntimeSyncEvent {
   };
 }
 
+// ── Memory Write Safety events ────────────────────────────────────────────────
+
+/**
+ * Emitted by the Memory Write Safety System for all write lifecycle phases.
+ * Covers queue entry, lock contention, commit, rollback, retry, and recovery.
+ */
+export interface MemoryWriteEvent {
+  /** UUID of the originating WriteRequest. */
+  requestId:   string;
+  /** Absolute or project-relative file path being written. */
+  filePath:    string;
+  /** Logical owner name (e.g. "memory-store", "confidence-bridge"). */
+  ownerId:     string;
+  /** Active agent run id, or "system". */
+  runId:       string;
+  /** File format — present on write.started and write.completed. */
+  fileType?:   string;
+  /** Wall-clock duration since the request was enqueued. */
+  durationMs?: number;
+  /** Number of retry attempts consumed. */
+  retries?:    number;
+  /** SHA-256 truncated checksum of the committed content. */
+  checksum?:   string;
+  /** Lock id — present on lock.acquired and lock.released. */
+  lockId?:     string;
+  /** Error message — present on failed, rollback, and retry events. */
+  error?:      string;
+  /** Unix epoch ms. */
+  ts:          number;
+}
+
 export type BusEvents = {
-  "agent.event":         (event: AgentEvent) => void;
-  "run.lifecycle":       (event: RunLifecycleEvent) => void;
-  "console.log":         (event: ConsoleLogEvent) => void;
-  "file.change":         (event: FileChangeEvent) => void;
-  "runtime.verified":    (event: RuntimeVerifiedEvent) => void;
-  "runtime.observation": (event: RuntimeObservationEvent) => void;
-  "runtime.sync":        (event: RuntimeSyncEvent) => void;
-  "runtime.port":        (event: RuntimePortEvent) => void;
-  "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
-  "tool.execution":      (event: ToolExecutionEvent) => void;
-  "agent.diff":          (event: AgentDiffEvent) => void;
-  "checkpoint.event":    (event: CheckpointEvent) => void;
-  "preview.lifecycle":   (event: PreviewLifecycleEvent) => void;
+  "agent.event":           (event: AgentEvent) => void;
+  "run.lifecycle":         (event: RunLifecycleEvent) => void;
+  "console.log":           (event: ConsoleLogEvent) => void;
+  "file.change":           (event: FileChangeEvent) => void;
+  "runtime.verified":      (event: RuntimeVerifiedEvent) => void;
+  "runtime.observation":   (event: RuntimeObservationEvent) => void;
+  "runtime.sync":          (event: RuntimeSyncEvent) => void;
+  "runtime.port":          (event: RuntimePortEvent) => void;
+  "debug.lifecycle":       (event: DebugLifecycleEvent) => void;
+  "tool.execution":        (event: ToolExecutionEvent) => void;
+  "agent.diff":            (event: AgentDiffEvent) => void;
+  "checkpoint.event":      (event: CheckpointEvent) => void;
+  "preview.lifecycle":     (event: PreviewLifecycleEvent) => void;
+  // ── Memory Write Safety ──────────────────────────────────────────────────
+  "memory.write.started":  (event: MemoryWriteEvent) => void;
+  "memory.write.completed":(event: MemoryWriteEvent) => void;
+  "memory.write.failed":   (event: MemoryWriteEvent) => void;
+  "memory.lock.wait":      (event: MemoryWriteEvent) => void;
+  "memory.lock.acquired":  (event: MemoryWriteEvent) => void;
+  "memory.lock.released":  (event: MemoryWriteEvent) => void;
+  "memory.rollback":       (event: MemoryWriteEvent) => void;
+  "memory.retry":          (event: MemoryWriteEvent) => void;
+  "memory.recovery":       (event: MemoryWriteEvent) => void;
 };

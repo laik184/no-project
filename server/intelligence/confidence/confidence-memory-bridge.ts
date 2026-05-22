@@ -6,6 +6,12 @@
  * Bridges the in-memory confidence/reliability stores to disk.
  *
  * FAIL-CLOSED: persistence failures are logged but never crash the system.
+ *
+ * ALL writes are routed through memoryWriteQueue:
+ *   ✅ atomic commit via temp-file + fsync + rename
+ *   ✅ validation before commit
+ *   ✅ rollback on failure
+ *   ✅ full telemetry
  */
 
 import fs   from "fs";
@@ -15,6 +21,7 @@ import { getAllRecords, upsertConfidence }   from "./stores/confidence-store.ts"
 import { appendReliabilityEntry, getHistory, clearAll as clearReliability } from "./stores/reliability-store.ts";
 import { exportSummaries } from "./stores/reliability-store.ts";
 import { scoreToState }    from "./confidence-thresholds.ts";
+import { memoryWriteQueue } from "../../quantum/memory/index.ts";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -22,7 +29,8 @@ const CONFIDENCE_DIR  = ".nura/confidence";
 const RECORDS_FILE    = "confidence-records.json";
 const SUMMARIES_FILE  = "reliability-summaries.json";
 const HISTORY_FILE    = "reliability-history.json";
-const MAX_HISTORY     = 500;   // cap total persisted history entries
+const MAX_HISTORY     = 500;
+const OWNER           = "confidence-bridge";
 
 // ── Path resolver ─────────────────────────────────────────────────────────────
 
@@ -36,6 +44,12 @@ function ensureDir(dir: string): void {
   }
 }
 
+// ── Queue key: use sandboxPath as the lane identifier ─────────────────────────
+
+function queueKey(sandboxPath: string): string {
+  return `confidence:${sandboxPath}`;
+}
+
 // ── Persistence ────────────────────────────────────────────────────────────────
 
 /**
@@ -46,19 +60,26 @@ export async function persistConfidence(sandboxPath: string): Promise<void> {
     const dir = confidenceDir(sandboxPath);
     ensureDir(dir);
 
-    const records = getAllRecords();
-    fs.writeFileSync(
-      path.join(dir, RECORDS_FILE),
-      JSON.stringify(records, null, 2),
-      "utf8",
-    );
-
+    const records   = getAllRecords();
     const summaries = exportSummaries();
-    fs.writeFileSync(
-      path.join(dir, SUMMARIES_FILE),
-      JSON.stringify(summaries, null, 2),
-      "utf8",
-    );
+
+    await memoryWriteQueue.enqueue({
+      queueKey: queueKey(sandboxPath),
+      filePath: path.join(dir, RECORDS_FILE),
+      content:  JSON.stringify(records, null, 2),
+      fileType: "json",
+      ownerId:  OWNER,
+      runId:    "system",
+    });
+
+    await memoryWriteQueue.enqueue({
+      queueKey: queueKey(sandboxPath),
+      filePath: path.join(dir, SUMMARIES_FILE),
+      content:  JSON.stringify(summaries, null, 2),
+      fileType: "json",
+      ownerId:  OWNER,
+      runId:    "system",
+    });
 
     console.debug(`[confidence-memory-bridge] Persisted ${records.length} records to ${dir}`);
   } catch (err) {
@@ -79,7 +100,6 @@ export async function restoreConfidence(sandboxPath: string): Promise<void> {
       const raw     = fs.readFileSync(recordsPath, "utf8");
       const records: AgentConfidenceRecord[] = JSON.parse(raw);
       for (const r of records) {
-        // Re-derive state from persisted score in case thresholds changed
         upsertConfidence({ ...r, state: scoreToState(r.confidenceScore) });
       }
       console.debug(`[confidence-memory-bridge] Restored ${records.length} confidence records`);
@@ -98,7 +118,7 @@ export async function restoreConfidence(sandboxPath: string): Promise<void> {
 }
 
 /**
- * Append reliability history slice to disk (incremental, not full rewrite).
+ * Append reliability history slice to disk (atomic read-modify-write).
  */
 export async function persistReliabilityHistory(
   sandboxPath: string,
@@ -108,15 +128,20 @@ export async function persistReliabilityHistory(
     const dir         = confidenceDir(sandboxPath);
     ensureDir(dir);
     const historyPath = path.join(dir, HISTORY_FILE);
+    const fresh       = getHistory(agentId);
 
-    const existing: unknown[] = fs.existsSync(historyPath)
-      ? JSON.parse(fs.readFileSync(historyPath, "utf8"))
-      : [];
-
-    const fresh = getHistory(agentId);
-    const merged = [...existing, ...fresh].slice(-MAX_HISTORY);
-
-    fs.writeFileSync(historyPath, JSON.stringify(merged, null, 2), "utf8");
+    await memoryWriteQueue.enqueue({
+      queueKey: queueKey(sandboxPath),
+      filePath: historyPath,
+      fileType: "json",
+      ownerId:  OWNER,
+      runId:    "system",
+      mutator:  (current) => {
+        const existing: unknown[] = current ? JSON.parse(current) : [];
+        const merged = [...existing, ...fresh].slice(-MAX_HISTORY);
+        return JSON.stringify(merged, null, 2);
+      },
+    });
   } catch (err) {
     console.error("[confidence-memory-bridge] History persist failed (non-fatal):", err);
   }
