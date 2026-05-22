@@ -179,6 +179,54 @@ export function mountLifecycleBridge(): void {
     }
   });
 
+  // ── runtime.port → verifying / crashed ────────────────────────────────────
+  // Driven by waitForPort() in the deterministic startup pipeline.
+  // Translates TCP port-readiness phases into preview lifecycle states so the
+  // frontend overlay shows "Waiting for port…" instead of blank/frozen UI.
+  bus.on("runtime.port", (e) => {
+    if (!e.projectId) return;
+    const mgr  = getLifecycleManager(e.projectId);
+    const curr = mgr.getState();
+
+    switch (e.phase) {
+      // Port waiting — show verifying if we're already in starting/restarting
+      case "waiting":
+        if (curr === "starting" || curr === "restarting") {
+          mgr.forceTransition(
+            "verifying",
+            `Waiting for port ${e.port} to accept connections…`,
+            { port: e.port, retryCount: e.retryCount },
+          );
+        }
+        break;
+
+      // Port ready — stay in verifying (startup-verifier runs next)
+      case "ready":
+        if (curr !== "ready" && curr !== "crashed") {
+          mgr.forceTransition(
+            "verifying",
+            `Port ${e.port} accepting connections (${e.latencyMs ?? "?"}ms) — verifying server…`,
+            { port: e.port, latencyMs: e.latencyMs },
+          );
+        }
+        break;
+
+      // Timeout / fail-closed — crash the preview; recovery bridge will handle retry
+      case "timeout":
+      case "failed":
+        mgr.forceTransition(
+          "crashed",
+          `Port ${e.port} never became reachable after ${e.elapsed ?? "?"}ms (${e.retryCount ?? 0} retries).`,
+          { port: e.port },
+        );
+        break;
+
+      // Cancelled — silently leave state as-is (external abort, not a crash)
+      case "cancelled":
+        break;
+    }
+  });
+
   // ── debug.lifecycle → self_healing / debugging / patching ──────────────────
   // Emitted by the crash-responder and AI self-heal agent to show live progress.
   bus.on("debug.lifecycle", (e) => {

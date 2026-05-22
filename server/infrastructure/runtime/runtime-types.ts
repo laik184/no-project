@@ -42,6 +42,34 @@ export interface RuntimeRestartResult {
   error?: string;
 }
 
+/**
+ * Result of runtimeManager.startDeterministic() — extends the base start result
+ * with port-wait and verification metadata from the deterministic startup pipeline.
+ */
+export interface DeterministicStartResult extends RuntimeStartResult {
+  /** True only when port was confirmed reachable AND startup verification passed. */
+  ready:                boolean;
+  /** Time spent waiting for the TCP port to accept connections (ms). */
+  portWaitMs?:          number;
+  /** Classification from startup-verifier: "healthy" | "degraded" | etc. */
+  verificationOutcome?: string;
+}
+
+/**
+ * Options for the deterministic startup pipeline.
+ * Extends base start options with port-wait and verification config.
+ */
+export interface DeterministicStartOptions extends RuntimeStartOptions {
+  /** Hard deadline for port readiness (ms). Default: 30 000. */
+  waitTimeoutMs?:   number;
+  /** Delay between TCP probe attempts (ms). Default: 250. */
+  retryIntervalMs?: number;
+  /** Agent run ID — attached to telemetry events. */
+  runId?:           string;
+  /** Optional AbortSignal for external cancellation. */
+  signal?:          AbortSignal;
+}
+
 // ─── Entry (read view) ────────────────────────────────────────────────────────
 
 export interface RuntimeEntry {

@@ -26,6 +26,7 @@ import { matchesFile }                from "../channels/file-channel.ts";
 import { matchesRuntimeVerified,
          matchesRuntimeObservation,
          matchesRuntimeSync }         from "../channels/runtime-channel.ts";
+import type { RuntimePortEvent }      from "../types/event.types.ts";
 import { matchesDiff }                from "../channels/diff-channel.ts";
 import { matchesCheckpoint }          from "../channels/checkpoint-channel.ts";
 import { matchesPreviewLifecycle }    from "../channels/preview-lifecycle-channel.ts";
@@ -67,6 +68,18 @@ bus.on("runtime.verified", (e) => {
 bus.on("runtime.sync", (e) => {
   const seqId = record(TOPIC.RUNTIME_SYNC, e);
   pool.fanOut(TOPIC.RUNTIME_SYNC, e, seqId, (conn) => matchesRuntimeSync(conn, e));
+});
+
+// ── runtime.port — deterministic port-readiness events from waitForPort() ─────
+// Delivers waiting/ready/timeout/failed/cancelled phases to the frontend so
+// the preview overlay can show "Waiting for port…" and "Port ready" states
+// without relying on optimistic polling.
+bus.on("runtime.port", (e: RuntimePortEvent) => {
+  const seqId = record(TOPIC.RUNTIME_PORT, e);
+  pool.fanOut(
+    TOPIC.RUNTIME_PORT, e, seqId,
+    (conn) => conn.projectId === null || conn.projectId === e.projectId,
+  );
 });
 
 // ── runtime.observation (throttled: ≤1 delivery/2s per connection) ────────────
@@ -131,7 +144,7 @@ bus.on("tool.execution", (e) => {
 const LEAK_THRESHOLD = 10;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
-  "runtime.verified", "runtime.observation", "agent.diff", "checkpoint.event",
+  "runtime.verified", "runtime.observation", "runtime.port", "agent.diff", "checkpoint.event",
   "preview.lifecycle", "debug.lifecycle", "tool.execution",
 ] as const;
 

@@ -24,6 +24,7 @@ export type {
   FileChangeEvent,
   RuntimeVerifiedEvent,
   RuntimeObservationEvent,
+  RuntimePortEvent,
   DebugLifecycleEvent,
   ToolExecutionEvent,
   AgentDiffEvent,

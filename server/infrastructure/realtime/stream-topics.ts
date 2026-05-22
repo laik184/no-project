@@ -18,6 +18,7 @@ export const TOPIC = {
   RUNTIME_VERIFIED:    "runtime.verified",
   RUNTIME_OBSERVATION: "runtime.observation",
   RUNTIME_SYNC:        "runtime.sync",
+  RUNTIME_PORT:        "runtime.port",
   DIFF:                "diff",
   CHECKPOINT:          "checkpoint",
   PREVIEW_LIFECYCLE:   "preview.lifecycle",

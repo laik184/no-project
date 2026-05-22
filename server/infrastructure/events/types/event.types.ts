@@ -126,6 +126,28 @@ export interface PreviewLifecycleEvent {
 }
 
 /**
+ * Emitted by waitForPort() at every phase transition.
+ * Carries structured port-readiness state for SSE fan-out and preview bridge.
+ */
+export interface RuntimePortEvent {
+  /** Current phase of the port-wait FSM. */
+  phase:       "waiting" | "ready" | "timeout" | "failed" | "cancelled";
+  projectId:   number;
+  runId?:      string;
+  port:        number;
+  ts:          number;
+  /** Elapsed ms since waitForPort() was called — present on non-waiting phases. */
+  elapsed?:    number;
+  retryCount?: number;
+  durationMs?: number;
+  latencyMs?:  number;
+  error?:      string;
+  host?:       string;
+  timeoutMs?:  number;
+  lastError?:  string;
+}
+
+/**
  * Emitted by RuntimeStore on every validated phase transition.
  * Carries the full aggregated snapshot so consumers need no secondary lookup.
  * Intentionally mirrors RuntimeSyncEvent from runtime-types.ts — kept inline
@@ -167,6 +189,7 @@ export type BusEvents = {
   "runtime.verified":    (event: RuntimeVerifiedEvent) => void;
   "runtime.observation": (event: RuntimeObservationEvent) => void;
   "runtime.sync":        (event: RuntimeSyncEvent) => void;
+  "runtime.port":        (event: RuntimePortEvent) => void;
   "debug.lifecycle":     (event: DebugLifecycleEvent) => void;
   "tool.execution":      (event: ToolExecutionEvent) => void;
   "agent.diff":          (event: AgentDiffEvent) => void;
