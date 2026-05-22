@@ -34,6 +34,7 @@ import { createDiffApprovalRouter } from './server/api/diff-approval.routes.ts';
 import { createCheckpointsRouter } from './server/api/checkpoints.routes.ts';
 import { startRecoveryManager } from './server/infrastructure/recovery/recovery-manager.ts';
 import { createRecoveryRouter } from './server/api/recovery.routes.ts';
+import { createDagRouter }      from './server/api/dag.routes.ts';
 import { createImportRouter } from './server/api/import/import.routes.ts';
 import { runtimeStore }             from './server/infrastructure/runtime/runtime-store/runtime-store.ts';
 import { createRuntimeSyncRouter }  from './server/infrastructure/runtime/runtime-store/runtime-sync.ts';
@@ -92,6 +93,7 @@ app.use('/api/orchestration', createOrchestrationRouter());
 app.use('/api/truth',  createTruthEngineRouter());
 app.use('/api/memory', createMemoryRouter());
 app.use('/api/verify', createFailClosedRouter());
+app.use('/api/dag',   createDagRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.

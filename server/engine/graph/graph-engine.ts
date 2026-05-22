@@ -3,6 +3,8 @@
  *
  * Main orchestrator: runs an ExecutionGraph wave-by-wave,
  * handles retries, rollback, checkpointing, and timeouts.
+ *
+ * FIXED: Emits dag.node.ready for each node before its wave executes.
  */
 
 import { getNextWave, createSchedulerEvents, buildSchedule, describeSchedule } from "./node-scheduler.ts";
@@ -10,6 +12,7 @@ import { runParallelBatch, aggregateResults }   from "./parallel-runner.ts";
 import { buildRollbackPlan, executeRollback, skipBlockedNodes } from "./rollback-graph.ts";
 import { createCheckpoint, prepareReplay }      from "./graph-state.ts";
 import { setGraphStatus, hasCriticalFailure, isGraphComplete, graphSummary, setNodeStatus } from "./execution-graph.ts";
+import { bus }                                  from "../../infrastructure/events/bus.ts";
 import type { ExecutionGraph, GraphResult }     from "./graph-types.ts";
 import type { NodeExecutor }                    from "./parallel-runner.ts";
 import type { RollbackExecutor }               from "./rollback-graph.ts";
@@ -59,12 +62,27 @@ export async function runGraph(
       if (wave.length === 0) {
         // No ready nodes — check for deadlock
         const running = [...graph.nodes.values()].filter(n => n.status === "running");
-        if (running.length === 0) {
-          console.warn("[graph-engine] No ready nodes and nothing running — possible deadlock");
+        const retrying = [...graph.nodes.values()].filter(n => n.status === "retrying");
+        if (running.length === 0 && retrying.length === 0) {
+          console.warn("[graph-engine] No ready nodes and nothing running/retrying — possible deadlock");
           break;
         }
+        // Still waiting for retrying nodes to re-queue — short poll
         await new Promise(r => setTimeout(r, 200));
         continue;
+      }
+
+      // Emit dag.node.ready for each node about to execute
+      for (const node of wave) {
+        bus.emit("agent.event" as any, {
+          runId:     graph.id,
+          projectId: graph.projectId,
+          phase:     "dag",
+          agentName: "dag-engine",
+          eventType: "dag.node.ready",
+          payload:   { nodeId: node.id, label: node.label, waveIndex },
+          ts:        Date.now(),
+        });
       }
 
       events.onWaveStart({ waveIndex, nodes: wave, isParallel: wave.length > 1, estimatedMs: nodeTimeoutMs }, waveIndex);
@@ -73,9 +91,9 @@ export async function runGraph(
       const { passed, failed } = await runParallelBatch(wave, graph, {
         executor:  opts.executor,
         timeoutMs: nodeTimeoutMs,
-        onNodeStart: n    => console.log(`[graph-engine] → ${n.label}`),
-        onNodeComplete: n => console.log(`[graph-engine] ✓ ${n.label} (${n.durationMs}ms)`),
-        onNodeFailed: (n, e) => console.error(`[graph-engine] ✗ ${n.label}: ${e.message}`),
+        onNodeStart:    n    => console.log(`[graph-engine] → ${n.label}`),
+        onNodeComplete: n    => console.log(`[graph-engine] ✓ ${n.label} (${n.durationMs}ms)`),
+        onNodeFailed:  (n, e) => console.error(`[graph-engine] ✗ ${n.label}: ${e.message}`),
       });
 
       events.onWaveEnd(waveIndex, passed.length, failed.length);
@@ -93,7 +111,7 @@ export async function runGraph(
         if (!node || node.status !== "failed") continue;
         if (node.retryCount < node.maxRetries) continue; // still retrying
 
-        // Skip transitive dependents
+        // Transitively skip all blocked descendants
         skipBlockedNodes(graph, failedId);
 
         // Auto rollback if enabled

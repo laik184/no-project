@@ -3,31 +3,34 @@
  *
  * Lightweight checkpoint + restore system for execution graphs.
  * Allows pausing and replaying partial execution from a safe point.
+ *
+ * FIXED: prepareReplay now resets the FULL transitive downstream subtree
+ * (not just the target node and its direct dependents).
  */
 
 import type { ExecutionGraph, ExecutionNode, GraphStatus } from "./graph-types.ts";
 
 export interface GraphCheckpoint {
-  runId:        string;
-  projectId:    number;
-  goal:         string;
-  ts:           number;
-  checkpointAt: string;        // nodeId of last success
+  runId:         string;
+  projectId:     number;
+  goal:          string;
+  ts:            number;
+  checkpointAt:  string;        // nodeId of last success
   nodeSnapshots: NodeSnapshot[];
-  completedIds: string[];
-  failedIds:    string[];
-  graphStatus:  GraphStatus;
+  completedIds:  string[];
+  failedIds:     string[];
+  graphStatus:   GraphStatus;
 }
 
 interface NodeSnapshot {
-  id:          string;
-  status:      ExecutionNode["status"];
-  retryCount:  number;
-  result?:     unknown;
-  error?:      string;
-  startedAt?:  number;
-  completedAt?:number;
-  durationMs?: number;
+  id:           string;
+  status:       ExecutionNode["status"];
+  retryCount:   number;
+  result?:      unknown;
+  error?:       string;
+  startedAt?:   number;
+  completedAt?: number;
+  durationMs?:  number;
 }
 
 // ── Serialization ─────────────────────────────────────────────────────────────
@@ -88,33 +91,47 @@ export function restoreCheckpoint(
 // ── Replay ────────────────────────────────────────────────────────────────────
 
 /**
- * Mark all nodes BEFORE checkpointAt as already-complete.
- * Nodes AT or AFTER checkpointAt are reset to pending for re-execution.
+ * Reset the target node AND its full transitive downstream subtree to "pending".
+ *
+ * FIXED: Previously only reset the target + direct dependents. Now uses BFS to
+ * find every descendant node so that a re-run from checkpoint is complete and
+ * deterministic — no stale "success" statuses surviving into the replay.
  */
 export function prepareReplay(
   graph:      ExecutionGraph,
   fromNodeId: string,
 ): void {
-  for (const node of graph.nodes.values()) {
-    if (node.id === fromNodeId) {
-      // Reset from here onwards
-      node.status     = "pending";
-      node.retryCount = 0;
-      node.result     = undefined;
-      node.error      = undefined;
-      graph.completedIds.delete(node.id);
-      graph.failedIds.delete(node.id);
-    }
-    // Nodes that depended on the reset node also reset
-    if (node.dependsOn.includes(fromNodeId)) {
-      node.status     = "pending";
-      node.retryCount = 0;
-      graph.completedIds.delete(node.id);
-      graph.failedIds.delete(node.id);
+  // BFS: collect the full set of nodes to reset
+  const toReset = new Set<string>();
+  const queue   = [fromNodeId];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (toReset.has(current)) continue;
+    toReset.add(current);
+
+    // Any node whose dependsOn includes `current` is a downstream dependent
+    for (const node of graph.nodes.values()) {
+      if (!toReset.has(node.id) && node.dependsOn.includes(current)) {
+        queue.push(node.id);
+      }
     }
   }
+
+  // Reset all collected nodes
+  for (const nodeId of toReset) {
+    const node = graph.nodes.get(nodeId);
+    if (!node) continue;
+    node.status     = "pending";
+    node.retryCount = 0;
+    node.result     = undefined;
+    node.error      = undefined;
+    graph.completedIds.delete(nodeId);
+    graph.failedIds.delete(nodeId);
+  }
+
   graph.currentWave = [];
-  console.log(`[graph-state] Replay prepared from node "${fromNodeId}"`);
+  console.log(`[graph-state] Replay prepared from node "${fromNodeId}" — reset ${toReset.size} nodes`);
 }
 
 // ── State serialization for persistence ──────────────────────────────────────

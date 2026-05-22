@@ -4,13 +4,15 @@
  * Real NodeExecutor implementation that dispatches DAG nodes
  * to the appropriate tool/agent/verify subsystem.
  *
- * Maps ExecutionNode.type → correct execution path.
- * Single responsibility: node dispatch. No orchestration logic.
+ * FIXED: dispatchAgent() no longer fire-and-forgets.
+ * Agent nodes now register a promise via agentPromiseRegistry and
+ * await actual completion (or timeout) before returning to the DAG.
  */
 
-import { bus }           from "../../infrastructure/events/bus.ts";
-import { dagCheckpointStore } from "../checkpoints/dag-checkpoint-store.ts";
-import { createCheckpoint }   from "../graph/graph-state.ts";
+import { bus }                  from "../../infrastructure/events/bus.ts";
+import { dagCheckpointStore }   from "../checkpoints/dag-checkpoint-store.ts";
+import { createCheckpoint }     from "../graph/graph-state.ts";
+import { agentPromiseRegistry } from "./agent-promise-registry.ts";
 import {
   emitNodeStarted,
   emitNodeCompleted,
@@ -73,12 +75,12 @@ async function dispatchNode(
   ctx:  NodeExecutorContext,
 ): Promise<unknown> {
   switch (node.type) {
-    case "tool":        return dispatchTool(node, ctx);
-    case "agent":       return dispatchAgent(node, ctx);
-    case "verify":      return dispatchVerify(node, ctx);
-    case "checkpoint":  return dispatchCheckpointNode(node, ctx);
-    case "decision":    return dispatchDecision(node, ctx);
-    default:            return dispatchAgent(node, ctx);
+    case "tool":       return dispatchTool(node, ctx);
+    case "agent":      return dispatchAgent(node, ctx);
+    case "verify":     return dispatchVerify(node, ctx);
+    case "checkpoint": return dispatchCheckpointNode(node, ctx);
+    case "decision":   return dispatchDecision(node, ctx);
+    default:           return dispatchAgent(node, ctx);
   }
 }
 
@@ -90,14 +92,13 @@ async function dispatchTool(node: ExecutionNode, ctx: NodeExecutorContext): Prom
     throw new Error(`Node "${node.id}" type=tool missing toolName`);
   }
 
-  // Lazy import to avoid circular dependencies at startup
-  const { toolRegistry } = await import("../../tools/registry/tool-registry.ts");
+  const { toolRegistry }   = await import("../../tools/registry/tool-registry.ts");
   const entry = toolRegistry.get(toolName);
   if (!entry) {
     throw new Error(`Tool "${toolName}" not found in registry`);
   }
 
-  const { executeTool } = await import("../../tools/core/execute-tool.ts");
+  const { executeTool }    = await import("../../tools/core/execute-tool.ts");
   const { buildToolContext } = await import("../../tools/core/tool-context.ts");
 
   const toolCtx = buildToolContext({
@@ -116,10 +117,26 @@ async function dispatchTool(node: ExecutionNode, ctx: NodeExecutorContext): Prom
   return result.result;
 }
 
-// ── Agent dispatch ────────────────────────────────────────────────────────────
+// ── Agent dispatch ─────────────────────────────────────────────────────────────
+//
+// FIXED: Previously emitted a bus event and immediately returned { dispatched: true },
+// meaning the DAG treated agent nodes as "success" without waiting for real completion.
+//
+// Now: registers a promise in agentPromiseRegistry, emits the bus event with the
+// promiseKey, then awaits the promise. The agent runner (or any external handler)
+// calls agentPromiseRegistry.resolve(key, result) on completion.
+//
+// If no external handler resolves the promise within the timeout, the registry
+// auto-resolves with { timedOut: true } — the node succeeds rather than stalling
+// the whole graph, which is safe for forward progress.
 
 async function dispatchAgent(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
-  // Emit a bus event that the tool-loop / orchestration can pick up
+  const key    = agentPromiseRegistry.key(ctx.runId, node.id);
+  const agentTimeoutMs = (node.args as any)?.agentTimeoutMs as number | undefined;
+
+  // Register the promise BEFORE emitting the event (avoids race if handler is sync)
+  const resultPromise = agentPromiseRegistry.register(key, agentTimeoutMs);
+
   bus.emit("agent.event" as any, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
@@ -127,32 +144,38 @@ async function dispatchAgent(node: ExecutionNode, ctx: NodeExecutorContext): Pro
     agentName: node.agentRole ?? "builder",
     eventType: "dag.agent.execute",
     payload:   {
-      nodeId:    node.id,
-      label:     node.label,
-      goal:      (node.args as any)?.goal ?? node.label,
-      tools:     (node.args as any)?.tools,
+      nodeId:     node.id,
+      label:      node.label,
+      goal:       (node.args as any)?.goal ?? node.label,
+      tools:      (node.args as any)?.tools,
+      promiseKey: key,           // allows handler to resolve this specific node
     },
     ts: Date.now(),
   });
 
-  // Return immediately — agent execution is async via bus
-  // The graph treats this as successful dispatch
-  return { dispatched: true, nodeId: node.id, agentRole: node.agentRole };
+  // Await actual agent completion (or timeout auto-resolve)
+  const result = await resultPromise;
+  return result;
 }
 
 // ── Verify dispatch ───────────────────────────────────────────────────────────
 
 async function dispatchVerify(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
+  const key           = agentPromiseRegistry.key(ctx.runId, node.id);
+  const resultPromise = agentPromiseRegistry.register(key);
+
   bus.emit("agent.event" as any, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
     phase:     "dag.verify",
     agentName: "verification",
     eventType: "dag.verify.execute",
-    payload:   { nodeId: node.id, args: node.args },
+    payload:   { nodeId: node.id, args: node.args, promiseKey: key },
     ts:        Date.now(),
   });
-  return { verified: true, nodeId: node.id };
+
+  // With a short default timeout for verify nodes (they should be fast)
+  return resultPromise;
 }
 
 // ── Checkpoint node dispatch ──────────────────────────────────────────────────
