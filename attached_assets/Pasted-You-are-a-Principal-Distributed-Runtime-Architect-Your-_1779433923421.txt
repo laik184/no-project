@@ -1,0 +1,409 @@
+You are a Principal Distributed Runtime Architect.
+
+Your task is to IMPLEMENT a production-grade File Lock System for the NURA-X autonomous backend.
+
+MAIN GOAL:
+Create a deterministic, fail-safe, low-coupled FileLockManager system that prevents:
+- parallel file corruption
+- simultaneous write conflicts
+- race conditions
+- duplicate writes
+- unsafe agent mutations
+
+This system MUST become the single authority for ALL file write ownership.
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION / LOW COUPLING
+- Every module must have ONE responsibility only.
+- No hidden cross-module mutations.
+- No tight coupling between orchestration, runtime, tools, and locks.
+
+2. FILE SIZE LIMIT
+- NO file over 250 lines.
+- Split responsibilities into small composable modules.
+
+3. TARGETED PLACEMENT
+- Every file must exist in its logically correct bounded-context folder.
+- No architecture pollution.
+
+4. ROOT CAUSE FIXING
+- Solve actual race-condition architecture.
+- Do NOT patch symptoms.
+
+5. SENIOR-LEVEL ENGINEERING
+- readable naming
+- deterministic ownership
+- strong typing
+- timeout safety
+- cleanup safety
+- retry safety
+- telemetry-first design
+
+6. CODE REVIEW STANDARD
+- architecture-safe
+- scalable
+- production-grade
+- no hacks
+- no shortcuts
+
+7. FAIL-CLOSED DESIGN
+- write operations MUST fail if lock acquisition fails.
+- no unsafe fallback writes.
+
+8. TELEMETRY REQUIRED
+- every:
+  - lock acquire
+  - lock release
+  - timeout
+  - retry
+  - collision
+  - force release
+  - stale cleanup
+MUST emit telemetry events.
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT PROBLEM
+━━━━━━━━━━━━━━━━━━━━
+
+Current system allows:
+
+❌ multiple agents writing same file
+❌ parallel DAG nodes mutating same path
+❌ tool-loop conflicts
+❌ memory corruption risks
+❌ runtime race conditions
+
+This causes:
+- nondeterministic outputs
+- overwritten code
+- corrupted files
+- unstable recovery
+- invalid verification states
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/quantum/locks/
+
+FINAL STRUCTURE:
+
+server/quantum/locks/
+├── file-lock-manager.ts
+├── file-lock-store.ts
+├── file-lock-types.ts
+├── lock-acquisition.ts
+├── lock-release.ts
+├── stale-lock-cleaner.ts
+├── write-guard.ts
+├── lock-telemetry.ts
+├── lock-timeout.ts
+├── lock-errors.ts
+└── index.ts
+
+━━━━━━━━━━━━━━━━━━━━
+CORE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+✅ exclusive path ownership
+✅ deterministic lock lifecycle
+✅ stale lock cleanup
+✅ timeout protection
+✅ retry strategy
+✅ collision prevention
+✅ force-release protection
+✅ telemetry tracing
+✅ fail-closed writes
+✅ async-safe ownership
+
+━━━━━━━━━━━━━━━━━━━━
+LOCK MODEL
+━━━━━━━━━━━━━━━━━━━━
+
+Each lock:
+
+type FileLock = {
+  lockId: string
+  path: string
+  ownerId: string
+  runId: string
+  acquiredAt: number
+  expiresAt: number
+  lastHeartbeat: number
+  status: "active" | "released" | "expired"
+}
+
+━━━━━━━━━━━━━━━━━━━━
+LOCK RULES
+━━━━━━━━━━━━━━━━━━━━
+
+ONLY ONE ACTIVE WRITER per file path.
+
+If:
+Agent A owns:
+src/App.tsx
+
+Then:
+❌ Agent B cannot write
+❌ ToolLoop cannot mutate
+❌ Runtime patcher cannot overwrite
+
+UNTIL:
+lock released OR expired.
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. FILE LOCK STORE
+
+Create centralized ownership store.
+
+Requirements:
+✅ singleton
+✅ Map<path, FileLock>
+✅ deterministic reads
+✅ cleanup-safe
+✅ atomic mutation methods
+
+NO direct Map mutation outside store.
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. LOCK ACQUISITION
+
+Implement:
+
+acquireLock(path, ownerId, runId)
+
+Requirements:
+✅ collision detection
+✅ timeout enforcement
+✅ retry policy
+✅ stale lock detection
+✅ fail-closed response
+
+Return:
+- success
+- failure reason
+- existing owner metadata
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. LOCK RELEASE
+
+Implement:
+
+releaseLock(lockId)
+
+Requirements:
+✅ owner validation
+✅ double-release protection
+✅ telemetry emit
+✅ cleanup safety
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. STALE LOCK CLEANER
+
+Implement background cleanup.
+
+Requirements:
+✅ periodic scan
+✅ expired lock cleanup
+✅ zombie lock removal
+✅ telemetry events
+
+Detect:
+- dead agents
+- crashed runs
+- abandoned locks
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. WRITE GUARD
+
+MOST IMPORTANT.
+
+Create:
+write-guard.ts
+
+ALL write operations MUST pass through:
+
+assertFileWriteAllowed(path, ownerId)
+
+If lock invalid:
+❌ THROW
+❌ BLOCK WRITE
+
+NO bypasses allowed.
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. TELEMETRY
+
+Emit events:
+
+lock.acquired
+lock.failed
+lock.released
+lock.expired
+lock.retry
+lock.force_release
+lock.collision
+
+Integrate with:
+server/infrastructure/events/bus.ts
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. TIMEOUT PROTECTION
+
+Requirements:
+✅ default 30s lease
+✅ heartbeat refresh
+✅ auto expiration
+✅ stale detection
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. ERROR SYSTEM
+
+Create typed errors:
+
+FileLockCollisionError
+FileLockTimeoutError
+FileLockOwnershipError
+FileLockExpiredError
+
+NO generic Error usage.
+
+━━━━━━━━━━━━━━━━━━━━
+INTEGRATION TARGETS
+━━━━━━━━━━━━━━━━━━━━
+
+Integrate FileLockManager into:
+
+1. server/tools/write-file/
+2. server/tools/edit-file/
+3. server/agents/builder/
+4. server/engine/graph/
+5. server/orchestration/
+6. server/fail-closed/
+7. server/recovery/
+8. memory write pipeline
+
+━━━━━━━━━━━━━━━━━━━━
+WRITE FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+NEW FLOW:
+
+request write
+→ acquire lock
+→ validate ownership
+→ write file
+→ emit telemetry
+→ release lock
+→ verification
+
+If lock fails:
+→ retry policy
+→ telemetry emit
+→ fail closed
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE ANALYSIS REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Before implementation:
+TRACE:
+- all write entry points
+- all filesystem mutation paths
+- all parallel execution paths
+- all DAG mutation paths
+- all memory writes
+
+Find:
+❌ hidden file writes
+❌ unsafe writes
+❌ parallel mutations
+❌ race conditions
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY THESE CONDITIONS
+━━━━━━━━━━━━━━━━━━━━
+
+After implementation verify:
+
+✅ no duplicate writes
+✅ no concurrent file mutation
+✅ no stale ownership
+✅ no zombie locks
+✅ deterministic ownership
+✅ safe retries
+✅ no runtime corruption
+✅ no DAG conflicts
+✅ no memory corruption
+
+━━━━━━━━━━━━━━━━━━━━
+TEST REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Create tests for:
+
+1. parallel write collision
+2. stale lock expiration
+3. owner mismatch
+4. double release
+5. timeout retry
+6. concurrent DAG writes
+7. runtime crash cleanup
+8. recovery rollback safety
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+FILE_LOCK_SYSTEM_IMPLEMENTATION_REPORT.md
+
+Include:
+
+1. Root cause analysis
+2. All unsafe write paths found
+3. Files created
+4. Files modified
+5. Integration points
+6. Race conditions fixed
+7. Lock lifecycle diagram
+8. Ownership flow
+9. Timeout model
+10. Retry strategy
+11. Telemetry events
+12. DAG safety analysis
+13. Runtime safety analysis
+14. Memory safety analysis
+15. Fail-closed validation
+16. Test coverage
+17. Remaining risks
+18. Future improvements
+19. Production readiness %
+20. Parallel safety score
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform filesystem mutation from:
+
+"unsafe parallel writes"
+
+INTO:
+
+"deterministic, production-grade, fail-safe ownership architecture"
+
+The FileLockManager must become:
+THE SINGLE SOURCE OF TRUTH
+for ALL file write ownership in the entire backend.

@@ -5,15 +5,19 @@
  *
  * Security: file_write routes through the diff approval gate for existing files.
  * New files are written directly. The gate is bypassed when DISABLE_DIFF_APPROVAL=true.
+ *
+ * Write safety: file_write enforces FileLock ownership via assertFileWriteAllowed.
+ * Agents MUST hold an active lock before writing. Fail-closed: throws on violation.
  */
 
 import fs   from "fs/promises";
 import path from "path";
-import { getProjectDir, resolveSafe }     from "../../infrastructure/sandbox/sandbox.util.ts";
-import { emitFileChange, emitFileWriting }  from "../../infrastructure/events/file-change-emitter.ts";
+import { getProjectDir, resolveSafe }        from "../../infrastructure/sandbox/sandbox.util.ts";
+import { emitFileChange, emitFileWriting }   from "../../infrastructure/events/file-change-emitter.ts";
 import { requestApproval, isApprovalEnabled } from "../../approvals/diff-approval.service.ts";
-import { atomicWrite }                     from "../../infrastructure/checkpoints/atomic-write.util.ts";
-import { checkpointStore }                 from "../../infrastructure/checkpoints/checkpoint.service.ts";
+import { atomicWrite }                        from "../../infrastructure/checkpoints/atomic-write.util.ts";
+import { checkpointStore }                    from "../../infrastructure/checkpoints/checkpoint.service.ts";
+import { assertNoWriteConflict }              from "../../quantum/locks/write-guard.ts";
 import type { Tool, ToolContext, ToolResult } from "../types.ts";
 
 // ── file_list ─────────────────────────────────────────────────────────────────
@@ -156,6 +160,8 @@ export const fileWrite: Tool = {
       }
 
       // ── Direct write: new file or approval disabled (atomic) ─────────────────
+      // Fail-closed: block if a different run/agent holds an active lock on this path.
+      assertNoWriteConflict(filePath, ctx.runId);
       emitFileWriting(ctx.projectId, filePath, Buffer.byteLength(newContent, "utf-8"));
       await atomicWrite(abs, newContent);
       const stat = await fs.stat(abs);

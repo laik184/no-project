@@ -50,6 +50,7 @@ import { startReflectionEngine }      from './server/engine/reflection/index.ts'
 import { initDagMetricsCollector }    from './server/engine/telemetry/index.ts';
 import { initRuntimeMemoryCollector }  from './server/memory/runtime/runtime-memory-collector.ts';
 import { initReflectionMemoryBridge }  from './server/memory/reflection/reflection-memory-bridge.ts';
+import { fileLockManager }            from './server/quantum/locks/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -225,12 +226,15 @@ server.listen(PORT, '0.0.0.0', async () => {
   initRuntimeMemoryCollector();
   // Initialize reflection memory bridge — persists reflection findings → memory pipeline
   initReflectionMemoryBridge();
+  // Start file lock stale cleaner — evicts expired/zombie locks every 10s
+  fileLockManager.startCleaner();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
   console.log(`[nura-x] ${signal} received — graceful shutdown`);
   observationController.stop();
   crashResponder.stop();
+  fileLockManager.stopCleaner();
   // Flush runtime state to disk and SIGKILL all children before exit
   await runtimeManager.shutdown();
   server.close(() => process.exit(0));
