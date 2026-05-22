@@ -181,6 +181,38 @@ export interface RuntimeSyncEvent {
   };
 }
 
+// ── Quantum Scanner events ────────────────────────────────────────────────────
+
+/**
+ * Emitted by the Distributed File Scanner for all scan lifecycle phases.
+ */
+export interface QuantumScanEvent {
+  /** UUID of the scan run. */
+  scanId:          string;
+  /** Project being scanned. */
+  projectId:       number;
+  /** What triggered the scan: "orchestration" | "dag" | "verification" | "recovery" | "manual". */
+  trigger?:        string;
+  /** Root path that was scanned. */
+  rootPath?:       string;
+  /** Total files discovered. */
+  fileCount?:      number;
+  /** Number of worker partitions created. */
+  partitionCount?: number;
+  /** Partition identifier (present on worker events). */
+  partitionId?:    string;
+  /** Zero-based worker index (present on worker events). */
+  workerIndex?:    number;
+  /** Wall-clock duration of the operation (ms). */
+  durationMs?:     number;
+  /** Total findings in the completed report. */
+  findingCount?:   number;
+  /** Error message on failure events. */
+  error?:          string;
+  /** Unix epoch ms. */
+  ts:              number;
+}
+
 // ── Memory Write Safety events ────────────────────────────────────────────────
 
 /**
@@ -226,6 +258,14 @@ export type BusEvents = {
   "agent.diff":            (event: AgentDiffEvent) => void;
   "checkpoint.event":      (event: CheckpointEvent) => void;
   "preview.lifecycle":     (event: PreviewLifecycleEvent) => void;
+  // ── Distributed File Scanner ─────────────────────────────────────────────
+  "quantum.scan.started":     (event: QuantumScanEvent) => void;
+  "quantum.scan.partitioned": (event: QuantumScanEvent) => void;
+  "quantum.worker.started":   (event: QuantumScanEvent) => void;
+  "quantum.worker.completed": (event: QuantumScanEvent) => void;
+  "quantum.worker.failed":    (event: QuantumScanEvent) => void;
+  "quantum.scan.completed":   (event: QuantumScanEvent) => void;
+  "quantum.scan.failed":      (event: QuantumScanEvent) => void;
   // ── Memory Write Safety ──────────────────────────────────────────────────
   "memory.write.started":  (event: MemoryWriteEvent) => void;
   "memory.write.completed":(event: MemoryWriteEvent) => void;
