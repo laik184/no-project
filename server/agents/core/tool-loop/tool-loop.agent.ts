@@ -4,11 +4,14 @@
  * THE LLM TOOL-USE AGENT.
  * Calls OpenRouter in a step-by-step loop until task_complete or max steps.
  *
- * After every tool call, the ExecutionObserver (T4 fix) appends a structured
- * [OBSERVATION] block to the tool result so the AI can reason about what happened —
- * console errors, runtime health, failure class, and recommended next action.
+ * ── Parallel execution (upgraded) ────────────────────────────────────────────
+ * Tool calls are no longer executed sequentially. Each step's tool calls are:
+ *   1. Classified: PARALLEL_SAFE | SERIAL_REQUIRED | EXCLUSIVE_RESOURCE
+ *   2. Grouped into ordered execution batches (parallel + serial)
+ *   3. Dispatched: safe reads run concurrently, mutations run sequentially
+ * See server/agents/core/tool-loop/execution/ for the full implementation.
  *
- * ── Verification gate ──────────────────────────────────────────────────────────
+ * ── Verification gate ─────────────────────────────────────────────────────────
  * On task_complete: run verification engine (runtime + TS + preview checks).
  * Pass → complete. Fail → inject failure so LLM self-heals. Exhaust → warn + done.
  */
@@ -20,10 +23,8 @@ import { bus }                       from "../../../infrastructure/events/bus.ts
 import { buildSystemPrompt }         from "../llm/prompt-builder/agents/system-prompt.agent.js";
 import { TOOL_REFERENCE }            from "./tool-reference.ts";
 import { withRetry }                 from "./retry.ts";
-import { executeToolCall }           from "./tool-call.executor.ts";
 import { executionObserver }         from "../../../tools/observation/index.ts";
 import { checkpointStore }           from "../../../infrastructure/checkpoints/checkpoint.service.ts";
-import { rollbackLatestForRun }      from "../../../infrastructure/checkpoints/rollback.service.ts";
 import { getProjectDir }             from "../../../infrastructure/sandbox/sandbox.util.ts";
 import {
   runVerificationEngine,
@@ -37,18 +38,29 @@ import {
   emitVerificationExhausted,
 }                                    from "../../../verification/index.ts";
 
+// ── Parallel execution system ─────────────────────────────────────────────────
+import { buildToolGroups }           from "./execution/tool-group-builder.ts";
+import { executeParallelBatch }      from "./execution/parallel-tool-executor.ts";
+import { executeSerialBatch }        from "./execution/serial-tool-executor.ts";
+import {
+  emitBatchStarted,
+  emitBatchCompleted,
+  emitBatchFailed,
+}                                    from "./telemetry/tool-execution-telemetry.ts";
+import type { ToolExecutionRecord }  from "./types/parallel-execution.types.ts";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface AgentLoopInput {
-  readonly projectId:      number;
-  readonly runId:          string;
-  readonly goal:           string;
-  readonly maxSteps?:      number;
-  readonly signal?:        AbortSignal;
-  readonly systemPrompt?:  string;
+  readonly projectId:        number;
+  readonly runId:            string;
+  readonly goal:             string;
+  readonly maxSteps?:        number;
+  readonly signal?:          AbortSignal;
+  readonly systemPrompt?:    string;
   readonly initialMessages?: ToolMessage[];
   readonly skipVerification?: boolean;
-  readonly memoryContext?: string;
+  readonly memoryContext?:   string;
 }
 
 export interface AgentLoopResult {
@@ -63,7 +75,7 @@ export interface AgentLoopResult {
 // ─── Agent loop ───────────────────────────────────────────────────────────────
 
 export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResult> {
-  const maxSteps = input.maxSteps ?? 25;
+  const maxSteps            = input.maxSteps ?? 25;
   const resolvedSystemPrompt = buildSystemPrompt(input.systemPrompt) + "\n\n" + TOOL_REFERENCE;
 
   const messages: ToolMessage[] = input.initialMessages ?? buildInitialMessages(
@@ -73,7 +85,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   const ctx: ToolContext = { projectId: input.projectId, runId: input.runId, signal: input.signal };
   const retryCtrl = input.skipVerification ? null : getOrCreateRetryController(input.runId);
 
-  // ── Pre-run checkpoint: create a safety snapshot before any changes ────────
+  // ── Pre-run checkpoint ────────────────────────────────────────────────────
   const sandboxRoot = getProjectDir(input.projectId);
   checkpointStore.create({
     projectId:   input.projectId,
@@ -98,7 +110,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       steps++;
       emit(input.runId, "agent.thinking", "tool-loop", { step: steps, text: `Step ${steps}: thinking…` });
 
-      // ── LLM call (streaming) ──────────────────────────────────────────────
+      // ── LLM call (streaming) ────────────────────────────────────────────
       let response: Awaited<ReturnType<typeof llm.chatWithTools>>;
       let streamedContent = false;
       try {
@@ -120,8 +132,6 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
         return { success: false, steps, summary: msg, stopReason: "error", error: msg, messages };
       }
 
-      // Only emit agent.message for non-streamed content (streamed text was
-      // already sent token-by-token; emitting again would cause duplication).
       if (response.content?.trim() && !streamedContent) {
         emit(input.runId, "agent.message", "tool-loop", { text: response.content });
       }
@@ -133,27 +143,34 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       }
 
       messages.push({
-        role: "assistant",
-        content: response.content || "",
+        role:       "assistant",
+        content:    response.content || "",
         tool_calls: response.toolCalls.map((tc) => ({
           id: tc.id, type: "function" as const,
           function: { name: tc.name, arguments: tc.arguments },
         })),
       });
 
+      // ── PARALLEL EXECUTION: classify → group → dispatch ─────────────────
+      const allRecords = await dispatchToolCalls(response.toolCalls, ctx, input.runId);
+
+      // ── Push tool results in original LLM call order ─────────────────────
+      // Build a lookup map so we can restore original ordering.
+      const recordByCallId = new Map<string, ToolExecutionRecord>(
+        allRecords.map((r) => [r.callId, r]),
+      );
+
       let saw_complete = false;
 
-      // ── Execute all tool calls for this step ──────────────────────────────
       for (const call of response.toolCalls) {
-        const output = await executeToolCall({
-          callId: call.id, name: call.name, args: call.arguments, ctx,
-        });
+        const record = recordByCallId.get(call.id);
+        if (!record) continue;  // should never happen
 
-        messages.push({ role: "tool", tool_call_id: call.id, content: output.content });
+        messages.push({ role: "tool", tool_call_id: call.id, content: record.output.content });
 
-        // ── Verification gate — only on terminal (task_complete) ───────────
-        if (!output.isTerminal) continue;
-        const summary = (output.parsedArgs["summary"] as string) || "Task complete.";
+        // ── Verification gate — only on terminal (task_complete / agent_fail) ──
+        if (!record.output.isTerminal) continue;
+        const summary = (record.output.parsedArgs["summary"] as string) || "Task complete.";
 
         if (!retryCtrl) {
           saw_complete = true; lastSummary = summary; continue;
@@ -168,17 +185,19 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
         } else if (retryCtrl.exhausted) {
           emitVerificationExhausted(input.projectId, input.runId, retryCtrl.maxRetries);
           messages[messages.length - 1] = {
-            role: "tool", tool_call_id: call.id,
-            content: buildExhaustedFeedback(report, retryCtrl.maxRetries),
+            role:        "tool",
+            tool_call_id: call.id,
+            content:     buildExhaustedFeedback(report, retryCtrl.maxRetries),
           };
-          saw_complete = true;
-          lastSummary = `${summary} (completed with verification warnings)`;
+          saw_complete  = true;
+          lastSummary   = `${summary} (completed with verification warnings)`;
         } else {
           const attempt = retryCtrl.recordAttempt();
           emitVerificationFailed(report, attempt);
           messages[messages.length - 1] = {
-            role: "tool", tool_call_id: call.id,
-            content: buildVerificationFeedback(report, attempt, retryCtrl.maxRetries),
+            role:        "tool",
+            tool_call_id: call.id,
+            content:     buildVerificationFeedback(report, attempt, retryCtrl.maxRetries),
           };
         }
       }
@@ -188,12 +207,52 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
       }
     }
 
-    return { success: false, steps, summary: `Reached step limit of ${maxSteps}.`, stopReason: "max_steps", messages: [...messages] };
+    return {
+      success:    false,
+      steps,
+      summary:    `Reached step limit of ${maxSteps}.`,
+      stopReason: "max_steps",
+      messages:   [...messages],
+    };
 
   } finally {
     releaseRetryController(input.runId);
-    executionObserver.release(input.runId);   // T4: release per-run observation memory
+    executionObserver.release(input.runId);
   }
+}
+
+// ─── Parallel dispatch ────────────────────────────────────────────────────────
+
+async function dispatchToolCalls(
+  toolCalls: Array<{ id: string; name: string; arguments: string }>,
+  ctx:       ToolContext,
+  runId:     string,
+): Promise<ToolExecutionRecord[]> {
+  const rawCalls = toolCalls.map((tc) => ({ callId: tc.id, name: tc.name, args: tc.arguments }));
+  const { batches } = buildToolGroups(rawCalls, runId);
+
+  const allRecords: ToolExecutionRecord[] = [];
+
+  for (const batch of batches) {
+    emitBatchStarted(runId, batch.batchId, batch.mode, batch.calls.map((c) => c.name));
+
+    let batchResult;
+    try {
+      if (batch.mode === "parallel") {
+        batchResult = await executeParallelBatch(batch.batchId, batch.calls, ctx);
+      } else {
+        batchResult = await executeSerialBatch(batch.batchId, batch.calls, ctx);
+      }
+      emitBatchCompleted(runId, batchResult);
+    } catch (err: any) {
+      emitBatchFailed(runId, batch.batchId, err?.message ?? "unknown batch error");
+      throw err; // fail-closed: propagate to outer loop
+    }
+
+    allRecords.push(...batchResult.records);
+  }
+
+  return allRecords;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

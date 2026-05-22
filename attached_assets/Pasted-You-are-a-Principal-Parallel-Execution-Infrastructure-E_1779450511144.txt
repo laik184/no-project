@@ -1,0 +1,397 @@
+You are a Principal Parallel Execution Infrastructure Engineer.
+
+Your task is to IMPLEMENT and WIRE a production-grade:
+
+TOOL LOOP PARALLEL EXECUTION SYSTEM
+
+inside the autonomous agent backend.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Current problem:
+
+ToolLoop executes tools sequentially:
+
+for (tool of toolCalls)
+  await execute(tool)
+
+This creates:
+❌ slow execution
+❌ blocked orchestration
+❌ unnecessary waiting
+❌ poor parallel throughput
+❌ Replit-level mismatch
+
+TARGET:
+
+Convert ToolLoop into a SAFE PARALLEL EXECUTION SYSTEM.
+
+━━━━━━━━━━━━━━━━━━━━
+STRICT ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION / LOW COUPLING
+- each module = single responsibility
+- no tight dependencies
+- dependency injection preferred
+- no hidden side effects
+
+2. FILE SIZE LIMIT
+- NO file > 250 LOC
+- split intelligently
+
+3. TARGETED PLACEMENT
+- correct bounded context placement
+- no random folders
+
+4. ROOT CAUSE ENGINEERING
+- fix architecture bottlenecks
+- not cosmetic patches
+
+5. PRODUCTION STANDARDS
+- readable names
+- typed contracts
+- scalable async patterns
+- safe concurrency
+- telemetry everywhere
+
+6. REVIEWABLE CODE
+- deterministic
+- testable
+- traceable
+
+7. FAIL-CLOSED EXECUTION
+- NO silent failures
+- NO swallowed errors
+- validation before completion
+
+8. TELEMETRY REQUIRED
+Log ALL:
+- parallel groups
+- tool start
+- tool finish
+- tool failure
+- conflict detection
+- retries
+- execution duration
+
+━━━━━━━━━━━━━━━━━━━━
+ULTRA-DEEP ANALYSIS FIRST
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan:
+
+server/agents/core/tool-loop/
+server/tools/
+server/orchestration/
+server/infrastructure/events/
+server/fail-closed/
+server/telemetry/
+
+Trace:
+- current tool execution flow
+- sequential bottlenecks
+- tool registry
+- write tools
+- read tools
+- runtime tools
+- verification tools
+- event emissions
+- retries
+- streaming lifecycle
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE
+━━━━━━━━━━━━━━━━━━━━
+
+Current issue:
+
+Sequential execution:
+
+for...of + await
+
+causes:
+- blocking I/O
+- slow file analysis
+- slow bug scanning
+- slow verification
+- slow multi-file operations
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+CREATE:
+
+server/agents/core/tool-loop/
+├── classifiers/
+│   └── tool-call-classifier.ts
+├── execution/
+│   ├── parallel-tool-executor.ts
+│   ├── serial-tool-executor.ts
+│   ├── tool-group-builder.ts
+│   ├── tool-conflict-detector.ts
+│   ├── execution-batch.ts
+│   └── tool-timeout-manager.ts
+├── telemetry/
+│   └── tool-execution-telemetry.ts
+├── locks/
+│   └── tool-resource-lock.ts
+└── types/
+    └── parallel-execution.types.ts
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT SAFE PARALLELISM
+━━━━━━━━━━━━━━━━━━━━
+
+Create SAFE parallel execution groups.
+
+Example:
+
+SAFE PARALLEL:
+✅ read_file
+✅ search_code
+✅ grep
+✅ semantic_search
+✅ diagnostics
+✅ analyze
+✅ dependency_scan
+
+SERIAL ONLY:
+❌ write_file
+❌ install_package
+❌ delete_file
+❌ git operations
+❌ runtime restart
+❌ process kill
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED EXECUTION FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+1. ToolLoop receives tool calls
+2. ToolCallClassifier classifies tools:
+   - PARALLEL_SAFE
+   - SERIAL_REQUIRED
+   - EXCLUSIVE_RESOURCE
+3. ToolGroupBuilder creates execution batches
+4. ParallelToolExecutor executes safe groups:
+   Promise.allSettled()
+5. SerialToolExecutor runs dangerous operations sequentially
+6. ToolConflictDetector prevents:
+   - same file writes
+   - runtime conflicts
+   - duplicate installs
+7. Telemetry logs EVERYTHING
+8. Fail-closed behavior enforced
+
+━━━━━━━━━━━━━━━━━━━━
+CONFLICT DETECTION REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Detect:
+❌ same-file writes
+❌ runtime restart conflicts
+❌ npm install overlap
+❌ duplicate tool execution
+❌ process ownership conflicts
+
+If detected:
+- serialize execution
+OR
+- block execution
+OR
+- retry safely
+
+━━━━━━━━━━━━━━━━━━━━
+TIMEOUT SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+ToolTimeoutManager
+
+Features:
+✅ per-tool timeout
+✅ stuck tool detection
+✅ cancellation support
+✅ retry classification
+✅ timeout telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+PARALLEL EXECUTOR REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+ParallelToolExecutor:
+- concurrency limit
+- Promise.allSettled
+- partial failure handling
+- telemetry
+- cancellation-safe
+- timeout-safe
+
+NO:
+❌ raw Promise.all without protection
+❌ unbounded concurrency
+❌ silent failures
+
+━━━━━━━━━━━━━━━━━━━━
+SERIAL EXECUTOR REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+SerialToolExecutor:
+- deterministic ordering
+- retry-safe
+- fail-closed
+- exclusive lock aware
+
+━━━━━━━━━━━━━━━━━━━━
+LOCK SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+ToolResourceLock
+
+Prevent:
+- same runtime mutation
+- same file mutation
+- same process mutation
+
+Lock types:
+- FILE_LOCK
+- PROCESS_LOCK
+- RUNTIME_LOCK
+- PACKAGE_LOCK
+
+━━━━━━━━━━━━━━━━━━━━
+TELEMETRY REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Emit telemetry:
+
+tool.parallel.batch.started
+tool.parallel.batch.completed
+tool.parallel.batch.failed
+tool.execution.started
+tool.execution.completed
+tool.execution.failed
+tool.execution.timeout
+tool.execution.retry
+tool.execution.serialized
+tool.execution.blocked
+
+Include:
+- toolName
+- runId
+- duration
+- batchId
+- parallelGroup
+- retryCount
+- resourceLock
+
+━━━━━━━━━━━━━━━━━━━━
+FAIL-CLOSED REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+NEVER allow:
+❌ partial hidden failures
+❌ swallowed Promise rejections
+❌ unsafe completion
+❌ orphan execution
+
+If ANY critical tool fails:
+- propagate failure
+- emit telemetry
+- block completion authority
+- trigger retry classification
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY INTEGRATION
+━━━━━━━━━━━━━━━━━━━━
+
+Ensure compatibility with:
+✅ EventBus
+✅ RuntimeManager
+✅ VerificationPipeline
+✅ DAG Engine
+✅ RecoveryManager
+✅ CompletionAuthority
+✅ SSE streaming
+✅ ReflectionEngine
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY VALIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+✅ no circular dependencies
+✅ no file >250 LOC
+✅ typed interfaces
+✅ deterministic execution
+✅ bounded concurrency
+✅ no resource races
+✅ no unsafe writes
+✅ telemetry coverage
+✅ retry safety
+✅ timeout safety
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+TOOL_LOOP_PARALLELISM_IMPLEMENTATION_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Root Cause Analysis
+2. Previous Sequential Bottlenecks
+3. New Parallel Architecture
+4. New Folder Structure
+5. Files Created
+6. Files Modified
+7. Parallel Classification Rules
+8. Serial Classification Rules
+9. Conflict Detection Strategy
+10. Resource Lock Strategy
+11. Timeout Strategy
+12. Retry Strategy
+13. Telemetry Events Added
+14. Fail-Closed Guarantees
+15. Concurrency Limits
+16. Parallel Safety Matrix
+17. Runtime Safety Verification
+18. File Mutation Safety
+19. Process Safety
+20. EventBus Integration
+21. DAG Compatibility
+22. Recovery Compatibility
+23. Verification Compatibility
+24. Circular Dependency Check
+25. Performance Improvement Estimate
+26. Replit Parallelism Similarity %
+27. Remaining Risks
+28. Future Improvements
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade ToolLoop from:
+
+“sequential prototype execution”
+
+TO:
+
+“production-grade parallel autonomous execution engine”
+
+WITHOUT:
+- unsafe concurrency
+- architecture pollution
+- giant files
+- hidden failures
+- runtime instability
