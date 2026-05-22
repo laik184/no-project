@@ -137,11 +137,15 @@ bus.on("tool.execution", (e) => {
 // However, a small number of non-SSE architectural subscribers are expected:
 //   agent.event  — hub(1) + event-persist(1) + crash-responder(1) +
 //                  observation-controller(1) + runtime-store(1) +
-//                  preview-lifecycle-bridge(1) + console-orchestrator(1) = 7
-//   run.lifecycle — hub(1) + recovery-manager(1) + emergency-recovery(1) = 3
-// LEAK_THRESHOLD is set to 10 to catch genuine regressions (old per-connection
-// pattern) without false-positives from these 7 known legitimate subscribers.
-const LEAK_THRESHOLD = 10;
+//                  preview-lifecycle-bridge(1) + console-orchestrator(1) +
+//                  dag-metrics-collector(1) + reflection-memory-bridge(1) +
+//                  runtime-memory-collector(1) + orchestration-telemetry(1) +
+//                  orchestration-recovery(1) + lifecycle-manager(1) = 13
+//   run.lifecycle — hub(1) + recovery-manager(1) + emergency-recovery(1) +
+//                   runtime-memory-collector(1) = 4
+// LEAK_THRESHOLD raised to 20 to accommodate all legitimate architectural
+// subscribers without false-positives.
+const LEAK_THRESHOLD = 20;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
   "runtime.verified", "runtime.observation", "runtime.port", "agent.diff", "checkpoint.event",

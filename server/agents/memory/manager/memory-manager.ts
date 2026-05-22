@@ -2,13 +2,14 @@
  * memory-manager.ts
  *
  * Unified project-scoped facade for all memory operations.
+ * UPDATED: Now integrates semantic pipeline for enhanced context retrieval.
  *
  * Callers (tool-loop.executor.ts, memory-tools.ts, API routes) interact with
  * ONE object instead of importing individual functions from scattered modules.
  *
  * ── Run lifecycle methods (called by executor) ────────────────────────────────
- *   loadContext()            — build compressed LLM-ready context string
- *   saveRunSummary()         — persist run outcome to all .nura/ files
+ *   loadContext()            — build compressed LLM-ready context string (now semantically enhanced)
+ *   saveRunSummary()         — persist run outcome + feed memory pipeline
  *   persistConversation()    — save conversation turns to DB chat_messages
  *   trackTaskOutcome()       — update tasks.md based on run result
  *
@@ -32,6 +33,7 @@
  */
 
 import { buildProjectContext }   from "../context/project-context-builder.ts";
+import { buildEnhancedContext, feedRunToMemoryPipeline } from "../context/semantic-context-enhancer.ts";
 import { summarizeAndPersist }   from "../context/run-summarizer.ts";
 import { persistConversation }   from "../conversation/conversation-persister.ts";
 import { appendPendingTask, appendCompletedTask, readTasksMd } from "../task-memory/tasks-store.ts";
@@ -48,6 +50,7 @@ import {
   readFailedAttemptsMd,
   appendFailedAttemptMd as storeAppendFailedAttemptMd,
 }                                 from "../persistence/memory-store.ts";
+import { memoryTelemetry }        from "../../../memory/telemetry/memory-telemetry.ts";
 import type { SummarizableResult } from "../context/run-summarizer.ts";
 import type { ArchitectureDecision, RunSummary, FailureEntry } from "../types.ts";
 import type { ToolMessage }       from "../../../llm/openrouter.client.ts";
@@ -59,16 +62,61 @@ export class MemoryManager {
     return new MemoryManager(projectId);
   }
 
-  // ── Context loading ──────────────────────────────────────────────────────────
+  // ── Context loading ───────────────────────────────────────────────────────────
 
-  async loadContext(): Promise<string | null> {
+  /**
+   * Load context for injection into an agent prompt.
+   * FIXED: Now uses semantic pipeline augmentation (vector search) in addition
+   * to the file-based context. Falls back to file-only on any error.
+   */
+  async loadContext(opts?: { runId?: string; goal?: string }): Promise<string | null> {
+    const { runId, goal } = opts ?? {};
+
+    // If we have a goal + runId, use the enhanced context (semantic + file)
+    if (goal && runId) {
+      try {
+        const enhanced = await buildEnhancedContext({
+          projectId: this.projectId,
+          runId,
+          goal,
+          phase: "planning",
+        });
+
+        if (enhanced.hasVectorMemory) {
+          memoryTelemetry.retrieved({
+            runId,
+            projectId: this.projectId,
+            query:       goal.slice(0, 100),
+            resultCount: enhanced.retrievedCount,
+            topScore:    0,
+            strategy:    "semantic",
+          });
+        }
+
+        return enhanced.context;
+      } catch {
+        // Fallback to file-only context on any failure
+      }
+    }
+
     return buildProjectContext(this.projectId);
   }
 
   // ── Run lifecycle (called from executor, fire-and-forget safe) ───────────────
 
   async saveRunSummary(runId: string, goal: string, result: SummarizableResult): Promise<void> {
-    return summarizeAndPersist(this.projectId, runId, goal, result);
+    // 1. Persist to .nura/ files (original behavior)
+    await summarizeAndPersist(this.projectId, runId, goal, result);
+
+    // 2. Feed into the semantic memory pipeline for future retrieval
+    feedRunToMemoryPipeline({
+      projectId: this.projectId,
+      runId,
+      goal,
+      summary:   result.summary,
+      success:   result.success,
+      error:     result.error,
+    }).catch(() => {}); // Non-fatal, fire-and-forget
   }
 
   async persistConversation(runId: string, goal: string, messages: ToolMessage[] | undefined): Promise<void> {
@@ -93,17 +141,14 @@ export class MemoryManager {
 
   // ── Mid-run writes (called by memory_update tool) ────────────────────────────
 
-  /** Append a technical/architectural decision note to decisions.md mid-run. */
   async appendDecisionMd(content: string): Promise<void> {
     return storeAppendDecisionMd(this.projectId, content);
   }
 
-  /** Append a progress milestone to progress.md mid-run. */
   async appendProgressMd(content: string): Promise<void> {
     return storeAppendProgressMd(this.projectId, content);
   }
 
-  /** Append a failed approach note to failed-attempts.md mid-run. */
   async appendFailedAttemptMd(content: string): Promise<void> {
     return storeAppendFailedAttemptMd(this.projectId, content);
   }

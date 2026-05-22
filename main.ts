@@ -48,6 +48,8 @@ import { initRunCleanupManager }      from './server/infrastructure/memory/run-c
 import { initRecoveryRestartBridge }  from './server/infrastructure/recovery/recovery-restart-bridge.ts';
 import { startReflectionEngine }      from './server/engine/reflection/index.ts';
 import { initDagMetricsCollector }    from './server/engine/telemetry/index.ts';
+import { initRuntimeMemoryCollector }  from './server/memory/runtime/runtime-memory-collector.ts';
+import { initReflectionMemoryBridge }  from './server/memory/reflection/reflection-memory-bridge.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -219,6 +221,10 @@ server.listen(PORT, '0.0.0.0', async () => {
   startReflectionEngine();
   // Initialize DAG metrics collector — listens to dag.* bus events
   initDagMetricsCollector();
+  // Initialize runtime memory collector — converts runtime crashes/failures → memory entries
+  initRuntimeMemoryCollector();
+  // Initialize reflection memory bridge — persists reflection findings → memory pipeline
+  initReflectionMemoryBridge();
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
