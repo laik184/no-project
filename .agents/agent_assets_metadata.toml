@@ -174,3 +174,9 @@ id = "pG1-_B6Jc8DfLi88X9YRD"
 uri = "file://DAG_EXECUTION_XRAY_REPORT.md"
 type = "text"
 title = "DAG Execution X-Ray Report"
+
+[[outputs]]
+id = "QsdLN-DqM8M0JoRO3sXu-"
+uri = "file://ADVANCED_PARALLEL_SYSTEMS_COMPLIANCE_REPORT.md"
+type = "text"
+title = "Advanced Parallel Systems Compliance Report"
