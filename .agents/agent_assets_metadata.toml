@@ -150,3 +150,9 @@ id = "Kzf42JJZgEurJRXTfSfA1"
 uri = "file://RUNTIME_MANAGER_XRAY_REPORT.md"
 type = "text"
 title = "Runtime Manager X-Ray Report"
+
+[[outputs]]
+id = "7n1EDd0lMdcuJTwljXmJR"
+uri = "file://WAIT_FOR_PORT_IMPLEMENTATION_REPORT.md"
+type = "text"
+title = "waitForPort() Implementation Report"
