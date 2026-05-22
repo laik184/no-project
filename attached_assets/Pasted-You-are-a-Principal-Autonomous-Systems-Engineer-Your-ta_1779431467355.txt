@@ -1,0 +1,453 @@
+You are a Principal Autonomous Systems Engineer.
+
+Your task is to DESIGN + IMPLEMENT a production-grade:
+
+AGENT CONFIDENCE SYSTEM
+
+for the NURA-X autonomous multi-agent infrastructure.
+
+━━━━━━━━━━━━━━━━━━━━
+MISSION
+━━━━━━━━━━━━━━━━━━━━
+
+Create a deterministic confidence architecture where every agent execution is:
+
+- scored
+- validated
+- ranked
+- traceable
+- reliability-aware
+- failure-aware
+
+The system must determine:
+
+✅ which agent is most reliable
+✅ which agent hallucinates
+✅ which agent succeeds most
+✅ which agent should win conflicts
+✅ which agent should retry
+✅ which agent should be downgraded
+✅ which agent should be blocked
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION + LOW COUPLING
+- every module single responsibility
+- no tight coupling
+- event-driven communication only
+
+2. FILE SIZE LIMIT
+- every file UNDER 250 lines
+
+3. CLEAN PLACEMENT
+- every file in correct bounded context
+- no random utilities
+
+4. ROOT CAUSE FIXES ONLY
+- no symptom patching
+- analyze root execution causes
+
+5. SENIOR ENGINEERING STANDARDS
+- scalability
+- readability
+- security
+- deterministic behavior
+- strong typing
+- no hacks
+
+6. CODE REVIEW READY
+- modular
+- self-documenting
+- easy to audit
+
+7. FAIL-CLOSED DESIGN
+- confidence system NEVER bypasses verification
+- no fake success allowed
+
+8. TELEMETRY REQUIRED
+- every confidence update logged
+- every retry logged
+- every block logged
+- every downgrade logged
+
+NO EXCEPTIONS.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Implement a COMPLETE confidence intelligence layer for ALL agents.
+
+Current issue:
+All agents are treated almost equally.
+
+Problem:
+- hallucinating agents not punished
+- successful agents not rewarded
+- conflict resolution weak
+- retry strategy blind
+- orchestration lacks reliability intelligence
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/
+├── intelligence/
+│   └── confidence/
+│       ├── confidence-engine.ts
+│       ├── confidence-scorer.ts
+│       ├── confidence-registry.ts
+│       ├── confidence-policies.ts
+│       ├── confidence-thresholds.ts
+│       ├── confidence-events.ts
+│       ├── confidence-types.ts
+│       ├── confidence-telemetry.ts
+│       ├── reliability-tracker.ts
+│       ├── hallucination-detector.ts
+│       ├── execution-quality-analyzer.ts
+│       ├── retry-intelligence.ts
+│       ├── conflict-confidence-resolver.ts
+│       ├── confidence-memory-bridge.ts
+│       └── stores/
+│           ├── confidence-store.ts
+│           └── reliability-store.ts
+
+━━━━━━━━━━━━━━━━━━━━
+CORE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+✅ agent confidence scoring
+✅ reliability tracking
+✅ hallucination scoring
+✅ retry intelligence
+✅ failure intelligence
+✅ confidence-based routing
+✅ confidence-based conflict resolution
+✅ confidence-based retries
+✅ confidence telemetry
+✅ persistent confidence memory
+
+━━━━━━━━━━━━━━━━━━━━
+CONFIDENCE MODEL
+━━━━━━━━━━━━━━━━━━━━
+
+Every agent execution MUST generate:
+
+{
+  agentId,
+  role,
+  runId,
+  taskId,
+  confidenceScore,
+  reliabilityScore,
+  hallucinationRisk,
+  executionQuality,
+  verificationPassed,
+  retries,
+  runtimeFailures,
+  policyViolations,
+  latencyScore,
+  finalOutcome
+}
+
+━━━━━━━━━━━━━━━━━━━━
+CONFIDENCE SCORING FACTORS
+━━━━━━━━━━━━━━━━━━━━
+
+Score using:
+
+1. Verification Success
+- build success
+- runtime success
+- preview success
+- reconcile success
+
+2. Runtime Stability
+- crashes
+- recovery triggers
+- retry count
+- timeout frequency
+
+3. Hallucination Risk
+- fake file claims
+- fake completion claims
+- evidence mismatch
+- invalid imports
+- broken references
+
+4. Execution Quality
+- clean architecture
+- policy compliance
+- low lint errors
+- low type errors
+- modularity
+
+5. Historical Reliability
+- previous success rate
+- previous failure rate
+- retry history
+- crash history
+
+━━━━━━━━━━━━━━━━━━━━
+CONFIDENCE STATES
+━━━━━━━━━━━━━━━━━━━━
+
+Implement states:
+
+✅ TRUSTED
+✅ STABLE
+⚠️ DEGRADED
+❌ UNRELIABLE
+☠️ BLOCKED
+
+━━━━━━━━━━━━━━━━━━━━
+CONFIDENCE POLICIES
+━━━━━━━━━━━━━━━━━━━━
+
+Examples:
+
+IF:
+- hallucinationRisk > 0.8
+THEN:
+- downgrade confidence
+
+IF:
+- repeated runtime crashes
+THEN:
+- reduce routing priority
+
+IF:
+- verification passes consistently
+THEN:
+- increase trust score
+
+IF:
+- fake completion detected
+THEN:
+- hard block agent temporarily
+
+━━━━━━━━━━━━━━━━━━━━
+ORCHESTRATION INTEGRATION
+━━━━━━━━━━━━━━━━━━━━
+
+Integrate with:
+
+server/orchestration/
+server/agents/
+server/fail-closed/
+server/recovery/
+server/runtime/
+
+Verify:
+- orchestration uses confidence scores
+- retries use confidence scores
+- routing uses confidence scores
+- conflict resolution uses confidence scores
+
+━━━━━━━━━━━━━━━━━━━━
+RETRY INTELLIGENCE
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+retry-intelligence.ts
+
+Requirements:
+
+Low confidence:
+→ fewer retries
+
+High confidence:
+→ more retries allowed
+
+Repeated same failure:
+→ retry blocked
+
+Runtime instability:
+→ downgrade confidence
+
+━━━━━━━━━━━━━━━━━━━━
+CONFLICT RESOLUTION
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+conflict-confidence-resolver.ts
+
+When:
+2 agents modify same file
+
+System chooses:
+- higher confidence agent
+- higher verification history
+- lower hallucination risk
+
+Fallback:
+→ SupervisorAgent arbitration
+
+━━━━━━━━━━━━━━━━━━━━
+HALLUCINATION DETECTION
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+hallucination-detector.ts
+
+Detect:
+❌ fake file claims
+❌ fake build success
+❌ fake runtime success
+❌ fake imports
+❌ missing exports
+❌ invalid paths
+❌ fake completion claims
+
+Use:
+- fail-closed evidence
+- runtime evidence
+- import graph
+- filesystem evidence
+
+━━━━━━━━━━━━━━━━━━━━
+TELEMETRY
+━━━━━━━━━━━━━━━━━━━━
+
+ALL actions MUST emit telemetry:
+
+confidence.updated
+confidence.degraded
+confidence.blocked
+confidence.restored
+confidence.retry.denied
+confidence.retry.allowed
+confidence.conflict.resolved
+confidence.hallucination.detected
+
+Integrate with:
+server/orchestration/telemetry/
+
+━━━━━━━━━━━━━━━━━━━━
+PERSISTENT MEMORY
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+confidence-memory-bridge.ts
+
+Persist:
+- agent reliability
+- failure history
+- hallucination history
+- retry history
+- verification success rates
+
+Use:
+server/agents/memory/
+server/memory/
+
+━━━━━━━━━━━━━━━━━━━━
+FAIL-CLOSED RULE
+━━━━━━━━━━━━━━━━━━━━
+
+NO agent may self-authorize success.
+
+Confidence NEVER overrides:
+- EvidenceGate
+- CompletionAuthority
+- VerificationCoordinator
+
+Confidence only influences:
+- routing
+- retries
+- prioritization
+- conflict resolution
+
+━━━━━━━━━━━━━━━━━━━━
+RUNTIME ANALYSIS REQUIRED
+━━━━━━━━━━━━━━━━━━━━
+
+Deeply trace:
+
+- orchestration lifecycle
+- retry lifecycle
+- recovery lifecycle
+- routing lifecycle
+- verification lifecycle
+- reflection lifecycle
+
+Find BEST integration points.
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED OUTPUT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+AGENT_CONFIDENCE_SYSTEM_IMPLEMENTATION_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Confidence Architecture
+2. Confidence Lifecycle
+3. Reliability Scoring Model
+4. Hallucination Detection Logic
+5. Retry Intelligence Logic
+6. Conflict Resolution Logic
+7. Confidence Routing Integration
+8. Confidence Telemetry Integration
+9. Memory Integration
+10. Runtime Integration
+11. Verification Integration
+12. Recovery Integration
+13. EventBus Integration
+14. Persistent Storage Design
+15. Confidence State Machine
+16. Confidence Thresholds
+17. Reliability Metrics
+18. Hallucination Metrics
+19. Retry Policies
+20. Block Policies
+21. Downgrade Policies
+22. Recovery Policies
+23. Security Risks
+24. Race Condition Risks
+25. File Placement Analysis
+26. Dependency Analysis
+27. Circular Dependency Check
+28. Performance Impact Analysis
+29. Scalability Analysis
+30. Production Readiness %
+31. Replit-Level Similarity %
+32. Future Quantum Integration Compatibility
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform orchestration from:
+
+"all agents treated equally"
+
+INTO:
+
+"adaptive autonomous reliability intelligence system"
+
+where:
+- reliable agents gain trust
+- unstable agents lose authority
+- hallucinating agents get blocked
+- orchestration becomes self-optimizing
+- retries become intelligent
+- conflict resolution becomes deterministic
+
+WITHOUT:
+- architecture pollution
+- giant files
+- tight coupling
+- unsafe runtime mutations

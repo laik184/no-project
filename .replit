@@ -28,7 +28,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node_modules/.bin/concurrently -k -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\""
+args = "npm run dev"
 waitForPort = 5000
 
 [[ports]]
@@ -82,10 +82,6 @@ externalPort = 8080
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 8099
 
 [userenv]
 
