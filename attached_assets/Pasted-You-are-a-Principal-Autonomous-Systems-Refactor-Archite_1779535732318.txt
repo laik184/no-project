@@ -1,0 +1,486 @@
+You are a Principal Autonomous Systems Refactor Architect.
+
+MISSION:
+Upgrade the ENTIRE backend from:
+"Advanced Prototype (76%)"
+to:
+"Production-Grade Autonomous Operating System (99%)"
+
+You MUST perform:
+- ultra-deep root-cause analysis
+- production hardening
+- architecture purification
+- execution wiring completion
+- safe parallelization
+- distributed-readiness stabilization
+
+DO NOT rewrite the system.
+DO surgical, deterministic, production-grade upgrades only.
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+THESE RULES ARE ABSOLUTE.
+NO EXCEPTIONS.
+
+1. HIGH COHESION + LOW COUPLING
+- Every module MUST have ONE responsibility.
+- Remove cross-domain pollution.
+- Eliminate hidden dependencies.
+- Remove duplicated infrastructure.
+- All systems must communicate through contracts/events/interfaces only.
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines.
+- Split oversized files into:
+  - coordinator
+  - executor
+  - validator
+  - types
+  - telemetry
+  - utils
+  - strategy
+- Preserve behavior during refactor.
+
+3. TARGETED LOCATION
+- Agents ONLY inside:
+  server/agents/
+- Infrastructure ONLY inside:
+  server/infrastructure/
+- Runtime ONLY inside:
+  server/infrastructure/runtime/
+- Quantum execution ONLY inside:
+  server/quantum/
+- DAG execution ONLY inside:
+  server/engine/
+- Verification ONLY inside:
+  server/fail-closed/
+- Remove misplaced files.
+- Remove duplicate memory systems.
+- Remove duplicate lock systems.
+
+4. ROOT CAUSE BUG FIXING
+NEVER patch symptoms.
+ALWAYS:
+- trace execution lifecycle
+- identify ownership
+- identify race conditions
+- identify dead wiring
+- identify missing integrations
+- implement permanent deterministic fix
+
+5. HIGH-LEVEL ENGINEERING STANDARDS
+ALL code MUST be:
+- production-grade
+- strongly typed
+- scalable
+- secure
+- readable
+- deterministic
+- observable
+- testable
+
+REQUIRE:
+✅ typed contracts
+✅ interfaces
+✅ telemetry
+✅ retry guards
+✅ timeout protection
+✅ rollback safety
+✅ resource cleanup
+✅ explicit ownership
+✅ comments for complex logic
+
+FORBIDDEN:
+❌ hacks
+❌ shortcuts
+❌ hidden globals
+❌ magic strings
+❌ untyped payloads
+❌ unsafe Promise.all
+❌ blind retries
+❌ silent failures
+
+6. CODE REVIEW STANDARD
+Every implementation MUST include:
+- architecture reasoning
+- dependency impact analysis
+- failure mode analysis
+- concurrency analysis
+- rollback analysis
+- telemetry coverage verification
+
+7. FAIL-SAFE DESIGN
+NO completion allowed unless:
+✅ verification passes
+✅ runtime healthy
+✅ locks released
+✅ aggregation validated
+✅ preview synced
+✅ state reconciled
+✅ no unresolved conflicts
+✅ no dangling workers
+✅ no unsafe memory writes
+
+ALL execution MUST fail-closed.
+
+8. CONSISTENT TELEMETRY
+Every critical action MUST emit telemetry:
+- orchestration
+- runtime
+- worker pool
+- tool execution
+- retries
+- rerouting
+- verification
+- aggregation
+- conflict resolution
+- memory writes
+- lock acquisition
+- recovery
+- preview lifecycle
+
+ALL telemetry MUST:
+- use typed events
+- include correlation IDs
+- include execution IDs
+- include timestamps
+- support replay/debugging
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOALS
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade these systems to production-grade:
+
+1. Worker Pool System
+2. Parallel Tool Execution
+3. Memory Write Safety
+4. Distributed File Scanner
+5. Distributed Infrastructure
+6. Runtime Stability
+7. Verification Reliability
+8. Aggregation Stability
+9. Conflict Resolution
+10. Event Architecture
+11. Quantum Execution Wiring
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — FILE SIZE COMPLIANCE
+━━━━━━━━━━━━━━━━━━━━
+
+Split ALL oversized files (>250 LOC):
+
+CRITICAL:
+- architecture/index.ts
+- master-registry.ts
+- worker-pool.ts
+- runtime-manager.ts
+- tool-loop.agent.ts
+- conflict-resolver.ts
+- memory-write-queue.ts
+
+Refactor pattern:
+- facade
+- coordinator
+- executor
+- validator
+- telemetry
+- strategy
+- types
+- guards
+
+Preserve ALL functionality.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — WORKER POOL WIRING
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+CentralWorkerPool exists but is bypassed.
+
+FIX:
+- path-spawner.ts MUST submit to CentralWorkerPool
+- parallel-runner.ts MUST consume from CentralWorkerPool
+- remove inline Promise.allSettled execution
+- implement:
+  ✅ concurrency caps
+  ✅ priority queues
+  ✅ backpressure
+  ✅ worker slot ownership
+  ✅ cancellation
+  ✅ timeout guards
+  ✅ retry limits
+
+ADD:
+- worker lifecycle telemetry
+- worker execution tracing
+- stuck worker recovery
+
+GOAL:
+TRUE deterministic parallel execution.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — PARALLEL TOOL EXECUTION
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+ParallelToolExecutor exists but main loop is sequential.
+
+FIX:
+Wire:
+tool-loop.agent.ts
+→ tool-group-builder.ts
+→ parallel-tool-executor.ts
+
+IMPLEMENT:
+✅ dependency analysis
+✅ parallel_safe contracts
+✅ isolated execution groups
+✅ resource locking
+✅ safe batching
+✅ deterministic ordering
+✅ execution aggregation
+
+FORBIDDEN:
+❌ parallel unsafe writes
+❌ unordered mutations
+❌ shared mutable state
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — MEMORY WRITE SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Duplicate memory queues + unwired pipeline.
+
+FIX:
+- unify BOTH memory-write-queue implementations
+- create:
+  memory-write.interface.ts
+- wire queue into:
+  node-executor.ts
+- serialize conflicting writes
+- add:
+  ✅ transaction IDs
+  ✅ rollback safety
+  ✅ deadlock prevention
+  ✅ timeout cleanup
+  ✅ write telemetry
+
+REMOVE:
+❌ duplicate ownership
+❌ unsafe concurrent writes
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — DISTRIBUTED FILE SCANNER
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Scanner exists but orphaned.
+
+FIX:
+Wire:
+distributed-file-scanner.ts
+→ planning pipeline
+→ architecture analysis
+→ code intelligence
+→ context building
+
+IMPLEMENT:
+✅ partitioned scans
+✅ parallel scanning
+✅ scan caching
+✅ ignore filters
+✅ telemetry
+✅ execution correlation
+
+GOAL:
+Realtime full-codebase intelligence.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — TRUE DISTRIBUTED LAYER
+━━━━━━━━━━━━━━━━━━━━
+
+CURRENT PROBLEM:
+Distributed layer is fake/in-process.
+
+UPGRADE TO REAL DISTRIBUTED SYSTEM:
+
+IMPLEMENT:
+✅ Redis-backed locks
+✅ BullMQ/pg-boss queues
+✅ distributed event routing
+✅ distributed worker ownership
+✅ cross-process tracing
+✅ distributed recovery
+✅ distributed queue telemetry
+
+REPLACE:
+- in-process lock registry
+- fake distributed queues
+- local-only coordination
+
+GOAL:
+REAL distributed infrastructure.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — RESULT AGGREGATION HARDENING
+━━━━━━━━━━━━━━━━━━━━
+
+HARDEN:
+- wave aggregation
+- quantum aggregation
+- conflict detection
+- collapse validation
+
+IMPLEMENT:
+✅ typed ToolOutput contracts
+✅ persisted collapsed states
+✅ aggregation replay
+✅ deterministic merge ordering
+✅ conflict telemetry
+✅ rollback-safe aggregation
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 8 — RUNTIME HARDENING
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade runtime-manager.ts:
+
+IMPLEMENT:
+✅ zombie process cleanup
+✅ deterministic runtime ownership
+✅ port recovery
+✅ restart protection
+✅ lifecycle replay
+✅ runtime watchdog
+✅ memory leak detection
+✅ orphan process cleanup
+
+GOAL:
+99.99% runtime reliability.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — VERIFICATION HARDENING
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade fail-closed system:
+
+IMPLEMENT:
+✅ mandatory evidence gates
+✅ execution proof validation
+✅ runtime proof validation
+✅ aggregation proof validation
+✅ replay-safe verification
+✅ security policy verification
+✅ preview synchronization verification
+
+NO unsafe completion allowed.
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — TELEMETRY PURIFICATION
+━━━━━━━━━━━━━━━━━━━━
+
+Unify ALL telemetry.
+
+IMPLEMENT:
+✅ typed BusEvents coverage
+✅ correlation IDs
+✅ execution spans
+✅ distributed tracing
+✅ worker tracing
+✅ aggregation tracing
+✅ replay tracing
+
+REMOVE:
+❌ untyped telemetry
+❌ silent execution paths
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 11 — FINAL VALIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+Run COMPLETE XRAY VALIDATION:
+
+VERIFY:
+✅ no oversized files
+✅ no duplicate systems
+✅ no orphan modules
+✅ no unwired execution paths
+✅ no circular dependencies
+✅ no unsafe parallelism
+✅ no race conditions
+✅ no deadlocks
+✅ no hidden globals
+✅ no memory corruption risks
+✅ no unverified completion paths
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+PRODUCTION_READINESS_99_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Complete Architecture Map
+2. Before vs After Refactor
+3. File Size Compliance Report
+4. Worker Pool Wiring Report
+5. Parallel Tool Execution Report
+6. Memory Safety Report
+7. Distributed Infrastructure Report
+8. Aggregation Stability Report
+9. Conflict Resolution Report
+10. Runtime Stability Report
+11. Verification Reliability Report
+12. Telemetry Coverage Report
+13. Dependency Graph
+14. Event Flow Graph
+15. Parallel Execution Graph
+16. Runtime Ownership Graph
+17. Memory Ownership Graph
+18. Lock Ownership Graph
+19. Distributed Queue Graph
+20. Failure Recovery Graph
+21. Root Cause Fix Analysis
+22. Race Condition Elimination Report
+23. Deadlock Prevention Analysis
+24. Replay Safety Report
+25. Deterministic Execution Report
+26. Security Hardening Report
+27. Scalability Analysis
+28. Production Reliability %
+29. Quantum Readiness %
+30. Parallel Execution %
+31. Replit-Level Similarity %
+32. Autonomous OS Maturity %
+33. Remaining Risks
+34. Remaining Weaknesses
+35. Final Production Verdict
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET FINAL STATE
+━━━━━━━━━━━━━━━━━━━━
+
+Achieve:
+
+✅ Production Readiness → 99%
+✅ Runtime Reliability → 99%
+✅ Parallel Execution → 95%
+✅ Verification Reliability → 99%
+✅ Quantum Readiness → 95%
+✅ Replit-Level Similarity → 90%+
+✅ Deterministic Execution
+✅ Real Distributed Infrastructure
+✅ Safe Autonomous Parallel AI Execution
+
+FINAL CLASSIFICATION TARGET:
+
+"LEVEL 5 — Quantum-Inspired Autonomous Software Operating System"
