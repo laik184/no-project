@@ -1,0 +1,496 @@
+You are a Principal Autonomous Parallel Execution Architect.
+
+MISSION:
+Upgrade the ENTIRE Parallel Execution Infrastructure from its current partial/unwired state to a production-grade Replit-level autonomous parallel execution system with:
+
+TARGET:
+✅ 99% Parallel Execution Reliability
+✅ 99% Deterministic Coordination
+✅ 99% Runtime Safety
+✅ 99% Fail-Closed Stability
+✅ 99% Parallel Tool Execution Integration
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION + LOW COUPLING
+- Every module must have ONE responsibility only.
+- Remove hidden dependencies.
+- Use interfaces/contracts between systems.
+- Avoid cross-layer imports.
+- No god modules.
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines.
+- Split oversized files into:
+  - controllers
+  - strategies
+  - queues
+  - coordinators
+  - validators
+  - telemetry
+  - contracts
+  - policies
+
+3. TARGETED LOCATION
+ALL systems MUST be placed logically:
+
+server/quantum/
+server/engine/
+server/orchestration/
+server/distributed/
+server/agents/
+server/infrastructure/
+
+No misplaced modules.
+No duplicated implementations.
+
+4. ROOT CAUSE FIXES ONLY
+Do NOT patch symptoms.
+
+Deeply analyze:
+- why parallel execution is bypassed
+- why worker pool is unwired
+- why tool loop remains sequential
+- why memory writes are unsafe
+- why scanner is orphaned
+
+Fix ROOT architecture.
+
+5. HIGH-LEVEL ENGINEERING
+ALL code must be:
+✅ readable
+✅ scalable
+✅ typed
+✅ observable
+✅ testable
+✅ deterministic
+✅ secure
+
+NO hacks.
+NO shortcuts.
+NO temporary fixes.
+
+6. CODE REVIEW STANDARD
+Every implementation must include:
+- validation
+- typed contracts
+- telemetry
+- lifecycle tracing
+- failure classification
+- rollback handling
+
+7. FAIL-CLOSED EXECUTION
+Execution MUST stop if:
+- aggregation invalid
+- conflict unresolved
+- worker timeout
+- unsafe parallel write
+- verification fails
+- runtime inconsistent
+
+NO silent fallback.
+
+8. FULL TELEMETRY
+Every action MUST emit telemetry:
+- worker.spawned
+- worker.completed
+- worker.failed
+- task.parallelized
+- tool.parallel.started
+- tool.parallel.completed
+- aggregation.completed
+- conflict.detected
+- conflict.resolved
+- queue.backpressure
+- memory.locked
+- memory.released
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT XRAY FINDINGS
+━━━━━━━━━━━━━━━━━━━━
+
+Current problems discovered:
+
+❌ CentralWorkerPool exists but NOT wired
+❌ ParallelToolExecutor exists but NOT active
+❌ ToolLoop still sequential
+❌ DistributedFileScanner orphaned
+❌ MemoryWriteQueue duplicated
+❌ Parallel writes unsafe
+❌ Inline Promise.allSettled bypasses orchestration
+❌ Distributed layer is fake/in-process
+❌ Multiple oversized files violate architecture rules
+
+━━━━━━━━━━━━━━━━━━━━
+PRIMARY OBJECTIVE
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into a REAL:
+
+"Quantum-Inspired Parallel Autonomous Execution System"
+
+where:
+- multiple agents run safely in parallel
+- tools execute concurrently
+- memory writes are coordinated
+- file writes are conflict-safe
+- runtime execution is deterministic
+- execution graph is centralized
+- aggregation is fail-closed
+- orchestration controls all execution
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — WORKER POOL WIRING
+━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE:
+Parallel systems bypass CentralWorkerPool.
+
+FIX:
+
+Wire:
+server/quantum/scheduler/worker-pool.ts
+
+INTO:
+- path-spawner.ts
+- parallel-runner.ts
+- execution-router.ts
+
+REQUIREMENTS:
+✅ Centralized task submission
+✅ Priority scheduling
+✅ Concurrency caps
+✅ Backpressure
+✅ Retry strategy
+✅ Worker lifecycle management
+✅ Cancellation support
+✅ Timeout protection
+✅ Deterministic execution ordering
+
+REMOVE:
+❌ direct Promise.allSettled execution
+❌ ad-hoc parallel spawning
+
+CREATE:
+server/quantum/scheduler/contracts/
+server/quantum/scheduler/telemetry/
+server/quantum/scheduler/policies/
+server/quantum/scheduler/queues/
+server/quantum/scheduler/execution/
+
+SPLIT:
+worker-pool.ts → ≤250 line modules
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — PARALLEL TOOL EXECUTION
+━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE:
+tool-loop.agent.ts ignores ParallelToolExecutor.
+
+FIX:
+
+Wire:
+server/agents/core/tool-loop/execution/parallel-tool-executor.ts
+
+INTO:
+tool-loop.agent.ts
+
+IMPLEMENT:
+✅ parallel_safe tool classification
+✅ dependency analysis
+✅ execution batching
+✅ grouped execution
+✅ async aggregation
+✅ cancellation handling
+✅ timeout handling
+✅ rollback hooks
+
+CREATE:
+server/agents/core/tool-loop/planning/
+server/agents/core/tool-loop/grouping/
+server/agents/core/tool-loop/contracts/
+server/agents/core/tool-loop/telemetry/
+
+REQUIREMENTS:
+- unsafe tools stay sequential
+- safe tools execute in parallel
+- execution graph respected
+- telemetry emitted for all batches
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — MEMORY WRITE SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE:
+Duplicate unwired memory queues.
+
+FIX:
+
+UNIFY:
+server/quantum/memory/memory-write-queue.ts
+server/distributed/memory/memory-write-queue.ts
+
+CREATE:
+server/quantum/memory/contracts/
+server/quantum/memory/locks/
+server/quantum/memory/transactions/
+server/quantum/memory/telemetry/
+
+IMPLEMENT:
+✅ single memory authority
+✅ transactional writes
+✅ write serialization
+✅ lock acquisition
+✅ timeout cleanup
+✅ rollback support
+✅ deadlock prevention
+✅ write conflict tracing
+
+WIRE INTO:
+- node-executor.ts
+- tool-loop.agent.ts
+- aggregation layer
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — FILE WRITE SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE:
+Parallel writes can bypass locks.
+
+FIX:
+
+Wire:
+write-guard.ts
+tool-resource-lock.ts
+file-lock-manager.ts
+
+INTO:
+parallel-tool-executor.ts
+
+IMPLEMENT:
+✅ distributed write ownership
+✅ TTL lock expiry
+✅ deadlock recovery
+✅ forced unlock recovery
+✅ write queue ordering
+✅ lock telemetry
+✅ collision prevention
+
+REMOVE:
+❌ unsafe direct file mutations
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — DISTRIBUTED FILE SCANNER
+━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE:
+Scanner exists but isolated.
+
+FIX:
+
+Wire:
+distributed-file-scanner.ts
+
+INTO:
+- planning pipeline
+- architecture analysis
+- code intelligence
+- verification pipeline
+- context building
+
+IMPLEMENT:
+✅ partitioned scanning
+✅ parallel scanning
+✅ chunk aggregation
+✅ structural analysis
+✅ dependency graph extraction
+✅ realtime scan telemetry
+
+CREATE:
+server/quantum/scanner/aggregation/
+server/quantum/scanner/contracts/
+server/quantum/scanner/telemetry/
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — TRUE EXECUTION GRAPH
+━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENT:
+✅ centralized execution graph
+✅ deterministic graph execution
+✅ dependency resolution
+✅ graph replay
+✅ graph checkpointing
+✅ execution lineage
+✅ rollback graph recovery
+
+REMOVE:
+❌ local inline execution logic
+❌ hidden execution paths
+
+ALL execution MUST route through:
+graph-engine.ts
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — FAIL-CLOSED PARALLEL VALIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENT:
+✅ aggregation validation
+✅ worker validation
+✅ runtime validation
+✅ memory consistency validation
+✅ graph consistency validation
+✅ execution replay validation
+
+Execution MUST FAIL if:
+- unresolved conflict
+- unsafe aggregation
+- worker desync
+- runtime mismatch
+- graph corruption
+- lock timeout
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 8 — DISTRIBUTED RUNTIME PREPARATION
+━━━━━━━━━━━━━━━━━━━━
+
+Prepare architecture for:
+- Redis
+- BullMQ
+- worker_threads
+- cluster mode
+- multi-node execution
+
+DO NOT fully implement external infra yet.
+
+CREATE:
+abstract interfaces only.
+
+IMPLEMENT:
+✅ Redis-adaptable contracts
+✅ distributed-ready locks
+✅ distributed-ready queues
+✅ distributed-ready telemetry
+✅ distributed-ready execution ids
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — TELEMETRY + OBSERVABILITY
+━━━━━━━━━━━━━━━━━━━━
+
+ALL systems MUST emit:
+- execution spans
+- queue metrics
+- worker metrics
+- aggregation metrics
+- retry metrics
+- conflict metrics
+- runtime metrics
+- memory metrics
+
+CREATE:
+server/telemetry/parallel/
+server/telemetry/quantum/
+server/telemetry/distributed/
+
+IMPLEMENT:
+✅ correlation IDs
+✅ execution trace IDs
+✅ wave trace IDs
+✅ worker trace IDs
+✅ aggregation trace IDs
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — FINAL VALIDATION
+━━━━━━━━━━━━━━━━━━━━
+
+VERIFY:
+✅ WorkerPool fully wired
+✅ ParallelToolExecutor active
+✅ No direct Promise.allSettled
+✅ No unsafe parallel writes
+✅ No duplicate memory queues
+✅ File locks enforced
+✅ Graph execution centralized
+✅ Parallel scans integrated
+✅ Fail-closed validation active
+✅ Full telemetry active
+
+VERIFY:
+- zero circular dependencies
+- no oversized files
+- no orphan modules
+- deterministic execution
+- stable runtime behavior
+- no race conditions
+- no deadlocks
+- no hidden execution paths
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+PARALLEL_EXECUTION_99_PERCENT_IMPLEMENTATION_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Root Cause Analysis
+2. Previous Parallel Failures
+3. WorkerPool Wiring Analysis
+4. ParallelToolExecutor Wiring Analysis
+5. Memory Safety Analysis
+6. File Lock Safety Analysis
+7. Scanner Integration Analysis
+8. Graph Execution Analysis
+9. Conflict Resolution Analysis
+10. Aggregation Validation Analysis
+11. Runtime Coordination Analysis
+12. Telemetry Coverage Analysis
+13. Race Condition Analysis
+14. Deadlock Analysis
+15. Deterministic Execution Analysis
+16. Distributed Readiness Analysis
+17. Performance Improvements
+18. Parallel Execution Benchmarks
+19. Replit Similarity %
+20. Parallel Reliability %
+21. Runtime Stability %
+22. Architecture Compliance %
+23. Engineering Standards Compliance %
+24. Oversized File Fixes
+25. Folder Placement Validation
+26. Circular Dependency Validation
+27. Fail-Closed Validation Results
+28. Full Execution Lifecycle Diagram
+29. Final Architecture Diagram
+30. Remaining Risks
+31. Future Distributed Migration Plan
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade the backend from:
+
+"Advanced Autonomous Prototype"
+
+TO:
+
+"Production-Grade Quantum-Inspired Parallel Autonomous Operating System"
+
+with:
+✅ deterministic parallel execution
+✅ centralized orchestration
+✅ fail-closed aggregation
+✅ safe concurrency
+✅ production-grade coordination
+✅ Replit-level runtime behavior
+✅ scalable execution architecture

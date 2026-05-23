@@ -3,11 +3,16 @@
  *
  * Main orchestrator for the Distributed File Scanner system.
  *
+ * Architecture upgrade (Phase 5)
+ * ──────────────────────────────
+ *   BEFORE: scan workers dispatched via raw Promise.allSettled
+ *   AFTER:  each partition worker is a PoolTask submitted to CentralWorkerPool
+ *
  * Execution flow:
  *   1. Acquire per-project scan lock (fail-closed if locked)
  *   2. Walk directory tree and collect FileEntry objects
  *   3. Partition files into worker batches
- *   4. Run all workers in parallel (Promise.allSettled)
+ *   4. Submit all workers to CentralWorkerPool — governed parallel execution
  *   5. Aggregate results into a deterministic ScanReport
  *   6. Release lock + emit telemetry
  *
@@ -15,26 +20,30 @@
  *   ✅ orchestration hub (invokable by ID)
  *   ✅ DAG engine (NodeExecutor-compatible)
  *   ✅ recovery system (trigger="recovery")
+ *   ✅ CentralWorkerPool (governed, backpressure-aware parallel execution)
  */
 
 import fs   from "fs/promises";
 import path from "path";
 import { v4 as uuid } from "uuid";
 
-import { scanLockManager }     from "./locks/scan-lock-manager.ts";
-import { partitionFiles }      from "./file-partitioner.ts";
-import { runWorker }           from "./scan-worker.ts";
-import { aggregateResults }    from "./scan-aggregator.ts";
-import { buildConfig }         from "./config/scanner-config.ts";
-import { buildFileEntry }      from "./utils/scan-filter.ts";
+import { scanLockManager }   from "./locks/scan-lock-manager.ts";
+import { partitionFiles }    from "./file-partitioner.ts";
+import { runWorker }         from "./scan-worker.ts";
+import { aggregateResults }  from "./scan-aggregator.ts";
+import { buildConfig }       from "./config/scanner-config.ts";
+import { buildFileEntry }    from "./utils/scan-filter.ts";
 import {
   emitScanStarted, emitScanPartitioned,
   emitWorkerStarted, emitWorkerCompleted, emitWorkerFailed,
   emitScanCompleted, emitScanFailed,
-} from "./telemetry/scan-telemetry.ts";
+}                            from "./telemetry/scan-telemetry.ts";
+import { centralWorkerPool } from "../scheduler/worker-pool.ts";
+import { TaskPriority }      from "../scheduler/worker-types.ts";
+import type { PoolTask }     from "../scheduler/worker-types.ts";
 import type { ScanOptions, ScanReport, FileEntry } from "./types/scan.types.ts";
-import type { WorkerResult }    from "./types/worker.types.ts";
-import type { ScannerConfig }   from "./config/scanner-config.ts";
+import type { WorkerResult }   from "./types/worker.types.ts";
+import type { ScannerConfig }  from "./config/scanner-config.ts";
 import { DEFAULT_SCANNER_CONFIG } from "./config/scanner-config.ts";
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -78,40 +87,58 @@ export async function runDistributedScan(opts: ScanOptions): Promise<ScanReport>
     const partitions = partitionFiles(files, config);
     emitScanPartitioned(scanId, opts.projectId, files.length, partitions.length);
 
-    // ── Run workers in parallel ───────────────────────────────────────────
-    const workerPromises = partitions.map(partition => {
+    // ── Submit workers as governed PoolTasks ──────────────────────────────
+    const workerTimeoutMs = config.workerTimeoutMs;
+
+    const poolTasks: PoolTask<WorkerResult>[] = partitions.map(partition => {
       emitWorkerStarted(scanId, opts.projectId, partition.id, partition.workerIndex, partition.files.length);
 
-      return runWorkerWithTimeout(
-        {
+      return {
+        id:            partition.id,
+        runId:         `scan-${scanId}`,
+        priority:      TaskPriority.LOW,        // scans are background work
+        timeoutMs:     workerTimeoutMs + 5_000, // outer hard cap > inner timeout
+        maxRetries:    0,
+        taskType:      "scan-worker",
+        executionMode: "parallel" as const,
+        fn:            () => runWorker({
           partitionId:     partition.id,
           workerIndex:     partition.workerIndex,
           files:           partition.files,
-          workerTimeoutMs: config.workerTimeoutMs,
+          workerTimeoutMs,
           signal:          opts.signal,
-        },
-        config.workerTimeoutMs,
-      ).then(result => {
-        emitWorkerCompleted(
-          scanId, opts.projectId, partition.id, partition.workerIndex,
-          result.durationMs, result.findings.length,
-        );
-        return result;
-      }).catch((err: Error) => {
-        emitWorkerFailed(
-          scanId, opts.projectId, partition.id, partition.workerIndex,
-          err.message, Date.now() - startedAt,
-        );
-        throw err;
-      });
+        }),
+        signal:        opts.signal,
+        metadata:      { scanId, partitionId: partition.id, workerIndex: partition.workerIndex },
+      };
     });
 
-    const settled = await Promise.allSettled(workerPromises);
+    const poolResults = await Promise.all(
+      poolTasks.map(task => centralWorkerPool.submit<WorkerResult>(task)),
+    );
+
+    // Collect succeeded / failed from pool results
+    const succeeded: WorkerResult[] = [];
+    for (let i = 0; i < poolResults.length; i++) {
+      const result    = poolResults[i];
+      const partition = partitions[i];
+
+      if (result.success && result.data) {
+        emitWorkerCompleted(
+          scanId, opts.projectId, partition.id, partition.workerIndex,
+          result.durationMs, result.data.findings.length,
+        );
+        succeeded.push(result.data);
+      } else {
+        const errMsg = result.error ?? "Worker pool execution failure";
+        emitWorkerFailed(
+          scanId, opts.projectId, partition.id, partition.workerIndex,
+          errMsg, Date.now() - startedAt,
+        );
+      }
+    }
 
     // ── Fail-closed: all workers failed ───────────────────────────────────
-    const succeeded = settled.filter(s => s.status === "fulfilled") as
-      PromiseFulfilledResult<WorkerResult>[];
-
     if (succeeded.length === 0) {
       const err = "All scan workers failed — no results available";
       emitScanFailed(scanId, opts.projectId, err, Date.now() - startedAt);
@@ -123,8 +150,12 @@ export async function runDistributedScan(opts: ScanOptions): Promise<ScanReport>
       scanId,
       opts,
       startedAt,
-      workerResults:  succeeded.map(s => s.value),
-      settled,
+      workerResults:  succeeded,
+      settled:        poolResults.map(r =>
+        r.success && r.data
+          ? { status: "fulfilled" as const, value: r.data }
+          : { status: "rejected" as const, reason: new Error(r.error ?? "failed") },
+      ),
       partitionCount: partitions.length,
       minConfidence:  config.minFindingConfidence,
     });
@@ -162,12 +193,11 @@ async function walkDirectory(
   try {
     entries = await fs.readdir(rootPath, { withFileTypes: true });
   } catch {
-    return files; // unreadable directory — skip silently
+    return files;
   }
 
   await Promise.all(entries.map(async entry => {
     const fullPath = path.join(rootPath, entry.name);
-
     if (entry.isDirectory()) {
       if (!config.excludedFolders.includes(entry.name)) {
         const sub = await walkDirectory(fullPath, config, maxDepth, depth + 1);
@@ -175,29 +205,14 @@ async function walkDirectory(
       }
     } else if (entry.isFile()) {
       try {
-        const stat  = await fs.stat(fullPath);
-        const fe    = buildFileEntry(fullPath, stat.size, config);
+        const stat = await fs.stat(fullPath);
+        const fe   = buildFileEntry(fullPath, stat.size, config);
         if (fe) files.push(fe);
       } catch { /* skip unreadable files */ }
     }
   }));
 
   return files;
-}
-
-// ── Worker timeout wrapper ────────────────────────────────────────────────────
-
-async function runWorkerWithTimeout(
-  input:     Parameters<typeof runWorker>[0],
-  timeoutMs: number,
-): Promise<WorkerResult> {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(
-      () => reject(new Error(`Worker ${input.workerIndex} timed out after ${timeoutMs}ms`)),
-      timeoutMs,
-    ),
-  );
-  return Promise.race([runWorker(input), timeout]);
 }
 
 // ── Empty report ──────────────────────────────────────────────────────────────

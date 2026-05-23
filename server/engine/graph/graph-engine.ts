@@ -92,6 +92,7 @@ export async function runGraph(
       const { passed, failed } = await runParallelBatch(wave, graph, {
         executor:  opts.executor,
         timeoutMs: nodeTimeoutMs,
+        runId:     graph.id,   // thread runId for pool per-run concurrency limiting
         onNodeStart:    n    => console.log(`[graph-engine] → ${n.label}`),
         onNodeComplete: n    => console.log(`[graph-engine] ✓ ${n.label} (${n.durationMs}ms)`),
         onNodeFailed:  (n, e) => console.error(`[graph-engine] ✗ ${n.label}: ${e.message}`),

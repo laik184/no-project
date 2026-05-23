@@ -1,16 +1,25 @@
 /**
  * server/agents/core/tool-loop/execution/parallel-tool-executor.ts
  *
- * Executes a batch of PARALLEL_SAFE tool calls concurrently using
- * Promise.allSettled with bounded concurrency.
+ * Executes a batch of PARALLEL_SAFE tool calls concurrently by routing each
+ * call through the CentralWorkerPool — replacing raw Promise.allSettled with
+ * governed, backpressure-aware, priority-scheduled execution.
+ *
+ * Architecture upgrade (Phase 1 + 2)
+ * ────────────────────────────────────
+ *   BEFORE: raw Promise.allSettled with manual concurrency chunking (MAX=5)
+ *   AFTER:  every tool call is a PoolTask submitted to CentralWorkerPool
  *
  * Safety guarantees
  * ─────────────────
- *   • Bounded concurrency: at most MAX_CONCURRENCY simultaneous calls
- *   • Promise.allSettled: no single failure aborts the batch
- *   • Per-tool timeout via tool-timeout-manager
- *   • All failures surfaced as error records — no silent swallowing
- *   • No resource locks needed (reads only — no shared state mutation)
+ *   ✅ Governed concurrency: CentralWorkerPool enforces system-wide cap
+ *   ✅ Backpressure: pool rejects admission when saturated — fail-closed
+ *   ✅ Priority scheduling: tool calls run at NORMAL priority
+ *   ✅ Per-tool timeout via tool-timeout-manager (inner) + pool hard cap (outer)
+ *   ✅ AbortSignal-aware cancellation propagated to pool tasks
+ *   ✅ All failures surfaced as error records — no silent swallowing
+ *   ✅ Full telemetry: tool.started / completed / failed / timeout emitted
+ *   ✅ Worker-level telemetry emitted by pool (worker.spawned / completed / failed)
  */
 
 import type {
@@ -18,7 +27,7 @@ import type {
   ToolExecutionRecord,
   BatchExecutionResult,
 } from "../types/parallel-execution.types.ts";
-import type { ToolContext } from "../../../../tools/orchestrator.ts";
+import type { ToolContext }  from "../../../../tools/orchestrator.ts";
 import { executeToolCall }   from "../tool-call.executor.ts";
 import { withTimeout }       from "./tool-timeout-manager.ts";
 import {
@@ -26,49 +35,60 @@ import {
   emitToolCompleted,
   emitToolFailed,
   emitToolTimeout,
-} from "../telemetry/tool-execution-telemetry.ts";
+}                            from "../telemetry/tool-execution-telemetry.ts";
+import { centralWorkerPool } from "../../../../quantum/scheduler/worker-pool.ts";
+import { TaskPriority }      from "../../../../quantum/scheduler/worker-types.ts";
+import type { PoolTask }     from "../../../../quantum/scheduler/worker-types.ts";
 
-const MAX_CONCURRENCY = 5;
+// Hard outer timeout enforced by pool — inner tool-timeout-manager fires first
+const POOL_HARD_TIMEOUT_MS = 60_000;
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
+/**
+ * Submit all PARALLEL_SAFE calls as governed PoolTasks.
+ * CentralWorkerPool manages system-wide concurrency — no manual chunking needed.
+ * Fails closed: pool backpressure errors surface as error records.
+ */
 export async function executeParallelBatch(
-  batchId: string,
-  calls:   ClassifiedCall[],
-  ctx:     ToolContext,
-  options?: { maxConcurrency?: number },
+  batchId:  string,
+  calls:    ClassifiedCall[],
+  ctx:      ToolContext,
+  _options?: { maxConcurrency?: number },
 ): Promise<BatchExecutionResult> {
-  const batchStart   = Date.now();
-  const concurrency  = options?.maxConcurrency ?? MAX_CONCURRENCY;
-  const allRecords: ToolExecutionRecord[] = [];
+  const batchStart = Date.now();
 
-  // Process in concurrency-bounded chunks to prevent runaway fan-out
-  for (let i = 0; i < calls.length; i += concurrency) {
-    const chunk   = calls.slice(i, i + concurrency);
-    const settled = await Promise.allSettled(
-      chunk.map((call) => executeSingle(call, ctx, batchId)),
-    );
+  const poolTasks: PoolTask<ToolExecutionRecord>[] = calls.map(call => ({
+    id:            call.callId,
+    runId:         ctx.runId,
+    priority:      TaskPriority.NORMAL,
+    timeoutMs:     POOL_HARD_TIMEOUT_MS,
+    maxRetries:    0,           // retries handled at tool-loop level
+    taskType:      "tool-call",
+    executionMode: "parallel" as const,
+    fn:            () => executeSingle(call, ctx, batchId),
+    signal:        ctx.signal,
+    metadata:      { batchId, toolName: call.name },
+  }));
 
-    for (let j = 0; j < settled.length; j++) {
-      const s    = settled[j];
-      const call = chunk[j];
+  // Submit all tasks — pool governs admission, concurrency, backpressure
+  const poolResults = await Promise.all(
+    poolTasks.map(task => centralWorkerPool.submit<ToolExecutionRecord>(task)),
+  );
 
-      if (s.status === "fulfilled") {
-        allRecords.push(s.value);
-      } else {
-        // executeSingle catches all errors internally — this branch is a
-        // last-resort fail-closed guard for unexpected Promise rejections.
-        const message = s.reason?.message ?? "Unexpected parallel execution failure";
-        emitToolFailed(ctx.runId, call.callId, call.name, message, batchId);
-        allRecords.push(makeErrorRecord(call, 0, message));
-      }
-    }
-  }
+  const allRecords: ToolExecutionRecord[] = poolResults.map((result, i) => {
+    if (result.success && result.data) return result.data;
+    // Pool-level failure: backpressure rejection, hard timeout, or worker crash
+    const call    = calls[i];
+    const message = result.error ?? "Worker pool execution failure";
+    emitToolFailed(ctx.runId, call.callId, call.name, message, batchId);
+    return makeErrorRecord(call, result.durationMs, message);
+  });
 
   return {
     batchId,
     records:    allRecords,
-    allOk:      allRecords.every((r) => r.output.execOk),
+    allOk:      allRecords.every(r => r.output.execOk),
     durationMs: Date.now() - batchStart,
   };
 }

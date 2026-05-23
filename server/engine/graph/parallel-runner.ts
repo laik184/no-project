@@ -1,19 +1,32 @@
 /**
  * parallel-runner.ts
  *
- * Executes a batch of ready nodes in parallel with:
- * - Concurrency cap (MAX_PARALLEL from graph-types)
- * - Per-node timeout enforcement
- * - Retry scheduling on failure
- * - Backpressure when at capacity
+ * Executes a batch of ready DAG nodes in parallel by routing each node
+ * through the CentralWorkerPool — replacing raw Promise.allSettled with
+ * governed, priority-scheduled, backpressure-aware execution.
  *
- * FIXED: Retry delay is no longer blocking the parallel worker slot.
- * Retrying nodes are immediately released from the current batch and
- * re-queued as "pending" for the next wave, freeing concurrency capacity.
+ * Architecture upgrade (Phase 1)
+ * ──────────────────────────────
+ *   BEFORE: raw Promise.allSettled with manual MAX_PARALLEL chunking
+ *   AFTER:  every DAG node is a PoolTask submitted to CentralWorkerPool
+ *
+ * Safety guarantees
+ * ─────────────────
+ *   ✅ CentralWorkerPool enforces system-wide concurrency cap
+ *   ✅ Backpressure gates admission at saturation threshold — fail-closed
+ *   ✅ Per-node inner timeout still fires (AbortSignal.timeout inside runNode)
+ *   ✅ Pool hard timeout as outer safety net (nodeTimeoutMs + 10s buffer)
+ *   ✅ Retry logic preserved: node.retryCount / node.maxRetries still managed here
+ *   ✅ Worker telemetry emitted by pool for every node dispatched
+ *   ✅ runId threaded through for per-run concurrency limiting
  */
 
-import { setNodeStatus } from "./execution-graph.ts";
-import { MAX_PARALLEL }  from "./graph-types.ts";
+import { v4 as uuidv4 }      from "uuid";
+import { setNodeStatus }      from "./execution-graph.ts";
+import { MAX_PARALLEL }       from "./graph-types.ts";
+import { centralWorkerPool }  from "../../quantum/scheduler/worker-pool.ts";
+import { TaskPriority }       from "../../quantum/scheduler/worker-types.ts";
+import type { PoolTask }      from "../../quantum/scheduler/worker-types.ts";
 import type { ExecutionGraph, ExecutionNode, GraphResult } from "./graph-types.ts";
 
 export type NodeExecutor = (
@@ -24,6 +37,8 @@ export type NodeExecutor = (
 export interface RunnerOptions {
   executor:        NodeExecutor;
   timeoutMs:       number;
+  /** runId for pool per-run concurrency limiting and telemetry. */
+  runId?:          string;
   onNodeStart?:    (node: ExecutionNode) => void;
   onNodeComplete?: (node: ExecutionNode, result: unknown) => void;
   onNodeFailed?:   (node: ExecutionNode, error: Error) => void;
@@ -60,8 +75,6 @@ async function runNode(
     const error = err instanceof Error ? err : new Error(String(err));
 
     if (node.retryCount < node.maxRetries) {
-      // FIXED: increment retry counter and schedule re-queue via async timer.
-      // The batch does NOT await this delay — the worker slot is freed immediately.
       node.retryCount++;
       node.status = "retrying";
       graph.currentWave = graph.currentWave.filter(id => id !== node.id);
@@ -70,14 +83,9 @@ async function runNode(
         ? Math.min(30_000, 1_000 * 2 ** (node.retryCount - 1))
         : 1_000;
 
-      // Schedule re-queue without blocking this slot
       setTimeout(() => {
-        if (node.status === "retrying") {
-          node.status = "pending";  // re-enters readiness check in next wave
-        }
+        if (node.status === "retrying") node.status = "pending";
       }, delay);
-
-      // Don't set to "failed" — let the graph-engine pick it up next wave
     } else {
       setNodeStatus(graph, node.id, "failed", undefined, error.message);
       opts.onNodeFailed?.(node, error);
@@ -88,19 +96,20 @@ async function runNode(
 // ── Parallel batch runner ─────────────────────────────────────────────────────
 
 /**
- * Execute `nodes` in parallel, capped at MAX_PARALLEL.
- * Returns when all nodes in this batch are settled.
- *
- * FIXED: Retry slots are no longer held; delayed re-queuing is non-blocking.
+ * Execute `nodes` as governed PoolTasks via CentralWorkerPool.
+ * Pool enforces system-wide concurrency; wave-level cap (MAX_PARALLEL) still
+ * applied before submission to bound the batch size.
  */
 export async function runParallelBatch(
   nodes: ExecutionNode[],
   graph: ExecutionGraph,
   opts:  RunnerOptions,
 ): Promise<{ passed: string[]; failed: string[] }> {
-  const passed: string[] = [];
-  const failed: string[] = [];
+  const passed:  string[] = [];
+  const failed:  string[] = [];
+  const runId   = opts.runId ?? graph.id ?? uuidv4();
 
+  // Wave-level cap: slice into batches of MAX_PARALLEL
   const cap    = Math.min(nodes.length, MAX_PARALLEL);
   const chunks: ExecutionNode[][] = [];
   for (let i = 0; i < nodes.length; i += cap) {
@@ -108,26 +117,47 @@ export async function runParallelBatch(
   }
 
   for (const chunk of chunks) {
-    // Add chunk to currentWave before parallel launch
+    // Register chunk in currentWave before dispatch
     for (const n of chunk) {
-      if (!graph.currentWave.includes(n.id)) {
-        graph.currentWave.push(n.id);
-      }
+      if (!graph.currentWave.includes(n.id)) graph.currentWave.push(n.id);
     }
 
-    const results = await Promise.allSettled(
-      chunk.map(n => runNode(n, graph, opts)),
+    // Wrap each node as a PoolTask — pool governs concurrency + backpressure
+    const poolTasks: PoolTask<void>[] = chunk.map(node => ({
+      id:            node.id,
+      runId,
+      priority:      TaskPriority.NORMAL,
+      timeoutMs:     opts.timeoutMs + 10_000,  // hard outer cap > inner timeout
+      maxRetries:    0,                         // node retry logic lives in runNode
+      taskType:      "dag-node",
+      executionMode: "parallel" as const,
+      fn:            () => runNode(node, graph, opts),
+      metadata:      { nodeLabel: node.label, nodeType: node.type },
+    }));
+
+    // Submit all — pool manages admission and concurrency
+    const poolResults = await Promise.all(
+      poolTasks.map(task => centralWorkerPool.submit<void>(task)),
     );
 
-    results.forEach((r, i) => {
-      const nodeId = chunk[i].id;
-      const status = chunk[i].status;
-      if (r.status === "fulfilled" && status === "success") {
-        passed.push(nodeId);
-      } else if (status === "failed") {
-        failed.push(nodeId);
+    poolResults.forEach((result, i) => {
+      const node   = chunk[i];
+      const status = node.status;
+
+      if (!result.success) {
+        // Pool-level rejection (backpressure / hard timeout) not caught by runNode
+        if (node.status === "running") {
+          setNodeStatus(graph, node.id, "failed", undefined, result.error ?? "Pool rejection");
+          opts.onNodeFailed?.(node, new Error(result.error ?? "Pool rejection"));
+        }
       }
-      // status === "retrying" or "pending" → not in passed/failed — graph re-runs next wave
+
+      if (status === "success") {
+        passed.push(node.id);
+      } else if (status === "failed") {
+        failed.push(node.id);
+      }
+      // status === "retrying" / "pending" → re-enters next wave
     });
   }
 
