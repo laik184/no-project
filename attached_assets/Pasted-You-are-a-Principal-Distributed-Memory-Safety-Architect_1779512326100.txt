@@ -1,0 +1,427 @@
+You are a Principal Distributed Memory Safety Architect.
+
+Your task is to perform a FULL ROOT-CAUSE REFACTOR and PRODUCTION-GRADE MEMORY SAFETY UPGRADE across the entire autonomous backend.
+
+MAIN GOAL:
+Upgrade the current Memory Safety System from:
+⚠️ Partial / Duplicate / Unwired
+→
+🔥 99% Production-Grade Deterministic Memory Infrastructure
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY TEAM ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+These rules are ABSOLUTE and apply to EVERY file, EVERY module, EVERY agent, EVERY execution path.
+
+1. HIGH COHESION / LOW COUPLING
+- Every module must have ONE responsibility only
+- No tight dependencies
+- No hidden shared state
+- No cross-domain pollution
+- No God objects/modules
+
+2. CODE SIZE CONSTRAINT
+- NO file may exceed 250 lines
+- Split oversized files into focused modules
+- Preserve readability and maintainability
+
+3. TARGETED LOCATION
+- Every file MUST exist in its correct bounded context
+- Memory systems belong ONLY inside:
+  server/quantum/memory/
+  server/memory/
+  server/distributed/memory/
+- No misplaced utilities
+
+4. ROOT CAUSE FIXING
+- DO NOT patch symptoms
+- Identify the REAL memory corruption / race / duplication root cause
+- Implement permanent architecture-safe fixes
+
+5. HIGH-LEVEL ENGINEERING STANDARDS
+- Production-grade naming
+- Strong typing
+- Scalable abstractions
+- Secure memory ownership
+- No hacks
+- No shortcuts
+- No hidden side effects
+
+6. CODE REVIEW MANDATORY
+- Every modification must pass architecture validation
+- Every write path must be reviewed against race-condition risks
+- Every queue path must be deterministic
+
+7. FAIL-SAFE DESIGN
+- NO execution allowed if:
+  - write lock invalid
+  - queue corruption detected
+  - memory ownership ambiguous
+  - checkpoint mismatch
+- Fail CLOSED, never fail open
+
+8. CONSISTENT TELEMETRY
+- EVERY memory action MUST emit telemetry:
+  - queue.enqueue
+  - queue.dequeue
+  - memory.write
+  - memory.commit
+  - memory.rollback
+  - lock.acquire
+  - lock.release
+  - memory.conflict
+  - queue.backpressure
+  - write.retry
+  - write.failed
+  - write.completed
+
+NO EXCEPTIONS.
+
+━━━━━━━━━━━━━━━━━━━━
+DEEP SCAN TARGETS
+━━━━━━━━━━━━━━━━━━━━
+
+Deeply scan ALL memory systems:
+
+server/quantum/memory/
+server/distributed/memory/
+server/memory/
+server/agents/memory/
+server/quantum/conflicts/
+server/engine/
+server/orchestration/
+server/infrastructure/events/
+server/fail-closed/
+server/agents/core/tool-loop/
+server/engine/execution/
+
+Also recursively inspect:
+- imports
+- exports
+- queue ownership
+- file mutation flow
+- write ordering
+- checkpoint flow
+- rollback flow
+- runtime ownership
+- event synchronization
+- telemetry emission
+- execution concurrency
+
+━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Find EXACTLY why:
+⚠️ Memory Safety = 55%
+
+Identify:
+
+❌ duplicate memory queues
+❌ unwired queue systems
+❌ race condition risks
+❌ unsafe parallel writes
+❌ unordered writes
+❌ stale memory ownership
+❌ concurrent mutation corruption
+❌ shared state leaks
+❌ queue bypass paths
+❌ missing rollback safety
+❌ missing telemetry
+❌ memory desync risks
+❌ inconsistent lock ownership
+❌ unsafe node execution
+❌ unsafe aggregation writes
+
+━━━━━━━━━━━━━━━━━━━━
+PRIMARY PROBLEMS TO FIX
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. DUPLICATE MEMORY QUEUES
+
+Fix duplication between:
+
+server/quantum/memory/memory-write-queue.ts
+server/distributed/memory/memory-write-queue.ts
+
+Requirements:
+✅ unify under ONE interface
+✅ ONE source of truth
+✅ deterministic ownership
+✅ shared contracts
+✅ zero duplication
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. MEMORY WRITE SERIALIZATION
+
+Implement deterministic write ordering.
+
+Requirements:
+✅ serialized writes
+✅ transaction-safe commits
+✅ rollback support
+✅ checkpoint-safe writes
+✅ queue ordering guarantees
+✅ write conflict protection
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. NODE EXECUTOR WIRING
+
+Currently:
+❌ memory queue NOT wired into node-executor.ts
+
+Fix:
+✅ node-executor MUST use memory queue
+✅ ALL file mutations routed through queue
+✅ no direct unsafe writes allowed
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. PARALLEL EXECUTION SAFETY
+
+Protect:
+- DAG execution
+- quantum paths
+- parallel tool execution
+- aggregation layer
+
+Requirements:
+✅ write locks
+✅ memory transactions
+✅ queue isolation
+✅ conflict detection
+✅ deterministic merge ordering
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. MEMORY OWNERSHIP MODEL
+
+Implement:
+✅ single ownership authority
+✅ scoped write ownership
+✅ execution-path ownership
+✅ runtime-safe ownership
+✅ worker-safe ownership
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CHECKPOINT + ROLLBACK SAFETY
+
+Verify:
+✅ rollback consistency
+✅ checkpoint synchronization
+✅ transactional rollback
+✅ no partial writes
+✅ safe recovery replay
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. TELEMETRY COVERAGE
+
+Add FULL telemetry coverage.
+
+Requirements:
+✅ typed telemetry events
+✅ span tracing
+✅ queue metrics
+✅ retry metrics
+✅ conflict metrics
+✅ backpressure metrics
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. FAIL-CLOSED MEMORY GATES
+
+Implement:
+✅ unsafe writes blocked
+✅ ambiguous ownership blocked
+✅ corrupted queue blocked
+✅ stale lock blocked
+✅ invalid rollback blocked
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+TARGET ARCHITECTURE:
+
+User Request
+    ↓
+Orchestration Engine
+    ↓
+Execution Router
+    ↓
+Node Executor
+    ↓
+Memory Write Queue
+    ↓
+Write Lock Manager
+    ↓
+Memory Transaction
+    ↓
+Checkpoint Validation
+    ↓
+File Mutation
+    ↓
+Telemetry Emit
+    ↓
+Commit / Rollback
+    ↓
+Aggregation Layer
+    ↓
+Verification Gate
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED NEW SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Implement if missing:
+
+✅ MemoryWriteQueueInterface
+✅ DeterministicWriteCoordinator
+✅ TransactionalMemoryWriter
+✅ MemoryOwnershipRegistry
+✅ QueueBackpressureGuard
+✅ MemoryTelemetryBridge
+✅ RollbackConsistencyValidator
+✅ SafeWritePolicyEngine
+✅ ParallelWriteIsolationLayer
+✅ QueueHealthMonitor
+
+━━━━━━━━━━━━━━━━━━━━
+FILE SIZE ENFORCEMENT
+━━━━━━━━━━━━━━━━━━━━
+
+NO FILE > 250 LINES.
+
+Mandatory splits:
+
+❌ memory-write-queue.ts (267L)
+→ split into:
+- queue-core.ts
+- queue-dispatcher.ts
+- queue-backpressure.ts
+- queue-retry-policy.ts
+- queue.types.ts
+
+❌ parallel-write-coordinator.ts
+→ isolate:
+- conflict logic
+- retry policy
+- ownership coordination
+
+❌ node-executor.ts
+→ isolate:
+- write execution
+- transaction lifecycle
+- queue dispatch
+
+━━━━━━━━━━━━━━━━━━━━
+SAFE PARALLELISM RULES
+━━━━━━━━━━━━━━━━━━━━
+
+Parallel execution allowed ONLY IF:
+
+✅ file locks acquired
+✅ memory ownership verified
+✅ no overlapping mutations
+✅ deterministic ordering exists
+✅ rollback available
+✅ telemetry active
+✅ aggregation validation passes
+
+Otherwise:
+❌ BLOCK execution
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Verify and upgrade:
+
+✅ Quantum Engine
+✅ DAG Engine
+✅ Parallel Runner
+✅ Tool Loop
+✅ Aggregation Layer
+✅ Conflict Resolver
+✅ Recovery Manager
+✅ Reflection Engine
+✅ Runtime Manager
+✅ EventBus
+✅ Verification Coordinator
+
+Ensure ALL memory writes route through ONE deterministic safety layer.
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+MEMORY_SAFETY_99_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Memory Architecture
+2. Root Cause Analysis
+3. Duplicate Queue Analysis
+4. Unsafe Write Paths
+5. Race Condition Analysis
+6. Parallel Mutation Risks
+7. Memory Ownership Graph
+8. Queue Wiring Analysis
+9. Node Executor Wiring Analysis
+10. Rollback Safety Analysis
+11. Checkpoint Consistency Analysis
+12. Aggregation Memory Risks
+13. Event Synchronization Risks
+14. Queue Backpressure Analysis
+15. Telemetry Coverage Analysis
+16. Distributed Memory Analysis
+17. Memory Lock Analysis
+18. Transaction Lifecycle Analysis
+19. Memory Failure Scenarios
+20. Unsafe Execution Paths
+21. Fail-Closed Validation Coverage
+22. Memory Reliability %
+23. Memory Determinism %
+24. Parallel Safety %
+25. Quantum Memory Readiness %
+26. Replit-Level Reliability %
+27. Production Readiness %
+28. Exact Files Refactored
+29. Exact Files Split
+30. Exact Wiring Added
+31. Exact Safety Gates Added
+32. Exact Telemetry Added
+33. Exact Validation Rules Added
+34. Final Architecture Map
+35. Final Execution Lifecycle
+36. Final Safety Guarantees
+37. Remaining Risks
+38. Future Scaling Recommendations
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into a:
+
+"Deterministic Fail-Closed Parallel Memory Infrastructure"
+
+capable of:
+✅ safe parallel execution
+✅ quantum-inspired execution
+✅ DAG execution
+✅ multi-agent execution
+✅ rollback-safe writes
+✅ deterministic memory ownership
+✅ production-grade autonomous operation
+
+WITHOUT:
+❌ race conditions
+❌ memory corruption
+❌ unsafe writes
+❌ hidden shared state
+❌ duplicate queues
+❌ execution ambiguity
+❌ unsafe parallelism

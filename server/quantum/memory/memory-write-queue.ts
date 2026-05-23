@@ -1,58 +1,48 @@
 /**
- * memory-write-queue.ts
+ * memory-write-queue.ts  (facade — ≤250 lines)
  *
- * Serialized, per-project write queue for all memory file mutations.
- *
- * ONLY this module may execute memory file writes.
+ * THE canonical write entry point for all memory file mutations.
  * All callers must route through `memoryWriteQueue.enqueue(...)`.
  *
- * Architecture:
- *   Map<QueueKey, ProjectWriteQueue>
- *   — one isolated FIFO lane per project / sandbox path
- *   — strict serial execution within each lane
- *   — concurrent lanes for different projects (no global bottleneck)
+ * This file is now a thin facade over the decomposed modules:
+ *   queue-core.ts          — lane management + FIFO drain
+ *   queue-dispatcher.ts    — entry execution + retry
+ *   queue-backpressure.ts  — depth-based throttle/block gate
+ *   queue-retry-policy.ts  — delay computation
+ *   safe-write-policy.ts   — pre-write safety checks
+ *   memory-ownership-registry.ts — ownership verification
  *
- * Per-write guarantees:
- *   ✅ FIFO ordering within a lane
- *   ✅ atomic execution via memory-transaction.ts
- *   ✅ retry with exponential back-off
- *   ✅ per-write timeout enforcement
- *   ✅ cancellation via AbortSignal
- *   ✅ telemetry on every state transition
+ * Architecture guarantee:
+ *   User Request
+ *     → memoryWriteQueue.enqueue()
+ *     → DeterministicWriteCoordinator
+ *     → QueueLaneManager (FIFO lane)
+ *     → QueueBackpressureGuard (depth gate)
+ *     → executeQueueEntry (dispatcher)
+ *     → SafeWritePolicyEngine (policy gate)
+ *     → MemoryOwnershipRegistry (ownership gate)
+ *     → executeTransaction (atomic write)
+ *     → MemoryTelemetryBridge (telemetry)
+ *     → Commit / Rollback
  */
 
-import { v4 as uuid } from "uuid";
+import { deterministicWriteCoordinator } from "./deterministic-write-coordinator.ts";
+import { memoryOwnershipRegistry }       from "./memory-ownership-registry.ts";
+import type { QueueKey, WriteResult, MemoryFileType, QueueStats } from "./memory-types.ts";
 
-import { executeTransaction }   from "./memory-transaction.ts";
-import {
-  emitWriteStarted, emitWriteCompleted, emitWriteFailed, emitRetry,
-} from "./memory-telemetry.ts";
-import type {
-  QueueKey, WriteRequest, WriteResult,
-  QueueEntry, ProjectWriteQueue, QueueStats,
-  MemoryFileType,
-} from "./memory-types.ts";
-
-// ── Config ────────────────────────────────────────────────────────────────────
-
-const DEFAULT_MAX_RETRIES  = 3;
-const DEFAULT_TIMEOUT_MS   = 30_000;
-const RETRY_BASE_DELAY_MS  = 200;
-const RETRY_MAX_DELAY_MS   = 5_000;
-
-// ── Enqueue parameters ────────────────────────────────────────────────────────
+// ── Enqueue params (public contract) ─────────────────────────────────────────
 
 export interface EnqueueParams {
   /** Isolated lane — use String(projectId) or sandboxPath. */
   queueKey:    QueueKey;
   /** Absolute file path to write. */
   filePath:    string;
-  /** Static replacement content.  Mutually exclusive with `mutator`. */
+  /** Static replacement content. Mutually exclusive with `mutator`. */
   content?:    string;
   /**
    * Read-modify-write function. Receives the current file content
    * (empty string when file doesn't exist) and returns the new content.
-   * Executes inside the exclusive lock — safe against concurrent callers.
+   * Executed inside the exclusive lock — safe against concurrent callers.
    */
   mutator?:    (current: string) => string | Promise<string>;
   /** File format — drives the validator. */
@@ -69,197 +59,71 @@ export interface EnqueueParams {
   signal?:     AbortSignal;
 }
 
-// ── Queue class ───────────────────────────────────────────────────────────────
+// ── Facade ────────────────────────────────────────────────────────────────────
 
 class MemoryWriteQueueManager {
-  private readonly lanes = new Map<QueueKey, ProjectWriteQueue>();
-
-  // ── Public API ─────────────────────────────────────────────────────────────
-
   /**
    * Enqueue a memory write.
    * Resolves when the write is committed; rejects on permanent failure.
+   *
+   * All callers MUST use this method — direct file I/O outside this queue
+   * is a safety violation and will cause memory corruption under parallelism.
    */
   enqueue(params: EnqueueParams): Promise<WriteResult> {
     if (!params.content && !params.mutator) {
       return Promise.reject(
-        new Error("enqueue() requires either `content` or `mutator`"),
+        new Error("[MemoryWriteQueue] enqueue() requires either `content` or `mutator`"),
       );
     }
 
-    const request: WriteRequest = {
-      id:          uuid(),
-      queueKey:    params.queueKey,
-      filePath:    params.filePath,
-      content:     params.content,
-      mutator:     params.mutator,
-      fileType:    params.fileType,
-      ownerId:     params.ownerId,
-      runId:       params.runId ?? "system",
-      maxRetries:  params.maxRetries  ?? DEFAULT_MAX_RETRIES,
-      timeoutMs:   params.timeoutMs   ?? DEFAULT_TIMEOUT_MS,
-      enqueuedAt:  Date.now(),
-      signal:      params.signal,
-    };
+    const runId = params.runId ?? "system";
 
-    return new Promise<WriteResult>((resolve, reject) => {
-      const lane = this.getOrCreateLane(request.queueKey);
-      lane.pending.push({ request, resolve, reject });
-      this.drain(request.queueKey);
+    // Auto-claim ownership for callers that don't pre-claim
+    // (system writes, memory-store, etc. are auto-approved by the registry)
+    memoryOwnershipRegistry.claim({
+      ownerId:  params.ownerId,
+      runId,
+      filePath: params.filePath,
+      queueKey: params.queueKey,
+      ttlMs:    (params.timeoutMs ?? 30_000) + 10_000,
+    });
+
+    return deterministicWriteCoordinator.enqueue({
+      queueKey:   params.queueKey,
+      filePath:   params.filePath,
+      content:    params.content,
+      mutator:    params.mutator,
+      fileType:   params.fileType,
+      ownerId:    params.ownerId,
+      runId,
+      maxRetries: params.maxRetries,
+      timeoutMs:  params.timeoutMs,
+      signal:     params.signal,
     });
   }
 
   /** Snapshot of all active queue states. */
   stats(): QueueStats[] {
-    return Array.from(this.lanes.entries()).map(([queueKey, lane]) => ({
-      queueKey,
-      depth:          lane.pending.length,
-      active:         lane.active,
-      processedTotal: lane.processedTotal,
-      failedTotal:    lane.failedTotal,
-      lastActivityTs: lane.lastActivityTs,
-    }));
+    return deterministicWriteCoordinator.stats();
   }
 
   /** Stats for a single lane. Returns null if the lane has never been used. */
   laneStats(queueKey: QueueKey): QueueStats | null {
-    const lane = this.lanes.get(queueKey);
-    if (!lane) return null;
-    return {
-      queueKey,
-      depth:          lane.pending.length,
-      active:         lane.active,
-      processedTotal: lane.processedTotal,
-      failedTotal:    lane.failedTotal,
-      lastActivityTs: lane.lastActivityTs,
-    };
+    return deterministicWriteCoordinator.laneStats(queueKey);
   }
 
-  // ── Private: lane management ───────────────────────────────────────────────
-
-  private getOrCreateLane(queueKey: QueueKey): ProjectWriteQueue {
-    let lane = this.lanes.get(queueKey);
-    if (!lane) {
-      lane = {
-        active:          false,
-        pending:         [],
-        processedTotal:  0,
-        failedTotal:     0,
-        lastActivityTs:  Date.now(),
-      };
-      this.lanes.set(queueKey, lane);
-    }
-    return lane;
+  /** Force an immediate health scan of all queue lanes. */
+  healthSnapshot() {
+    return deterministicWriteCoordinator.healthSnapshot();
   }
 
-  // ── Private: FIFO drain ────────────────────────────────────────────────────
-
-  private drain(queueKey: QueueKey): void {
-    const lane = this.lanes.get(queueKey);
-    if (!lane || lane.active || lane.pending.length === 0) return;
-
-    lane.active = true;
-    const entry = lane.pending.shift()!;
-
-    this.executeEntry(entry)
-      .then(result => {
-        lane.processedTotal++;
-        lane.lastActivityTs = Date.now();
-        entry.resolve(result);
-      })
-      .catch(err => {
-        lane.failedTotal++;
-        lane.lastActivityTs = Date.now();
-        entry.reject(err as Error);
-      })
-      .finally(() => {
-        lane.active = false;
-        // Schedule next item without growing the call stack
-        setImmediate(() => this.drain(queueKey));
-      });
+  /**
+   * Revoke all ownership tokens for a finished run.
+   * Call after every run completion (success or failure).
+   */
+  revokeRun(runId: string): void {
+    memoryOwnershipRegistry.revokeRun(runId);
   }
-
-  // ── Private: execute one entry with retry + timeout ───────────────────────
-
-  private async executeEntry(entry: QueueEntry): Promise<WriteResult> {
-    const { request } = entry;
-    const deadline    = request.enqueuedAt + request.timeoutMs;
-    let   lastError   = "";
-
-    emitWriteStarted(request.id, request.filePath, request.ownerId, request.runId, request.fileType);
-
-    for (let attempt = 0; attempt <= request.maxRetries; attempt++) {
-      // Honour cancellation
-      if (request.signal?.aborted) {
-        const err = "Write cancelled via AbortSignal";
-        emitWriteFailed(request.id, request.filePath, request.ownerId, request.runId, elapsed(request), attempt, err);
-        throw new Error(err);
-      }
-
-      // Honour deadline
-      if (Date.now() > deadline) {
-        const err = `Write timed out after ${request.timeoutMs}ms`;
-        emitWriteFailed(request.id, request.filePath, request.ownerId, request.runId, elapsed(request), attempt, err);
-        throw new Error(err);
-      }
-
-      // Retry telemetry (not emitted for attempt 0)
-      if (attempt > 0) {
-        emitRetry(request.id, request.filePath, request.ownerId, request.runId, attempt, lastError);
-        await sleep(retryDelay(attempt));
-      }
-
-      try {
-        const txResult = await executeTransaction({
-          requestId: request.id,
-          filePath:  request.filePath,
-          content:   request.content,
-          mutator:   request.mutator,
-          fileType:  request.fileType,
-          ownerId:   request.ownerId,
-          runId:     request.runId,
-        });
-
-        const result: WriteResult = {
-          success:    true,
-          requestId:  request.id,
-          filePath:   request.filePath,
-          durationMs: elapsed(request),
-          retries:    attempt,
-          checksum:   txResult.checksum,
-        };
-
-        emitWriteCompleted(
-          request.id, request.filePath, request.ownerId, request.runId,
-          result.durationMs, attempt, txResult.checksum,
-        );
-
-        return result;
-
-      } catch (err) {
-        lastError = (err as Error).message;
-        // Continue to next retry
-      }
-    }
-
-    const msg = `Write failed after ${request.maxRetries} retries: ${lastError}`;
-    emitWriteFailed(request.id, request.filePath, request.ownerId, request.runId, elapsed(request), request.maxRetries, msg);
-    throw new Error(msg);
-  }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function elapsed(req: WriteRequest): number {
-  return Date.now() - req.enqueuedAt;
-}
-
-function retryDelay(attempt: number): number {
-  return Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), RETRY_MAX_DELAY_MS);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
