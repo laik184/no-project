@@ -23,11 +23,8 @@ import {
   emitMergeStarted,
   emitMergeCompleted,
   emitMergeFailed,
-  emitArbitrationStarted,
-  emitArbitrationCompleted,
-  emitRetryStarted,
-  emitRetryCompleted,
 } from "../telemetry/conflict-telemetry.ts";
+import { trySafeRetry, supervisorArbitrate } from "./conflict-strategies.ts";
 import { getPath } from "../superposition/path-registry.ts";
 
 // ── Per-file content cache (populated by quantum-runner) ──────────────────────
@@ -140,12 +137,16 @@ async function _resolveOne(
 
   // ── Strategy 3: SAFE_RETRY (if confidence scores are identical) ────────────
   if (!result.success || (scoreA === scoreB && !contentA && !contentB)) {
-    result = await _trySafeRetry(runId, quantumRunId, conflict, contentA, contentB, scoreA, scoreB, pathIdA, pathIdB, t0);
+    result = await trySafeRetry(
+      runId, quantumRunId, conflict,
+      contentA, contentB, scoreA, scoreB, pathIdA, pathIdB,
+      _isCodeFile(conflict.filePath),
+    );
   }
 
   // ── Strategy 4: SUPERVISOR_ARBITRATION (last resort) ──────────────────────
   if (!result.success) {
-    result = _supervisorArbitrate(runId, conflict, contentA, contentB, scoreA, scoreB, pathIdA, pathIdB);
+    result = supervisorArbitrate(runId, conflict, contentA, contentB, scoreA, scoreB, pathIdA, pathIdB);
   }
 
   // ── Finalize ───────────────────────────────────────────────────────────────
@@ -173,98 +174,10 @@ async function _resolveOne(
   return result;
 }
 
-// ── SAFE_RETRY strategy ───────────────────────────────────────────────────────
-
-const MAX_SAFE_RETRIES = 2;
-const RETRY_DELAY_MS   = 150;
-
-async function _trySafeRetry(
-  runId: string,
-  quantumRunId: string,
-  conflict: PathConflict,
-  contentA: string,
-  contentB: string,
-  scoreA: number,
-  scoreB: number,
-  pathIdA: string,
-  pathIdB: string,
-  t0: number,
-): Promise<MergeResult> {
-  for (let attempt = 1; attempt <= MAX_SAFE_RETRIES; attempt++) {
-    emitRetryStarted(runId, conflict.conflictId, attempt, RETRY_DELAY_MS * attempt);
-    await _sleep(RETRY_DELAY_MS * attempt);
-
-    const retry = _isCodeFile(conflict.filePath) && contentA && contentB
-      ? astMerge({ filePath: conflict.filePath, contentA, contentB, confidenceA: scoreA, confidenceB: scoreB, pathIdA, pathIdB })
-      : null;
-
-    const success = retry?.success ?? false;
-    emitRetryCompleted(runId, conflict.conflictId, attempt, success);
-    conflictStateStore.recordRetry(quantumRunId, {
-      conflictId: conflict.conflictId, quantumRunId,
-      attempt, strategy: "SAFE_RETRY", success,
-      delayMs: RETRY_DELAY_MS * attempt, retriedAt: Date.now(),
-    });
-
-    if (retry?.success) return retry;
-  }
-
-  // Safe-retry exhausted — return best-effort confidence winner
-  const winner = scoreA >= scoreB ? pathIdA : pathIdB;
-  return {
-    filePath: conflict.filePath,
-    strategy: "LAST_WRITER" as MergeStrategyKind,
-    winnerPathId: winner,
-    content: winner === pathIdA ? contentA : contentB,
-    conflicts: 1,
-    success: false,
-    reason:  "SAFE_RETRY exhausted — fell back to LAST_WRITER",
-  };
-}
-
-// ── SUPERVISOR_ARBITRATION strategy ──────────────────────────────────────────
-
-function _supervisorArbitrate(
-  runId:    string,
-  conflict: PathConflict,
-  contentA: string,
-  contentB: string,
-  scoreA:   number,
-  scoreB:   number,
-  pathIdA:  string,
-  pathIdB:  string,
-): MergeResult {
-  emitArbitrationStarted(runId, conflict.conflictId, conflict.filePath);
-  console.warn(
-    `[conflict-resolver] SUPERVISOR_ARBITRATION escalation — conflict ${conflict.conflictId} ` +
-    `file=${conflict.filePath} pathA=${pathIdA}(${scoreA.toFixed(2)}) pathB=${pathIdB}(${scoreB.toFixed(2)})`,
-  );
-
-  // Best-effort: higher score wins; tie → prefer A (deterministic ordering)
-  const winner  = scoreA >= scoreB ? pathIdA : pathIdB;
-  const content = winner === pathIdA ? contentA : contentB;
-
-  emitArbitrationCompleted(runId, conflict.conflictId, `winner=${winner}`, Math.max(scoreA, scoreB));
-
-  return {
-    filePath:     conflict.filePath,
-    strategy:     "SUPERVISOR_ARBITRATE" as MergeStrategyKind,
-    winnerPathId: winner,
-    content,
-    conflicts:    1,
-    success:      true,
-    reason:       `Supervisor arbitration: winner=${winner} score=${Math.max(scoreA, scoreB).toFixed(2)}`,
-  };
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function _isCodeFile(filePath: string): boolean {
   return /\.(ts|tsx|js|jsx|mts|mjs)$/.test(filePath);
-}
-
-function _sleep(ms: number): Promise<void> {
-  return new Promise(r => setTimeout(r, ms));
 }
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────

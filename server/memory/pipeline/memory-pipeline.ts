@@ -16,15 +16,22 @@ import { classifyMemory }       from "../classifier/memory-classifier.ts";
 import { memoryTelemetry }      from "../telemetry/memory-telemetry.ts";
 import { generateEmbedding }    from "../../agents/memory/vector/embedding-engine.ts";
 import { cacheMemory, semanticSearch, keywordSearch } from "../../agents/memory/vector/semantic-search.ts";
-import { deduplicateRanked }    from "../../agents/memory/vector/memory-ranking.ts";
 import { computeFinalScore }    from "../../agents/memory/vector/memory-ranking.ts";
 import type { MemoryEntry, SearchOptions, RankedMemory } from "../../agents/memory/vector/vector-types.ts";
 import { randomUUID }           from "crypto";
 
-// ── In-process store (wraps the semantic cache) ────────────────────────────────
+// ── Store (delegated to memory-store-internal — Phase 1 split) ────────────────
+import {
+  _store,
+  enforceCapacity,
+  getProjectEntries,
+  getAllEntries,
+  getStoreStats,
+  reconcile,
+  archive,
+} from "./memory-store-internal.ts";
 
-const _store = new Map<string, MemoryEntry>();
-const MAX_ENTRIES_PER_PROJECT = 500;
+export { getProjectEntries, getAllEntries, getStoreStats, reconcile, archive };
 
 // ── Stage 1: Observe ──────────────────────────────────────────────────────────
 
@@ -83,7 +90,7 @@ export async function observe(input: ObserveInput): Promise<MemoryEntry | null> 
     }
 
     // Stage 5: Persist (in-process cache + semantic index)
-    _enforceCapacity(projectId);
+    enforceCapacity(projectId);
     _store.set(entry.id!, entry);
     cacheMemory(entry);
 
@@ -189,98 +196,6 @@ export async function retrieve(
   return results;
 }
 
-// ── Stage 9: Reconcile ────────────────────────────────────────────────────────
-
-export function reconcile(projectId: number): void {
-  const entries = [..._store.values()].filter(e => e.projectId === projectId);
-  const seen    = new Map<string, MemoryEntry>();
-  const removed: string[] = [];
-
-  for (const entry of entries) {
-    const key = entry.content.slice(0, 80).toLowerCase().trim();
-    if (seen.has(key)) {
-      const existing = seen.get(key)!;
-      // Keep the higher-scored, more recent one
-      if (entry.score > existing.score || entry.createdAt > existing.createdAt) {
-        _store.delete(existing.id!);
-        removed.push(existing.id!);
-        seen.set(key, entry);
-      } else {
-        _store.delete(entry.id!);
-        removed.push(entry.id!);
-      }
-    } else {
-      seen.set(key, entry);
-    }
-  }
-
-  if (removed.length > 0) {
-    memoryTelemetry.reconciled({
-      conflictId:  `reconcile-${projectId}-${Date.now()}`,
-      resolution:  "kept_higher_confidence",
-      affectedIds: removed,
-    });
-  }
-}
-
-// ── Stage 11: Archive ─────────────────────────────────────────────────────────
-
-export function archive(projectId: number): void {
-  const now     = Date.now();
-  const entries = [..._store.values()].filter(e => e.projectId === projectId);
-
-  for (const entry of entries) {
-    const isLowScore = entry.score < 0.2;
-    const isStale    = entry.lastUsedAt < now - 30 * 24 * 60 * 60 * 1000 && entry.usedCount === 0;
-
-    if (isLowScore || isStale) {
-      _store.delete(entry.id!);
-      memoryTelemetry.archived({
-        entryId:   entry.id!,
-        reason:    isStale ? "expired" : "low_score",
-        projectId,
-      });
-    }
-  }
-}
-
-// ── Queries ───────────────────────────────────────────────────────────────────
-
-export function getProjectEntries(projectId: number): MemoryEntry[] {
-  return [..._store.values()].filter(e => e.projectId === projectId);
-}
-
-export function getAllEntries(): MemoryEntry[] {
-  return [..._store.values()];
-}
-
-export function getStoreStats(): { total: number; byCategory: Record<string, number>; byProject: Record<string, number> } {
-  const entries    = [..._store.values()];
-  const byCategory: Record<string, number> = {};
-  const byProject:  Record<string, number> = {};
-
-  for (const e of entries) {
-    byCategory[e.category]          = (byCategory[e.category] ?? 0) + 1;
-    const pKey = String(e.projectId ?? "global");
-    byProject[pKey] = (byProject[pKey] ?? 0) + 1;
-  }
-
-  return { total: entries.length, byCategory, byProject };
-}
-
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
-function _enforceCapacity(projectId: number): void {
-  const projectEntries = [..._store.entries()].filter(([, e]) => e.projectId === projectId);
-  if (projectEntries.length < MAX_ENTRIES_PER_PROJECT) return;
-
-  // Evict lowest-score + oldest entries
-  const sorted = projectEntries.sort(([, a], [, b]) =>
-    (a.score + a.usedCount * 0.01) - (b.score + b.usedCount * 0.01),
-  );
-  const toEvict = sorted.slice(0, Math.ceil(MAX_ENTRIES_PER_PROJECT * 0.1));
-  for (const [id, entry] of toEvict) {
-    _store.delete(id);
-    memoryTelemetry.archived({ entryId: id, reason: "overflow", projectId: entry.projectId ?? 0 });
-  }
-}
+// ── Stages 9 & 11 delegated to memory-store-internal (Phase 1 split) ─────────
+// reconcile(), archive(), getProjectEntries(), getAllEntries(), getStoreStats()
+// are re-exported above from memory-store-internal.ts

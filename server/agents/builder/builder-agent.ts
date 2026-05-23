@@ -8,15 +8,14 @@
  * Single responsibility: orchestrate code generation — no direct file I/O.
  */
 
-import { bus }    from "../../infrastructure/events/bus.ts";
-import { record } from "../../telemetry/index.ts";
+import { bus }      from "../../infrastructure/events/bus.ts";
+import { record }    from "../../telemetry/index.ts";
+import { buildPlan } from "./builder-plan.ts";
 import type {
   BuildRequest,
   BuildResult,
-  BuildPlan,
   BuildTask,
   BuildTaskResult,
-  BuildPhase,
 } from "./types.ts";
 
 const AGENT_NAME = "builder-agent";
@@ -40,99 +39,8 @@ function emitEvent(
   });
 }
 
-// ── Plan builder ──────────────────────────────────────────────────────────────
-
-function buildPlan(req: BuildRequest): BuildPlan {
-  const { runId, projectId, goal, framework, features = [] } = req;
-
-  const tasks: BuildTask[] = [];
-  const phases: BuildPhase[] = ["scaffold", "dependencies", "backend", "frontend", "config"];
-
-  // Scaffold is always first
-  tasks.push({
-    id:        "scaffold",
-    phase:     "scaffold",
-    goal:      `Scaffold project structure for: ${goal}`,
-    tools:     ["write_file", "list_dir"],
-    dependsOn: [],
-    critical:  true,
-    timeoutMs: 60_000,
-  });
-
-  // Dependencies and backend/frontend can run after scaffold
-  tasks.push({
-    id:        "dependencies",
-    phase:     "dependencies",
-    goal:      `Install and configure dependencies for ${framework ?? "the project"}`,
-    tools:     ["install_package", "write_file"],
-    dependsOn: ["scaffold"],
-    critical:  true,
-    timeoutMs: 90_000,
-  });
-
-  tasks.push({
-    id:        "backend",
-    phase:     "backend",
-    goal:      `Generate backend API routes and server logic for: ${goal}`,
-    tools:     ["write_file", "read_file", "shell_exec"],
-    dependsOn: ["scaffold"],
-    critical:  true,
-    timeoutMs: 120_000,
-  });
-
-  tasks.push({
-    id:        "frontend",
-    phase:     "frontend",
-    goal:      `Generate frontend components and UI for: ${goal}`,
-    tools:     ["write_file", "read_file"],
-    dependsOn: ["scaffold"],
-    critical:  true,
-    timeoutMs: 120_000,
-  });
-
-  // Database task if feature requested
-  if (features.includes("database") || goal.toLowerCase().includes("database")) {
-    tasks.push({
-      id:        "database",
-      phase:     "database",
-      goal:      "Generate database schema and migration files",
-      tools:     ["write_file", "shell_exec"],
-      dependsOn: ["scaffold"],
-      critical:  false,
-      timeoutMs: 60_000,
-    });
-    phases.splice(2, 0, "database");
-  }
-
-  tasks.push({
-    id:        "config",
-    phase:     "config",
-    goal:      "Generate environment configuration and build settings",
-    tools:     ["write_file"],
-    dependsOn: ["backend", "frontend"],
-    critical:  false,
-    timeoutMs: 30_000,
-  });
-
-  // Parallel groups: backend + frontend + database can run simultaneously
-  const parallelGroups = [
-    ["scaffold"],
-    ["dependencies", "backend", "frontend", ...(phases.includes("database") ? ["database"] : [])],
-    ["config"],
-  ];
-
-  return {
-    runId,
-    projectId,
-    goal,
-    tasks,
-    phases,
-    estimatedMs: tasks.reduce((acc, t) => acc + t.timeoutMs, 0) / parallelGroups.length,
-    parallelGroups,
-  };
-}
-
 // ── Task executor (defers to engine layer) ────────────────────────────────────
+// Plan construction delegated to builder-plan.ts (Phase 1 split)
 
 async function executeTask(
   task: BuildTask,

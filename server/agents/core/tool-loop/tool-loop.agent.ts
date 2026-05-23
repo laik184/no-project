@@ -38,15 +38,6 @@ import {
   emitVerificationExhausted,
 }                                    from "../../../verification/index.ts";
 
-// ── Parallel execution system ─────────────────────────────────────────────────
-import { buildToolGroups }           from "./execution/tool-group-builder.ts";
-import { executeParallelBatch }      from "./execution/parallel-tool-executor.ts";
-import { executeSerialBatch }        from "./execution/serial-tool-executor.ts";
-import {
-  emitBatchStarted,
-  emitBatchCompleted,
-  emitBatchFailed,
-}                                    from "./telemetry/tool-execution-telemetry.ts";
 import type { ToolExecutionRecord }  from "./types/parallel-execution.types.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -71,6 +62,10 @@ export interface AgentLoopResult {
   readonly error?:     string;
   readonly messages?:  ToolMessage[];
 }
+
+// ── Extracted modules (Phase 1 split) ─────────────────────────────────────────
+import { dispatchToolCalls } from "./tool-loop-dispatcher.ts";
+import { buildInitialMessages } from "./tool-loop-messages.ts";
 
 // ─── Agent loop ───────────────────────────────────────────────────────────────
 
@@ -221,53 +216,7 @@ export async function runAgentLoop(input: AgentLoopInput): Promise<AgentLoopResu
   }
 }
 
-// ─── Parallel dispatch ────────────────────────────────────────────────────────
-
-async function dispatchToolCalls(
-  toolCalls: Array<{ id: string; name: string; arguments: string }>,
-  ctx:       ToolContext,
-  runId:     string,
-): Promise<ToolExecutionRecord[]> {
-  const rawCalls = toolCalls.map((tc) => ({ callId: tc.id, name: tc.name, args: tc.arguments }));
-  const { batches } = buildToolGroups(rawCalls, runId);
-
-  const allRecords: ToolExecutionRecord[] = [];
-
-  for (const batch of batches) {
-    emitBatchStarted(runId, batch.batchId, batch.mode, batch.calls.map((c) => c.name));
-
-    let batchResult;
-    try {
-      if (batch.mode === "parallel") {
-        batchResult = await executeParallelBatch(batch.batchId, batch.calls, ctx);
-      } else {
-        batchResult = await executeSerialBatch(batch.batchId, batch.calls, ctx);
-      }
-      emitBatchCompleted(runId, batchResult);
-    } catch (err: any) {
-      emitBatchFailed(runId, batch.batchId, err?.message ?? "unknown batch error");
-      throw err; // fail-closed: propagate to outer loop
-    }
-
-    allRecords.push(...batchResult.records);
-  }
-
-  return allRecords;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function buildInitialMessages(
-  systemPrompt: string, projectId: number, goal: string, memoryContext?: string,
-): ToolMessage[] {
-  const msgs: ToolMessage[] = [{ role: "system", content: systemPrompt }];
-  if (memoryContext) {
-    msgs.push({ role: "user",      content: memoryContext });
-    msgs.push({ role: "assistant", content: "I've reviewed the project memory. I'll build on existing work." });
-  }
-  msgs.push({ role: "user", content: `Project ID: ${projectId}\nGoal:\n${goal}` });
-  return msgs;
-}
 
 function emit(runId: string, eventType: string, phase: string, payload: unknown): void {
   bus.emit("agent.event", { runId, eventType: eventType as any, phase, ts: Date.now(), payload });
