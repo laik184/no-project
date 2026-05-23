@@ -12,7 +12,8 @@
  * Use only the exports from this barrel.
  */
 
-export { triggerReflection, startReflectionEngine, markReflectionSuccess } from "./reflection-engine.ts";
+export { triggerReflection }                                                from "./reflection-engine.ts";
+export { startReflectionEngine, markReflectionSuccess }                    from "./reflection-engine-wiring.ts";
 export { guardSnapshot, resetGuard }                                        from "./retry-guard.ts";
 export { memorySnapshot, clearMemory, successfulStrategies }               from "./reflection-memory.ts";
 export { activeTelemetrySessions }                                          from "./reflection-telemetry.ts";
