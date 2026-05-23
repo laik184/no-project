@@ -1,0 +1,506 @@
+You are a Principal Distributed Systems Architect and Autonomous Infrastructure Refactoring Engine.
+
+MISSION:
+Transform the CURRENT fake/in-process distributed layer into a REAL production-grade distributed infrastructure with Redis-backed coordination, distributed workers, persistent queues, cross-process execution, and deterministic distributed orchestration.
+
+MAIN GOAL:
+Upgrade the current:
+"single-process distributed simulation"
+
+into:
+
+"REAL DISTRIBUTED AUTONOMOUS EXECUTION INFRASTRUCTURE"
+
+while STRICTLY enforcing ALL engineering rules below.
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+1. HIGH COHESION / LOW COUPLING
+- Every module must have ONE responsibility only.
+- Remove tight dependencies.
+- Use interfaces/contracts.
+- Event-driven communication preferred.
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines.
+- Split oversized files safely.
+- Extract utilities/contracts/services when needed.
+
+3. TARGETED PLACEMENT
+- Every file must exist in the correct bounded context.
+- No misplaced distributed logic.
+- Maintain clean architecture boundaries.
+
+4. ROOT CAUSE FIXING
+- Never patch symptoms.
+- Trace actual distributed execution bottlenecks.
+- Permanently solve architectural causes.
+
+5. HIGH-LEVEL ENGINEERING STANDARDS
+- Production-grade naming.
+- Strong typing.
+- Readability first.
+- Scalability first.
+- Security first.
+- No hacks.
+- No shortcuts.
+
+6. CODE REVIEW STANDARD
+- Every new module must:
+  - expose typed contracts
+  - expose validation boundaries
+  - include telemetry hooks
+  - support safe testing
+
+7. FAIL-SAFE DESIGN
+- No execution allowed without:
+  - validation
+  - lock acquisition
+  - verification gates
+  - safe retries
+  - rollback safety
+
+8. CONSISTENT TELEMETRY
+- ALL distributed actions MUST emit telemetry:
+  - queue events
+  - worker events
+  - retries
+  - failures
+  - locks
+  - aggregation
+  - reroutes
+  - completion
+  - backpressure
+
+NO exceptions.
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT AUDIT FINDINGS
+━━━━━━━━━━━━━━━━━━━━
+
+Current distributed layer is FAKE / IN-PROCESS ONLY.
+
+Problems detected:
+
+❌ No Redis
+❌ No BullMQ
+❌ No real distributed queue
+❌ No cross-process workers
+❌ No worker orchestration
+❌ No distributed locks
+❌ No real backpressure
+❌ WorkerPool bypassed
+❌ ParallelToolExecutor unwired
+❌ Distributed layer only simulates APIs
+❌ No multi-node execution
+❌ No persistent queue storage
+❌ No distributed tracing correlation
+
+Current readiness:
+22% distributed readiness only.
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Build REAL distributed infrastructure:
+
+client
+  ↓
+orchestration-engine
+  ↓
+distributed-router
+  ↓
+Redis-backed distributed queue
+  ↓
+CentralWorkerPool
+  ↓
+distributed workers
+  ↓
+parallel execution
+  ↓
+ResultAggregator
+  ↓
+ConflictResolver
+  ↓
+Verification
+  ↓
+Recovery
+  ↓
+Telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — REDIS FOUNDATION
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+server/distributed/redis/
+├── redis-client.ts
+├── redis-config.ts
+├── redis-health.ts
+├── redis-reconnect.ts
+├── redis-telemetry.ts
+└── types/
+
+Requirements:
+✅ singleton-safe
+✅ reconnect-safe
+✅ typed config
+✅ health checks
+✅ telemetry
+✅ fail-safe reconnects
+✅ graceful shutdown
+✅ no file >250 lines
+
+Use:
+- ioredis
+- typed environment validation
+- retry strategy
+- exponential backoff
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — REAL DISTRIBUTED QUEUE
+━━━━━━━━━━━━━━━━━━━━
+
+Replace:
+server/distributed/queue/task-queue.ts
+
+WITH:
+
+BullMQ architecture.
+
+Create:
+
+server/distributed/queue/
+├── queue-factory.ts
+├── distributed-queue.ts
+├── queue-worker.ts
+├── queue-events.ts
+├── queue-priority.ts
+├── queue-backpressure.ts
+├── queue-retry-policy.ts
+├── queue-telemetry.ts
+├── queue-validation.ts
+└── types/
+
+Requirements:
+✅ Redis-backed
+✅ persistent jobs
+✅ retries
+✅ dead-letter queue
+✅ priority queue
+✅ backpressure
+✅ distributed events
+✅ telemetry
+✅ worker isolation
+✅ typed jobs
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — CENTRAL WORKER POOL
+━━━━━━━━━━━━━━━━━━━━
+
+Fix:
+server/quantum/scheduler/worker-pool.ts
+
+Problems:
+❌ bypassed
+❌ not wired
+❌ oversized
+
+Refactor into:
+
+server/distributed/workers/
+├── central-worker-pool.ts
+├── worker-registry.ts
+├── worker-slot.ts
+├── worker-lifecycle.ts
+├── worker-health.ts
+├── worker-capacity.ts
+├── worker-priority.ts
+├── worker-backpressure.ts
+├── worker-telemetry.ts
+└── types/
+
+Requirements:
+✅ queue-driven execution
+✅ worker orchestration
+✅ distributed capacity tracking
+✅ worker leasing
+✅ worker timeouts
+✅ worker heartbeats
+✅ concurrency control
+✅ safe shutdown
+✅ telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — TRUE PARALLEL TOOL EXECUTION
+━━━━━━━━━━━━━━━━━━━━
+
+Fix:
+server/agents/core/tool-loop/
+
+Problems:
+❌ parallel executor exists but unused
+❌ sequential bottleneck
+
+Implement:
+
+server/agents/core/tool-loop/execution/
+├── parallel-tool-executor.ts
+├── tool-batch-builder.ts
+├── tool-dependency-analyzer.ts
+├── tool-conflict-analyzer.ts
+├── tool-parallel-router.ts
+├── tool-lock-bridge.ts
+├── tool-execution-telemetry.ts
+└── types/
+
+Requirements:
+✅ detect parallel_safe tools
+✅ DAG-aware execution
+✅ distributed execution
+✅ lock-aware execution
+✅ fail-safe retries
+✅ aggregation-safe outputs
+✅ conflict-aware batching
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — DISTRIBUTED LOCK SYSTEM
+━━━━━━━━━━━━━━━━━━━━
+
+Replace in-process locks with Redis locks.
+
+Implement:
+
+server/distributed/locks/
+├── distributed-lock-manager.ts
+├── redis-lock-store.ts
+├── lock-acquisition.ts
+├── lock-timeout.ts
+├── lock-recovery.ts
+├── lock-heartbeat.ts
+├── lock-telemetry.ts
+└── types/
+
+Requirements:
+✅ distributed file locks
+✅ TTL locks
+✅ heartbeat renewal
+✅ dead lock cleanup
+✅ stale lock recovery
+✅ multi-worker safe
+✅ fail-safe release
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — DISTRIBUTED MEMORY SAFETY
+━━━━━━━━━━━━━━━━━━━━
+
+Fix duplicated systems:
+
+❌ quantum/memory/memory-write-queue.ts
+❌ distributed/memory/memory-write-queue.ts
+
+Unify into:
+
+server/distributed/memory/
+├── distributed-memory-queue.ts
+├── memory-transaction.ts
+├── memory-lock.ts
+├── memory-serializer.ts
+├── memory-versioning.ts
+├── memory-conflict-checker.ts
+├── memory-telemetry.ts
+└── types/
+
+Requirements:
+✅ single source of truth
+✅ serialized writes
+✅ version-safe memory
+✅ distributed consistency
+✅ replay-safe
+✅ rollback-safe
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — DISTRIBUTED EVENT BUS
+━━━━━━━━━━━━━━━━━━━━
+
+Upgrade:
+server/infrastructure/events/
+
+Implement:
+
+server/distributed/events/
+├── distributed-event-bus.ts
+├── redis-pubsub.ts
+├── event-router.ts
+├── event-partitioning.ts
+├── event-replay.ts
+├── event-telemetry.ts
+├── subscription-manager.ts
+└── types/
+
+Requirements:
+✅ cross-process events
+✅ replay-safe
+✅ typed contracts
+✅ distributed subscriptions
+✅ telemetry
+✅ event tracing
+✅ event persistence
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 8 — DISTRIBUTED TELEMETRY
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+server/distributed/telemetry/
+├── distributed-trace.ts
+├── correlation-id.ts
+├── worker-trace.ts
+├── queue-trace.ts
+├── lock-trace.ts
+├── aggregation-trace.ts
+├── retry-trace.ts
+├── execution-span.ts
+└── types/
+
+Requirements:
+✅ correlation IDs
+✅ distributed spans
+✅ worker tracing
+✅ queue tracing
+✅ failure tracing
+✅ retry tracing
+✅ aggregation tracing
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — ORCHESTRATION WIRING
+━━━━━━━━━━━━━━━━━━━━
+
+CRITICAL.
+
+Wire ALL systems into:
+
+server/orchestration/
+server/engine/
+server/quantum/
+server/agents/
+
+Requirements:
+✅ orchestration uses distributed queue
+✅ quantum engine uses CentralWorkerPool
+✅ parallel runner uses distributed workers
+✅ node executor uses distributed locks
+✅ aggregation uses distributed telemetry
+✅ recovery handles worker crashes
+✅ rerouting handles queue pressure
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — TRUE DISTRIBUTED EXECUTION
+━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+✅ worker threads OR node cluster
+✅ isolated execution workers
+✅ distributed task execution
+✅ process-safe communication
+✅ worker crash recovery
+✅ execution replay
+✅ deterministic retries
+
+━━━━━━━━━━━━━━━━━━━━
+PHASE 11 — VALIDATION & FAIL-CLOSED
+━━━━━━━━━━━━━━━━━━━━
+
+ALL distributed execution MUST PASS:
+
+✅ queue validation
+✅ worker validation
+✅ lock validation
+✅ runtime validation
+✅ aggregation validation
+✅ replay validation
+✅ telemetry validation
+✅ recovery validation
+
+Block completion on ANY failure.
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+DISTRIBUTED_SYSTEM_99_PERCENT_UPGRADE_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Distributed Architecture
+2. Root Cause Analysis
+3. Fake Distributed Components
+4. Redis Integration Status
+5. Queue System Status
+6. WorkerPool Status
+7. Lock System Status
+8. Memory Safety Status
+9. EventBus Status
+10. Telemetry Status
+11. Parallel Execution Status
+12. Tool Execution Status
+13. Aggregation Status
+14. Conflict Resolution Status
+15. Recovery Status
+16. Runtime Distribution Status
+17. Cross-Process Communication
+18. Worker Lifecycle Analysis
+19. Queue Backpressure Analysis
+20. Queue Retry Analysis
+21. Distributed Failure Modes
+22. Race Condition Risks
+23. Deadlock Risks
+24. Memory Corruption Risks
+25. Distributed Consistency Risks
+26. Replay Safety Analysis
+27. Distributed Tracing Analysis
+28. Distributed Scalability Score
+29. Distributed Reliability Score
+30. Distributed Security Score
+31. Distributed Performance Score
+32. Replit-Level Distributed Similarity %
+33. Production Readiness %
+34. Exact Files Refactored
+35. Exact Wiring Added
+36. Exact Root Causes Fixed
+37. Exact Systems Upgraded
+38. Remaining Weaknesses
+39. Future Distributed Scaling Plan
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL OBJECTIVE
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend from:
+
+"single-process simulated distributed architecture"
+
+INTO:
+
+"REAL DISTRIBUTED QUANTUM-INSPIRED AUTONOMOUS EXECUTION OPERATING SYSTEM"
+
+with:
+✅ Redis-backed infrastructure
+✅ distributed workers
+✅ persistent queues
+✅ real parallel execution
+✅ deterministic orchestration
+✅ distributed telemetry
+✅ production-grade recovery
+✅ fail-closed distributed safety
+✅ scalable autonomous execution

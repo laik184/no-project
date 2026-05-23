@@ -85,6 +85,7 @@ import { previewOrchestrator }       from "./runtime/preview-orchestrator.ts";
 import { recoveryOrchestrator }      from "./runtime/recovery-orchestrator.ts";
 import { getEngineVersion }          from "./core/orchestration-engine.ts";
 import { orchestratorHub }           from "./registry/index.ts";
+import { distributedOrchestrationWiring } from "../distributed/orchestration/distributed-orchestration-wiring.ts";
 
 export function initOrchestration(): void {
   // Wire telemetry to the event bus
@@ -105,8 +106,18 @@ export function initOrchestration(): void {
   // Boot the master orchestrator hub — registers ALL orchestrators system-wide
   orchestratorHub.init();
 
+  // Wire all distributed systems into the orchestration layer (non-blocking)
+  distributedOrchestrationWiring.wire().then(report => {
+    console.log(
+      `[orchestration] Distributed wiring complete — ${report.wired.length} systems` +
+      ` (readiness=${report.readinessPct}% backend=${report.backend})`,
+    );
+  }).catch(err => {
+    console.warn("[orchestration] Distributed wiring failed (non-fatal):", err.message);
+  });
+
   console.log(`[orchestration] Initialized — ${getEngineVersion()}`);
-  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓");
+  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓ distributed ✓");
 
   const status = orchestratorHub.status();
   console.log(
