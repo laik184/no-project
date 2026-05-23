@@ -1,0 +1,518 @@
+You are a Principal Production Systems Architect and Autonomous Infrastructure Engineer.
+
+MISSION:
+Upgrade the ENTIRE backend architecture from current Production Readiness (~78%) to:
+
+"99% Production-Grade Autonomous AI Operating System"
+
+using STRICT enterprise-grade engineering standards.
+
+━━━━━━━━━━━━━━━━━━━━
+PRIMARY GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into a:
+
+✅ highly reliable
+✅ fail-safe
+✅ scalable
+✅ deterministic
+✅ observable
+✅ testable
+✅ self-healing
+✅ production-grade
+✅ autonomous AI infrastructure
+
+capable of:
+- autonomous app generation
+- parallel execution
+- distributed orchestration
+- runtime recovery
+- realtime synchronization
+- safe multi-agent coordination
+- fail-closed verification
+- production-level stability
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+THESE RULES ARE ABSOLUTE.
+NO EXCEPTIONS.
+
+# 1. HIGH COHESION / LOW COUPLING
+
+Every module MUST:
+✅ have ONE responsibility
+✅ expose clean interfaces
+✅ avoid deep imports
+✅ avoid cross-domain mutation
+✅ use dependency inversion
+✅ use bridges/facades/interfaces
+
+Detect and eliminate:
+❌ god objects
+❌ orchestration pollution
+❌ circular dependencies
+❌ tight coupling
+❌ shared mutable chaos
+❌ hidden side effects
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. CODE SIZE CONSTRAINT
+
+STRICT RULE:
+❌ NO FILE > 250 LINES
+
+If exceeded:
+✅ split into bounded contexts
+✅ extract facades
+✅ extract services
+✅ extract handlers
+✅ extract state machines
+✅ extract strategies
+
+Generate:
+- oversized file audit
+- safe split plan
+- dependency-safe refactors
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. TARGETED LOCATION RULE
+
+EVERY system MUST exist in correct architectural domain.
+
+Examples:
+
+✅ AI logic:
+server/agents/
+
+✅ orchestration:
+server/orchestration/
+
+✅ infrastructure:
+server/infrastructure/
+
+✅ distributed systems:
+server/distributed/
+
+✅ runtime:
+server/runtime/
+
+✅ shared utilities:
+server/services/shared/
+
+✅ verification:
+server/fail-closed/
+
+Detect:
+❌ misplaced runtime logic
+❌ infrastructure inside agents
+❌ telemetry inside orchestration
+❌ recovery inside runtime
+❌ duplicate utilities
+
+Auto-refactor safely.
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. ROOT CAUSE BUG FIXING
+
+NEVER patch symptoms.
+
+MANDATORY:
+✅ root cause analysis
+✅ deterministic reproduction
+✅ execution tracing
+✅ telemetry correlation
+✅ replay verification
+✅ post-fix regression checks
+
+Detect:
+❌ bandaid fixes
+❌ retry spam
+❌ hidden failures
+❌ silent runtime crashes
+❌ fake recoveries
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. HIGH-LEVEL ENGINEERING STANDARDS
+
+EVERY implementation MUST prioritize:
+
+✅ readability
+✅ maintainability
+✅ scalability
+✅ security
+✅ deterministic execution
+✅ replayability
+✅ isolation
+✅ observability
+✅ resilience
+✅ modularity
+
+FORBIDDEN:
+❌ hacks
+❌ shortcuts
+❌ temporary patches
+❌ unsafe mutations
+❌ magic globals
+❌ hidden async behavior
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CODE REVIEW + VALIDATION
+
+EVERY execution path MUST be validated.
+
+MANDATORY:
+✅ static analysis
+✅ build verification
+✅ runtime verification
+✅ preview verification
+✅ reconciliation verification
+✅ security validation
+✅ architecture validation
+✅ regression validation
+
+NO execution allowed if validation fails.
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. FAIL-SAFE DESIGN
+
+SYSTEM MUST FAIL CLOSED.
+
+REQUIRED:
+✅ rollback checkpoints
+✅ deterministic recovery
+✅ crash isolation
+✅ retry limits
+✅ circuit breakers
+✅ recovery orchestration
+✅ idempotent recovery
+✅ safe cancellation
+✅ timeout protection
+
+Detect:
+❌ infinite retry loops
+❌ unsafe recovery
+❌ zombie runtimes
+❌ dangling locks
+❌ orphan workers
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. CONSISTENT TELEMETRY
+
+EVERYTHING MUST EMIT TELEMETRY.
+
+MANDATORY EVENTS:
+✅ agent.lifecycle
+✅ orchestration.lifecycle
+✅ runtime.lifecycle
+✅ verification.lifecycle
+✅ recovery.lifecycle
+✅ preview.lifecycle
+✅ tool.execution
+✅ DAG.execution
+✅ conflict.resolution
+✅ memory.lifecycle
+
+Detect:
+❌ silent failures
+❌ untracked execution
+❌ missing correlation IDs
+❌ broken SSE telemetry
+❌ inconsistent event contracts
+
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL PRODUCTION GAPS TO FIX
+━━━━━━━━━━━━━━━━━━━━
+
+Based on deep audit, PRIORITIZE these:
+
+# P1 — PARALLEL VERIFICATION ENGINE
+
+Current issue:
+verification pipeline is sequential.
+
+IMPLEMENT:
+
+server/fail-closed/parallel/parallel-verification-engine.ts
+
+Architecture:
+
+Wave A:
+- StaticVerifier
+- BuildVerifier
+(PARALLEL)
+
+Barrier
+
+Wave B:
+- RuntimeVerifier
+- PreviewVerifier
+(PARALLEL)
+
+Barrier
+
+Wave C:
+- StateReconciler
+(SEQUENTIAL FINAL GATE)
+
+Requirements:
+✅ sync barriers
+✅ deterministic ordering
+✅ telemetry spans
+✅ timeout handling
+✅ fail-closed semantics
+
+━━━━━━━━━━━━━━━━━━━━
+# P2 — MULTI-AGENT COORDINATOR
+
+Current issue:
+agents are gated but not actively swarm-dispatched.
+
+IMPLEMENT:
+
+server/agents/coordination/multi-agent-coordinator.ts
+
+Capabilities:
+✅ parallel dispatch
+✅ worker routing
+✅ synchronization barriers
+✅ result aggregation
+✅ conflict resolution
+✅ cancellation propagation
+✅ timeout orchestration
+
+Execution Model:
+
+Pre-execution:
+[Planner + Security + Scanner]
+PARALLEL
+
+Execution:
+[Builder + Runtime + Verification]
+COORDINATED
+
+Post-execution:
+[Reflection + Scoring + Memory]
+PARALLEL
+
+━━━━━━━━━━━━━━━━━━━━
+# P3 — STREAMING RESULT AGGREGATOR
+
+Current issue:
+system waits for ALL paths before aggregation.
+
+IMPLEMENT:
+
+server/quantum/aggregation/streaming-aggregator.ts
+
+Capabilities:
+✅ partial aggregation
+✅ incremental merge
+✅ streaming confidence scoring
+✅ progressive collapse
+✅ realtime frontend updates
+
+━━━━━━━━━━━━━━━━━━━━
+# P4 — TEST INFRASTRUCTURE
+
+CRITICAL MISSING SYSTEM.
+
+IMPLEMENT:
+
+test/unit/
+test/integration/
+test/runtime/
+test/recovery/
+test/orchestration/
+
+MANDATORY TESTS:
+
+✅ DAG execution
+✅ parallel execution
+✅ runtime recovery
+✅ crash recovery
+✅ verification pipeline
+✅ EventBus synchronization
+✅ memory consistency
+✅ lock safety
+✅ conflict resolution
+✅ telemetry propagation
+
+TARGET:
+minimum 85% critical-path coverage.
+
+━━━━━━━━━━━━━━━━━━━━
+# P5 — DISTRIBUTED EVENT BUS ACTIVATION
+
+Current issue:
+fallback in-process mode limits scaling.
+
+IMPLEMENT:
+Redis-backed distributed event coordination.
+
+Requirements:
+✅ replay buffers
+✅ reconnect replay
+✅ distributed synchronization
+✅ correlation IDs
+✅ exactly-once fan-out semantics
+
+━━━━━━━━━━━━━━━━━━━━
+# P6 — FILE SIZE ENFORCEMENT
+
+MANDATORY:
+Scan entire repo.
+
+If file >250 lines:
+✅ split safely
+✅ preserve behavior
+✅ preserve interfaces
+✅ preserve telemetry
+✅ preserve validation
+
+PRIORITY TARGETS:
+- orchestration-engine.ts
+- quantum-dag-engine.ts
+- central-worker-pool.ts
+- coordination-agent.ts
+
+━━━━━━━━━━━━━━━━━━━━
+# P7 — CROSS-RUN ISOLATION
+
+IMPLEMENT:
+true parallel user execution.
+
+Requirements:
+✅ per-run sandbox
+✅ isolated runtime ownership
+✅ isolated locks
+✅ isolated memory scopes
+✅ isolated process trees
+✅ isolated telemetry spans
+
+━━━━━━━━━━━━━━━━━━━━
+# P8 — OBSERVABILITY + TELEMETRY HARDENING
+
+IMPLEMENT:
+enterprise-grade tracing.
+
+Requirements:
+✅ correlation IDs
+✅ distributed spans
+✅ execution timeline
+✅ replay timeline
+✅ runtime diagnostics
+✅ memory diagnostics
+✅ worker diagnostics
+✅ DAG diagnostics
+
+━━━━━━━━━━━━━━━━━━━━
+# P9 — SECURITY HARDENING
+
+MANDATORY:
+✅ input sanitization
+✅ sandbox boundaries
+✅ command validation
+✅ secret isolation
+✅ path traversal prevention
+✅ execution policy validation
+✅ worker permission isolation
+
+Detect:
+❌ unsafe exec
+❌ shell injection
+❌ unsafe file writes
+❌ unrestricted process spawn
+
+━━━━━━━━━━━━━━━━━━━━
+# P10 — PRODUCTION RECOVERY HARDENING
+
+IMPLEMENT:
+✅ idempotent recovery
+✅ replay-safe orchestration
+✅ crash-safe checkpoints
+✅ recovery telemetry
+✅ deterministic restart
+✅ stale lock cleanup
+✅ worker cleanup
+✅ process cleanup
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+PRODUCTION_READINESS_99_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Production Weaknesses
+2. Production Bottleneck Analysis
+3. Parallel Verification Architecture
+4. Multi-Agent Coordinator Architecture
+5. Streaming Aggregation Architecture
+6. Runtime Isolation Architecture
+7. Distributed EventBus Architecture
+8. Telemetry Hardening Architecture
+9. Recovery Hardening Architecture
+10. Security Hardening Analysis
+11. Test Coverage Analysis
+12. Oversized File Audit
+13. Folder Placement Audit
+14. Coupling Analysis
+15. Cohesion Analysis
+16. Race Condition Analysis
+17. Replay Safety Analysis
+18. Fail-Closed Validation Analysis
+19. Runtime Ownership Analysis
+20. Distributed Coordination Analysis
+21. Parallel Execution Analysis
+22. Worker Pool Analysis
+23. Memory Safety Analysis
+24. Event Ordering Analysis
+25. Locking Safety Analysis
+26. Orchestration Stability Analysis
+27. Runtime Stability Analysis
+28. Recovery Reliability Analysis
+29. Deterministic Execution Analysis
+30. Scalability Analysis
+31. Replit-Level Similarity %
+32. Quantum Parallel Readiness %
+33. Production Readiness %
+34. Top Remaining Risks
+35. Safe Refactor Recommendations
+36. Safe Migration Plan
+37. Step-by-Step Implementation Plan
+38. Exact Files Changed
+39. Exact Systems Added
+40. Final Enterprise Architecture Blueprint
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL TARGET
+━━━━━━━━━━━━━━━━━━━━
+
+Achieve:
+
+✅ 99% Production Readiness
+✅ enterprise-grade orchestration
+✅ deterministic parallel execution
+✅ autonomous self-healing runtime
+✅ distributed multi-agent infrastructure
+✅ fail-closed execution safety
+✅ realtime synchronized architecture
+✅ scalable autonomous software operating system
+
+WITHOUT:
+❌ architecture pollution
+❌ unsafe concurrency
+❌ hidden coupling
+❌ giant files
+❌ silent failures
+❌ runtime instability
+❌ fake parallelism
+❌ regression risk
