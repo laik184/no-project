@@ -51,6 +51,9 @@ import { initDagMetricsCollector }    from './server/engine/telemetry/index.ts';
 import { initRuntimeMemoryCollector }  from './server/memory/runtime/runtime-memory-collector.ts';
 import { initReflectionMemoryBridge }  from './server/memory/reflection/reflection-memory-bridge.ts';
 import { fileLockManager }            from './server/quantum/locks/index.ts';
+import { startSweeper as startPortSweeper } from './server/runtime/network/port-allocation-authority.ts';
+import { parallelOrchestrationFabric } from './server/orchestration/distributed/index.ts';
+import { createRunTelemetryRouter }    from './server/api/run-telemetry.routes.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -97,6 +100,9 @@ app.use('/api/truth',  createTruthEngineRouter());
 app.use('/api/memory', createMemoryRouter());
 app.use('/api/verify', createFailClosedRouter());
 app.use('/api/dag',   createDagRouter());
+
+// Run-scoped telemetry — isolated SSE stream + event buffer per run
+app.use('/api/telemetry', createRunTelemetryRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
@@ -228,6 +234,11 @@ server.listen(PORT, '0.0.0.0', async () => {
   initReflectionMemoryBridge();
   // Start file lock stale cleaner — evicts expired/zombie locks every 10s
   fileLockManager.startCleaner();
+  // Start parallel orchestration fabric — capacity-gated multi-run coordinator
+  parallelOrchestrationFabric.start();
+  // Start port allocation sweeper — evicts stale run port reservations every 5 min
+  startPortSweeper(300_000);
+  console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓');
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
@@ -235,6 +246,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
   observationController.stop();
   crashResponder.stop();
   fileLockManager.stopCleaner();
+  parallelOrchestrationFabric.stop();
   // Flush runtime state to disk and SIGKILL all children before exit
   await runtimeManager.shutdown();
   server.close(() => process.exit(0));

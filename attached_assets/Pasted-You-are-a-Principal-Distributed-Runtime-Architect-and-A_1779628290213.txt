@@ -1,0 +1,463 @@
+You are a Principal Distributed Runtime Architect and Autonomous Systems Engineer.
+
+Your task is to upgrade the backend into a:
+
+"99% Cross-Run Parallel Autonomous Execution System"
+
+where MULTIPLE autonomous AI runs can execute simultaneously in complete isolation without:
+- runtime conflicts
+- memory corruption
+- file collisions
+- port conflicts
+- event pollution
+- preview desync
+- recovery overlap
+- telemetry mixing
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the system into a TRUE distributed multi-run autonomous execution platform.
+
+Support:
+
+✅ multiple users
+✅ multiple projects
+✅ multiple runtimes
+✅ multiple previews
+✅ multiple orchestration runs
+✅ multiple agent swarms
+✅ multiple verification pipelines
+
+ALL running simultaneously and safely.
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY TEAM ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. HIGH COHESION / LOW COUPLING
+
+Every module MUST:
+✅ have ONE responsibility
+✅ avoid tight coupling
+✅ avoid cross-run mutation
+✅ avoid direct runtime sharing
+✅ avoid orchestration pollution
+
+Detect and remove:
+❌ god objects
+❌ shared mutable state
+❌ cross-domain imports
+❌ hidden singleton mutation
+❌ runtime ownership leaks
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. CODE SIZE CONSTRAINT
+
+STRICT RULE:
+❌ NO file may exceed 250 lines.
+
+If exceeded:
+✅ split into bounded-context modules
+✅ extract services/utilities
+✅ keep thin facades only
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. TARGETED LOCATION RULE
+
+ALL code MUST be placed correctly:
+
+✅ server/runtime/ → runtime ownership
+✅ server/distributed/ → cross-run systems
+✅ server/orchestration/ → orchestration only
+✅ server/agents/ → AI logic only
+✅ server/telemetry/ → telemetry only
+✅ server/services/ → reusable shared services
+
+❌ NO misplaced infrastructure
+❌ NO runtime logic inside agents
+❌ NO orchestration logic inside runtime
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. ROOT CAUSE ENGINEERING
+
+DO NOT patch symptoms.
+
+For every issue:
+✅ trace root cause
+✅ trace ownership chain
+✅ trace execution lifecycle
+✅ trace synchronization chain
+✅ trace race conditions
+
+Implement permanent fixes only.
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. HIGH-LEVEL ENGINEERING STANDARDS
+
+ALL code MUST be:
+✅ readable
+✅ scalable
+✅ deterministic
+✅ replayable
+✅ production-grade
+✅ distributed-safe
+✅ event-driven
+✅ strongly typed
+
+❌ NO hacks
+❌ NO shortcuts
+❌ NO unsafe mutations
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CODE REVIEW MANDATORY
+
+Every major system:
+✅ must expose typed interfaces
+✅ must have validation
+✅ must support testing
+✅ must emit telemetry
+✅ must support replay/debugging
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. FAIL-SAFE DESIGN
+
+Execution MUST NOT continue unless:
+✅ verification passes
+✅ runtime isolated
+✅ locks acquired
+✅ ports reserved
+✅ telemetry attached
+✅ recovery checkpoint created
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. CONSISTENT TELEMETRY
+
+EVERY lifecycle event MUST emit telemetry:
+
+✅ run.started
+✅ run.isolated
+✅ runtime.spawned
+✅ runtime.failed
+✅ verification.started
+✅ preview.started
+✅ lock.acquired
+✅ conflict.detected
+✅ recovery.triggered
+✅ run.completed
+
+NO silent execution allowed.
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT PROBLEM
+━━━━━━━━━━━━━━━━━━━━
+
+Current cross-run readiness is only ~40%.
+
+Major blockers:
+❌ incomplete sandbox isolation
+❌ shared runtime ownership risks
+❌ shared filesystem mutation risks
+❌ weak run-level isolation
+❌ incomplete distributed event coordination
+❌ missing run-scoped orchestration boundaries
+❌ no fully isolated runtime fabric
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Build this architecture:
+
+USER A RUN
+    │
+    ├── isolated sandbox
+    ├── isolated runtime
+    ├── isolated ports
+    ├── isolated memory lane
+    ├── isolated telemetry stream
+    ├── isolated preview
+    ├── isolated locks
+    └── isolated recovery lifecycle
+
+USER B RUN
+    │
+    ├── isolated sandbox
+    ├── isolated runtime
+    ├── isolated ports
+    ├── isolated memory lane
+    ├── isolated telemetry stream
+    ├── isolated preview
+    ├── isolated locks
+    └── isolated recovery lifecycle
+
+ALL coordinated safely via:
+✅ DistributedEventBus
+✅ WorkerCoordinator
+✅ DistributedLockManager
+✅ ProcessRegistry
+✅ RuntimeIsolationManager
+✅ RunIsolationFabric
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. RUN ISOLATION FABRIC
+
+Create:
+
+server/distributed/isolation/run-isolation-fabric.ts
+
+Responsibilities:
+✅ create isolated execution environments
+✅ assign isolated runIds
+✅ isolate resources
+✅ isolate telemetry
+✅ isolate filesystem access
+✅ isolate previews
+✅ isolate runtime ownership
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. SANDBOX ISOLATION MANAGER
+
+Create:
+
+server/runtime/isolation/sandbox-isolation-manager.ts
+
+Responsibilities:
+✅ isolated project dirs
+✅ isolated tmp dirs
+✅ isolated node_modules cache
+✅ isolated env scopes
+✅ isolated process ownership
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. PORT ALLOCATION AUTHORITY
+
+Create:
+
+server/runtime/network/port-allocation-authority.ts
+
+Responsibilities:
+✅ atomic port allocation
+✅ port reservation
+✅ stale port cleanup
+✅ conflict prevention
+✅ run-scoped port ownership
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. RUN-SCOPED PROCESS REGISTRY
+
+Upgrade:
+
+server/infrastructure/process/process-registry.ts
+
+Requirements:
+✅ process ownership per runId
+✅ isolated runtime mapping
+✅ isolated process cleanup
+✅ deterministic runtime ownership
+✅ crash-safe cleanup
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. RUN-SCOPED TELEMETRY
+
+Create:
+
+server/telemetry/run-scoped/
+
+Requirements:
+✅ isolated telemetry channels
+✅ isolated SSE streams
+✅ isolated replay buffers
+✅ isolated run lifecycle
+✅ correlation tracing per runId
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. DISTRIBUTED EVENT COORDINATION
+
+Upgrade:
+
+server/distributed/events/
+
+Requirements:
+✅ run-scoped event namespaces
+✅ isolated event streams
+✅ replay-safe synchronization
+✅ cross-run event protection
+✅ deterministic event ordering
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. PARALLEL ORCHESTRATION FABRIC
+
+Create:
+
+server/orchestration/distributed/
+
+Requirements:
+✅ simultaneous orchestration runs
+✅ isolated execution graphs
+✅ isolated DAG execution
+✅ isolated checkpoints
+✅ isolated recovery pipelines
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. RUN-SCOPED MEMORY LANES
+
+Upgrade:
+
+server/quantum/memory/
+
+Requirements:
+✅ isolated memory queues
+✅ isolated embedding lanes
+✅ isolated write ownership
+✅ replay-safe persistence
+✅ concurrent write protection
+
+━━━━━━━━━━━━━━━━━━━━
+# 9. PARALLEL PREVIEW FABRIC
+
+Upgrade:
+
+server/preview/
+
+Requirements:
+✅ isolated preview iframes
+✅ isolated websocket channels
+✅ isolated runtime sync
+✅ isolated preview lifecycle
+✅ isolated frontend state
+
+━━━━━━━━━━━━━━━━━━━━
+# 10. MULTI-RUN RECOVERY SYSTEM
+
+Upgrade:
+
+server/orchestration/recovery/
+
+Requirements:
+✅ isolated crash recovery
+✅ per-run checkpoints
+✅ isolated rollback
+✅ isolated restart policies
+✅ no cross-run recovery pollution
+
+━━━━━━━━━━━━━━━━━━━━
+VERIFY THESE CAPABILITIES
+━━━━━━━━━━━━━━━━━━━━
+
+The system MUST support:
+
+✅ 10+ simultaneous runs
+✅ 10+ isolated previews
+✅ 10+ isolated runtimes
+✅ parallel verification
+✅ parallel orchestration
+✅ isolated telemetry
+✅ isolated runtime recovery
+✅ deterministic replay
+✅ safe distributed locks
+✅ conflict-safe file mutations
+
+━━━━━━━━━━━━━━━━━━━━
+RACE CONDITION PROTECTION
+━━━━━━━━━━━━━━━━━━━━
+
+Protect against:
+
+❌ port collisions
+❌ file write collisions
+❌ shared runtime ownership
+❌ event pollution
+❌ memory corruption
+❌ replay corruption
+❌ telemetry mixing
+❌ orphan processes
+❌ stale locks
+❌ preview desync
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE EXECUTION BLUEPRINT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+CROSS_RUN_PARALLELISM_99_BLUEPRINT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Cross-Run Architecture
+2. Current Isolation Weaknesses
+3. Current Runtime Ownership Risks
+4. Current Port Collision Risks
+5. Current Memory Collision Risks
+6. Current Event Pollution Risks
+7. Current Telemetry Risks
+8. Current Preview Desync Risks
+9. Current Recovery Overlap Risks
+10. Current Parallelization Limits
+11. Run Isolation Blueprint
+12. Runtime Isolation Blueprint
+13. Sandbox Isolation Blueprint
+14. Port Ownership Blueprint
+15. Distributed Event Blueprint
+16. Parallel Orchestration Blueprint
+17. Parallel Verification Blueprint
+18. Run-Scoped Telemetry Blueprint
+19. Run-Scoped Memory Blueprint
+20. Distributed Lock Blueprint
+21. Multi-Run Recovery Blueprint
+22. Replay Safety Blueprint
+23. Runtime Lifecycle Blueprint
+24. Event Lifecycle Blueprint
+25. Parallel Execution Lifecycle
+26. Multi-Run Synchronization Blueprint
+27. Conflict Prevention Blueprint
+28. Race Condition Protection Matrix
+29. Isolation Safety Matrix
+30. Replay Safety Matrix
+31. Cross-Run Readiness %
+32. Runtime Isolation %
+33. Distributed Coordination %
+34. Parallel Runtime %
+35. Replit-Level Multi-Run Similarity %
+36. Production Readiness %
+37. Missing Systems
+38. Oversized Files
+39. Wrong Folder Placement
+40. Step-by-Step Safe Implementation Plan
+
+━━━━━━━━━━━━━━━━━━━━
+SUCCESS CONDITIONS
+━━━━━━━━━━━━━━━━━━━━
+
+Target:
+✅ 99% Cross-Run Parallel Readiness
+✅ 99% Runtime Isolation
+✅ 99% Replay Safety
+✅ 99% Distributed Coordination
+✅ 99% Parallel Runtime Safety
+✅ Replit-level multi-run execution
+✅ Production-grade autonomous execution fabric
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into a:
+
+“Distributed Quantum-Inspired Multi-Run Autonomous AI Operating System”
+
+capable of:
+- simultaneous autonomous app generation
+- isolated multi-user execution
+- parallel runtime orchestration
+- distributed verification
+- self-healing recovery
+- deterministic replay
+- production-grade distributed AI execution
