@@ -1,0 +1,484 @@
+You are a Principal Distributed Streaming Systems Architect.
+
+Your task is to upgrade the current quantum aggregation infrastructure into a:
+
+"99% Production-Grade Streaming Aggregation System"
+
+for the Nura-X Quantum-Inspired Parallel Autonomous AI Operating System.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the current blocking ResultAggregator into a fully:
+
+✅ streaming
+✅ realtime
+✅ incremental
+✅ conflict-safe
+✅ distributed
+✅ event-driven
+✅ fail-safe
+✅ low-latency
+
+Streaming Aggregation Architecture.
+
+Current problem:
+ResultAggregator waits for ALL quantum execution paths to finish before aggregation begins.
+
+This creates:
+❌ unnecessary latency
+❌ delayed verification
+❌ delayed preview updates
+❌ delayed runtime healing
+❌ delayed telemetry visibility
+❌ inefficient orchestration
+
+Target behavior:
+As EACH execution path finishes:
+- partial aggregation starts immediately
+- conflict analysis starts immediately
+- telemetry streams immediately
+- verification can begin incrementally
+- preview updates stream progressively
+- orchestration receives live confidence updates
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY TEAM ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. HIGH COHESION / LOW COUPLING
+
+Every module MUST:
+✅ have single responsibility
+✅ avoid cross-domain logic
+✅ avoid orchestration pollution
+✅ avoid runtime mutation leaks
+✅ use interfaces/contracts only
+
+Detect and eliminate:
+❌ god classes
+❌ giant aggregators
+❌ tight coupling
+❌ direct agent mutation
+❌ unsafe shared state
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. CODE SIZE CONSTRAINT
+
+MANDATORY:
+❌ NO FILE MAY EXCEED 250 LINES
+
+If logic grows:
+✅ split by bounded context
+✅ split by lifecycle
+✅ split by responsibility
+
+Required architecture:
+- small focused modules
+- composable streaming layers
+- isolated aggregation strategies
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. TARGETED LOCATION RULE
+
+Place systems ONLY where logically correct.
+
+MANDATORY LOCATIONS:
+
+server/quantum/aggregation/
+  ├── streaming/
+  ├── reducers/
+  ├── telemetry/
+  ├── reconciliation/
+  ├── buffers/
+  ├── checkpoints/
+  ├── contracts/
+  └── lifecycle/
+
+DO NOT:
+❌ place aggregation logic in orchestration
+❌ place aggregation logic in agents
+❌ place runtime logic inside streaming
+❌ place telemetry inside reducers
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. ROOT CAUSE ENGINEERING RULE
+
+Before implementation:
+Deeply analyze:
+- why current aggregation blocks
+- where latency originates
+- where orchestration waits
+- where conflicts stall execution
+- where synchronization bottlenecks exist
+
+DO NOT patch symptoms.
+Fix architectural root causes.
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. HIGH-LEVEL ENGINEERING STANDARDS
+
+MANDATORY:
+✅ production-grade architecture
+✅ deterministic streaming
+✅ replay-safe aggregation
+✅ incremental reconciliation
+✅ event-driven updates
+✅ runtime-safe concurrency
+✅ memory-safe buffering
+✅ distributed synchronization
+
+DO NOT:
+❌ hack aggregation
+❌ mutate shared state unsafely
+❌ create hidden side effects
+❌ bypass conflict resolution
+❌ bypass telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CODE REVIEW + VALIDATION
+
+EVERY module MUST:
+✅ pass TypeScript validation
+✅ pass build verification
+✅ pass runtime verification
+✅ pass streaming integrity verification
+✅ pass replay consistency verification
+✅ pass concurrency validation
+
+Create:
+- validation tests
+- replay tests
+- aggregation consistency tests
+- partial aggregation tests
+- streaming recovery tests
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. FAIL-SAFE DESIGN
+
+Streaming aggregation MUST:
+✅ survive partial failures
+✅ survive worker crashes
+✅ survive interrupted paths
+✅ survive SSE disconnects
+✅ survive replay recovery
+
+If aggregation integrity fails:
+❌ DO NOT finalize collapse
+
+Instead:
+✅ rollback partial aggregation
+✅ replay buffered events
+✅ retry reconciliation
+✅ emit telemetry warnings
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. CONSISTENT TELEMETRY
+
+EVERY action MUST emit telemetry:
+
+✅ path.started
+✅ path.partial_result
+✅ path.completed
+✅ aggregation.partial
+✅ aggregation.merge
+✅ aggregation.conflict
+✅ aggregation.retry
+✅ aggregation.rollback
+✅ aggregation.collapse
+✅ aggregation.failed
+
+Telemetry MUST:
+- stream realtime via SSE
+- support replay
+- support distributed tracing
+- support run correlation IDs
+
+━━━━━━━━━━━━━━━━━━━━
+CURRENT ARCHITECTURE ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Deeply analyze existing systems:
+
+server/quantum/aggregation/result-aggregator.ts
+server/quantum/scanner/scan-aggregator.ts
+server/quantum/conflicts/
+server/distributed/telemetry/
+server/infrastructure/events/
+server/engine/graph/
+server/distributed/workers/
+server/orchestration/
+server/fail-closed/
+
+Trace:
+- current aggregation lifecycle
+- blocking points
+- synchronization barriers
+- orchestration waiting
+- verification dependencies
+- conflict resolution timing
+- runtime update timing
+- preview update timing
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET STREAMING ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━
+
+Build:
+
+┌───────────────────────────────────────────────┐
+│ StreamingAggregationCoordinator              │
+├───────────────────────────────────────────────┤
+│                                               │
+│  PathSpawner                                  │
+│      │                                        │
+│      ├── path.completed event                 │
+│      │                                        │
+│      ▼                                        │
+│  PartialAggregationBuffer                     │
+│      │                                        │
+│      ├── incremental reducer                  │
+│      ├── conflict detector                    │
+│      ├── confidence scorer                    │
+│      └── telemetry stream                     │
+│                                               │
+│      ▼                                        │
+│  StreamingConflictResolver                    │
+│      │                                        │
+│      ├── AST merge                            │
+│      ├── confidence merge                     │
+│      ├── safe retry                           │
+│      └── arbitration                          │
+│                                               │
+│      ▼                                        │
+│  IncrementalResultPublisher                   │
+│      │                                        │
+│      ├── SSE partial updates                  │
+│      ├── preview progressive updates          │
+│      ├── orchestration confidence updates     │
+│      └── verification wave triggers           │
+│                                               │
+│      ▼                                        │
+│  FinalCollapseCoordinator                     │
+│      │                                        │
+│      ├── deterministic collapse               │
+│      ├── replay validation                    │
+│      └── final result publication             │
+└───────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT THESE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+1. StreamingAggregationCoordinator
+2. PartialAggregationBuffer
+3. IncrementalReducer
+4. StreamingConflictResolver
+5. IncrementalResultPublisher
+6. AggregationReplayManager
+7. AggregationCheckpointStore
+8. AggregationTelemetryBridge
+9. PartialVerificationTrigger
+10. FinalCollapseCoordinator
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━
+
+server/quantum/aggregation/
+├── streaming/
+│   ├── streaming-aggregation-coordinator.ts
+│   ├── incremental-result-publisher.ts
+│   ├── aggregation-replay-manager.ts
+│   └── streaming-state-machine.ts
+│
+├── reducers/
+│   ├── incremental-reducer.ts
+│   ├── confidence-reducer.ts
+│   └── aggregation-window.ts
+│
+├── reconciliation/
+│   ├── streaming-conflict-resolver.ts
+│   ├── merge-strategies.ts
+│   └── reconciliation-barrier.ts
+│
+├── buffers/
+│   ├── partial-aggregation-buffer.ts
+│   ├── aggregation-queue.ts
+│   └── aggregation-snapshot.ts
+│
+├── checkpoints/
+│   ├── aggregation-checkpoint-store.ts
+│   └── replay-checkpoint.ts
+│
+├── telemetry/
+│   ├── aggregation-telemetry.ts
+│   ├── streaming-metrics.ts
+│   └── aggregation-event-map.ts
+│
+├── lifecycle/
+│   ├── final-collapse-coordinator.ts
+│   ├── aggregation-lifecycle.ts
+│   └── aggregation-health-monitor.ts
+│
+└── contracts/
+    ├── aggregation.types.ts
+    ├── streaming-events.ts
+    └── aggregation.interfaces.ts
+
+━━━━━━━━━━━━━━━━━━━━
+REQUIRED FEATURES
+━━━━━━━━━━━━━━━━━━━━
+
+# 1. PARTIAL RESULT STREAMING
+
+As soon as ONE path completes:
+✅ stream partial result
+✅ update confidence score
+✅ begin reconciliation
+✅ trigger telemetry
+✅ notify orchestration
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. STREAMING CONFLICT RESOLUTION
+
+Conflicts MUST:
+✅ resolve incrementally
+✅ avoid global blocking
+✅ support replay
+✅ support rollback
+✅ support deterministic merge
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. PARTIAL VERIFICATION
+
+Trigger verification incrementally:
+- static checks
+- runtime checks
+- preview checks
+
+DO NOT wait for all paths.
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. REPLAY-SAFE STREAMING
+
+System MUST:
+✅ replay aggregation events
+✅ rebuild partial state
+✅ recover interrupted streams
+✅ support deterministic replay
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. DISTRIBUTED SAFE SYNCHRONIZATION
+
+Use:
+✅ barriers
+✅ queues
+✅ locks
+✅ checkpoints
+✅ event replay
+
+Prevent:
+❌ race conditions
+❌ merge corruption
+❌ stale aggregation
+❌ duplicate collapse
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. TELEMETRY + OBSERVABILITY
+
+Add:
+✅ latency metrics
+✅ aggregation throughput
+✅ merge timing
+✅ collapse timing
+✅ conflict timing
+✅ replay timing
+✅ partial verification timing
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. PREVIEW STREAMING
+
+As aggregation progresses:
+✅ preview updates progressively
+✅ frontend receives incremental UI changes
+✅ runtime confidence streams live
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. ORCHESTRATION INTEGRATION
+
+OrchestrationEngine MUST:
+✅ receive live aggregation updates
+✅ receive confidence updates
+✅ receive partial completion updates
+✅ react to aggregation failures
+
+━━━━━━━━━━━━━━━━━━━━
+# 9. TESTING + VALIDATION
+
+Create tests for:
+✅ replay safety
+✅ deterministic collapse
+✅ partial aggregation
+✅ distributed synchronization
+✅ conflict resolution
+✅ rollback safety
+✅ event replay
+✅ concurrent aggregation
+✅ partial verification
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+STREAMING_AGGREGATION_99_REPORT.md
+
+Include:
+1. Old aggregation bottlenecks
+2. New streaming architecture
+3. Lifecycle blueprint
+4. Replay safety analysis
+5. Conflict resolution analysis
+6. Synchronization analysis
+7. Telemetry analysis
+8. Incremental verification analysis
+9. Runtime streaming analysis
+10. Preview streaming analysis
+11. Race condition protection
+12. Deterministic replay validation
+13. File structure map
+14. Module responsibility map
+15. High cohesion verification
+16. Low coupling verification
+17. Oversized file audit
+18. Streaming latency improvements
+19. Parallelism improvements
+20. Production readiness %
+21. Quantum aggregation readiness %
+22. Replit-level realtime similarity %
+23. Missing gaps
+24. Final architecture score
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the current blocking aggregation system into a:
+
+“Production-Grade Quantum-Inspired Streaming Aggregation Infrastructure”
+
+capable of:
+✅ realtime partial result streaming
+✅ incremental conflict resolution
+✅ distributed synchronization
+✅ replay-safe aggregation
+✅ progressive verification
+✅ progressive preview updates
+✅ low-latency orchestration
+✅ deterministic final collapse
+✅ enterprise-grade observability
