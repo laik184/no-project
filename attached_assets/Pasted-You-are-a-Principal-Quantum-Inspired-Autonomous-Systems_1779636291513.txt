@@ -1,0 +1,451 @@
+You are a Principal Quantum-Inspired Autonomous Systems Auditor.
+
+Your task is to perform an ULTRA-DEEP XRAY ANALYSIS of the ENTIRE backend architecture and determine whether the system already contains ANY implementation of:
+
+QUANTUM-INSPIRED PARALLEL EXECUTION
+
+or any foundational infrastructure capable of evolving into it.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Analyze whether the current AI Agent Backend supports:
+
+✅ parallel execution
+✅ distributed task execution
+✅ DAG orchestration
+✅ async execution graphs
+✅ concurrent verification
+✅ multi-agent coordination
+✅ distributed runtime workers
+✅ parallel bug scanning
+✅ parallel file analysis
+✅ aggregation layers
+✅ conflict resolution
+✅ event-driven synchronization
+
+Determine:
+1. What already exists
+2. What is partially implemented
+3. What is missing
+4. What violates architecture rules
+5. What blocks safe parallelization
+6. Quantum-inspired readiness %
+7. Replit-level parallelism similarity %
+
+━━━━━━━━━━━━━━━━━━━━
+SCAN ROOTS
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan recursively:
+
+server/
+server/agents/
+server/orchestration/
+server/runtime/
+server/engine/
+server/infrastructure/
+server/fail-closed/
+server/preview/
+server/tools/
+server/intelligence/
+client/
+
+Inspect:
+- imports
+- exports
+- execution flow
+- orchestration flow
+- runtime lifecycle
+- event lifecycle
+- verification lifecycle
+- recovery lifecycle
+- memory lifecycle
+- preview lifecycle
+- telemetry systems
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+Verify whether ALL systems follow these standards:
+
+# 1. HIGH COHESION / LOW COUPLING
+
+Every module MUST:
+✅ have single responsibility
+✅ avoid tight dependencies
+✅ avoid cross-domain mutations
+✅ avoid direct runtime mutation
+✅ avoid orchestration pollution
+
+Detect:
+❌ god objects
+❌ spaghetti orchestration
+❌ circular dependencies
+❌ cross-domain imports
+❌ runtime ownership conflicts
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. CODE SIZE CONSTRAINT
+
+Verify:
+❌ no file exceeds 250 lines
+
+Detect:
+- oversized files
+- giant orchestrators
+- giant services
+- giant managers
+- giant runtime controllers
+
+Recommend:
+- file splits
+- bounded contexts
+- decomposition plans
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. TARGETED LOCATION RULE
+
+Verify every system is placed correctly.
+
+Examples:
+✅ AI logic → server/agents/
+✅ infrastructure → server/infrastructure/
+✅ reusable services → server/services/
+✅ orchestration → server/orchestration/
+✅ runtime → server/runtime/
+✅ verification → server/fail-closed/
+
+Detect:
+❌ misplaced services
+❌ infrastructure inside agents/
+❌ runtime logic inside orchestration/
+❌ preview logic inside runtime/
+❌ memory logic inside tools/
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. ROOT CAUSE BUG FIX RULE
+
+Verify:
+- reflection engine exists?
+- root-cause analysis exists?
+- retry system exists?
+- recovery orchestration exists?
+- fail-closed verification exists?
+
+Detect:
+❌ symptom patching
+❌ retry loops without diagnosis
+❌ shallow recovery
+❌ blind fixes
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. HIGH-LEVEL ENGINEERING STANDARDS
+
+Verify:
+✅ readability
+✅ naming quality
+✅ architecture clarity
+✅ scalability
+✅ security boundaries
+✅ deterministic execution
+✅ replayable execution
+✅ safe orchestration
+
+Detect:
+❌ hacks
+❌ temporary patches
+❌ unsafe mutations
+❌ hidden side effects
+❌ singleton abuse
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CODE REVIEW + VALIDATION
+
+Verify:
+✅ verification pipeline exists
+✅ validation gates exist
+✅ fail-closed design exists
+✅ execution blocks on failure
+✅ security checks exist
+✅ telemetry validation exists
+
+Detect:
+❌ unsafe execution
+❌ bypass verification
+❌ runtime execution without validation
+❌ silent failures
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. FAIL-SAFE DESIGN
+
+Verify:
+✅ static verification
+✅ build verification
+✅ runtime verification
+✅ preview verification
+✅ reconciliation verification
+✅ rollback/checkpoints
+
+Detect:
+❌ unsafe completion
+❌ execution without verification
+❌ missing recovery checkpoints
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. CONSISTENT TELEMETRY
+
+Verify EVERY action emits telemetry:
+
+✅ agent execution
+✅ tool execution
+✅ retries
+✅ failures
+✅ recovery
+✅ runtime lifecycle
+✅ preview lifecycle
+✅ verification lifecycle
+✅ orchestration lifecycle
+
+Detect:
+❌ silent execution
+❌ missing logs
+❌ missing SSE events
+❌ missing runtime telemetry
+
+━━━━━━━━━━━━━━━━━━━━
+QUANTUM-INSPIRED PARALLEL ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Analyze whether system supports:
+
+# 1. PARALLEL FILE ANALYSIS
+
+Can multiple files be:
+- scanned simultaneously?
+- verified simultaneously?
+- patched simultaneously?
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. PARALLEL BUG DETECTION
+
+Can multiple agents:
+- inspect different modules?
+- detect runtime issues?
+- verify separate systems?
+- aggregate findings?
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. DAG EXECUTION
+
+Verify:
+✅ execution graph
+✅ dependency graph
+✅ async nodes
+✅ distributed execution
+✅ worker orchestration
+✅ execution batching
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. MULTI-AGENT ORCHESTRATION
+
+Verify:
+- planner agent
+- runtime agent
+- recovery agent
+- verification agent
+- browser agent
+- memory agent
+
+Can they:
+✅ operate independently?
+✅ synchronize?
+✅ share memory?
+✅ aggregate results?
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. RESULT AGGREGATION
+
+Verify existence of:
+✅ aggregation layer
+✅ merge layer
+✅ conflict resolver
+✅ execution reconciliation
+✅ unified final state
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. PARALLEL VERIFICATION
+
+Verify whether:
+- static analysis
+- build checks
+- runtime checks
+- browser checks
+- security scans
+
+can execute concurrently.
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. PARALLEL RUNTIME MANAGEMENT
+
+Verify:
+✅ worker pools
+✅ isolated runtimes
+✅ parallel processes
+✅ runtime ownership
+✅ process scheduling
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. EVENT-DRIVEN SYNCHRONIZATION
+
+Verify:
+✅ EventBus
+✅ distributed synchronization
+✅ orchestration events
+✅ lifecycle events
+✅ realtime aggregation
+✅ execution coordination
+
+━━━━━━━━━━━━━━━━━━━━
+TRACE REAL EXECUTION FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Trace actual backend lifecycle:
+
+User
+→ Chat
+→ Orchestration
+→ Planner
+→ ToolLoop
+→ Runtime
+→ Verification
+→ Reflection
+→ Recovery
+→ Preview
+→ Telemetry
+→ Frontend
+
+Explain:
+- where execution is sequential
+- where execution is parallel
+- where parallelism could exist
+- where orchestration blocks scaling
+- where runtime conflicts exist
+
+━━━━━━━━━━━━━━━━━━━━
+QUANTUM-INSPIRED BLUEPRINT ANALYSIS
+━━━━━━━━━━━━━━━━━━━━
+
+Determine BEST architecture placement for:
+
+1. ParallelExecutionEngine
+2. TaskGraphEngine
+3. WorkerCoordinator
+4. DistributedVerificationEngine
+5. ParallelFileScanner
+6. ParallelRecoveryEngine
+7. ResultAggregationLayer
+8. ConflictResolver
+9. DistributedTelemetryLayer
+10. MultiAgentCoordinator
+
+━━━━━━━━━━━━━━━━━━━━
+GENERATE FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+QUANTUM_PARALLEL_EXECUTION_BLUEPRINT_REPORT.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT MUST INCLUDE
+━━━━━━━━━━━━━━━━━━━━
+
+1. Current Execution Architecture
+2. Current Lifecycle Graph
+3. Current Runtime Graph
+4. Current Orchestration Graph
+5. Current Agent Coordination Graph
+6. Current Verification Graph
+7. Current Recovery Graph
+8. Current Telemetry Graph
+9. Sequential vs Parallel Analysis
+10. Existing Parallel Systems
+11. Existing DAG Systems
+12. Existing Multi-Agent Systems
+13. Existing Worker Systems
+14. Existing Scheduler Systems
+15. Existing Aggregation Systems
+16. Existing Conflict Resolution Systems
+17. Existing Event Synchronization
+18. Existing Runtime Distribution
+19. Existing Async Systems
+20. Existing Replay Systems
+21. Existing Reflection Systems
+22. High Cohesion Analysis
+23. Low Coupling Analysis
+24. Oversized Files Report
+25. Wrong Folder Placement Report
+26. Cross-Domain Pollution Report
+27. Circular Dependency Report
+28. Runtime Ownership Risks
+29. Race Condition Risks
+30. Parallelization Safety Matrix
+31. Systems Safe To Parallelize
+32. Systems Dangerous To Parallelize
+33. Missing Parallel Infrastructure
+34. Missing Aggregation Infrastructure
+35. Missing Synchronization Infrastructure
+36. Best Place For ParallelExecutionEngine
+37. Best Place For WorkerCoordinator
+38. Best Place For DAG Engine
+39. Best Place For ResultAggregator
+40. Best Place For ConflictResolver
+41. Suggested Folder Structure
+42. Suggested Quantum-Inspired Architecture
+43. Suggested Lifecycle Blueprint
+44. Suggested Distributed Runtime Blueprint
+45. Suggested Multi-Agent Blueprint
+46. Suggested Parallel Verification Blueprint
+47. Suggested Event Synchronization Blueprint
+48. Suggested Telemetry Blueprint
+49. Quantum-Inspired Readiness Score
+50. Parallel Execution Readiness %
+51. Multi-Agent Readiness %
+52. Replit-Level Parallelism Similarity %
+53. Production Readiness %
+54. Top Critical Architecture Problems
+55. Top Critical Bottlenecks
+56. Safe Step-by-Step Implementation Plan
+
+━━━━━━━━━━━━━━━━━━━━
+VERY IMPORTANT
+━━━━━━━━━━━━━━━━━━━━
+
+Use evidence-based analysis only.
+
+DO NOT:
+❌ assume architecture
+❌ fake parallelism
+❌ ignore runtime ownership
+❌ ignore synchronization risks
+❌ recommend unsafe concurrency
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Determine whether the backend can evolve into:
+
+“Quantum-Inspired Parallel Autonomous Full-Stack AI Engineering System”
+
+capable of:
+- autonomous app generation
+- parallel bug fixing
+- distributed verification
+- self-healing orchestration
+- multi-agent coordination
+- realtime synchronized execution
+- production-grade autonomous software engineering
