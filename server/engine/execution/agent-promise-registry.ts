@@ -37,12 +37,15 @@ class AgentPromiseRegistry {
       reject  = rej;
     });
 
-    // Timeout guard: auto-resolve with a timeout result so the DAG doesn't stall
+    // Timeout guard: REJECT (fail-closed) — fake success would corrupt the DAG.
+    // A timedOut node must be visible as a failure so rollback/retry can fire.
     const timer = setTimeout(() => {
       if (this.handles.has(key)) {
-        console.warn(`[agent-promise-registry] Timeout for key="${key}" after ${timeoutMs}ms — auto-resolving`);
+        console.error(
+          `[agent-promise-registry] Timeout for key="${key}" after ${timeoutMs}ms — rejecting (fail-closed)`,
+        );
         this.handles.delete(key);
-        resolve({ timedOut: true, key });
+        reject(new Error(`dag_agent_timeout:${key}:${timeoutMs}ms`));
       }
     }, timeoutMs);
 

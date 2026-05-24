@@ -86,6 +86,7 @@ import { recoveryOrchestrator }      from "./runtime/recovery-orchestrator.ts";
 import { getEngineVersion }          from "./core/orchestration-engine.ts";
 import { orchestratorHub }           from "./registry/index.ts";
 import { distributedOrchestrationWiring } from "../distributed/orchestration/distributed-orchestration-wiring.ts";
+import { initDagExecutors }          from "../engine/execution/dag-executor-wiring.ts";
 
 export function initOrchestration(): void {
   // Wire telemetry to the event bus
@@ -106,6 +107,11 @@ export function initOrchestration(): void {
   // Boot the master orchestrator hub — registers ALL orchestrators system-wide
   orchestratorHub.init();
 
+  // Wire DAG node executors — CRITICAL: resolves dag.agent.execute +
+  // dag.verify.execute bus events with real runAgentLoop() / verificationBridge calls.
+  // Without this, every planned/DAG-mode run times out with fake success.
+  initDagExecutors();
+
   // Wire all distributed systems into the orchestration layer (non-blocking)
   distributedOrchestrationWiring.wire().then(report => {
     console.log(
@@ -117,7 +123,7 @@ export function initOrchestration(): void {
   });
 
   console.log(`[orchestration] Initialized — ${getEngineVersion()}`);
-  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓ distributed ✓");
+  console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓ distributed ✓ dag-executors ✓");
 
   const status = orchestratorHub.status();
   console.log(
