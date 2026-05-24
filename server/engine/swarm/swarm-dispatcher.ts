@@ -73,7 +73,7 @@ export async function dispatchWave(
         runId,
         projectId,
         type:      "llm",
-        fn:        () => simulateAgentExecution(task, agent),
+        fn:        () => executeAgentViaCoordination(task, agent, runId, routing.timeoutMs ?? 60_000),
         timeoutMs: routing.timeoutMs,
       });
 
@@ -124,26 +124,53 @@ export async function dispatchWave(
   return { waveIndex, succeeded, failed, durationMs: Date.now() - t0 };
 }
 
-// ── Stub executor (real agents injected via AgentSpawner) ─────────────────────
+// ── Real agent executor via specialist coordination dispatcher ─────────────────
 
-async function simulateAgentExecution(
-  task:  SwarmTaskNode,
-  agent: SpawnedAgent,
+async function executeAgentViaCoordination(
+  task:       SwarmTaskNode,
+  agent:      SpawnedAgent,
+  runId:      string,
+  timeoutMs:  number,
 ): Promise<SwarmTaskResult> {
-  // Real execution: DynamicAgentSpawner injects the actual fn via dependency injection.
-  // This stub is replaced at dispatch time by the spawner-provided executor.
-  const t0 = Date.now();
-  await new Promise(r => setTimeout(r, 50)); // yield
+  // Route swarm tasks through the parallel specialist coordination layer.
+  // Each swarm agent maps to a specialist domain based on its role.
+  const { specialistDispatcher } = await import(
+    "../../coordination/specialist-dispatcher/index.ts"
+  );
+  const { mapSwarmRoleToDomain } = await import(
+    "./swarm-domain-mapper.ts"
+  );
+
+  const t0     = Date.now();
+  const domain = mapSwarmRoleToDomain(agent.role);
+  const ac     = new AbortController();
+
+  const specialistTask = {
+    taskId:     task.taskId,
+    runId,
+    projectId:  agent.projectId,
+    domain,
+    goal:       task.description,
+    priority:   task.priority === "critical" ? 0 : 1,
+    dependsOn:  task.dependsOn,
+    scope:      { exclusiveFiles: [], readonlyFiles: [] },
+    context:    { agentRole: agent.role, swarmAgentId: agent.agentId },
+    timeoutMs,
+  } as import("../../coordination/contracts/specialist.contracts.ts").SpecialistTask;
+
+  const result = await specialistDispatcher.dispatch(specialistTask, ac.signal);
+
   return {
     taskId:       task.taskId,
     agentId:      agent.agentId,
     role:         agent.role,
-    success:      true,
-    confidence:   0.85,
-    output:       { note: `${agent.role} completed ${task.description}` },
-    filesWritten: [],
+    success:      result.success,
+    confidence:   result.success ? 0.85 : 0,
+    output:       result.artifacts,
+    filesWritten: result.patches.map(p => p.filePath),
     durationMs:   Date.now() - t0,
     retries:      task.retries,
+    error:        result.error,
   };
 }
 

@@ -1,0 +1,535 @@
+You are a Principal Autonomous Systems Architect and Specialist Coordination Infrastructure Auditor.
+
+Your task is to perform an ULTRA-DEEP XRAY ANALYSIS of the ENTIRE specialist coordination architecture and then SAFELY FIX, CREATE, REFACTOR, or COMPLETE all missing infrastructure required to bring:
+
+SPECIALIST COORDINATION
+FROM CURRENT STATE
+TO 99% PRODUCTION-GRADE READINESS.
+
+━━━━━━━━━━━━━━━━━━━━
+MAIN GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Deeply analyze the current system and determine:
+
+1. Which specialist coordination systems already exist
+2. Which systems are partial/fake/unwired
+3. Which orchestration flows bypass coordination
+4. Which specialist execution paths remain sequential
+5. Which runtime/event/verification systems are disconnected
+6. Which coordination tags/events/contracts are missing
+7. Which files violate architecture standards
+8. What must be created/fixed/refactored to achieve:
+   PRODUCTION-GRADE PARALLEL SPECIALIST SWARM
+
+Then:
+✅ CREATE missing systems
+✅ FIX broken systems
+✅ REWIRE orchestration paths
+✅ COMPLETE missing coordination lifecycle
+✅ UPGRADE telemetry + verification + synchronization
+✅ GENERATE BEFORE/AFTER reports
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY TEAM ENGINEERING RULES
+━━━━━━━━━━━━━━━━━━━━
+
+These rules are ABSOLUTE.
+NO exceptions allowed.
+
+# 1. HIGH COHESION / LOW COUPLING
+
+EVERY module MUST:
+✅ have single responsibility
+✅ avoid orchestration leakage
+✅ avoid runtime pollution
+✅ avoid cross-domain mutation
+✅ avoid direct singleton abuse
+✅ communicate through contracts/interfaces/events
+
+Detect and fix:
+❌ god objects
+❌ circular dependencies
+❌ orchestration spaghetti
+❌ shared mutable state
+❌ unsafe coupling
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. CODE SIZE CONSTRAINT
+
+STRICT RULE:
+❌ NO FILE > 250 LINES
+
+Mandatory:
+✅ split oversized files
+✅ modular architecture
+✅ bounded contexts
+✅ composable coordination modules
+
+Generate:
+- oversized file report
+- decomposition recommendations
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. TARGETED LOCATION RULE
+
+Verify ALL systems exist in correct domains.
+
+Examples:
+
+✅ coordination:
+server/coordination/
+
+✅ orchestration:
+server/orchestration/
+
+✅ runtime:
+server/infrastructure/runtime/
+
+✅ telemetry:
+server/infrastructure/telemetry/
+
+✅ contracts:
+server/contracts/
+
+❌ NO orchestration inside agents/
+❌ NO runtime logic inside tools/
+❌ NO coordination logic inside runtime/
+
+Fix wrong placement.
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. ROOT CAUSE BUG FIXING
+
+Before ANY fix:
+MANDATORY ROOT CAUSE ANALYSIS.
+
+Never:
+❌ patch symptoms
+❌ add hacks
+❌ bypass orchestration
+❌ bypass locks
+❌ bypass validation
+
+Must:
+✅ identify coordination root cause
+✅ identify synchronization failures
+✅ identify event flow gaps
+✅ identify specialist routing failures
+✅ identify runtime coordination gaps
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. HIGH-LEVEL ENGINEERING STANDARDS
+
+ALL code MUST be:
+✅ readable
+✅ typed
+✅ deterministic
+✅ scalable
+✅ replayable
+✅ observable
+✅ production-grade
+✅ fail-safe
+
+Mandatory:
+✅ clean naming
+✅ lifecycle comments
+✅ telemetry annotations
+✅ architecture boundaries
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. CODE REVIEW MANDATORY
+
+Generate:
+SPECIALIST_COORDINATION_CODE_REVIEW.md
+
+Must include:
+✅ race-condition review
+✅ orchestration review
+✅ synchronization review
+✅ lock review
+✅ telemetry review
+✅ runtime review
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. FAIL-SAFE DESIGN
+
+Execution MUST NOT continue unless:
+✅ DAG validated
+✅ locks acquired
+✅ coordination verified
+✅ merge verified
+✅ runtime healthy
+✅ verification successful
+
+Mandatory:
+✅ rollback
+✅ checkpoints
+✅ retry protection
+✅ reconciliation
+✅ deadlock prevention
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. CONSISTENT TELEMETRY
+
+EVERY coordination lifecycle action MUST emit telemetry.
+
+Verify or create:
+
+✅ coordination.start
+✅ coordination.complete
+✅ coordination.partial
+✅ coordination.failed
+✅ coordination.aborted
+✅ DAG.node.start
+✅ DAG.node.complete
+✅ specialist.start
+✅ specialist.complete
+✅ specialist.failed
+✅ merge.start
+✅ merge.complete
+✅ conflict.detected
+✅ conflict.resolved
+✅ verification.start
+✅ verification.complete
+✅ runtime.sync
+✅ preview.sync
+
+Detect:
+❌ silent execution
+❌ missing events
+❌ missing tracing
+❌ missing SSE propagation
+
+━━━━━━━━━━━━━━━━━━━━
+DEEP SCAN TARGETS
+━━━━━━━━━━━━━━━━━━━━
+
+Deep scan recursively:
+
+server/
+server/agents/
+server/coordination/
+server/orchestration/
+server/runtime/
+server/infrastructure/
+server/engine/
+server/fail-closed/
+server/preview/
+server/intelligence/
+server/distributed/
+
+Inspect:
+- imports
+- exports
+- orchestration flow
+- execution flow
+- DAG execution
+- specialist routing
+- runtime lifecycle
+- verification lifecycle
+- merge lifecycle
+- telemetry lifecycle
+- event synchronization
+- lock ownership
+- worker coordination
+
+━━━━━━━━━━━━━━━━━━━━
+SPECIALIST COORDINATION XRAY
+━━━━━━━━━━━━━━━━━━━━
+
+Analyze:
+
+# 1. CURRENT SPECIALIST EXECUTION
+
+Find:
+- where specialists start
+- where routing occurs
+- where sequential bottlenecks exist
+- where orchestration bypasses coordination
+- where placeholder execution exists
+
+━━━━━━━━━━━━━━━━━━━━
+# 2. TASK DECOMPOSITION
+
+Verify:
+✅ TaskDecomposer exists
+✅ domain detection works
+✅ dependency graph generation
+✅ file scope inference
+✅ specialist assignment
+✅ task batching
+
+Fix or improve weak systems.
+
+━━━━━━━━━━━━━━━━━━━━
+# 3. DEPENDENCY GRAPH
+
+Verify:
+✅ DAG engine integration
+✅ topological sorting
+✅ cycle detection
+✅ wave grouping
+✅ dependency-aware execution
+✅ async node execution
+
+━━━━━━━━━━━━━━━━━━━━
+# 4. PARALLEL SPECIALIST COORDINATION
+
+Verify:
+✅ Promise.all execution
+✅ wave scheduling
+✅ specialist isolation
+✅ context isolation
+✅ worker pool integration
+✅ cancellation propagation
+✅ partial failure handling
+
+━━━━━━━━━━━━━━━━━━━━
+# 5. EXECUTION CONTEXTS
+
+Verify:
+✅ scoped contexts
+✅ abort propagation
+✅ task ownership
+✅ memory isolation
+✅ runtime isolation
+
+Detect:
+❌ shared mutable state
+❌ unsafe context reuse
+
+━━━━━━━━━━━━━━━━━━━━
+# 6. LOCK SYSTEM
+
+Verify:
+✅ file-level locks
+✅ lock renewal
+✅ deadlock prevention
+✅ lock timeout
+✅ release safety
+✅ merge-time locking
+
+━━━━━━━━━━━━━━━━━━━━
+# 7. CONFLICT RESOLUTION
+
+Verify:
+✅ specialist conflict detection
+✅ merge ordering
+✅ domain priority
+✅ AST merge safety
+✅ deterministic resolution
+✅ rollback safety
+
+━━━━━━━━━━━━━━━━━━━━
+# 8. AGGREGATION SYSTEM
+
+Verify:
+✅ merge planning
+✅ patch aggregation
+✅ execution reconciliation
+✅ unified final state
+
+━━━━━━━━━━━━━━━━━━━━
+# 9. TELEMETRY + SSE
+
+Verify:
+✅ realtime tracing
+✅ specialist telemetry
+✅ DAG telemetry
+✅ merge telemetry
+✅ SSE propagation
+✅ frontend sync
+
+━━━━━━━━━━━━━━━━━━━━
+# 10. VERIFICATION INTEGRATION
+
+Verify:
+✅ parallel verification
+✅ runtime verification
+✅ preview verification
+✅ coordination verification
+✅ merge verification
+✅ reconciliation verification
+
+━━━━━━━━━━━━━━━━━━━━
+# 11. RUNTIME SYNCHRONIZATION
+
+Verify:
+✅ runtime ownership
+✅ worker synchronization
+✅ preview synchronization
+✅ orchestration synchronization
+
+━━━━━━━━━━━━━━━━━━━━
+# 12. REDIS + DISTRIBUTED INFRA
+
+Verify:
+✅ distributed locks
+✅ distributed events
+✅ distributed queues
+✅ worker synchronization
+✅ distributed coordination
+
+Detect degraded systems.
+
+━━━━━━━━━━━━━━━━━━━━
+TRACE REAL EXECUTION FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+Trace ACTUAL lifecycle:
+
+User
+→ ChatOrchestrator
+→ RunExecutor
+→ OrchestrationEngine
+→ TaskDecomposer
+→ DependencyGraphBuilder
+→ ParallelSpecialistCoordinator
+→ SpecialistWaveRunner
+→ WorkerPool
+→ MergePlanBuilder
+→ ConflictResolver
+→ ResultAggregator
+→ ParallelVerification
+→ RuntimeSync
+→ PreviewSync
+→ Completion
+
+Explain:
+- where coordination works
+- where orchestration bypasses
+- where sequential bottlenecks remain
+- where parallelism is fake
+- where runtime ownership breaks
+
+━━━━━━━━━━━━━━━━━━━━
+FIX + IMPLEMENT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+If missing:
+✅ CREATE
+
+If partial:
+✅ COMPLETE
+
+If broken:
+✅ FIX
+
+If misplaced:
+✅ MOVE
+
+If oversized:
+✅ SPLIT
+
+If unwired:
+✅ CONNECT
+
+If sequential:
+✅ PARALLELIZE SAFELY
+
+BUT:
+❌ NEVER break runtime
+❌ NEVER bypass locks
+❌ NEVER bypass validation
+❌ NEVER violate file-size rule
+❌ NEVER create tight coupling
+
+━━━━━━━━━━━━━━━━━━━━
+MANDATORY OUTPUT FILES
+━━━━━━━━━━━━━━━━━━━━
+
+Generate ALL reports:
+
+1.
+SPECIALIST_COORDINATION_XRAY_REPORT.md
+
+2.
+SPECIALIST_COORDINATION_BEFORE_AFTER.md
+
+3.
+SPECIALIST_COORDINATION_BLUEPRINT.md
+
+4.
+SPECIALIST_COORDINATION_LIFECYCLE.md
+
+5.
+SPECIALIST_COORDINATION_CODE_REVIEW.md
+
+6.
+SPECIALIST_COORDINATION_TAG_MAP.md
+
+7.
+SPECIALIST_COORDINATION_EVENT_GRAPH.md
+
+━━━━━━━━━━━━━━━━━━━━
+REPORT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━
+
+Must include:
+
+✅ BEFORE architecture
+✅ AFTER architecture
+✅ lifecycle graphs
+✅ DAG graphs
+✅ orchestration graphs
+✅ runtime graphs
+✅ event graphs
+✅ lock graphs
+✅ aggregation graphs
+✅ telemetry graphs
+✅ execution graphs
+✅ synchronization graphs
+✅ race-condition analysis
+✅ deadlock analysis
+✅ bottleneck analysis
+✅ oversized file analysis
+✅ wrong-folder analysis
+✅ coordination readiness %
+✅ parallelism readiness %
+✅ swarm readiness %
+✅ production readiness %
+✅ exact created files
+✅ exact fixed files
+✅ exact moved files
+✅ exact deleted files
+
+━━━━━━━━━━━━━━━━━━━━
+TARGET END STATE
+━━━━━━━━━━━━━━━━━━━━
+
+Achieve:
+
+SPECIALIST COORDINATION
+= 99% PRODUCTION-GRADE
+
+with:
+✅ real parallel specialist execution
+✅ deterministic DAG orchestration
+✅ distributed synchronization
+✅ safe merge coordination
+✅ production-grade telemetry
+✅ realtime synchronization
+✅ fail-safe recovery
+✅ distributed verification
+✅ runtime-safe execution
+✅ autonomous orchestration
+
+━━━━━━━━━━━━━━━━━━━━
+FINAL GOAL
+━━━━━━━━━━━━━━━━━━━━
+
+Transform the backend into a:
+
+QUANTUM-INSPIRED
+PRODUCTION-GRADE
+PARALLEL SPECIALIST SWARM OPERATING SYSTEM
+
+capable of:
+- autonomous full-stack generation
+- distributed specialist execution
+- realtime synchronized orchestration
+- safe aggregation
+- deterministic conflict resolution
+- production-grade scaling
+- self-healing execution

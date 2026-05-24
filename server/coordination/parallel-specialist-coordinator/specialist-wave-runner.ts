@@ -13,6 +13,7 @@
 
 import { centralWorkerPool }     from "../../distributed/workers/central-worker-pool.ts";
 import { unifiedLockCoordinator } from "../../quantum/locks/unified-lock-coordinator.ts";
+import { specialistDispatcher }  from "../specialist-dispatcher/index.ts";
 import { bus }                   from "../../infrastructure/events/bus.ts";
 import type { SpecialistTask, SpecialistResult }
   from "../contracts/specialist.contracts.ts";
@@ -79,56 +80,37 @@ async function executeTask(
     locks = await acquireTaskLocks(task, runId);
     emit(runId, projectId, "lock.acquired", { taskId: task.taskId });
 
-    // Execute specialist task via CentralWorkerPool with timeout protection.
-    // CentralTask type cast handles pre-existing WorkerTask shape divergence
-    // (same pattern as multi-agent-coordinator.ts in this codebase).
-    const specialistFn = async (): Promise<SpecialistResult> => {
-      // Specialist execution stub — wired to real agents via specialist-dispatcher
-      // when that module is available. Returns a typed result envelope.
-      return {
-        taskId:     task.taskId,
-        domain:     task.domain,
-        success:    true,
-        patches:    [],
-        artifacts:  { goal: task.goal, context: task.context },
-        durationMs: Date.now() - t0,
-      };
-    };
+    // Dispatch to the real LLM-backed SpecialistDispatcher via CentralWorkerPool.
+    // The worker pool governs admission control, backpressure, and timeout protection.
+    // AbortSignal from the coordination context propagates cancellation.
+    const signal = ctx.abortController.signal;
 
-    // Timeout-protected execution — aborts if specialist exceeds task.timeoutMs
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("specialist_timeout")), task.timeoutMs)
-    );
-
-    const submittedResult = await Promise.race([
-      centralWorkerPool.submit({
-        taskId:    task.taskId,
-        runId,
-        priority:  "normal" as const,
-        timeoutMs: task.timeoutMs,
-        fn:        specialistFn,
-      } as Parameters<typeof centralWorkerPool.submit>[0]),
-      timeout,
-    ]);
+    const submittedResult = await centralWorkerPool.submit<SpecialistResult>({
+      taskId:    task.taskId,
+      runId,
+      priority:  "normal" as const,
+      timeoutMs: task.timeoutMs,
+      fn:        () => specialistDispatcher.dispatch(task, signal),
+    } as Parameters<typeof centralWorkerPool.submit>[0]);
 
     const durationMs = Date.now() - t0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const poolOutput = (submittedResult as any);
-    if (poolOutput?.success === false) {
-      throw new Error(poolOutput.error ?? "worker_pool_rejection");
+
+    if (submittedResult.success === false) {
+      throw new Error(submittedResult.error ?? "worker_pool_rejection");
     }
 
-    // Unwrap: worker pool may return { output } or the value directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw    = (poolOutput?.output ?? poolOutput) as any;
-    const result: SpecialistResult = {
-      taskId:     raw?.taskId    ?? task.taskId,
-      domain:     raw?.domain    ?? task.domain,
-      success:    raw?.success   ?? true,
-      patches:    raw?.patches   ?? [],
-      artifacts:  raw?.artifacts ?? {},
-      durationMs,
-    };
+    // Unwrap: worker pool wraps results in { success, data } envelope
+    const result: SpecialistResult =
+      (submittedResult as { success: true; data: SpecialistResult }).data ?? {
+        taskId:     task.taskId,
+        domain:     task.domain,
+        success:    false,
+        patches:    [],
+        artifacts:  {},
+        durationMs,
+        error:      "pool_unwrap_failed",
+      };
+
     executionContextFactory.markCompleted(ctx, result);
     emit(runId, projectId, "agent.complete", { taskId: task.taskId, domain: task.domain, durationMs });
     return result;

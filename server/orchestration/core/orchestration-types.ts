@@ -12,6 +12,7 @@ export type OrchestrationMode =
   | "planned"
   | "pipeline"
   | "dag"
+  | "swarm"
   | "recovery"
   | "quantum";
 

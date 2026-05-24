@@ -29,6 +29,9 @@ export { specialistResultMerger }            from "./aggregation/specialist-resu
 export { mergePlanBuilder }                  from "./aggregation/merge-plan-builder.ts";
 export { specialistConflictDetector }        from "./conflict-resolution/specialist-conflict-detector.ts";
 export { resolutionStrategy }                from "./conflict-resolution/resolution-strategy.ts";
+export { specialistDispatcher }              from "./specialist-dispatcher/index.ts";
+export { wireCoordinationSSE }               from "./telemetry/coordination-sse-bridge.ts";
+export { verifyCoordinationResult }          from "./verification/post-coordination-verifier.ts";
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 

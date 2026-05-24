@@ -54,6 +54,8 @@ import { fileLockManager }            from './server/quantum/locks/index.ts';
 import { startSweeper as startPortSweeper } from './server/runtime/network/port-allocation-authority.ts';
 import { parallelOrchestrationFabric } from './server/orchestration/distributed/index.ts';
 import { createRunTelemetryRouter }    from './server/api/run-telemetry.routes.ts';
+import { contextRegistry }             from './server/coordination/index.ts';
+import { wireCoordinationSSE }         from './server/coordination/telemetry/coordination-sse-bridge.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -238,7 +240,11 @@ server.listen(PORT, '0.0.0.0', async () => {
   parallelOrchestrationFabric.start();
   // Start port allocation sweeper — evicts stale run port reservations every 5 min
   startPortSweeper(300_000);
-  console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓');
+  // Start coordination context sweeper — evicts stale/leaked coordination contexts every 60s
+  contextRegistry.startSweeper(60_000);
+  // Wire coordination bus events → SSE so the frontend receives real-time swarm updates
+  wireCoordinationSSE();
+  console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓ coordination-sweeper ✓');
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {

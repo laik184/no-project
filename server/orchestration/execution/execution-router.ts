@@ -6,14 +6,15 @@
  * Integrates with dynamic-rerouter for runtime escalation.
  */
 
-import { runManager }          from "../../chat/run/controller.ts";
-import { supervisorBridge }    from "../agents/supervisor-bridge.ts";
-import { plannerBridge }       from "../agents/planner-bridge.ts";
-import { builderBridge }       from "../agents/builder-bridge.ts";
-import { emitPhaseTransition } from "../core/orchestration-events.ts";
+import { runManager }              from "../../chat/run/controller.ts";
+import { supervisorBridge }        from "../agents/supervisor-bridge.ts";
+import { plannerBridge }           from "../agents/planner-bridge.ts";
+import { builderBridge }           from "../agents/builder-bridge.ts";
+import { emitPhaseTransition }     from "../core/orchestration-events.ts";
+import { coordinateSpecialists }   from "../../coordination/index.ts";
 import type { OrchestrationContext, OrchestrationState } from "../core/orchestration-types.ts";
-import { withRerouting }       from "./execution-reroute-hook.ts";
-import { getMetricsSnapshot }  from "./run-metrics-tracker.ts";
+import { withRerouting }           from "./execution-reroute-hook.ts";
+import { getMetricsSnapshot }      from "./run-metrics-tracker.ts";
 
 // ── Re-export mutation helpers so execution subsystems can feed metrics ────────
 
@@ -59,6 +60,10 @@ export async function routeExecution(
 
       case "dag":
         await _routable(ctx, state, executeDAG);
+        break;
+
+      case "swarm":
+        await _routable(ctx, state, executeSwarm);
         break;
 
       case "recovery":
@@ -141,6 +146,37 @@ async function executeRecovery(ctx: OrchestrationContext): Promise<void> {
   const { runId, projectId, goal } = ctx;
   console.log(`[execution-router] recovery run=${runId}`);
   await supervisorBridge.coordinateExecution({ runId, projectId, goal, plan: null });
+}
+
+/**
+ * Swarm mode: full parallel specialist coordination.
+ * Decomposes the goal into domain-scoped tasks, executes them in parallel
+ * waves using the SpecialistWaveRunner, resolves conflicts, and merges results.
+ */
+async function executeSwarm(ctx: OrchestrationContext): Promise<void> {
+  const { runId, projectId, goal, metadata } = ctx;
+  console.log(`[execution-router] swarm run=${runId} project=${projectId}`);
+
+  const result = await coordinateSpecialists(
+    goal,
+    runId,
+    projectId,
+    metadata ?? {},
+  );
+
+  if (!result.success && result.specialistsRan === 0) {
+    throw new Error(
+      `[execution-router] Swarm coordination failed — no specialists ran. ` +
+      `error=${result.error ?? "unknown"}`,
+    );
+  }
+
+  console.log(
+    `[execution-router] swarm complete run=${runId} ` +
+    `waves=${result.wavesExecuted} specialists=${result.specialistsRan} ` +
+    `patches=${result.mergedPatches.length} ` +
+    `parallelism=${result.parallelismFactor.toFixed(2)}x`,
+  );
 }
 
 async function executeQuantum(ctx: OrchestrationContext): Promise<void> {
