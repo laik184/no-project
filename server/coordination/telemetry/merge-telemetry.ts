@@ -5,6 +5,23 @@
  * Single responsibility: typed event emission — no logic, no side effects beyond bus.
  *
  * All merge infrastructure imports from here; avoids copy-paste of bus.emit boilerplate.
+ *
+ * Canonical merge event taxonomy:
+ *   merge.start              → merge pipeline initiated
+ *   merge.patch.received     → patch enqueued for processing
+ *   merge.patch.validated    → patch passed/failed validation barrier
+ *   merge.conflict.detected  → conflict between specialists detected
+ *   merge.conflict.resolved  → conflict resolved by strategy chain
+ *   merge.patch.applied      → patch written to sandbox FS
+ *   merge.patch.skipped      → patch excluded (lock fail / validation reject)
+ *   merge.rollback           → transaction rolled back
+ *   merge.reconcile.start    → reconciliation engine starting
+ *   merge.reconcile.complete → reconciliation finished (consistent or anomalies)
+ *   merge.complete           → full pipeline finished
+ *   tx.begin / tx.commit / tx.rollback → transaction lifecycle
+ *   journal.entry            → replay journal record written
+ *   graph.built              → conflict dependency graph constructed
+ *   memory.write             → merge outcome persisted to memory bridge
  */
 
 import { bus } from "../../infrastructure/events/bus.ts";
@@ -12,6 +29,7 @@ import { bus } from "../../infrastructure/events/bus.ts";
 // ── Agent names (stable identifiers) ─────────────────────────────────────────
 
 export type MergeAgentName =
+  | "merge-pipeline"
   | "merge-transaction-manager"
   | "transactional-patch-applier"
   | "replay-journal"
@@ -39,7 +57,26 @@ export function emitMerge(
   });
 }
 
-// ── Standard event builders ───────────────────────────────────────────────────
+// ── Pipeline lifecycle ────────────────────────────────────────────────────────
+
+export function emitMergeStart(runId: string, patchCount: number, conflictCount: number): void {
+  emitMerge("merge-pipeline", runId, "merge.start", { patchCount, conflictCount });
+}
+
+export function emitMergeComplete(
+  runId:      string,
+  applied:    number,
+  skipped:    number,
+  durationMs: number,
+): void {
+  emitMerge("merge-pipeline", runId, "merge.complete", { applied, skipped, durationMs });
+}
+
+export function emitPatchReceived(runId: string, filePath: string, domain: string): void {
+  emitMerge("merge-pipeline", runId, "merge.patch.received", { filePath, domain });
+}
+
+// ── Transaction lifecycle ─────────────────────────────────────────────────────
 
 export function emitTxBegin(runId: string, txId: string, patchCount: number): void {
   emitMerge("merge-transaction-manager", runId, "tx.begin", { txId, patchCount });
@@ -50,35 +87,83 @@ export function emitTxCommit(runId: string, txId: string, applied: number, durat
 }
 
 export function emitTxRollback(runId: string, txId: string, reason: string, rolledBack: number): void {
-  emitMerge("merge-transaction-manager", runId, "tx.rollback", { txId, reason, rolledBack });
+  emitMerge("merge-transaction-manager", runId, "merge.rollback", { txId, reason, rolledBack });
 }
 
+// ── Patch lifecycle ───────────────────────────────────────────────────────────
+
 export function emitPatchValidated(runId: string, filePath: string, valid: boolean, reason?: string): void {
-  emitMerge("patch-validation-barrier", runId, "patch.validated", { filePath, valid, reason });
+  emitMerge("patch-validation-barrier", runId, "merge.patch.validated", { filePath, valid, reason });
 }
 
 export function emitPatchApplied(runId: string, filePath: string, op: string, durationMs: number): void {
-  emitMerge("transactional-patch-applier", runId, "patch.applied", { filePath, op, durationMs });
+  emitMerge("transactional-patch-applier", runId, "merge.patch.applied", { filePath, op, durationMs });
 }
 
-export function emitJournalEntry(runId: string, entryId: string, filePath: string, strategy: string): void {
-  emitMerge("replay-journal", runId, "journal.entry", { entryId, filePath, strategy });
+export function emitPatchSkipped(runId: string, filePath: string, reason: string): void {
+  emitMerge("merge-pipeline", runId, "merge.patch.skipped", { filePath, reason });
 }
 
-export function emitGraphBuilt(runId: string, nodes: number, edges: number, cycles: number): void {
-  emitMerge("conflict-graph-builder", runId, "graph.built", { nodes, edges, cycles });
+// ── Conflict lifecycle ────────────────────────────────────────────────────────
+
+export function emitConflictDetected(
+  runId:    string,
+  filePath: string,
+  type:     string,
+  domains:  string[],
+): void {
+  emitMerge("specialist-result-merger", runId, "merge.conflict.detected", { filePath, type, domains });
 }
 
+export function emitConflictResolved(
+  runId:     string,
+  filePath:  string,
+  strategy:  string,
+  reasoning: string,
+): void {
+  emitMerge("specialist-result-merger", runId, "merge.conflict.resolved", { filePath, strategy, reasoning });
+}
+
+// ── Reconciliation lifecycle ──────────────────────────────────────────────────
+
+export function emitReconcileStart(runId: string, patchCount: number): void {
+  emitMerge("reconciliation-engine", runId, "merge.reconcile.start", { patchCount });
+}
+
+export function emitReconcileComplete(
+  runId:           string,
+  consistent:      boolean,
+  patchesVerified: number,
+  anomalies:       number,
+): void {
+  emitMerge("reconciliation-engine", runId, "merge.reconcile.complete", {
+    consistent, patchesVerified, anomalies,
+  });
+}
+
+/** @deprecated Use emitReconcileComplete */
 export function emitReconciliationResult(
   runId: string,
   consistent: boolean,
   patchesVerified: number,
   anomalies: number,
 ): void {
-  emitMerge("reconciliation-engine", runId, "reconciliation.result", {
-    consistent, patchesVerified, anomalies,
-  });
+  emitReconcileComplete(runId, consistent, patchesVerified, anomalies);
 }
+
+// ── Journal ───────────────────────────────────────────────────────────────────
+
+export function emitJournalEntry(runId: string, entryId: string, filePath: string, strategy: string): void {
+  emitMerge("replay-journal", runId, "journal.entry", { entryId, filePath, strategy });
+}
+
+// ── Graph ─────────────────────────────────────────────────────────────────────
+
+export function emitGraphBuilt(runId: string, nodes: number, edges: number, cycles: number): void {
+  emitMerge("conflict-graph-builder", runId, "graph.built", { nodes, edges, cycles });
+}
+
+// ── Memory bridge ─────────────────────────────────────────────────────────────
 
 export function emitMemoryBridgeWrite(
   runId:    string,

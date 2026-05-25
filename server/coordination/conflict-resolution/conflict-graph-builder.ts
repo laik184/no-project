@@ -2,16 +2,25 @@
  * conflict-graph-builder.ts
  *
  * Builds a directed conflict dependency graph from a ConflictReport.
- * Single responsibility: graph construction + cycle detection.
+ * Single responsibility: graph construction + cycle detection + topological ordering.
  *
  * Graph semantics:
- *   Node  = file path
- *   Edge  = "domain A conflicts with domain B over this file" (directed: lower priority → higher)
+ *   Node  = filePath involved in one or more conflicts
+ *   Edge  = "filePath A must be resolved before filePath B"
+ *
+ * Edge construction rule (fixes the prior self-loop bug where from===to):
+ *   For any two distinct conflicting files that share a common domain,
+ *   add a directed edge from the higher-priority file to the lower-priority file.
+ *   (Higher-priority domain's file is resolved first, removing it as a blocker.)
+ *
+ *   Additionally, structural file-path ordering edges are inferred:
+ *     schema files → route files → component files
+ *     (ensures DB layer resolves before API layer resolves before UI layer)
  *
  * Consumers use this graph to:
- *   - Detect circular conflict chains (impossible to resolve without escalation)
- *   - Topologically order conflict resolution (resolve leaves first)
- *   - Provide visual conflict dependency trees to observers
+ *   - Detect circular conflict chains (unresolvable without escalation)
+ *   - Drive topologically-ordered conflict resolution (leaves resolved first)
+ *   - Feed the MergePipeline with a safe processing order
  */
 
 import type { SpecialistDomain } from "../contracts/specialist.contracts.ts";
@@ -29,27 +38,47 @@ export interface ConflictNode {
 }
 
 export interface ConflictEdge {
-  from:   string;   // filePath of lower-priority domain's patch
-  to:     string;   // filePath that blocks resolution
+  from:   string;   // filePath whose conflict must be resolved first
+  to:     string;   // filePath that can only resolve after `from` is settled
   weight: number;   // priority delta (higher = stronger dependency)
-  type:   "CONTENT" | "OWNERSHIP" | "ORDERING";
+  type:   "CONTENT" | "OWNERSHIP" | "ORDERING" | "STRUCTURAL";
 }
 
 export interface ConflictGraph {
-  runId:     string;
-  nodes:     ConflictNode[];
-  edges:     ConflictEdge[];
-  cycles:    string[][];   // each inner array is a cycle path of filePaths
-  topOrder:  string[];     // topological order (leaves first), empty if cyclic
+  runId:    string;
+  nodes:    ConflictNode[];
+  edges:    ConflictEdge[];
+  cycles:   string[][];   // each inner array is a cycle path of filePaths
+  topOrder: string[];     // topological order (leaves first), empty if cyclic
+}
+
+// ── Structural ordering patterns ─────────────────────────────────────────────
+
+const STRUCTURAL_PRIORITY: Array<[RegExp, number]> = [
+  [/schema\.(ts|js)$/,         1],
+  [/migration/,                 2],
+  [/(drizzle|db)\.config/,     3],
+  [/\.(routes|router)\./,      4],
+  [/\.(service|storage)\./,    5],
+  [/\.(controller|handler)\./,  6],
+  [/\.(component|page|view)\./,7],
+  [/\.(test|spec)\./,          9],
+];
+
+function structuralPriority(filePath: string): number {
+  for (const [pattern, priority] of STRUCTURAL_PRIORITY) {
+    if (pattern.test(filePath)) return priority;
+  }
+  return 5; // default mid-priority
 }
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 export class ConflictGraphBuilder {
   build(runId: string, report: ConflictReport): ConflictGraph {
-    const nodes = this._buildNodes(report.conflicts);
-    const edges = this._buildEdges(report.conflicts, nodes);
-    const cycles = this._detectCycles(nodes, edges);
+    const nodes    = this._buildNodes(report.conflicts);
+    const edges    = this._buildEdges(report.conflicts, nodes);
+    const cycles   = this._detectCycles(nodes, edges);
     const topOrder = cycles.length === 0 ? this._topoSort(nodes, edges) : [];
 
     const graph: ConflictGraph = { runId, nodes, edges, cycles, topOrder };
@@ -70,33 +99,70 @@ export class ConflictGraphBuilder {
         for (const d of c.domains) {
           if (!node.domains.includes(d)) node.domains.push(d);
         }
-        node.priority = Math.min(node.priority, DOMAIN_MERGE_PRIORITY[c.domains[0]] ?? 99);
+        node.priority = Math.min(
+          node.priority,
+          ...c.domains.map(d => DOMAIN_MERGE_PRIORITY[d] ?? 99),
+        );
       }
     }
     return Array.from(nodeMap.values());
   }
 
+  /**
+   * Edges connect DISTINCT files (fixes the prior from===to self-loop bug).
+   *
+   * Rule 1 — Domain cross-file dependency:
+   *   If conflicts A and B share a common domain, the one with lower domain-priority
+   *   number (higher authority) must resolve first → edge: A → B.
+   *
+   * Rule 2 — Structural path ordering:
+   *   Schema files before route files before component files (path heuristic).
+   */
   private _buildEdges(conflicts: SpecialistConflict[], nodes: ConflictNode[]): ConflictEdge[] {
     const edges: ConflictEdge[] = [];
-    const nodeIdx = new Map(nodes.map(n => [n.filePath, n]));
+    const seen  = new Set<string>();
 
-    for (const c of conflicts) {
-      if (c.domains.length < 2) continue;
-      const sorted = [...c.domains].sort(
-        (a, b) => (DOMAIN_MERGE_PRIORITY[a] ?? 99) - (DOMAIN_MERGE_PRIORITY[b] ?? 99),
-      );
-      // Edge: lower-priority domain's file → higher-priority domain's file
-      for (let i = 0; i < sorted.length - 1; i++) {
-        const fromPri = DOMAIN_MERGE_PRIORITY[sorted[i]]   ?? 99;
-        const toPri   = DOMAIN_MERGE_PRIORITY[sorted[i + 1]] ?? 99;
-        edges.push({
-          from:   c.filePath,
-          to:     c.filePath,
-          weight: toPri - fromPri,
-          type:   c.type,
-        });
+    // Rule 1: cross-file domain dependencies
+    for (let i = 0; i < conflicts.length; i++) {
+      for (let j = i + 1; j < conflicts.length; j++) {
+        const ci = conflicts[i];
+        const cj = conflicts[j];
+        if (ci.filePath === cj.filePath) continue;
+
+        const sharedDomains = ci.domains.filter(d => cj.domains.includes(d));
+        if (sharedDomains.length === 0) continue;
+
+        const nodeI = nodes.find(n => n.filePath === ci.filePath)!;
+        const nodeJ = nodes.find(n => n.filePath === cj.filePath)!;
+
+        // Lower priority number = higher authority = resolved first = edge source
+        const [from, to, weight] = nodeI.priority <= nodeJ.priority
+          ? [ci.filePath, cj.filePath, nodeJ.priority - nodeI.priority]
+          : [cj.filePath, ci.filePath, nodeI.priority - nodeJ.priority];
+
+        const key = `${from}→${to}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          edges.push({ from, to, weight, type: ci.type });
+        }
       }
     }
+
+    // Rule 2: structural path ordering between all nodes
+    const sortedNodes = [...nodes].sort(
+      (a, b) => structuralPriority(a.filePath) - structuralPriority(b.filePath),
+    );
+    for (let i = 0; i < sortedNodes.length - 1; i++) {
+      const from = sortedNodes[i].filePath;
+      const to   = sortedNodes[i + 1].filePath;
+      if (from === to) continue;
+      const key = `${from}→${to}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        edges.push({ from, to, weight: 1, type: "STRUCTURAL" });
+      }
+    }
+
     return edges;
   }
 
@@ -109,12 +175,12 @@ export class ConflictGraphBuilder {
 
     const visited = new Set<string>();
     const inStack = new Set<string>();
-    const cycles: string[][] = [];
+    const cycles:  string[][] = [];
 
     const dfs = (path: string[], node: string): void => {
       if (inStack.has(node)) {
         const cycleStart = path.indexOf(node);
-        cycles.push(path.slice(cycleStart));
+        if (cycleStart >= 0) cycles.push([...path.slice(cycleStart), node]);
         return;
       }
       if (visited.has(node)) return;
