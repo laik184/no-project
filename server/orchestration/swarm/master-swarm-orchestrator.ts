@@ -1,20 +1,14 @@
 /**
- * master-swarm-orchestrator.ts  v1.0.0
+ * master-swarm-orchestrator.ts  v1.1.0
  *
  * MasterSwarmOrchestrator — universal entry point for all swarm-mode runs.
  *
- * Pipeline (fully instrumented, fail-closed):
- *   1. Intake         — validate inputs, register with ParallelOrchestrationFabric
- *   2. IntentAnalysis — parse goal into IntentGraph (no LLM — deterministic)
- *   3. StrategySelect — choose execution path from graph strategy:
- *       TOOL_LOOP  → short-circuits to coordinateSpecialists (lightweight)
- *       PLANNED    → coordinateSpecialists (structured planning)
- *       DAG        → QuantumDAGEngine-backed wave execution via DynamicSwarmRouter
- *       SWARM      → full ActiveSwarmEngine + DynamicSwarmRouter routing
- *       QUANTUM    → runQuantum
- *   4. Route          — DynamicSwarmRouter.route(graph) → RoutingResult
- *   5. Verification   — post-route patch validation
- *   6. Teardown       — release fabric slot, emit completion telemetry
+ * Strategy routing (distinct execution models per strategy):
+ *   TOOL_LOOP  → coordinateSpecialists (lightweight, single-domain)
+ *   PLANNED    → coordinateSpecialists (structured sequential planning)
+ *   DAG        → DynamicSwarmRouter    (graph-driven parallel specialist routing)
+ *   SWARM      → ActiveSwarmEngine     (4-wave autonomous agent swarm)
+ *   QUANTUM    → runQuantum            (superposition paths, exploratory)
  *
  * Fail-closed:
  *   - Critical node failure aborts all remaining waves immediately
@@ -29,6 +23,7 @@ import { analyzeIntent }                from "./intent-graph/intent-graph-analyz
 import { dynamicSwarmRouter }           from "../../coordination/swarm-router/dynamic-swarm-router.ts";
 import { parallelOrchestrationFabric }  from "../distributed/parallel-orchestration-fabric.ts";
 import { coordinateSpecialists }        from "../../coordination/index.ts";
+import { activeSwarmEngine }            from "../../engine/swarm/active-swarm-engine.ts";
 import { swarmTelemetryFabric }         from "../../infrastructure/telemetry/swarm/swarm-telemetry-fabric.ts";
 import { bus }                          from "../../infrastructure/events/bus.ts";
 import type { FilePatch }               from "../../coordination/contracts/specialist.contracts.ts";
@@ -51,6 +46,33 @@ export interface SwarmOrchestrationResult {
 }
 
 // ── Internal: strategy executors ──────────────────────────────────────────────
+
+async function _executeViaActiveSwarm(
+  goal:      string,
+  runId:     string,
+  projectId: number,
+): Promise<{ patches: FilePatch[]; failed: string[]; error?: string }> {
+  const result = await activeSwarmEngine.run(runId, projectId, goal);
+
+  if (!result.success) {
+    return {
+      patches: [],
+      failed:  [`swarm:${result.tasksFailed}-tasks-failed`],
+      error:   `ActiveSwarmEngine: ${result.tasksFailed} task(s) failed, ` +
+               `confidence=${result.confidence.toFixed(2)}`,
+    };
+  }
+
+  // ActiveSwarmEngine writes files directly through specialists.
+  // Bridge mergedFiles (string[]) → synthetic FilePatch[] for uniform result contract.
+  const patches: FilePatch[] = result.mergedFiles.map(filePath => ({
+    filePath,
+    operation:  "update" as const,
+    confidence: result.confidence,
+  }));
+
+  return { patches, failed: [] };
+}
 
 async function _executeViaRouter(
   graph:     IntentGraph,
@@ -143,18 +165,26 @@ class MasterSwarmOrchestrator {
     try {
       switch (strategy) {
         case "quantum":
+          // Exploratory — superposition paths via quantum engine
           execResult = await _executeQuantum(goal, runId, projectId);
           break;
 
         case "swarm":
+          // Multi-domain — 4-wave autonomous agent swarm
+          // (plan → generate → verify → merge+reflect)
+          execResult = await _executeViaActiveSwarm(goal, runId, projectId);
+          break;
+
         case "dag":
-          // DAG and swarm both route through DynamicSwarmRouter with IntentGraph
+          // Multi-step ordered — graph-driven parallel specialist routing
+          // Respects domain precedence + per-domain policies + circuit breakers
           execResult = await _executeViaRouter(graph, projectId);
           break;
 
         case "planned":
         case "tool-loop":
         default:
+          // Single-domain — lightweight coordinator without intent graph overhead
           execResult = await _executeViaCoordinateSpecialists(goal, runId, projectId, strategy);
           break;
       }
