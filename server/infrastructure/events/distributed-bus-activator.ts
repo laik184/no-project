@@ -1,17 +1,22 @@
 /**
- * server/infrastructure/events/distributed-bus-activator.ts  — P5
+ * server/infrastructure/events/distributed-bus-activator.ts
  *
- * Activates the DistributedEventBus when Redis is available.
+ * Activates the distributed event bus when Redis is available.
+ * Delegates entirely to the canonical DistributedEventBus (ioredis + BullMQ layer).
  * Falls back gracefully to the in-process bus when Redis is not configured.
  *
  * Call activateDistributedBus() once at startup — after it resolves, all
  * bus.emit() calls are forwarded to Redis pub/sub so multiple server
  * instances share the same event stream.
  *
- * Single responsibility: bus activation + Redis connectivity only.
+ * Single responsibility: bus activation + Redis availability check only.
+ * NOTE: Previous implementation used the `redis` npm package with bus.emitLocal?.()
+ *       (which does not exist). This version delegates to the ioredis-backed
+ *       distributedEventBus which is the production-correct implementation.
  */
 
-import { bus }    from "./bus.ts";
+import { distributedEventBus } from "../../distributed/events/distributed-event-bus.ts";
+import { isRedisAvailable }    from "../../distributed/redis/index.ts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,104 +26,50 @@ export type ActivationResult =
 
 // ── Telemetry ─────────────────────────────────────────────────────────────────
 
-function log(msg: string): void { console.log(`[distributed-bus] ${msg}`); }
+function log(msg: string):  void { console.log(`[distributed-bus] ${msg}`); }
 function warn(msg: string): void { console.warn(`[distributed-bus] ${msg}`); }
 
-// ── Redis probe ───────────────────────────────────────────────────────────────
+// ── Activation state ──────────────────────────────────────────────────────────
 
-async function probeRedis(url: string): Promise<boolean> {
-  try {
-    const { createClient } = await import("redis").catch(() => null) as any;
-    if (!createClient) return false;
-    const client = createClient({ url });
-    await Promise.race([
-      client.connect(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 3_000)),
-    ]);
-    await client.ping();
-    await client.quit();
-    return true;
-  } catch { return false; }
-}
-
-// ── DistributedEventBus stub ─────────────────────────────────────────────────
-
-class DistributedBusAdapter {
-  private publisher:  unknown;
-  private subscriber: unknown;
-  readonly channel:   string;
-
-  constructor(redisUrl: string, channel: string) {
-    this.channel = channel;
-    this._init(redisUrl).catch(e => warn(`init error: ${e.message}`));
-  }
-
-  private async _init(redisUrl: string): Promise<void> {
-    const { createClient } = await import("redis") as any;
-    this.publisher  = createClient({ url: redisUrl });
-    this.subscriber = createClient({ url: redisUrl });
-    await (this.publisher  as any).connect();
-    await (this.subscriber as any).connect();
-
-    // Forward all local bus events → Redis channel
-    const pub = this.publisher as any;
-    const ch  = this.channel;
-    bus.onAny((event: string, data: unknown) => {
-      pub.publish(ch, JSON.stringify({ event, data, ts: Date.now() })).catch(() => {});
-    });
-
-    // Forward incoming Redis channel messages → local bus
-    await (this.subscriber as any).subscribe(ch, (msg: string) => {
-      try {
-        const { event, data } = JSON.parse(msg);
-        bus.emitLocal?.(event, data);
-      } catch {}
-    });
-
-    log(`DistributedBus active on channel "${ch}"`);
-  }
-
-  async shutdown(): Promise<void> {
-    try { await (this.publisher  as any)?.quit(); } catch {}
-    try { await (this.subscriber as any)?.quit(); } catch {}
-  }
-}
-
-let _adapter: DistributedBusAdapter | null = null;
+let _active = false;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Activate distributed bus if REDIS_URL is configured and Redis is reachable.
+ * Activate the distributed bus if Redis is reachable.
  * Always resolves — never throws.
  */
 export async function activateDistributedBus(opts: {
-  redisUrl?: string;
-  channel?:  string;
+  channel?: string;
 } = {}): Promise<ActivationResult> {
-  const redisUrl = opts.redisUrl ?? process.env.REDIS_URL;
-  const channel  = opts.channel  ?? process.env.BUS_CHANNEL ?? "nura-x:events";
+  const channel = opts.channel ?? process.env.BUS_CHANNEL ?? "nura-x:events";
 
-  if (!redisUrl) {
-    warn("REDIS_URL not configured — running in local-bus mode");
-    return { mode: "local", reason: "REDIS_URL not set" };
+  if (!isRedisAvailable()) {
+    warn("Redis not available — running in local-bus mode");
+    return { mode: "local", reason: "Redis not available" };
   }
 
-  const reachable = await probeRedis(redisUrl);
-  if (!reachable) {
-    warn("Redis not reachable — falling back to local-bus mode");
-    return { mode: "local", reason: "Redis unreachable" };
+  if (_active) {
+    return { mode: "distributed", channel };
   }
 
-  _adapter = new DistributedBusAdapter(redisUrl, channel);
-  log(`Activating distributed bus on "${channel}"`);
-  return { mode: "distributed", channel };
+  try {
+    await distributedEventBus.start();
+    _active = true;
+    log(`Distributed bus activated — channel="${channel}"`);
+    return { mode: "distributed", channel };
+  } catch (err) {
+    warn(`Failed to activate distributed bus: ${(err as Error).message} — falling back to local`);
+    return { mode: "local", reason: (err as Error).message };
+  }
 }
 
-/** Shut down the distributed bus adapter cleanly. */
+/** Shut down the distributed bus cleanly. */
 export async function shutdownDistributedBus(): Promise<void> {
-  if (_adapter) { await _adapter.shutdown(); _adapter = null; }
+  if (!_active) return;
+  await distributedEventBus.stop();
+  _active = false;
 }
 
 /** True if the distributed bus is active. */
-export function isDistributedBusActive(): boolean { return _adapter !== null; }
+export function isDistributedBusActive(): boolean { return _active; }

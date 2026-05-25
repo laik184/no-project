@@ -17,6 +17,7 @@ import { distributedEventBus }         from "./events/distributed-event-bus.ts";
 import { getRedisClient, redisHealth } from "./redis/index.ts";
 import { startQueueWorker }            from "./queue/queue-worker.ts";
 import { startQueueEvents }            from "./queue/queue-events.ts";
+import { processDistributedJob }       from "./queue/queue-worker-processor.ts";
 import { bus }                         from "../infrastructure/events/bus.ts";
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
@@ -43,7 +44,8 @@ export async function initDistributedSystem(): Promise<void> {
     { name: "recovery-manager",    fn: () => distributedRecoveryManager.init() },
     { name: "lock-manager",        fn: () => distributedLockManager.init() },
     { name: "event-bus",           fn: () => distributedEventBus.start() },
-    { name: "queue-worker",        fn: () => startQueueWorker(async (data) => data) },
+    // Real processor — routes BullMQ jobs to CentralWorkerPool (replaces no-op passthrough)
+    { name: "queue-worker",        fn: () => startQueueWorker(processDistributedJob) },
     { name: "queue-events",        fn: () => startQueueEvents() },
   ];
 
@@ -52,11 +54,11 @@ export async function initDistributedSystem(): Promise<void> {
 
   for (const step of steps) {
     try {
-      step.fn();
+      await Promise.resolve(step.fn()); // await async steps; sync steps resolve immediately
       initialized.push(step.name);
     } catch (err) {
       failed.push(step.name);
-      console.error(`[distributed] Failed to initialize ${step.name}:`, err);
+      console.error(`[distributed] Failed to initialize ${step.name}:`, (err as Error).message);
     }
   }
 

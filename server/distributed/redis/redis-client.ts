@@ -7,9 +7,10 @@
  */
 
 import Redis from "ioredis";
-import { redisConfig }    from "./redis-config.ts";
-import { redisReconnect } from "./redis-reconnect.ts";
-import { redisTelemetry } from "./redis-telemetry.ts";
+import { redisConfig }         from "./redis-config.ts";
+import { redisReconnect }      from "./redis-reconnect.ts";
+import { redisTelemetry }      from "./redis-telemetry.ts";
+import { redisOnConnectHooks } from "./redis-on-connect-hooks.ts";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
@@ -35,10 +36,10 @@ function createClient(): Redis {
   });
 
   client.on("connect",     () => { available = true;  redisReconnect.onConnected(); redisTelemetry.onConnected(); });
-  client.on("ready",       () => { available = true;  redisTelemetry.onReady(); });
+  client.on("ready",       () => { available = true;  redisTelemetry.onReady(); redisOnConnectHooks.fire().catch(console.error); });
   client.on("error",       (err: Error) => { redisReconnect.recordError(err); redisTelemetry.onError(err); });
-  client.on("close",       () => { available = false; redisTelemetry.onClose(); });
-  client.on("end",         () => { available = false; redisTelemetry.onDisconnected(); });
+  client.on("close",       () => { available = false; redisTelemetry.onClose(); redisOnConnectHooks.reset(); });
+  client.on("end",         () => { available = false; redisTelemetry.onDisconnected(); redisOnConnectHooks.reset(); });
   client.on("reconnecting",({ attempt, delay }: { attempt: number; delay: number }) => {
     redisTelemetry.onReconnecting(attempt, delay);
   });
@@ -80,7 +81,7 @@ export async function shutdownRedis(): Promise<void> {
   available = false;
 }
 
-/** Returns a dedicated connection for BullMQ (it requires separate connections). */
+/** Returns a dedicated connection for BullMQ / pub-sub (requires separate connections). */
 export function createDedicatedClient(): Redis {
   const cfg = redisConfig;
   return new Redis({
@@ -88,6 +89,7 @@ export function createDedicatedClient(): Redis {
     port:               cfg.port,
     password:           cfg.password,
     db:                 cfg.db,
+    keyPrefix:          cfg.keyPrefix,
     maxRetriesPerRequest: null,
     enableOfflineQueue: false,
   });

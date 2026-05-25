@@ -7,18 +7,27 @@
  * Telemetry: all transitions emitted via queue-telemetry.
  */
 
-import { createQueue }         from "./queue-factory.ts";
-import { queueValidation }     from "./queue-validation.ts";
+import { createQueue }              from "./queue-factory.ts";
+import { queueValidation }           from "./queue-validation.ts";
 import { queueBackpressure as distributedBackpressure } from "./queue-backpressure.ts";
 import { distributedQueueTelemetry } from "./queue-telemetry.ts";
-import { taskQueue }           from "./task-queue.ts";
+import { taskQueue }                 from "./task-queue.ts";
+import { redisOnConnectHooks }       from "../redis/redis-on-connect-hooks.ts";
 import type { DistributedJobData, QueueStats } from "./types/index.ts";
-import type { TaskPriorityLevel }  from "./priority-queue.ts";
+import type { TaskPriorityLevel }    from "./priority-queue.ts";
 
 const QUEUE_NAME = "nura:tasks";
 
 class DistributedQueue {
-  private bq = createQueue(QUEUE_NAME);
+  // Lazily initialized — BullMQ queue is created when Redis first becomes ready.
+  // redisOnConnectHooks.register() ensures reinit() is called automatically.
+  private bq = createQueue(QUEUE_NAME); // null if Redis not yet available
+
+  constructor() {
+    // Re-initialize the BullMQ queue when Redis first connects.
+    // This handles the race: Redis URL present but lazyConnect not yet resolved.
+    redisOnConnectHooks.register("distributed-queue-reinit", () => this.reinit());
+  }
 
   async enqueue(data: DistributedJobData): Promise<boolean> {
     const validErr = queueValidation.validateJob(data);

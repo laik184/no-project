@@ -86,6 +86,7 @@ import { recoveryOrchestrator }      from "./runtime/recovery-orchestrator.ts";
 import { getEngineVersion }          from "./core/orchestration-engine.ts";
 import { orchestratorHub }           from "./registry/index.ts";
 import { distributedOrchestrationWiring } from "../distributed/orchestration/distributed-orchestration-wiring.ts";
+import { initDistributedSystem }     from "../distributed/index.ts";
 import { initDagExecutors }          from "../engine/execution/dag-executor-wiring.ts";
 
 export function initOrchestration(): void {
@@ -112,15 +113,19 @@ export function initOrchestration(): void {
   // Without this, every planned/DAG-mode run times out with fake success.
   initDagExecutors();
 
-  // Wire all distributed systems into the orchestration layer (non-blocking)
-  distributedOrchestrationWiring.wire().then(report => {
-    console.log(
-      `[orchestration] Distributed wiring complete — ${report.wired.length} systems` +
-      ` (readiness=${report.readinessPct}% backend=${report.backend})`,
-    );
-  }).catch(err => {
-    console.warn("[orchestration] Distributed wiring failed (non-fatal):", err.message);
-  });
+  // Boot distributed system first, then wire it into the orchestration layer (non-blocking).
+  // Correct order: init subsystems → connect them to orchestration.
+  initDistributedSystem()
+    .then(() => distributedOrchestrationWiring.wire())
+    .then(report => {
+      console.log(
+        `[orchestration] Distributed wiring complete — ${report.wired.length} systems` +
+        ` (readiness=${report.readinessPct}% backend=${report.backend})`,
+      );
+    })
+    .catch(err => {
+      console.warn("[orchestration] Distributed boot/wiring failed (non-fatal):", (err as Error).message);
+    });
 
   console.log(`[orchestration] Initialized — ${getEngineVersion()}`);
   console.log("[orchestration] Systems wired: telemetry ✓ runtime-sync ✓ lifecycle ✓ preview ✓ recovery ✓ master-hub ✓ distributed ✓ dag-executors ✓");
