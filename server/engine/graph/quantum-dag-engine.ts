@@ -11,6 +11,7 @@ import { resultAggregator } from "../../distributed/aggregation/result-aggregato
 import { workerPool }       from "../../distributed/workers/worker-pool.ts";
 import { distributedSyncBarrier } from "../../infrastructure/events/distributed-sync-barrier.ts";
 import { bus }              from "../../infrastructure/events/bus.ts";
+import { swarmTelemetryFabric } from "../../infrastructure/telemetry/swarm/swarm-telemetry-fabric.ts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,13 @@ class QuantumDAGEngine {
 
     // Submit all nodes to worker pool concurrently
     const submissions = wave.nodes.map(async (node) => {
+      swarmTelemetryFabric.dagNodeStart(runId, projectId, {
+        nodeId:     node.id,
+        domain:     node.workerType,
+        waveIndex:  wave.waveIdx,
+        workerType: node.workerType,
+      });
+
       const result = await workerPool.submit<T>({
         taskId:    node.id,
         runId,
@@ -86,6 +94,13 @@ class QuantumDAGEngine {
         type:      node.workerType,
         fn:        node.fn,
         timeoutMs: node.timeoutMs,
+      });
+
+      swarmTelemetryFabric.dagNodeComplete(runId, projectId, {
+        nodeId:     node.id,
+        domain:     node.workerType,
+        success:    result.success,
+        durationMs: result.durationMs,
       });
 
       // Submit to aggregator

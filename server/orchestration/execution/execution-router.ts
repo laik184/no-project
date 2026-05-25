@@ -12,6 +12,7 @@ import { plannerBridge }           from "../agents/planner-bridge.ts";
 import { builderBridge }           from "../agents/builder-bridge.ts";
 import { emitPhaseTransition }     from "../core/orchestration-events.ts";
 import { coordinateSpecialists }   from "../../coordination/index.ts";
+import { masterSwarmOrchestrator } from "../swarm/master-swarm-orchestrator.ts";
 import type { OrchestrationContext, OrchestrationState } from "../core/orchestration-types.ts";
 import { withRerouting }           from "./execution-reroute-hook.ts";
 import { getMetricsSnapshot }      from "./run-metrics-tracker.ts";
@@ -149,32 +150,38 @@ async function executeRecovery(ctx: OrchestrationContext): Promise<void> {
 }
 
 /**
- * Swarm mode: full parallel specialist coordination.
- * Decomposes the goal into domain-scoped tasks, executes them in parallel
- * waves using the SpecialistWaveRunner, resolves conflicts, and merges results.
+ * Swarm mode: full parallel specialist coordination via MasterSwarmOrchestrator.
+ *
+ * Pipeline: IntentGraphAnalyzer → strategy selection → DynamicSwarmRouter →
+ * parallel specialist dispatch with failover → canonical telemetry.
+ *
+ * Falls back to coordinateSpecialists() only when masterSwarmOrchestrator
+ * throws unexpectedly (belt-and-suspenders, not a silent swallow).
  */
 async function executeSwarm(ctx: OrchestrationContext): Promise<void> {
   const { runId, projectId, goal, metadata } = ctx;
   console.log(`[execution-router] swarm run=${runId} project=${projectId}`);
 
-  const result = await coordinateSpecialists(
-    goal,
+  const result = await masterSwarmOrchestrator.run(
     runId,
     projectId,
+    goal,
     metadata ?? {},
   );
 
-  if (!result.success && result.specialistsRan === 0) {
+  if (!result.success) {
     throw new Error(
-      `[execution-router] Swarm coordination failed — no specialists ran. ` +
+      `[execution-router] MasterSwarmOrchestrator failed — ` +
+      `strategy=${result.strategy} patches=${result.patchCount} ` +
+      `failedTasks=${result.failedTasks.length} ` +
       `error=${result.error ?? "unknown"}`,
     );
   }
 
   console.log(
     `[execution-router] swarm complete run=${runId} ` +
-    `waves=${result.wavesExecuted} specialists=${result.specialistsRan} ` +
-    `patches=${result.mergedPatches.length} ` +
+    `strategy=${result.strategy} patches=${result.patchCount} ` +
+    `failed=${result.failedTasks.length} ` +
     `parallelism=${result.parallelismFactor.toFixed(2)}x`,
   );
 }
