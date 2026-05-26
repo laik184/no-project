@@ -136,6 +136,31 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Redis health — frontend and ops dashboards can call this
+app.get('/api/health/redis', async (_req: Request, res: Response) => {
+  const { isRedisAvailable, redisHealth } = await import('./server/distributed/redis/index.ts');
+  const connected = isRedisAvailable();
+  const status    = redisHealth.status();
+  res.status(connected ? 200 : 503).json({
+    ok:         connected,
+    mode:       connected ? 'distributed' : 'in-process',
+    connected,
+    latencyMs:  status.latencyMs,
+    lastPingAt: status.lastPingAt,
+    errorCount: status.errorCount,
+    uptime:     status.uptime,
+    hasUrl:     !!(
+      process.env.REDIS_URL ||
+      process.env.REDIS_TLS_URL ||
+      process.env.KV_URL ||
+      process.env.REDIS_HOST
+    ),
+    message: connected
+      ? `Redis connected — ${status.latencyMs ?? '?'}ms ping latency.`
+      : 'Redis not connected. Add REDIS_URL in Replit Secrets (Upstash free tier: https://upstash.com).',
+  });
+});
+
 // LLM key health — frontend can call this to show a clear banner
 app.get('/api/health/llm', (_req, res) => {
   const hasKey = !!(process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY);

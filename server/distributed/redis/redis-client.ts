@@ -51,7 +51,15 @@ function createClient(): Redis {
 
 export async function getRedisClient(): Promise<Redis | null> {
   if (instance && available) return instance;
-  if (instance) return instance; // let it reconnect
+
+  // If an instance exists but is permanently disconnected (retryStrategy returned null),
+  // ioredis emits "end" and status becomes "end". Detect this and recreate.
+  if (instance && (instance.status === "end" || instance.status === "close")) {
+    instance  = null;
+    available = false;
+  }
+
+  if (instance) return instance; // still reconnecting — let ioredis handle it
 
   instance = createClient();
 

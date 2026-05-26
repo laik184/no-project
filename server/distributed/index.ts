@@ -14,7 +14,10 @@ import { distributedEventBridge }      from "../infrastructure/events/distribute
 import { distributedRecoveryManager }  from "./recovery/distributed-recovery-manager.ts";
 import { distributedLockManager }      from "./locks/distributed-lock-manager.ts";
 import { distributedEventBus }         from "./events/distributed-event-bus.ts";
-import { getRedisClient, redisHealth } from "./redis/index.ts";
+import { getRedisClient, redisHealth, redisTelemetry } from "./redis/index.ts";
+import { redisOnConnectHooks }         from "./redis/redis-on-connect-hooks.ts";
+import { redisStartupValidator }       from "./redis/redis-startup-validator.ts";
+import { redisWorkerRegistry }         from "./workers/redis-worker-registry.ts";
 import { startQueueWorker }            from "./queue/queue-worker.ts";
 import { startQueueEvents }            from "./queue/queue-events.ts";
 import { processDistributedJob }       from "./queue/queue-worker-processor.ts";
@@ -26,19 +29,34 @@ export async function initDistributedSystem(): Promise<void> {
   const t0 = Date.now();
   console.log("[distributed] Initializing distributed execution system...");
 
-  // Phase 1: Bootstrap Redis (non-blocking — degrades gracefully if absent)
-  const redisClient = await getRedisClient().catch(() => null);
+  // Phase 1: Validate Redis environment + attempt connection
+  const startupReport = await redisStartupValidator.validate();
+  const redisClient   = startupReport.status === "connected"
+    ? await getRedisClient().catch(() => null)
+    : null;
+
   if (redisClient) {
     redisHealth.start();
+    redisWorkerRegistry.start();
+    redisTelemetry.stopDegradedMonitor();
     console.log("[distributed] Redis connected — full distributed mode active.");
   } else {
+    redisTelemetry.startDegradedMonitor();
     console.warn("[distributed] Redis unavailable — running in in-process mode.");
   }
+
+  // Register on-connect hooks so Redis-dependent subsystems activate automatically
+  // if Redis becomes available after initial startup (late REDIS_URL, reconnect, etc.)
+  redisOnConnectHooks.register("distributed-event-bus-pubsub", () => distributedEventBus.start());
+  redisOnConnectHooks.register("distributed-queue-worker",     () => startQueueWorker(processDistributedJob));
+  redisOnConnectHooks.register("distributed-queue-events",     () => startQueueEvents());
+  redisOnConnectHooks.register("redis-health-monitor",         () => redisHealth.start());
 
   const steps: Array<{ name: string; fn: () => void | Promise<void> }> = [
     { name: "event-bridge",        fn: () => distributedEventBridge.init() },
     { name: "file-lock-manager",   fn: () => fileLockManager.init() },
-    { name: "worker-pool",         fn: () => workerPool.init({ "io-bound": 5, "cpu-bound": 2, "llm": 2 }) },
+    // Pre-allocate slots at full capacity; worker-pool enforces per-type limits internally
+    { name: "worker-pool",         fn: () => workerPool.init({ "io-bound": 20, "cpu-bound": 4, "llm": 5 }) },
     { name: "central-worker-pool", fn: () => centralWorkerPool.init() },
     { name: "queue-scheduler",     fn: () => queueScheduler.start() },
     { name: "recovery-manager",    fn: () => distributedRecoveryManager.init() },
@@ -87,10 +105,12 @@ export async function shutdownDistributedSystem(): Promise<void> {
   try { workerPool.shutdown();              } catch {}
   try { centralWorkerPool.shutdown();       } catch {}
   try { fileLockManager.stop();             } catch {}
+  try { redisWorkerRegistry.stop();         } catch {}
   try { distributedRecoveryManager.shutdown("system", 0); } catch {}
   try { await distributedLockManager.shutdown(); } catch {}
   try { await distributedEventBus.stop();   } catch {}
   try { redisHealth.stop();                 } catch {}
+  try { redisTelemetry.stopDegradedMonitor(); } catch {}
   console.log("[distributed] Shutdown complete.");
 }
 
@@ -120,4 +140,7 @@ export { distributedMemoryQueue }      from "./memory/distributed-memory-queue.t
 export { distributedTelemetry }        from "./telemetry/distributed-telemetry.ts";
 export { distributedValidator }        from "./validation/distributed-validator.ts";
 export { failClosedGate }              from "./validation/fail-closed-gate.ts";
-export { getRedisClient, isRedisAvailable } from "./redis/index.ts";
+export { getRedisClient, isRedisAvailable, redisTelemetry } from "./redis/index.ts";
+export { redisStartupValidator }       from "./redis/redis-startup-validator.ts";
+export { redisWorkerRegistry }         from "./workers/redis-worker-registry.ts";
+export { redisReplayStore }            from "../infrastructure/replay/redis-replay-store.ts";
