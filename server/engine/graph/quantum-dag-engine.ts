@@ -2,16 +2,26 @@
  * Responsibility: Extends the graph engine with distributed execution capabilities:
  *                 dynamic node injection, distributed wave scheduling, and result aggregation.
  *                 Wraps the existing graph-engine.ts — does NOT rewrite it.
- * Dependencies: graph-engine, worker-pool, result-aggregator, distributed-sync-barrier
+ * Dependencies: graph-engine, central-worker-pool, result-aggregator, distributed-sync-barrier
  * Failure: injection failures are logged; running graph is not corrupted.
  * Telemetry: emits agent.parallel.started/completed on each distributed wave.
  */
 
-import { resultAggregator } from "../../distributed/aggregation/result-aggregator.ts";
-import { workerPool }       from "../../distributed/workers/worker-pool.ts";
+import { resultAggregator }   from "../../distributed/aggregation/result-aggregator.ts";
+import { centralWorkerPool }  from "../../distributed/workers/central-worker-pool.ts";
 import { distributedSyncBarrier } from "../../infrastructure/events/distributed-sync-barrier.ts";
-import { bus }              from "../../infrastructure/events/bus.ts";
+import { bus }                from "../../infrastructure/events/bus.ts";
 import { swarmTelemetryFabric } from "../../infrastructure/telemetry/swarm/swarm-telemetry-fabric.ts";
+import type { TaskPriority }  from "../../distributed/workers/worker-priority.ts";
+
+// Maps DAG node workerType to CentralWorkerPool priority so admission control,
+// backpressure, and telemetry are correctly applied per tier.
+// critical → llm slots | high → cpu-bound slots | normal → io-bound slots
+const WORKER_TYPE_PRIORITY: Record<"io-bound" | "cpu-bound" | "llm", TaskPriority> = {
+  "llm":       "critical",  // → llm tier   (5 slots, 120s timeout)
+  "cpu-bound": "high",      // → cpu-bound  (4 slots, 60s timeout)
+  "io-bound":  "normal",    // → io-bound   (20 slots, 30s timeout)
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -87,11 +97,12 @@ class QuantumDAGEngine {
         workerType: node.workerType,
       });
 
-      const result = await workerPool.submit<T>({
+      const result = await centralWorkerPool.submit<T>({
         taskId:    node.id,
         runId,
         projectId,
         type:      node.workerType,
+        priority:  WORKER_TYPE_PRIORITY[node.workerType],
         fn:        node.fn,
         timeoutMs: node.timeoutMs,
       });

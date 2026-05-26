@@ -24,6 +24,7 @@ import type { IntentGraph, IntentNode }  from "../../orchestration/swarm/intent-
 import type { SpecialistTask, SpecialistResult, SpecialistDomain, FilePatch }
   from "../contracts/specialist.contracts.ts";
 import { specialistDispatcher }          from "../specialist-dispatcher/index.ts";
+import { centralWorkerPool }             from "../../distributed/workers/central-worker-pool.ts";
 import { getPolicy, failoverChain, effectiveTimeout } from "./routing-policy.ts";
 import {
   emitRouteStart, emitRouteComplete,
@@ -126,9 +127,29 @@ async function dispatchWithFailover(
     emitDispatch(runId, projectId, node.id, domain, String(task.priority), node.goalFragment);
 
     try {
-      const result: SpecialistResult = await specialistDispatcher.dispatch(task, ac.signal);
+      // Route ALL specialist dispatch through CentralWorkerPool.
+      // This ensures: backpressure, slot limits, timeout protection, and full
+      // worker.* lifecycle telemetry — eliminating the unbounded LLM fan-out bypass.
+      const poolResult = await centralWorkerPool.submit<SpecialistResult>({
+        taskId:    node.id,
+        runId,
+        projectId,
+        type:      "llm",       // specialist dispatch is always LLM-tier work
+        priority:  "critical",  // critical → llm slots (5 slots, 120s timeout)
+        timeoutMs: task.timeoutMs,
+        fn:        () => specialistDispatcher.dispatch(task, ac.signal),
+      } as Parameters<typeof centralWorkerPool.submit>[0]);
 
-      if (result.success) {
+      if (!poolResult.success) {
+        lastErr = poolResult.error ?? "worker_pool_rejection";
+        _recordFailure(runId, domain);
+        emitDispatchFailed(runId, projectId, node.id, domain, lastErr, true);
+        continue;
+      }
+
+      const result = (poolResult as { success: true; data: SpecialistResult }).data;
+
+      if (result?.success) {
         emitDispatchComplete(runId, projectId, node.id, domain, true, result.patches.length, Date.now() - t0);
         return {
           taskId:       node.id,
@@ -141,9 +162,9 @@ async function dispatchWithFailover(
         };
       }
 
-      lastErr = result.error ?? "Specialist returned failure";
+      lastErr = result?.error ?? "Specialist returned failure";
       _recordFailure(runId, domain);
-      emitDispatchFailed(runId, projectId, node.id, domain, lastErr, result.retryable ?? false);
+      emitDispatchFailed(runId, projectId, node.id, domain, lastErr, result?.retryable ?? false);
 
     } catch (err) {
       lastErr = err instanceof Error ? err.message : String(err);
