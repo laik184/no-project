@@ -8,7 +8,7 @@
  */
 
 import { memoryTelemetry }  from "../telemetry/memory-telemetry.ts";
-import type { MemoryEntry } from "../../agents/memory/vector/vector-types.ts";
+import type { MemoryEntry } from "../types.ts";
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 

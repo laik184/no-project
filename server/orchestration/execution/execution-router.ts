@@ -201,8 +201,9 @@ async function executeQuantum(ctx: OrchestrationContext): Promise<void> {
 }
 
 async function executeAutoRouted(ctx: OrchestrationContext): Promise<void> {
-  const { needsPlanning } = await import("../../agents/planning/index.ts");
-  return needsPlanning(ctx.goal) ? executePlanned(ctx) : executeToolLoop(ctx);
+  const complexPatterns = [/build|create|implement|add feature/i, /refactor|restructure|migrate/i, /\band\b.*\band\b/i, /full.?stack|end.?to.?end/i];
+  const needsPlanning = complexPatterns.some(p => p.test(ctx.goal)) || ctx.goal.length > 200;
+  return needsPlanning ? executePlanned(ctx) : executeToolLoop(ctx);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

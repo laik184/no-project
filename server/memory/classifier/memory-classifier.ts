@@ -14,7 +14,7 @@
  *   RUNTIME     — crashes, port issues, preview stability
  */
 
-import type { MemoryCategory } from "../../agents/memory/vector/vector-types.ts";
+import type { MemoryCategory } from "../types.ts";
 
 // ── Extended type that maps to MemoryCategory ─────────────────────────────────
 

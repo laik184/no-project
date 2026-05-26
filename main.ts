@@ -20,7 +20,6 @@ import { createCompatRouter } from './server/api/compat.routes.ts';
 import { createRuntimeRouter } from './server/api/runtime.routes.ts';
 import { createPreviewProxy } from './server/infrastructure/proxy/preview-proxy.ts';
 import { runtimeManager }          from './server/infrastructure/runtime/runtime-manager.ts';
-import { crashResponder }           from './server/agents/recovery/crash-responder.ts';
 import { observationController }    from './server/runtime/index.ts';
 import { initMemory }               from './server/debug/index.ts';
 import { createObservationRouter }  from './server/api/observation.routes.ts';
@@ -235,8 +234,6 @@ server.listen(PORT, '0.0.0.0', async () => {
   runtimeStore.init();
   // Load autonomous debug recovery memory from disk (survives restarts)
   await initMemory();
-  // Start autonomous crash recovery — subscribes to process.crashed bus events
-  crashResponder.start();
   // Start runtime observation — watches logs + probes ports for all project servers
   observationController.start();
   // Initialize persistent tool execution history system
@@ -275,7 +272,6 @@ server.listen(PORT, '0.0.0.0', async () => {
 async function gracefulShutdown(signal: string): Promise<void> {
   console.log(`[nura-x] ${signal} received — graceful shutdown`);
   observationController.stop();
-  crashResponder.stop();
   fileLockManager.stopCleaner();
   parallelOrchestrationFabric.stop();
   // Flush runtime state to disk and SIGKILL all children before exit

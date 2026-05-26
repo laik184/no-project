@@ -15,7 +15,7 @@
 
 import { retrieve }         from "../pipeline/memory-pipeline.ts";
 import { memoryTelemetry }  from "../telemetry/memory-telemetry.ts";
-import type { MemoryEntry, RankedMemory } from "../../agents/memory/vector/vector-types.ts";
+import type { MemoryEntry, RankedMemory } from "../types.ts";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 

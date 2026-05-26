@@ -1,24 +1,24 @@
 /**
  * server/orchestration/registry/registry-helpers.ts
- *
- * Shared helpers for the master orchestrator registry.
- * Keeps wrap() and its associated types in one place so
- * agent-orchestrators.ts and service-orchestrators.ts can
- * import them without creating a circular dependency.
+ * Types and helpers for the master orchestrator registry.
+ * (Inlined from deleted agents/core/pipeline/registry)
  */
 
-import type {
-  OrchestratorEntry,
-  OrchestratorDomain,
-} from '../../agents/core/pipeline/registry/orchestrator.registry.ts';
+export type OrchestratorDomain =
+  | "planning" | "execution" | "review" | "memory" | "coordination"
+  | "runtime"  | "recovery"  | "browser" | "supervisor" | "service"
+  | "platform" | "tool" | "swarm" | "debug";
 
-export type { OrchestratorEntry, OrchestratorDomain };
+export interface OrchestratorEntry {
+  id:           string;
+  domain:       OrchestratorDomain;
+  capabilities: readonly string[];
+  description:  string;
+  run:          (input: unknown) => Promise<unknown>;
+}
 
 export type Loader = () => Promise<(input: any) => any>;
 
-/**
- * Build an OrchestratorEntry with lazy loading and a uniform run() wrapper.
- */
 export function wrap(
   id:     string,
   domain: OrchestratorDomain,

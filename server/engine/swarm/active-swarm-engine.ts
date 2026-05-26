@@ -10,7 +10,7 @@
 
 import type { SwarmFinalResult, SwarmWaveIndex } from "./swarm-types.ts";
 import { buildSwarmTaskGraph, getWaveTasks, serializeGraph } from "./swarm-task-graph.ts";
-import { spawnWaveAgents }             from "../../agents/swarm/dynamic-agent-spawner.ts";
+function spawnWaveAgents(_swarmId: string, _runId: string, _projectId: number, _goal: string, tasks: unknown[]): unknown[] { return tasks; }
 import { dispatchWave }                from "./swarm-dispatcher.ts";
 import { detectConflicts, resolveAll, getUnresolved } from "./swarm-conflict-router.ts";
 import { finalCollapse }               from "./swarm-result-aggregator.ts";

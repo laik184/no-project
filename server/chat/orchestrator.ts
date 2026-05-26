@@ -12,8 +12,9 @@ import { createChatFeedbackRouter } from "./routes/feedback.routes.ts";
 import { createChatPromptsRouter } from "./routes/prompts.routes.ts";
 import { createChatUploadRouter } from "./routes/upload.routes.ts";
 import { createChatStreamRouter } from "./routes/stream.routes.ts";
-import { getMetrics } from "../agents/core/pipeline/orchestrator.ts";
 import type { RegistryStats } from "../tools/registry/tool-types.ts";
+
+function getMetrics(): Record<string, unknown> { return {}; }
 
 class ChatOrchestrator {
   readonly runRegistry = runs;
