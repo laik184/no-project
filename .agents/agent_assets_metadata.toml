@@ -198,3 +198,9 @@ id = "a_8rZHevtwvP0HuhraOl_"
 uri = "file://AGENT_BLUEPRINT.md"
 type = "text"
 title = "NURA-X Agent System Blueprint Report"
+
+[[outputs]]
+id = "sIINbGJ3bES62DMFBnp68"
+uri = "file://server/orchestration/ORCHESTRATION_REPORT.md"
+type = "text"
+title = "Orchestration System — Full Structure & Report"
