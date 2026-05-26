@@ -16,7 +16,7 @@ import type {
 import {
   emitCollapseCompleted, emitCollapseFailed,
 } from "./aggregation-telemetry.ts";
-import { recordSpanStart } from "../../orchestration/telemetry/orchestration-trace.ts";
+import { recordSpanStart } from "../../orchestration/telemetry/metrics.ts";
 
 // ── Public API ─────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,5 @@
 import type { OrchestrationContext } from '../events/event-types.ts';
-import { stateManager } from './state-manager.ts';
-import { lifecycleManager, LifecycleState } from './lifecycle-manager.ts';
+import { runManager } from './run-manager.ts';
 import { ExecutionEngine } from './execution-engine.ts';
 import { runAnalyzePhase } from '../pipeline/analyze-phase.ts';
 import { runPlanningPhase } from '../pipeline/planning-phase.ts';
@@ -60,28 +59,21 @@ export class Orchestrator {
       metadata: validated.metadata,
     };
 
-    stateManager.init(runId);
-    lifecycleManager.register(runId);
+    runManager.create(runId, validated.metadata);
     performanceMonitor.trackRunStart();
-
     runLogger.log(runId, 'info', `[orchestrator] Run started for project "${ctx.projectId}"`);
 
     try {
-      stateManager.transition(runId, 'running');
-      lifecycleManager.transition(runId, LifecycleState.Starting);
-      lifecycleManager.transition(runId, LifecycleState.Running);
+      runManager.transition(runId, 'running');
       emitRunStarted(runId);
 
       const result = await this.executePipeline(ctx);
 
       if (result.success) {
-        stateManager.transition(runId, 'completed');
-        lifecycleManager.transition(runId, LifecycleState.Completing);
-        lifecycleManager.transition(runId, LifecycleState.Completed);
+        runManager.transition(runId, 'completed');
         emitRunCompleted(runId, elapsed(ctx.startedAt));
       } else {
-        stateManager.transition(runId, 'failed');
-        lifecycleManager.transition(runId, LifecycleState.Failed);
+        runManager.transition(runId, 'failed');
         emitRunFailed(runId, (result.failedPhase as any) ?? 'execution', result.error ?? 'Unknown failure');
       }
 
@@ -93,12 +85,10 @@ export class Orchestrator {
         error: result.error,
       };
     } catch (err) {
-      const failure = failureHandler.classify(runId, stateManager.get(runId)?.phase ?? 'execution', err);
-      stateManager.setError(runId, failure.message);
-      stateManager.transition(runId, 'failed');
-      lifecycleManager.transition(runId, LifecycleState.Failed);
-      emitRunFailed(runId, stateManager.get(runId)?.phase ?? 'execution', failure.message, failure.recoverable);
-
+      const failure = failureHandler.classify(runId, runManager.get(runId)?.phase ?? 'execution', err);
+      runManager.setError(runId, failure.message);
+      runManager.transition(runId, 'failed');
+      emitRunFailed(runId, runManager.get(runId)?.phase ?? 'execution', failure.message, failure.recoverable);
       return { runId, success: false, durationMs: elapsed(ctx.startedAt), error: failure.message };
     } finally {
       performanceMonitor.trackRunEnd();
@@ -118,7 +108,6 @@ export class Orchestrator {
       phase: 'planning',
       timeoutMs: 30_000,
       run: async (c) => {
-        const analyzeResult = stateManager.get(c.runId);
         const fakeAnalysis = { complexityScore: 50, executionMode: 'standard' as const, estimatedTaskCount: 5, requiresBrowser: true, requiresVerification: true, tags: [] };
         return runPlanningPhase(c, fakeAnalysis);
       },
@@ -150,14 +139,11 @@ export class Orchestrator {
   }
 
   getActiveRuns(): string[] {
-    return lifecycleManager.getActiveRuns();
+    return runManager.getActiveRuns();
   }
 
   getRunStatus(runId: string) {
-    return {
-      lifecycle: lifecycleManager.get(runId),
-      state: stateManager.get(runId),
-    };
+    return { run: runManager.get(runId) };
   }
 }
 

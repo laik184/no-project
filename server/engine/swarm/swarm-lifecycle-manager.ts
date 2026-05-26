@@ -25,7 +25,7 @@ import {
 import { clearResults }   from "./swarm-result-aggregator.ts";
 import { clearConflicts } from "./swarm-conflict-router.ts";
 import { clearAll }       from "./swarm-priority-router.ts";
-import { incrementCounter } from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter } from "../../orchestration/telemetry/metrics.ts";
 
 // ── Active session timeout registry ──────────────────────────────────────────
 

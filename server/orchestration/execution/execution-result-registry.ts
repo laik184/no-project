@@ -1,38 +1,40 @@
 export interface ExecutionStats {
   runId: string;
-  tasksTotal: number;
-  tasksCompleted: number;
-  tasksFailed: number;
-  durationMs: number;
-  phases: string[];
-  completedAt: Date;
+  projectId: number;
+  goal: string;
+  success: boolean;
+  totalSteps: number;
+  stopReason: string;
+  summary: string;
+  verificationRetries: number;
+  totalToolCalls: number;
+  unknownToolCalls: number;
+  failedToolCalls: number;
+  messages: unknown[];
+  error?: string;
 }
 
 const registry = new Map<string, ExecutionStats>();
 
 export function storeExecutionStats(stats: ExecutionStats): void {
-  registry.set(stats.runId, { ...stats, completedAt: stats.completedAt ?? new Date() });
+  registry.set(stats.runId, stats);
 }
 
 export function getExecutionStats(runId: string): ExecutionStats | undefined {
   return registry.get(runId);
 }
 
-export function getAllExecutionStats(): ExecutionStats[] {
-  return Array.from(registry.values()).sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
-}
-
-export function clearExecutionStats(runId: string): void {
-  registry.delete(runId);
-}
-
 export function getRecentRuns(limit = 20): ExecutionStats[] {
-  return getAllExecutionStats().slice(0, limit);
+  const all = Array.from(registry.values());
+  return all.slice(-limit);
 }
 
 export function getSuccessRate(): number {
-  const all = getAllExecutionStats();
+  const all = Array.from(registry.values());
   if (all.length === 0) return 0;
-  const succeeded = all.filter((s) => s.tasksFailed === 0).length;
-  return Math.round((succeeded / all.length) * 100);
+  return all.filter((s) => s.success).length / all.length;
+}
+
+export function clearRun(runId: string): void {
+  registry.delete(runId);
 }

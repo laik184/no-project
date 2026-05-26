@@ -5,7 +5,7 @@
  * conflict counts, and confidence distributions per quantum run.
  */
 
-import { incrementCounter, recordDuration } from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter, recordDuration } from "../../orchestration/telemetry/metrics.ts";
 
 // ── Per-run collapse snapshot ─────────────────────────────────────────────────
 

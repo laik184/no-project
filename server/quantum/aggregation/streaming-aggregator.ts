@@ -22,7 +22,7 @@ import { rankPaths, findMergeGroups }             from "./confidence-scorer.ts";
 import { recordPathResult, getAllResults }         from "./result-aggregator.ts";
 import type { PathResult, ExecutionPath }         from "../types/path.types.ts";
 import type { AggregatedResult }                  from "../types/quantum.types.ts";
-import { incrementCounter }                       from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter }                       from "../../orchestration/telemetry/metrics.ts";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 

@@ -1,7 +1,5 @@
 import { Router, type Request, type Response } from 'express';
 import { orchestrator } from './core/orchestrator.ts';
-import { initDagExecutors } from '../engine/execution/index.ts';
-import { distributedOrchestrationWiring } from '../distributed/orchestration/distributed-orchestration-wiring.ts';
 import { runLogger } from './telemetry/run-logger.ts';
 import { validateStartRun } from './utils/validators.ts';
 import { metricsCollector } from './telemetry/metrics.ts';
@@ -19,24 +17,7 @@ export function initOrchestration(): void {
     console.warn('[orchestration] orchestrator.init failed:', err instanceof Error ? err.message : err);
   }
 
-  try {
-    initDagExecutors();
-  } catch (err) {
-    console.warn('[orchestration] initDagExecutors failed:', err instanceof Error ? err.message : err);
-  }
-
-  try {
-    distributedOrchestrationWiring.wire().then((report) => {
-      console.log(`[orchestration] Distributed wiring complete — ${report.wired.length} systems wired, backend=${report.backend}`);
-    }).catch((err) => {
-      console.warn('[orchestration] Distributed wiring warning:', err instanceof Error ? err.message : err);
-    });
-  } catch (err) {
-    console.warn('[orchestration] distributedOrchestrationWiring.wire failed:', err instanceof Error ? err.message : err);
-  }
-
   performanceMonitor.start({ intervalMs: 30_000, memoryThresholdMb: 768 });
-
   console.log('[orchestration] Orchestration layer initialized');
 }
 
@@ -57,7 +38,7 @@ export function createOrchestrationRouter(): Router {
   router.get('/runs/:runId', (req: Request, res: Response) => {
     const { runId } = req.params;
     const status = orchestrator.getRunStatus(runId);
-    if (!status.lifecycle && !status.state) {
+    if (!status.run) {
       return res.status(404).json({ ok: false, error: 'Run not found' });
     }
     res.json({ ok: true, runId, ...status });

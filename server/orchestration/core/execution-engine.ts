@@ -2,7 +2,7 @@ import type { OrchestrationContext, PhaseResult, OrchestrationPhase } from '../e
 import { runLogger } from '../telemetry/run-logger.ts';
 import { emitPhaseStarted, emitMetric } from '../events/orchestration-events.ts';
 import { withTimeout, timed } from '../utils/execution-utils.ts';
-import { stateManager } from './state-manager.ts';
+import { runManager } from './run-manager.ts';
 import { metricsCollector } from '../telemetry/metrics.ts';
 
 export interface EngineTask {
@@ -47,7 +47,7 @@ export class ExecutionEngine {
         continue;
       }
 
-      stateManager.setPhase(ctx.runId, task.phase);
+      runManager.setPhase(ctx.runId, task.phase);
       emitPhaseStarted(ctx.runId, task.phase);
 
       const timeout = task.timeoutMs ?? ctx.timeoutMs;

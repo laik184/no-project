@@ -7,7 +7,7 @@
  */
 
 import type { PathResult } from "../types/path.types.ts";
-import { incrementCounter } from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter } from "../../orchestration/telemetry/metrics.ts";
 
 // ── Verification result ───────────────────────────────────────────────────────
 

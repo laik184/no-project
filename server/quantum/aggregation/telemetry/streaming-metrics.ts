@@ -6,7 +6,7 @@
  * Single responsibility: metric recording only.
  */
 
-import { incrementCounter } from "../../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter } from "../../../orchestration/telemetry/metrics.ts";
 import { AGG_METRICS }     from "./aggregation-event-map.ts";
 
 // ── Internal timing registry ──────────────────────────────────────────────────

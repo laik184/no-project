@@ -6,8 +6,8 @@
  */
 
 import { bus }                      from "../../infrastructure/events/bus.ts";
-import { incrementCounter }         from "../../orchestration/telemetry/orchestration-metrics.ts";
-import { recordSpanStart, recordSpanEnd, addSpanEvent } from "../../orchestration/telemetry/orchestration-trace.ts";
+import { incrementCounter }         from "../../orchestration/telemetry/metrics.ts";
+import { recordSpanStart, recordSpanEnd, addSpanEvent } from "../../orchestration/telemetry/metrics.ts";
 import type { MergeConflict, CollapsedExecutionState, ValidationReport } from "./aggregation-types.ts";
 
 // ── Aggregation lifecycle ─────────────────────────────────────────────────────

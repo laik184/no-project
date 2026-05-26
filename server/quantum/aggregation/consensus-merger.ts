@@ -13,7 +13,7 @@ import { getAllResults }             from "./result-aggregator.ts";
 import { resolveAll }               from "../conflicts/conflict-resolver.ts";
 import { hasUnresolved }            from "../conflicts/file-conflict-detector.ts";
 import { detectConflicts }          from "../conflicts/file-conflict-detector.ts";
-import { incrementCounter }         from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter }         from "../../orchestration/telemetry/metrics.ts";
 
 // ── Merger ────────────────────────────────────────────────────────────────────
 

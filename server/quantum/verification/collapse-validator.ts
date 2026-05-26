@@ -14,7 +14,7 @@
 import type { CollapsedState }  from "../types/quantum.types.ts";
 import type { AggregatedResult } from "../types/quantum.types.ts";
 import { hasUnresolved }         from "../conflicts/file-conflict-detector.ts";
-import { incrementCounter }      from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter }      from "../../orchestration/telemetry/metrics.ts";
 
 // ── Validation result ─────────────────────────────────────────────────────────
 

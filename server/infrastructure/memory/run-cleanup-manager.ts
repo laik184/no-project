@@ -32,7 +32,7 @@ import { clearGraph }       from "../../execution-graph/graph-store.ts";
 import { clearEvents }      from "../../telemetry/telemetry-collector.ts";
 import { unregisterRun }    from "../../chat/run/registry.ts";
 import { clearCheckpoints } from "../../orchestration/core/orchestration-replay.ts";
-import { clearState }       from "../../orchestration/core/orchestration-state.ts";
+import { runManager }       from "../../orchestration/core/run-manager.ts";
 import { clearContext }     from "../../orchestration/core/orchestration-context.ts";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ function evictRun(runId: string, projectId: number, reason: string): void {
     clearEvents(runId);
     unregisterRun(runId);
     clearCheckpoints(runId);
-    clearState(runId);
+    runManager.clear(runId);
     clearContext(runId);
 
     _pending.delete(runId);

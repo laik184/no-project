@@ -14,7 +14,7 @@
  */
 
 import { bus }              from "../../infrastructure/events/bus.ts";
-import { incrementCounter } from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter } from "../../orchestration/telemetry/metrics.ts";
 import type { UnifiedConflict, ConflictResolutionStrategy } from "../conflicts/conflict-types.ts";
 
 // ── Event name constants ──────────────────────────────────────────────────────

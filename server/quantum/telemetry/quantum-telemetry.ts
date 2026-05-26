@@ -7,7 +7,7 @@
  */
 
 import { bus } from "../../../server/infrastructure/events/bus.ts";
-import { incrementCounter, recordDuration } from "../../orchestration/telemetry/orchestration-metrics.ts";
+import { incrementCounter, recordDuration } from "../../orchestration/telemetry/metrics.ts";
 import type { ExecutionPath } from "../types/path.types.ts";
 import type { PathConflict } from "../types/path.types.ts";
 

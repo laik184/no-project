@@ -51,7 +51,6 @@ import { initRuntimeMemoryCollector }  from './server/memory/runtime/runtime-mem
 import { initReflectionMemoryBridge }  from './server/memory/reflection/reflection-memory-bridge.ts';
 import { fileLockManager }            from './server/quantum/locks/index.ts';
 import { startSweeper as startPortSweeper } from './server/runtime/network/port-allocation-authority.ts';
-import { parallelOrchestrationFabric } from './server/orchestration/distributed/index.ts';
 import { createRunTelemetryRouter }    from './server/api/run-telemetry.routes.ts';
 import { contextRegistry }             from './server/coordination/index.ts';
 import { wireCoordinationSSE }         from './server/coordination/telemetry/coordination-sse-bridge.ts';
@@ -258,8 +257,6 @@ server.listen(PORT, '0.0.0.0', async () => {
   initReflectionMemoryBridge();
   // Start file lock stale cleaner — evicts expired/zombie locks every 10s
   fileLockManager.startCleaner();
-  // Start parallel orchestration fabric — capacity-gated multi-run coordinator
-  parallelOrchestrationFabric.start();
   // Start port allocation sweeper — evicts stale run port reservations every 5 min
   startPortSweeper(300_000);
   // Start coordination context sweeper — evicts stale/leaked coordination contexts every 60s
@@ -273,7 +270,6 @@ async function gracefulShutdown(signal: string): Promise<void> {
   console.log(`[nura-x] ${signal} received — graceful shutdown`);
   observationController.stop();
   fileLockManager.stopCleaner();
-  parallelOrchestrationFabric.stop();
   // Flush runtime state to disk and SIGKILL all children before exit
   await runtimeManager.shutdown();
   server.close(() => process.exit(0));
