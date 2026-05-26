@@ -1,0 +1,1 @@
+- [Agent deletion stubs](agent-deletion-stubs.md) — When deleting agents in nura-x, create no-op stubs not full rewrites; kept agents are self-contained; core/tool-loop must always be stubbed.

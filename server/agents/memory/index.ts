@@ -1,59 +1,33 @@
 /**
- * server/memory/index.ts
- *
- * Public API for the execution memory layer.
- *
- * Preferred usage: MemoryManager.for(projectId)
- *
- * The function exports are kept for backwards-compatibility.
- * New consumers should use MemoryManager.
+ * server/agents/memory/index.ts — STUB
+ * Memory agent was removed. Provides no-op MemoryManager.
  */
 
-// ── Primary API ───────────────────────────────────────────────────────────────
+export class MemoryManager {
+  private static instances = new Map<number, MemoryManager>();
 
-export { MemoryManager }               from "./manager/memory-manager.ts";
+  static for(projectId: number): MemoryManager {
+    if (!this.instances.has(projectId)) {
+      this.instances.set(projectId, new MemoryManager(projectId));
+    }
+    return this.instances.get(projectId)!;
+  }
 
-// ── Function API (backwards-compatible) ──────────────────────────────────────
+  private constructor(private projectId: number) {}
 
-export { buildProjectContext }         from "./context/project-context-builder.ts";
-export { summarizeAndPersist }         from "./context/run-summarizer.ts";
+  async loadContext(_opts?: { runId?: string; goal?: string }): Promise<string | null> { return null; }
+  async saveRunSummary(_runId: string, _goal: string, _result: unknown): Promise<void> {}
+  async persistConversation(_runId: string, _goal: string, _messages: unknown): Promise<void> {}
+  async trackTaskOutcome(_runId: string | { runId: string; goal: string; success: boolean; maxStepsReached: boolean }, _goal?: string, _result?: unknown): Promise<void> {}
 
-// ── Conversation persistence [C8] ─────────────────────────────────────────────
-
-export { persistConversation }         from "./conversation/conversation-persister.ts";
-export { extractChatTurns }            from "./conversation/message-extractor.ts";
-export {
-  persistChatTurn,
-  persistChatTurns,
-  loadChatTurns,
-}                                      from "./persistence/chat-message-store.ts";
-
-// ── Task memory [C8] ──────────────────────────────────────────────────────────
-
-export {
-  readTasksMd,
-  appendPendingTask,
-  appendCompletedTask,
-}                                      from "./task-memory/tasks-store.ts";
-
-// ── Human-readable .md file store [C9] ───────────────────────────────────────
-
-export {
-  readProgressMd,
-  appendProgressMd,
-  readDecisionsMd,
-  appendDecisionMd,
-  readFailedAttemptsMd,
-  appendFailedAttemptMd,
-}                                      from "./persistence/memory-store.ts";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type { SummarizableResult }     from "./context/run-summarizer.ts";
-export type { ChatTurnInsert }         from "./persistence/chat-message-store.ts";
-export type {
-  RunSummary,
-  FailureEntry,
-  ArchitectureDecision,
-  ProjectMemory,
-}                                      from "./types.ts";
+  async appendDecisionMd(_content: string): Promise<void> {}
+  async appendProgressMd(_content: string): Promise<void> {}
+  async appendFailedAttemptMd(_content: string): Promise<void> {}
+  async getArchitecture(): Promise<string> { return ""; }
+  async setArchitecture(_content: string): Promise<void> {}
+  async getProgressMd(): Promise<string> { return ""; }
+  async getDecisionsMd(): Promise<string> { return ""; }
+  async getFailedAttemptsMd(): Promise<string> { return ""; }
+  async getTasksMd(): Promise<string> { return ""; }
+  async getRecentRuns(_n: number): Promise<unknown[]> { return []; }
+}
