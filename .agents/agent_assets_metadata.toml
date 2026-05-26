@@ -192,3 +192,9 @@ id = "L1iE9yH2F9YJKhoxfke9T"
 uri = "file://REDIS_DISTRIBUTED_INFRASTRUCTURE_XRAY_REPORT.md"
 type = "text"
 title = "Redis Distributed Infrastructure X-Ray Report"
+
+[[outputs]]
+id = "a_8rZHevtwvP0HuhraOl_"
+uri = "file://AGENT_BLUEPRINT.md"
+type = "text"
+title = "NURA-X Agent System Blueprint Report"
