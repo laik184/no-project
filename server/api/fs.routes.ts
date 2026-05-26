@@ -1,10 +1,26 @@
 import { Router, type Request, type Response } from "express";
 import fs from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 import { getProjectDir, resolveSafe, ensureProjectDir } from "../infrastructure/sandbox/sandbox.util.ts";
 import { emitFileChange }   from "../infrastructure/events/file-change-emitter.ts";
 import { safeWriteFile, safeDeleteFile } from "../infrastructure/checkpoints/safe-fs.util.ts";
 import { watcherRegistry }  from "../infrastructure/filesystem/watcher/watcher-registry.ts";
+
+const SANDBOX_ROOT = process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
+
+function sandboxHash(content: string): string {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+function resolveSandboxPath(filePath: string): string {
+  const abs = path.resolve(SANDBOX_ROOT, filePath);
+  const root = path.resolve(SANDBOX_ROOT);
+  if (!abs.startsWith(root + path.sep) && abs !== root) {
+    throw new Error("Path traversal detected");
+  }
+  return abs;
+}
 
 export function createFsRouter(): Router {
   const router = Router();
@@ -89,6 +105,40 @@ export function createFsRouter(): Router {
 
       emitFileChange(projectId, "unlink", filePath);
       res.json({ ok: true, path: filePath, deleted: true, backup: result.backupPath ?? undefined });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  router.post("/conflict-check", async (req: Request, res: Response) => {
+    try {
+      const { path: filePath, hash } = req.body as { path?: string; hash?: string };
+      if (!filePath || !hash) {
+        return res.status(400).json({ ok: false, error: "path and hash are required" });
+      }
+      const abs = resolveSandboxPath(filePath);
+      const content = await fs.readFile(abs, "utf-8").catch(() => null);
+      if (content === null) {
+        return res.json({ ok: true, conflict: false });
+      }
+      const serverHash = sandboxHash(content);
+      res.json({ ok: true, conflict: serverHash !== hash, serverHash });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  router.post("/conflict-details", async (req: Request, res: Response) => {
+    try {
+      const { path: filePath } = req.body as { path?: string };
+      if (!filePath) {
+        return res.status(400).json({ ok: false, error: "path is required" });
+      }
+      const abs = resolveSandboxPath(filePath);
+      const serverContent = await fs.readFile(abs, "utf-8").catch(() => "");
+      const serverHash = sandboxHash(serverContent);
+      const serverVersionId = `${Date.now()}`;
+      res.json({ ok: true, serverContent, serverHash, serverVersionId });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: e.message });
     }
