@@ -1,191 +1,63 @@
-/**
- * verification-bridge.ts
- *
- * Typed bridge between the orchestration engine and the browser verification system.
- * Wires verification into runtime completion, deployment checks, and recovery validation.
- */
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
-import { emitAgentCoordination } from "../core/orchestration-events.ts";
-import { recordSpanStart, recordSpanEnd } from "../telemetry/orchestration-trace.ts";
-import { incrementCounter, recordDuration } from "../telemetry/orchestration-metrics.ts";
-import { waitForRuntimeReady }  from "../execution/runtime-sync.ts";
-import { bus }                  from "../../infrastructure/events/bus.ts";
-import type { BridgeResult }    from "../core/orchestration-types.ts";
+const execAsync = promisify(exec);
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface VerificationInput {
-  runId:        string;
-  projectId:    number;
-  port?:        number;
-  checks:       VerificationCheck[];
-  timeoutMs?:   number;
+export interface VerificationCheck {
+  name: string;
+  passed: boolean;
+  output: string;
+  durationMs: number;
+  error?: string;
 }
-
-export type VerificationCheck =
-  | "port_open"
-  | "http_200"
-  | "runtime_healthy"
-  | "no_console_errors"
-  | "screenshot_valid";
 
 export interface VerificationResult {
-  passed:    boolean;
-  checks:    CheckResult[];
-  score:     number;
-  summary:   string;
+  passed: boolean;
+  checks: VerificationCheck[];
+  summary: string;
+  durationMs: number;
 }
 
-export interface CheckResult {
-  check:   VerificationCheck;
-  passed:  boolean;
-  message: string;
-  details?: unknown;
-}
-
-// ── Bridge ────────────────────────────────────────────────────────────────────
-
-class VerificationBridge {
-  async verify(input: VerificationInput): Promise<BridgeResult<VerificationResult>> {
-    const { runId, projectId, checks } = input;
-    const t0      = Date.now();
-    const timeout = input.timeoutMs ?? 30_000;
-    const spanId  = recordSpanStart(runId, "verification.run", {
-      projectId: String(projectId),
-      checks:    checks.join(","),
-    });
-
-    try {
-      emitAgentCoordination({
-        runId, projectId,
-        agentName: "verifier",
-        role:      "verifier",
-        outcome:   "success",
-        phase:     "verify",
-      });
-
-      const results: CheckResult[] = [];
-
-      for (const check of checks) {
-        const r = await this.runCheck({ check, runId, projectId, port: input.port, timeout });
-        results.push(r);
-      }
-
-      const passed  = results.every(r => r.passed);
-      const passCount = results.filter(r => r.passed).length;
-      const score   = passCount / results.length;
-
-      // Emit runtime.verified event to integrate with existing system
-      bus.emit("runtime.verified", {
-        projectId,
-        outcome:   passed ? "verified" : "failed",
-        port:      input.port,
-        summary:   `${passCount}/${results.length} checks passed`,
-        analysis:  results,
-        probe:     { checks },
-        elapsedMs: Date.now() - t0,
-        ts:        Date.now(),
-      });
-
-      const result: VerificationResult = {
-        passed,
-        checks: results,
-        score,
-        summary: `${passCount}/${results.length} checks passed`,
-      };
-
-      incrementCounter(passed ? "verification.passed" : "verification.failed", {
-        projectId: String(projectId),
-      });
-      recordDuration("verification.duration", Date.now() - t0, { projectId: String(projectId) });
-      recordSpanEnd(spanId, passed ? "ok" : "error");
-
-      return { success: passed, data: result, durationMs: Date.now() - t0, retryable: !passed };
-
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      recordSpanEnd(spanId, "error");
-      return { success: false, error: msg, durationMs: Date.now() - t0, retryable: true };
-    }
-  }
-
-  async verifyRuntimeReady(opts: {
-    runId:     string;
-    projectId: number;
-    timeoutMs?: number;
-  }): Promise<BridgeResult<{ port?: number }>> {
-    const t0 = Date.now();
-    try {
-      const { port } = await waitForRuntimeReady(opts.projectId, opts.timeoutMs);
-      return { success: true, data: { port }, durationMs: Date.now() - t0, retryable: false };
-    } catch (err) {
-      return { success: false, error: String(err), durationMs: Date.now() - t0, retryable: true };
-    }
-  }
-
-  // ── Individual check runner ──────────────────────────────────────────────────
-
-  private async runCheck(opts: {
-    check:     VerificationCheck;
-    runId:     string;
-    projectId: number;
-    port?:     number;
-    timeout:   number;
-  }): Promise<CheckResult> {
-    const { check, projectId, port } = opts;
-
-    try {
-      switch (check) {
-        case "port_open": {
-          if (!port) return { check, passed: false, message: "No port specified" };
-          const open = await this.probePort(port, opts.timeout);
-          return { check, passed: open, message: open ? `Port ${port} is open` : `Port ${port} not responding` };
-        }
-
-        case "runtime_healthy": {
-          const { getRuntimeSnapshot } = await import("../execution/runtime-sync.ts");
-          const snap = getRuntimeSnapshot(projectId);
-          return { check, passed: snap.healthy, message: snap.healthy ? "Runtime healthy" : snap.message };
-        }
-
-        case "http_200": {
-          if (!port) return { check, passed: false, message: "No port for HTTP check" };
-          const ok = await this.httpCheck(port);
-          return { check, passed: ok, message: ok ? `HTTP 200 on port ${port}` : `HTTP check failed on port ${port}` };
-        }
-
-        default:
-          return { check, passed: true, message: `Check ${check} skipped (not implemented)` };
-      }
-    } catch (err) {
-      return { check, passed: false, message: String(err) };
-    }
-  }
-
-  private async probePort(port: number, timeoutMs: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      const { createConnection } = require("net");
-      const socket = createConnection({ port, host: "127.0.0.1" });
-      const timer  = setTimeout(() => { socket.destroy(); resolve(false); }, timeoutMs);
-      socket.on("connect", () => { clearTimeout(timer); socket.destroy(); resolve(true); });
-      socket.on("error",   () => { clearTimeout(timer); resolve(false); });
-    });
-  }
-
-  private async httpCheck(port: number): Promise<boolean> {
-    try {
-      const { default: http } = await import("http");
-      return new Promise((resolve) => {
-        const req = http.get(`http://127.0.0.1:${port}/`, (res) => {
-          resolve(res.statusCode !== undefined && res.statusCode < 500);
-        });
-        req.on("error", () => resolve(false));
-        req.setTimeout(5000, () => { req.destroy(); resolve(false); });
-      });
-    } catch {
-      return false;
-    }
+async function runShellCheck(name: string, cmd: string, cwd: string, timeoutMs = 60_000): Promise<VerificationCheck> {
+  const start = Date.now();
+  try {
+    const { stdout, stderr } = await execAsync(cmd, { cwd, timeout: timeoutMs });
+    return { name, passed: true, output: (stdout + stderr).trim().slice(0, 3000), durationMs: Date.now() - start };
+  } catch (err) {
+    const output = err instanceof Error ? err.message.slice(0, 3000) : String(err);
+    return { name, passed: false, output, durationMs: Date.now() - start, error: `Check "${name}" failed` };
   }
 }
 
-export const verificationBridge = new VerificationBridge();
+export const verificationBridge = {
+  async verify(projectRoot: string, checks: string[] = ['typescript', 'build']): Promise<VerificationResult> {
+    const start = Date.now();
+    const results: VerificationCheck[] = [];
+
+    if (checks.includes('typescript')) {
+      results.push(await runShellCheck('typescript', 'npx tsc --noEmit --skipLibCheck 2>&1 | head -50', projectRoot));
+    }
+
+    if (checks.includes('build')) {
+      results.push(await runShellCheck('build', 'npm run build 2>&1 | tail -30', projectRoot));
+    }
+
+    const passed = results.every((r) => r.passed);
+    const failures = results.filter((r) => !r.passed).map((r) => r.name);
+
+    return {
+      passed,
+      checks: results,
+      summary: passed ? 'All checks passed' : `Failed: ${failures.join(', ')}`,
+      durationMs: Date.now() - start,
+    };
+  },
+
+  async verifyTypeScript(projectRoot: string): Promise<VerificationCheck> {
+    return runShellCheck('typescript', 'npx tsc --noEmit --skipLibCheck 2>&1 | head -50', projectRoot);
+  },
+
+  async verifyBuild(projectRoot: string): Promise<VerificationCheck> {
+    return runShellCheck('build', 'npm run build 2>&1 | tail -30', projectRoot);
+  },
+};

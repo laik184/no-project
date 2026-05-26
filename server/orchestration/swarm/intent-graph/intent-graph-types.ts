@@ -1,98 +1,74 @@
-/**
- * intent-graph-types.ts
- *
- * Type contracts for the IntentGraph analysis layer.
- * Single responsibility: shape definitions only — no logic, no imports.
- *
- * Intent model:
- *   A user goal is parsed into an IntentGraph — a directed DAG of IntentNodes
- *   where edges represent execution dependencies. Each node maps to one or more
- *   specialist domains. The graph drives QuantumDAGEngine wave scheduling.
- *
- * Execution strategy classification:
- *   TOOL_LOOP   → single-agent, simple query, no file writes
- *   PLANNED     → single-domain, medium complexity, sequential steps
- *   DAG         → multi-step with dependencies, parallel execution possible
- *   SWARM       → multi-domain, parallel specialist execution required
- *   QUANTUM     → exploratory / high uncertainty, superposition paths needed
- */
+export type IntentNodeType =
+  | 'analyze'
+  | 'plan'
+  | 'execute'
+  | 'verify'
+  | 'browser'
+  | 'fix'
+  | 'complete';
 
-// ── Domain classification ──────────────────────────────────────────────────────
-
-export type SpecialistDomainHint =
-  | "backend"
-  | "frontend"
-  | "database"
-  | "security"
-  | "runtime"
-  | "verification"
-  | "fullstack";
-
-// ── Execution strategy ────────────────────────────────────────────────────────
-
-export type ExecutionStrategy =
-  | "tool-loop"
-  | "planned"
-  | "dag"
-  | "swarm"
-  | "quantum";
-
-export interface StrategyRationale {
-  strategy:     ExecutionStrategy;
-  confidence:   number;         // 0.0–1.0
-  reasons:      string[];       // human-readable justifications
-  domainCount:  number;         // number of distinct domains involved
-  complexityScore: number;      // 0–100
-}
-
-// ── Intent node ───────────────────────────────────────────────────────────────
+export type IntentNodeStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'skipped';
 
 export interface IntentNode {
-  id:         string;            // stable deterministic ID: "intent-{hash}"
-  label:      string;            // short human-readable description
-  domain:     SpecialistDomainHint;
-  priority:   "critical" | "high" | "normal" | "low";
-  /** True if this node can run concurrently with its peers. */
-  parallel:   boolean;
-  /** Estimated LLM tokens this task will consume. */
-  estimatedTokens: number;
-  /** Raw goal fragment this node represents. */
-  goalFragment: string;
+  id: string;
+  type: IntentNodeType;
+  label: string;
+  status: IntentNodeStatus;
+  dependsOn: string[];
+  metadata: Record<string, unknown>;
+  startedAt?: Date;
+  completedAt?: Date;
+  error?: string;
 }
-
-// ── Intent edge ───────────────────────────────────────────────────────────────
 
 export interface IntentEdge {
-  from:   string;   // IntentNode.id that must complete first
-  to:     string;   // IntentNode.id that depends on `from`
-  type:   "data" | "ordering" | "structural";
-  weight: number;   // dependency strength 0–1
+  from: string;
+  to: string;
+  label?: string;
 }
-
-// ── Intent graph ──────────────────────────────────────────────────────────────
 
 export interface IntentGraph {
-  runId:            string;
-  goal:             string;
-  nodes:            IntentNode[];
-  edges:            IntentEdge[];
-  /** Topologically ordered execution waves (each wave runs in parallel). */
-  waves:            string[][];
-  strategy:         StrategyRationale;
-  /** Total estimated tokens across all nodes. */
-  totalTokens:      number;
-  /** Estimated parallelism factor (1.0 = fully sequential). */
-  parallelismFactor: number;
-  builtAt:          number;
+  graphId: string;
+  runId: string;
+  nodes: IntentNode[];
+  edges: IntentEdge[];
+  createdAt: Date;
+  goal: string;
 }
 
-// ── Cost estimate ─────────────────────────────────────────────────────────────
+export function createIntentGraph(runId: string, goal: string): IntentGraph {
+  return {
+    graphId: `graph_${runId}`,
+    runId,
+    nodes: [],
+    edges: [],
+    createdAt: new Date(),
+    goal,
+  };
+}
 
-export interface ComplexityEstimate {
-  score:           number;    // 0–100
-  domainCount:     number;
-  nodeCount:       number;
-  estimatedWaves:  number;
-  estimatedTokens: number;
-  hasCircularRisk: boolean;   // any potential circular dependency patterns
+export function addNode(graph: IntentGraph, node: Omit<IntentNode, 'status' | 'metadata'>): IntentNode {
+  const n: IntentNode = { ...node, status: 'pending', metadata: {} };
+  graph.nodes.push(n);
+  return n;
+}
+
+export function addEdge(graph: IntentGraph, from: string, to: string, label?: string): void {
+  graph.edges.push({ from, to, label });
+}
+
+export function getNode(graph: IntentGraph, id: string): IntentNode | undefined {
+  return graph.nodes.find((n) => n.id === id);
+}
+
+export function getReadyNodes(graph: IntentGraph): IntentNode[] {
+  const completed = new Set(graph.nodes.filter((n) => n.status === 'completed').map((n) => n.id));
+  return graph.nodes.filter(
+    (n) => n.status === 'pending' && n.dependsOn.every((dep) => completed.has(dep))
+  );
 }

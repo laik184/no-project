@@ -1,41 +1,38 @@
-/**
- * server/orchestration/execution/execution-result-registry.ts
- *
- * Thin shared store: tool-loop executor writes run stats after completion,
- * orchestration engine reads them for post-execution engine phases.
- *
- * No business logic. No direct coupling between layers.
- * Single responsibility: store and retrieve ExecutionStats per runId.
- */
-
 export interface ExecutionStats {
-  runId:               string;
-  projectId:           number;
-  goal:                string;
-  success:             boolean;
-  totalSteps:          number;
-  stopReason:          string;
-  summary:             string;
-  verificationRetries: number;
-  totalToolCalls:      number;
-  unknownToolCalls:    number;
-  failedToolCalls:     number;
-  messages:            unknown[];   // ToolMessage[] — typed loosely to avoid circular dep
-  error?:              string;
+  runId: string;
+  tasksTotal: number;
+  tasksCompleted: number;
+  tasksFailed: number;
+  durationMs: number;
+  phases: string[];
+  completedAt: Date;
 }
 
-// ── In-memory registry ────────────────────────────────────────────────────────
-
-const _results = new Map<string, ExecutionStats>();
+const registry = new Map<string, ExecutionStats>();
 
 export function storeExecutionStats(stats: ExecutionStats): void {
-  _results.set(stats.runId, stats);
+  registry.set(stats.runId, { ...stats, completedAt: stats.completedAt ?? new Date() });
 }
 
 export function getExecutionStats(runId: string): ExecutionStats | undefined {
-  return _results.get(runId);
+  return registry.get(runId);
+}
+
+export function getAllExecutionStats(): ExecutionStats[] {
+  return Array.from(registry.values()).sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
 }
 
 export function clearExecutionStats(runId: string): void {
-  _results.delete(runId);
+  registry.delete(runId);
+}
+
+export function getRecentRuns(limit = 20): ExecutionStats[] {
+  return getAllExecutionStats().slice(0, limit);
+}
+
+export function getSuccessRate(): number {
+  const all = getAllExecutionStats();
+  if (all.length === 0) return 0;
+  const succeeded = all.filter((s) => s.tasksFailed === 0).length;
+  return Math.round((succeeded / all.length) * 100);
 }
