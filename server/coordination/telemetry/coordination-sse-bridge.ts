@@ -51,6 +51,20 @@ export const COORDINATION_SSE_EVENTS = new Set([
   "agent.failed",
   "verification.start",
   "verification.complete",
+  // Aggregation lifecycle — emitted by aggregation-execution-layer.ts
+  "aggregation.started",
+  "aggregation.partial",
+  "aggregation.completed",
+  "aggregation.failed",
+  // Replay lifecycle — emitted by replay-journal.ts
+  "replay.started",
+  "replay.completed",
+  "replay.persisted",
+  "replay.hydrated",
+  // Quantum aggregation — emitted by aggregation-telemetry.ts
+  "quantum.aggregation.started",
+  "quantum.aggregation.completed",
+  "quantum.aggregation.failed",
 ]);
 
 // ── Audit listener ────────────────────────────────────────────────────────────

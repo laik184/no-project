@@ -155,7 +155,9 @@ export class MergePipeline {
     }
 
     // ── Stage 6: Reconcile ──────────────────────────────────────────────────
-    const journalResult = replayJournal.replay(runId);
+    // replaySync() returns in-process entries only (no Redis round-trip needed
+    // here — in-process journal is always current during an active merge session).
+    const journalResult = replayJournal.replaySync(runId);
     const appliedPatches = journalResult.patches;
 
     emitReconcileStart(runId, appliedPatches.length);
