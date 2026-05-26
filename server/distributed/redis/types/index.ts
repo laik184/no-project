@@ -33,4 +33,5 @@ export type RedisEventType =
   | "redis.reconnecting"
   | "redis.error"
   | "redis.ready"
-  | "redis.close";
+  | "redis.close"
+  | "redis.unavailable";
