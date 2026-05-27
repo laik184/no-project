@@ -1,4 +1,4 @@
-import type { PlanTask } from '../types/executor.types.ts';
+import type { PlanTask } from './types.ts';
 
 interface QueueEntry {
   task:       PlanTask;
@@ -23,8 +23,7 @@ export class ExecutionQueue {
   }
 
   dequeue(): PlanTask | undefined {
-    const entry = this.items.shift();
-    return entry?.task;
+    return this.items.shift()?.task;
   }
 
   peek(): PlanTask | undefined {

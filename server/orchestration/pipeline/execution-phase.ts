@@ -124,7 +124,7 @@ export async function runExecutionPhase(ctx: OrchestrationContext, plan: Executi
       runId:     ctx.runId,
       projectId: String(ctx.projectId),
       goal:      ctx.goal,
-      plan:      plan as unknown as import('../../agents/executor/types/executor.types.ts').ExecutorInput['plan'],
+      plan:      plan as unknown as import('../../agents/executor/types.ts').ExecutorInput['plan'],
       timeoutMs: ctx.timeoutMs,
       metadata:  ctx.metadata,
     }).catch((err) => {

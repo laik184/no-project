@@ -1,5 +1,4 @@
-import type { ExecutionHistoryEntry } from '../types/execution.types.ts';
-import type { StepResult } from '../types/execution.types.ts';
+import type { ExecutionHistoryEntry, StepResult } from './types.ts';
 
 const MAX_ENTRIES_PER_RUN = 500;
 const store = new Map<string, ExecutionHistoryEntry[]>();
@@ -14,10 +13,9 @@ export const executionHistory = {
     const entries = getOrCreate(runId);
     if (entries.length >= MAX_ENTRIES_PER_RUN) entries.shift();
     entries.push({
-      taskId,
-      runId,
+      taskId, runId,
       stepId:     result.stepId,
-      stepType,
+      stepType:   stepType as any,
       success:    result.success,
       durationMs: result.durationMs,
       output:     result.output,

@@ -1,13 +1,12 @@
-import type { ExecutorSession, ExecutorStatus } from '../types/executor.types.ts';
-import { generateSessionId } from '../utils/execution-helpers.ts';
+import type { ExecutorSession, ExecutorStatus } from './types.ts';
+import { generateSessionId }                   from './utils.ts';
 
 const sessions = new Map<string, ExecutorSession>();
 
 export function createSession(runId: string, projectId: string, tasksTotal: number): ExecutorSession {
   const session: ExecutorSession = {
     sessionId:  generateSessionId(),
-    runId,
-    projectId,
+    runId, projectId,
     status:     'idle',
     startedAt:  new Date(),
     tasksTotal,
@@ -51,7 +50,5 @@ export function getSession(sessionId: string): ExecutorSession | undefined {
 }
 
 export function listActiveSessions(): ExecutorSession[] {
-  return Array.from(sessions.values()).filter(
-    (s) => s.status === 'running' || s.status === 'idle',
-  );
+  return Array.from(sessions.values()).filter((s) => s.status === 'running' || s.status === 'idle');
 }

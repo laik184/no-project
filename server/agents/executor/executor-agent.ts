@@ -1,28 +1,10 @@
-/**
- * executor-agent.ts
- *
- * Public API for the Executor Agent.
- * Responsibilities: initialize, execute tasks, shutdown.
- * Must NOT contain business logic — delegates to executor-engine.
- */
-
-import type { ExecutorInput, ExecutorResult } from './types/executor.types.ts';
-import { runExecutorEngine } from './core/executor-engine.ts';
-import {
-  createSession,
-  startSession,
-  completeSession,
-  failSession,
-  removeSession,
-  listActiveSessions,
-} from './core/execution-session.ts';
-import {
-  registerExecutorEventHandlers,
-  unregisterExecutorEventHandlers,
-} from './events/event-handlers.ts';
-import { safeValidateExecutorInput } from './utils/validators.ts';
-import { executorLogger } from './telemetry/executor-logger.ts';
-import { elapsed } from '../../orchestration/utils/orchestration-helpers.ts';
+import type { ExecutorInput, ExecutorResult }         from './types.ts';
+import { runExecutorEngine }                          from './engine.ts';
+import { createSession, startSession, completeSession, failSession, removeSession, listActiveSessions } from './session.ts';
+import { registerExecutorEventHandlers, unregisterExecutorEventHandlers } from './events.ts';
+import { safeValidateExecutorInput }                  from './utils.ts';
+import { executorLogger }                             from './telemetry.ts';
+import { elapsedMs }                                  from './utils.ts';
 
 let _initialized = false;
 
@@ -55,9 +37,9 @@ export async function executeTask(raw: unknown): Promise<ExecutorResult> {
   const startedAt = new Date();
 
   executorLogger.info(runId, 'executeTask called', {
-    sessionId:  session.sessionId,
-    planId:     input.plan.planId,
-    taskCount:  input.plan.tasks.length,
+    sessionId: session.sessionId,
+    planId:    input.plan.planId,
+    taskCount: input.plan.tasks.length,
   });
 
   startSession(session.sessionId);
@@ -71,7 +53,7 @@ export async function executeTask(raw: unknown): Promise<ExecutorResult> {
     executorLogger.info(runId, `Task execution complete — ok=${result.ok}`, {
       tasksCompleted: result.tasksCompleted,
       tasksFailed:    result.tasksFailed,
-      durationMs:     elapsed(startedAt),
+      durationMs:     elapsedMs(startedAt),
     });
 
     removeSession(session.sessionId);
@@ -88,7 +70,7 @@ export async function executeTask(raw: unknown): Promise<ExecutorResult> {
       tasksTotal:     input.plan.tasks.length,
       tasksCompleted: 0,
       tasksFailed:    input.plan.tasks.length,
-      durationMs:     elapsed(startedAt),
+      durationMs:     elapsedMs(startedAt),
       error,
     };
   }
@@ -104,4 +86,4 @@ export function shutdownExecutor(): void {
   console.log('[executor-agent] Shutdown complete');
 }
 
-export type { ExecutorInput, ExecutorResult } from './types/executor.types.ts';
+export type { ExecutorInput, ExecutorResult } from './types.ts';

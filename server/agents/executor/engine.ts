@@ -1,25 +1,21 @@
-import type { ExecutorInput, ExecutorResult, TaskExecutionResult } from '../types/executor.types.ts';
-import { createExecutionContext, releaseExecutionContext } from './execution-context.ts';
-import { executionState } from './execution-state.ts';
-import { executeTask } from '../execution/task-executor.ts';
-import { executionHistory } from '../execution/execution-history.ts';
-import { checkpointManager } from '../../terminal/recovery/checkpoint-manager.ts';
-import {
-  emitExecutionStarted,
-  emitExecutionCompleted,
-  emitExecutionFailed,
-} from '../events/executor-events.ts';
-import { executorLogger } from '../telemetry/executor-logger.ts';
-import { executorMetrics } from '../telemetry/executor-metrics.ts';
-import { elapsedMs } from '../utils/execution-helpers.ts';
-import { withTimeout } from '../../../orchestration/utils/execution-utils.ts';
+import type { ExecutorInput, ExecutorResult, TaskExecutionResult } from './types.ts';
+import { createExecutionContext, releaseExecutionContext }         from './context.ts';
+import { executionState }                                          from './state.ts';
+import { executeTask }                                             from './task-executor.ts';
+import { executionHistory }                                        from './history.ts';
+import { emitExecutionStarted, emitExecutionCompleted, emitExecutionFailed } from './events.ts';
+import { executorLogger }                                          from './telemetry.ts';
+import { executorMetrics }                                         from './telemetry.ts';
+import { elapsedMs }                                               from './utils.ts';
+import { checkpointManager }                                       from '../terminal/recovery/checkpoint-manager.ts';
+import { withTimeout }                                             from '../../orchestration/utils/execution-utils.ts';
 
 export async function runExecutorEngine(input: ExecutorInput): Promise<ExecutorResult> {
   const startedAt = new Date();
   const { runId, projectId } = input;
   const timeoutMs = input.timeoutMs ?? 120_000;
 
-  const ctx = await createExecutionContext(input);
+  const ctx     = await createExecutionContext(input);
   const session = { sessionId: ctx.isolation.contextId };
 
   emitExecutionStarted(runId, session.sessionId, ctx.queue.size);
@@ -40,9 +36,7 @@ export async function runExecutorEngine(input: ExecutorInput): Promise<ExecutorR
         executionState.recordTaskDone(runId, result.success);
 
         if (!result.success) {
-          executorLogger.warn(runId, `Task ${task.id} failed — continuing`, {
-            error: result.error,
-          });
+          executorLogger.warn(runId, `Task ${task.id} failed — continuing`, { error: result.error });
         }
 
         executorMetrics.recordCompleted(runId, result.durationMs);
@@ -73,13 +67,8 @@ export async function runExecutorEngine(input: ExecutorInput): Promise<ExecutorR
   const ok             = tasksFailed === 0 || tasksCompleted > tasksFailed;
 
   executionState.setStatus(runId, ok ? 'completed' : 'failed');
-
   emitExecutionCompleted(runId, tasksCompleted, tasksFailed, durationMs);
-
-  executorLogger.info(runId, `Engine done — ${tasksCompleted}/${results.length} tasks succeeded`, {
-    durationMs,
-  });
-
+  executorLogger.info(runId, `Engine done — ${tasksCompleted}/${results.length} tasks succeeded`, { durationMs });
   executorMetrics.recordCompleted(runId, durationMs);
   releaseExecutionContext(ctx);
 

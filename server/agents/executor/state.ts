@@ -1,24 +1,11 @@
-import type { ExecutorStatus } from '../types/executor.types.ts';
-
-export interface ExecutionStateData {
-  runId:          string;
-  projectId:      string;
-  status:         ExecutorStatus;
-  currentTaskId?: string;
-  tasksTotal:     number;
-  tasksDone:      number;
-  tasksFailed:    number;
-  startedAt:      Date;
-  updatedAt:      Date;
-}
+import type { ExecutorStatus, ExecutionStateData } from './types.ts';
 
 const stateStore = new Map<string, ExecutionStateData>();
 
 export const executionState = {
   init(runId: string, projectId: string, tasksTotal: number): ExecutionStateData {
     const state: ExecutionStateData = {
-      runId,
-      projectId,
+      runId, projectId,
       status:      'running',
       tasksTotal,
       tasksDone:   0,
