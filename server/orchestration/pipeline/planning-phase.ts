@@ -3,78 +3,105 @@ import { runLogger } from '../telemetry/run-logger.ts';
 import { emitPhaseStarted, emitMetric } from '../events/orchestration-events.ts';
 import { timed, withTimeout } from '../utils/execution-utils.ts';
 import type { AnalysisResult } from './analyze-phase.ts';
+import {
+  createExecutionPlan,
+  initializePlanner,
+} from '../../agents/planner/planner-agent.ts';
+import type { ExecutionPlan as RichExecutionPlan } from '../../agents/planner/types/planner.types.ts';
 
+// ── Legacy-compatible types (execution-phase.ts imports these) ─────────────
 export interface PlanTask {
-  id: string;
-  type: string;
-  description: string;
-  dependsOn: string[];
-  priority: 'high' | 'normal' | 'low';
+  id:         string;
+  type:       string;   // mapped from planner task.category
+  description:string;   // mapped from planner task.title + task.description
+  dependsOn:  string[]; // mapped from planner task.dependencies
+  priority:   'high' | 'normal' | 'low';
 }
 
 export interface ExecutionPlan {
-  planId: string;
-  runId: string;
-  phases: string[];
-  tasks: PlanTask[];
+  planId:              string;
+  runId:               string;
+  phases:              string[];
+  tasks:               PlanTask[];
   estimatedDurationMs: number;
-  createdAt: Date;
+  createdAt:           Date;
+  richPlan?:           RichExecutionPlan; // full planner output for downstream use
 }
 
-function buildTasksFromAnalysis(runId: string, goal: string, analysis: AnalysisResult): PlanTask[] {
-  const tasks: PlanTask[] = [
-    { id: `${runId}_t1`, type: 'scaffold', description: 'Create project structure and base files', dependsOn: [], priority: 'high' },
-    { id: `${runId}_t2`, type: 'implement', description: `Implement core features: ${goal.slice(0, 80)}`, dependsOn: [`${runId}_t1`], priority: 'high' },
-    { id: `${runId}_t3`, type: 'style', description: 'Apply styling and layout', dependsOn: [`${runId}_t2`], priority: 'normal' },
-  ];
-
-  if (analysis.requiresVerification) {
-    tasks.push({ id: `${runId}_t4`, type: 'verify', description: 'TypeScript + build verification', dependsOn: [`${runId}_t2`], priority: 'high' });
-  }
-
-  if (analysis.requiresBrowser) {
-    tasks.push({ id: `${runId}_t5`, type: 'browser', description: 'Browser UI verification', dependsOn: [`${runId}_t3`], priority: 'normal' });
-  }
-
-  if (analysis.tags.includes('database') || analysis.tags.includes('crud')) {
-    tasks.splice(1, 0, { id: `${runId}_t_db`, type: 'schema', description: 'Define database schema', dependsOn: [`${runId}_t1`], priority: 'high' });
-  }
-
-  return tasks;
+// ── Adapter: rich planner output → legacy-compatible shape ────────────────
+function mapPriority(p: string): 'high' | 'normal' | 'low' {
+  if (p === 'critical' || p === 'high') return 'high';
+  if (p === 'low') return 'low';
+  return 'normal';
 }
 
-function validatePlan(plan: ExecutionPlan): boolean {
-  if (!plan.tasks.length) return false;
-  const ids = new Set(plan.tasks.map((t) => t.id));
-  return plan.tasks.every((t) => t.dependsOn.every((dep) => ids.has(dep)));
+function adaptPlannerOutput(rich: RichExecutionPlan): ExecutionPlan {
+  const tasks: PlanTask[] = rich.tasks.map((t) => ({
+    id:          t.id,
+    type:        t.category,
+    description: `${t.title}: ${t.description}`,
+    dependsOn:   t.dependencies,
+    priority:    mapPriority(t.priority),
+  }));
+
+  return {
+    planId:              rich.planId,
+    runId:               rich.runId,
+    phases:              rich.phases.map((p) => p.type),
+    tasks,
+    estimatedDurationMs: tasks.length * 8_000,
+    createdAt:           rich.createdAt,
+    richPlan:            rich,
+  };
 }
 
-export async function runPlanningPhase(ctx: OrchestrationContext, analysis: AnalysisResult): Promise<PhaseResult> {
+// ── Phase runner ───────────────────────────────────────────────────────────
+export async function runPlanningPhase(
+  ctx: OrchestrationContext,
+  _analysis: AnalysisResult,
+): Promise<PhaseResult> {
   emitPhaseStarted(ctx.runId, 'planning');
-  runLogger.log(ctx.runId, 'info', '[planning-phase] Building execution plan');
+  runLogger.log(ctx.runId, 'info', '[planning-phase] Delegating to Planner Agent');
+
+  initializePlanner();
 
   const { result: plan, durationMs } = await timed(() =>
     withTimeout(async () => {
-      const tasks = buildTasksFromAnalysis(ctx.runId, ctx.goal, analysis);
-      const executionPlan: ExecutionPlan = {
-        planId: `plan_${ctx.runId}`,
-        runId: ctx.runId,
-        phases: ['scaffold', 'implement', 'verify', 'browser'],
-        tasks,
-        estimatedDurationMs: tasks.length * 8_000,
-        createdAt: new Date(),
-      };
+      const result = await createExecutionPlan({
+        runId:     ctx.runId,
+        projectId: ctx.projectId,
+        goal:      ctx.goal,
+        timeoutMs: Math.min(ctx.timeoutMs, 55_000),
+        metadata:  ctx.metadata,
+      });
 
-      if (!validatePlan(executionPlan)) {
-        throw new Error('Generated plan failed dependency validation');
+      if (!result.ok || !result.plan) {
+        throw new Error(result.error ?? 'Planner agent returned no plan');
       }
 
-      return executionPlan;
-    }, { timeoutMs: 30_000 })
+      return adaptPlannerOutput(result.plan);
+    }, { timeoutMs: 60_000 }),
   );
 
-  emitMetric(ctx.runId, 'planning.task_count', plan.tasks.length, 'count');
-  runLogger.log(ctx.runId, 'info', `[planning-phase] Plan built — ${plan.tasks.length} tasks`, { planId: plan.planId });
+  emitMetric(ctx.runId, 'planning.task_count',  plan.tasks.length,  'count');
+  emitMetric(ctx.runId, 'planning.phase_count',  plan.phases.length, 'count');
 
-  return { phase: 'planning', success: true, durationMs, output: plan as unknown as Record<string, unknown> };
+  runLogger.log(
+    ctx.runId,
+    'info',
+    `[planning-phase] Plan ready — ${plan.tasks.length} tasks across ${plan.phases.length} phases`,
+    {
+      planId:     plan.planId,
+      appType:    plan.richPlan?.appType,
+      complexity: plan.richPlan?.complexity,
+      valid:      plan.richPlan?.validationResults.valid,
+    },
+  );
+
+  return {
+    phase:    'planning',
+    success:  true,
+    durationMs,
+    output:   plan as unknown as Record<string, unknown>,
+  };
 }

@@ -54,6 +54,7 @@ import { startSweeper as startPortSweeper } from './server/runtime/network/port-
 import { createRunTelemetryRouter }    from './server/api/run-telemetry.routes.ts';
 import { contextRegistry }             from './server/coordination/index.ts';
 import { wireCoordinationSSE }         from './server/coordination/telemetry/coordination-sse-bridge.ts';
+import { initializePlanner }           from './server/agents/planner/planner-agent.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -263,7 +264,9 @@ server.listen(PORT, '0.0.0.0', async () => {
   contextRegistry.startSweeper(60_000);
   // Wire coordination bus events → SSE so the frontend receives real-time swarm updates
   wireCoordinationSSE();
-  console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓ coordination-sweeper ✓');
+  // Boot Planner Agent — registers event handlers for the planning phase pipeline
+  initializePlanner();
+  console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓ coordination-sweeper ✓ planner-agent ✓');
 });
 
 async function gracefulShutdown(signal: string): Promise<void> {
