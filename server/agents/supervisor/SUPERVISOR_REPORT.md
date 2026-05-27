@@ -1,8 +1,10 @@
 # Supervisor Agent System — Deep Scan Report
 
 **Location:** `server/agents/supervisor/`
-**Total Files:** 31 TypeScript modules
+**Total Files:** 30 TypeScript modules
 **Purpose:** Top-level orchestration brain that wraps the pipeline with intelligent analysis, routing, retry, monitoring, and fail-closed decision-making.
+
+> **Last refactored:** Surgical refactor applied — routing consolidated, events trimmed, metrics reduced, execution-monitor de-godded, context made immutable, controller responsibilities narrowed.
 
 ---
 
@@ -18,7 +20,7 @@ server/agents/supervisor/
 │   └── routing.types.ts                 ← Agent registry + routing types
 │
 ├── events/
-│   ├── event-types.ts                   ← Typed event payloads
+│   ├── event-types.ts                   ← Typed event payloads (6 events)
 │   ├── supervisor-events.ts             ← supervisorBus + emit helpers
 │   └── event-handlers.ts               ← Bus listener registration
 │
@@ -43,24 +45,24 @@ server/agents/supervisor/
 │
 ├── monitoring/
 │   ├── loop-detector.ts                ← Detect repeated phase failures
-│   ├── execution-monitor.ts            ← Aggregate health of active runs
+│   ├── execution-monitor.ts            ← Aggregate health of active runs (health only)
 │   ├── timeout-monitor.ts              ← Per-phase deadline enforcement
 │   └── stuck-task-detector.ts          ← Detect tasks with no activity
 │
 ├── coordination/
-│   ├── retry-coordinator.ts            ← executeWithRetry wrapper
+│   ├── retry-coordinator.ts            ← executeWithRetry wrapper (owns retry exhaustion)
 │   ├── task-coordinator.ts             ← Enqueue/start/complete/fail tasks
 │   └── pipeline-coordinator.ts         ← Phase lifecycle + plan building
 │
 ├── routing/
 │   ├── agent-router.ts                 ← Phase → agent mapping + history
-│   ├── task-router.ts                  ← Route task by mode + category
-│   └── priority-router.ts              ← Resolve task priority score
+│   └── task-dispatcher.ts              ← Priority resolution + queue dispatch + route history
+│                                         (merged from task-router + priority-router)
 │
 └── core/
-    ├── supervisor-state.ts             ← Session state machine
-    ├── supervisor-context.ts           ← Immutable per-session context
-    ├── execution-controller.ts         ← Single-phase runner with full wiring
+    ├── supervisor-state.ts             ← Session state machine (mutable runtime state)
+    ├── supervisor-context.ts           ← Immutable per-session context (frozen at creation)
+    ├── execution-controller.ts         ← Single-phase runner — execute + retry + monitor + return
     └── supervisor-engine.ts            ← Full pipeline orchestrator
 ```
 
@@ -108,10 +110,10 @@ server/agents/supervisor/
 | `ComplexityResult` | Score (0–100), mode, task estimate, flags, matched factors |
 | `ClassificationResult` | Category, confidence (0–1), tags[], reasoning string |
 | `SupervisorDecision` | `{ action: continue\|retry\|escalate\|abort\|skip, reason, metadata }` |
-| `ExecutionHealth` | stuckTasks, timedOutPhases, loopRisk — aggregate health |
+| `ExecutionHealth` | stuckTasks, timedOutPhases, loopRisk — aggregate health (retryExhausted always `[]`, handled in retry-coordinator) |
 | `SupervisorRunResult` | Final result returned to caller |
 | `PhaseDispatch` | Phase routing envelope with timeout + priority |
-| `SupervisorEventName` | Union of all 8 event names |
+| `SupervisorEventName` | Union of 6 kept event names |
 
 ---
 
@@ -146,9 +148,11 @@ server/agents/supervisor/
 
 ### `events/event-types.ts` — Typed Event Payloads
 
-**Kya karta hai:** Supervisor event system ke liye TypeScript discriminated union — har event ka exact payload define karta hai.
+**Kya karta hai:** Supervisor event system ke liye TypeScript discriminated union — sirf 6 essential events ke payloads define karta hai.
 
-**8 event payloads:**
+> **Refactor note:** `supervisor.decision.made` aur `supervisor.escalated` hata diye gaye — ye telemetry noise the aur koi listener inhe consume nahi karta tha.
+
+**6 event payloads:**
 
 | Event | Payload Fields |
 |---|---|
@@ -156,9 +160,7 @@ server/agents/supervisor/
 | `supervisor.cycle.started` | sessionId, runId, phase, success, durationMs, retries, timestamp |
 | `supervisor.cycle.completed` | same as above |
 | `supervisor.cycle.failed` | same as above |
-| `supervisor.decision.made` | sessionId, runId, action, reason, phase, timestamp |
 | `supervisor.loop.detected` | sessionId, runId, risk, pattern, occurrences, timestamp |
-| `supervisor.escalated` | sessionId, runId, reason, phase, retryCount, timestamp |
 | `supervisor.shutdown` | sessionId, status, activeSessions, timestamp |
 
 **`SupervisorEventMap`** — TypeScript map type for fully-typed `.on()` / `.emit()`.
@@ -167,7 +169,9 @@ server/agents/supervisor/
 
 ### `events/supervisor-events.ts` — Event Bus + Emit Helpers
 
-**Kya karta hai:** Typed `EventEmitter` subclass (`supervisorBus`) + 8 typed emit helper functions.
+**Kya karta hai:** Typed `EventEmitter` subclass (`supervisorBus`) + 6 typed emit helper functions.
+
+> **Refactor note:** `emitDecisionMade()` aur `emitEscalated()` remove kiye — removed events ke liye dead emitters the.
 
 **Exports:**
 
@@ -178,16 +182,16 @@ server/agents/supervisor/
 | `emitCycleStarted()` | Phase loop shuru hone par |
 | `emitCycleCompleted()` | Phase successfully complete hone par |
 | `emitCycleFailed()` | Phase fail hone par |
-| `emitDecisionMade()` | Koi decision lene par (retry/skip/escalate) |
 | `emitLoopDetected()` | Loop risk detect hone par |
-| `emitEscalated()` | Escalation trigger hone par |
 | `emitSupervisorShutdown()` | System band hone par |
 
 ---
 
 ### `events/event-handlers.ts` — Bus Listeners
 
-**Kya karta hai:** `supervisorBus` pe sab 8 events ke liye listeners register/unregister karta hai. Har event par logging + metrics dono karta hai.
+**Kya karta hai:** `supervisorBus` pe 6 events ke liye listeners register/unregister karta hai. Sirf approved metrics emit karta hai.
+
+> **Refactor note:** Low-value metrics (`sessions.started`, `cycles.completed` counter, `shutdowns`) hata diye. Sirf signal-dense metrics rakhey gaye.
 
 **Exports:**
 | Export | Description |
@@ -196,13 +200,12 @@ server/agents/supervisor/
 | `unregisterSupervisorHandlers()` | `removeAllListeners()` + `_registered = false` |
 
 **Per-event actions:**
-- `started` → info log + `supervisor.sessions.started` counter
-- `cycle.completed` → info log + counter + timing metric
-- `cycle.failed` → warn log + counter
-- `decision.made` → info log + per-action counter
-- `loop.detected` → warn log + counter
-- `escalated` → error log + counter
-- `shutdown` → info log + counter
+- `started` → info log + `runs.started` counter
+- `cycle.started` → info log only
+- `cycle.completed` → info log + `phase.duration` timing + `runs.completed` counter
+- `cycle.failed` → warn log + `runs.failed` counter + `retry.count` increment
+- `loop.detected` → warn log + `loop.detected` counter
+- `shutdown` → info log only
 
 ---
 
@@ -305,21 +308,17 @@ server/agents/supervisor/
 | `.getCounter(runId, metric)` | Single counter value |
 | `.clearRun(runId)` | Run ka sab data delete |
 
-**Metrics tracked across the system:**
+**Approved metrics — sirf ye 6 emit hote hain:**
 ```
-supervisor.sessions.started
-supervisor.cycles.total / completed / failed / requested
-supervisor.runs.succeeded / failed
-supervisor.phases.<phase>.started / completed / failed
-supervisor.cycle.<phase>             (timing)
-supervisor.decision.<action>
-supervisor.loops.detected
-supervisor.escalations
-supervisor.shutdowns
-supervisor.agent.<role>.routed
-supervisor.tasks.enqueued / started / completed / failed / routed.<phase>
-supervisor.priority.boosted
+runs.started          ← session bootstrap pe
+runs.completed        ← phase successfully complete hone par
+runs.failed           ← phase fail hone par
+phase.duration        ← phase ke durationMs timing
+retry.count           ← retry count on failure
+loop.detected         ← loop risk detect hone par
 ```
+
+> **Refactor note:** Pehle 25+ metrics the — routing counters, priority boost counters, per-phase started/completed/failed metrics, decision per-action counters, escalation counters, shutdown counters. Sab hata diye. Sirf signal-dense 6 rakhey.
 
 ---
 
@@ -371,7 +370,7 @@ supervisor.priority.boosted
 **Algorithm:**
 1. Har category ke patterns match karo
 2. `matchCount × weight` se score nikalo
-3. Highest score jeet ta hai
+3. Highest score jeetta hai
 4. Confidence = `best.score / maxPossibleScore` (0–1)
 
 **Exports (`goalClassifier`):** `.classify(goal)` → `ClassificationResult`, `.isKnownCategory(str)`
@@ -432,6 +431,8 @@ complex:  analyze → planning → execution → verification → browser
 ### `decisions/escalation-decision.ts` — Escalation Logic
 
 **Kya karta hai:** High-level failure context lekar decide karta hai — escalate karo, abort karo, ya skip karo.
+
+> **Refactor note:** Retry exhaustion logic yahan nahi hai — wo `retry-coordinator.ts` mein hai. Ye sirf loop/stuck/timeout-based escalation decisions leta hai.
 
 **Escalation reason priority:**
 1. `loop_detected` — agar loopRisk `critical` ya `high` ho
@@ -496,15 +497,17 @@ complex:  analyze → planning → execution → verification → browser
 
 ### `monitoring/execution-monitor.ts` — Aggregate Run Health
 
-**Kya karta hai:** Active runs ka snapshot maintain karta hai. Sub-monitors ko aggregate karke `ExecutionHealth` banata hai.
+**Kya karta hai:** Active runs ka snapshot maintain karta hai. Sub-monitors ko aggregate karke `ExecutionHealth` banata hai. **Sirf health aggregation — koi decision logic nahi.**
 
-**Internal state:** `Map<runId, RunSnapshot>` — current phase, start time, retry count.
+> **Refactor note (Fix 4 — God Object prevention):** Pehle `retryCount >= 5 → retryExhausted` check yahan tha. Ye hata diya gaya — retry exhaustion logic `retry-coordinator.ts` mein sahi jagah hai. Monitor sirf observe karta hai, decide nahi karta.
+
+**Internal state:** `Map<runId, RunSnapshot>` — current phase, start time. (`retryCount` field removed.)
 
 **`checkHealth(runId)` aggregates:**
 - `stuckTaskDetector.getStuckTasks(runId)`
 - `timeoutMonitor.isTimedOut(runId, currentPhase)`
 - `loopDetector.detectGlobal(runId).risk`
-- `retryCount >= 5` → retryExhausted
+- `retryExhausted` → always `[]` (handled in retry-coordinator)
 
 **Exports (`executionMonitor`):** `.track()`, `.update()`, `.checkHealth()`, `.getLoopRisk()`, `.untrack()`, `.activeRunCount()`
 
@@ -551,7 +554,9 @@ complex:  analyze → planning → execution → verification → browser
 
 ### `coordination/retry-coordinator.ts` — Retry Execution Wrapper
 
-**Kya karta hai:** `retryManager` (orchestration) aur `retryDecision` ko combine karke single `executeWithRetry()` function provide karta hai.
+**Kya karta hai:** `retryManager` (orchestration) aur `retryDecision` ko combine karke single `executeWithRetry()` function provide karta hai. **Retry exhaustion ka single source of truth.**
+
+> **Refactor note (Fix 4):** `isExhausted()` check yahan hi rahega. `execution-monitor.ts` se retryCount tracking hata di gayi — monitor sirf health aggregate karta hai, retry state nahi.
 
 **Flow:**
 1. `retryDecision.maxRetries(phase, mode)` se max attempts nikalo
@@ -562,7 +567,7 @@ complex:  analyze → planning → execution → verification → browser
 
 **Exports (`retryCoordinator`):**
 - `.executeWithRetry(opts, fn)` → `{ ok, value } | { ok, decision, error }`
-- `.isExhausted(taskId)` — kya retries khatam ho gayi
+- `.isExhausted(taskId)` — kya retries khatam ho gayi (**owns this check**)
 - `.waitBeforeRetry(attempt)` — delay with backoff
 - `.clearTask(taskId)` — retry record clean
 
@@ -573,450 +578,302 @@ complex:  analyze → planning → execution → verification → browser
 **Kya karta hai:** `taskQueue` aur orchestration event emitters ko wrap karke task lifecycle manage karta hai (enqueue → start → complete/fail).
 
 **Exports (`taskCoordinator`):**
-| Method | Action |
+| Method | Description |
 |---|---|
-| `.enqueue(spec)` | Queue + `emitTaskQueued` + metrics |
-| `.markStarted(task)` | `emitTaskStarted` + counter |
-| `.markCompleted(task, result)` | `emitTaskCompleted` + remove + counter |
-| `.markFailed(task, error)` | `emitTaskFailed` + remove + error log |
-| `.getQueueSize()` | `taskQueue.size()` |
-| `.hasTask(taskId)` | Existence check |
-| `.cancelRunTasks(runId)` | Sab queued tasks cancel karo |
+| `.enqueue(task)` | Queue mein daalo + `emitTaskQueued` fire karo |
+| `.markStarted(taskId)` | Status update + `emitTaskStarted` |
+| `.markCompleted(taskId, result)` | Status update + `emitTaskCompleted` |
+| `.markFailed(taskId, error)` | Status update + `emitTaskFailed` |
+| `.getTask(taskId)` | Current task record |
+| `.clearRun(runId)` | Cleanup |
 
 ---
 
-### `coordination/pipeline-coordinator.ts` — Phase Lifecycle Coordination
+### `coordination/pipeline-coordinator.ts` — Phase Lifecycle
 
-**Kya karta hai:** Phase start/end lifecycle manage karta hai — timeout timers, loop detection, aur `emitPhaseStarted` sab ek jagah wired.
+**Kya karta hai:** Phase transitions manage karta hai — start/end/complete/fail — aur orchestration bus pe events fire karta hai.
 
-**`buildPlan(mode)`** — returns `PipelinePlan` with:
-- `phases[]` (from `executionModeDetector`)
-- `totalTimeoutMs` (mode-based: 60k/120k/200k per phase)
-
-**`startPhase(runId, phase, mode, timeoutMs?)`:**
-1. Logger info
-2. `timeoutMonitor.startPhase()`
-3. `loopDetector.record(phase, true)` — optimistic
-4. `emitPhaseStarted(runId, phase)`
-
-**`endPhase(runId, phase, success)`:**
-1. `timeoutMonitor.endPhase()`
-2. `loopDetector.record(phase, success)` — actual result
-
-**Exports:** `.buildPlan()`, `.startPhase()`, `.endPhase()`, `.shouldSkipPhase()`, `.isPhaseTimedOut()`, `.remainingPhaseTimeMs()`, `.summarize(outcomes[])`
+**Exports (`pipelineCoordinator`):**
+| Method | Description |
+|---|---|
+| `.startPhase(runId, phase, mode, timeoutMs?)` | Phase shuru, timeout register, event emit |
+| `.endPhase(runId, phase, success)` | Phase khatam, timer clear, event emit |
+| `.buildPlan(runId, mode)` | Phase sequence plan banao |
+| `.getPhaseStatus(runId, phase)` | Current phase status |
 
 ---
 
-### `routing/agent-router.ts` — Phase → Agent Mapper
+### `routing/agent-router.ts` — Phase → Agent Mapping
 
-**Kya karta hai:** `AGENT_REGISTRY` se har phase ke liye correct agent role dhundta hai. Routing history 50 decisions tak maintain karta hai.
+**Kya karta hai:** Phase ke liye correct agent decide karta hai, routing history maintain karta hai.
 
-**`route(runId, phase, priority)`:**
-1. `AGENT_REGISTRY[phase]` se `AgentDescriptor` fetch karo
-2. `RoutingDecision` banao with taskId, targetAgent, targetPhase, reason
-3. History mein record karo
-4. Logger + metrics emit karo
+> **Refactor note:** `supervisorMetrics.increment(runId, 'supervisor.agent.<role>.routed')` call remove kiya — ye low-value routing counter tha. Sirf logging raha.
 
 **Exports (`agentRouter`):**
 | Method | Description |
 |---|---|
-| `.route(runId, phase, priority)` | Main routing, returns `RoutingDecision` |
-| `.getDescriptor(phase)` | Raw `AgentDescriptor` fetch |
-| `.isRetryable(phase)` | Boolean from registry |
-| `.timeoutFor(phase)` | Timeout ms from registry |
-| `.getHistory(runId)` | Last 50 routing decisions |
-| `.clearRun(runId)` | History delete |
+| `.route(runId, phase, priority)` → `RoutingDecision` | Agent decide karo + history mein record |
+| `.getDescriptor(phase)` → `AgentDescriptor` | Phase ka agent descriptor lo |
+| `.isRetryable(phase)` | Boolean retryable check |
+| `.timeoutFor(phase)` | Phase ka configured timeout |
+| `.getHistory(runId)` | Routing decisions history (max 50) |
+| `.clearRun(runId)` | Cleanup |
 
 ---
 
-### `routing/task-router.ts` — Task Mode/Category Router
+### `routing/task-dispatcher.ts` — Priority + Queue Dispatch *(merged)*
 
-**Kya karta hai:** Task ki mode aur category ke basis pe route decide karta hai. `priorityRouter` se priority resolve karta hai, `taskCoordinator` se enqueue karta hai.
+**Kya karta hai:** `task-router.ts` + `priority-router.ts` ka merged replacement. Priority resolve karta hai, queue mein dispatch karta hai, route history maintain karta hai.
 
-**`route(spec)` flow:**
-1. `priorityRouter.resolve(phase, mode, runId)` → priority
-2. `TaskRoute` object banao
-3. `taskCoordinator.enqueue()` — actually queue mein daalo
-4. History record karo (max 100)
-5. Logger + metrics
+> **Refactor note (Fix 1):** Pehle do alag files the (`task-router.ts` → dispatch, `priority-router.ts` → priority) jo heavily overlap karti thi aur unnecessary orchestration depth banati thi. Ab ek hi cohesive module hai.
 
-**Exports (`taskRouter`):** `.route(spec)`, `.getRoutes(runId)`, `.clearRun(runId)`
+**Priority resolution rules (first match wins):**
 
----
-
-### `routing/priority-router.ts` — Task Priority Resolution
-
-**Kya karta hai:** Har phase + mode combination ke liye `TaskPriority` decide karta hai. Custom rules support karta hai.
-
-**Default phase priorities:**
-
-| Phase | Priority |
+| Condition | Priority |
 |---|---|
-| analyze | high |
-| planning | high |
-| execution | normal (complex mode mein → **high**) |
-| verification | high |
-| browser | low |
-| failed | **critical** |
+| Custom `PriorityRule` condition match | Rule ki priority |
+| `mode === 'complex'` AND `phase === 'execution'` | `high` |
+| `phase === 'analyze'` or `planning` or `verification` | `high` |
+| `phase === 'failed'` | `critical` |
+| `phase === 'browser'` | `low` |
+| Default | `normal` |
 
-**Complex mode boost:** `execution` phase complex mode mein `normal` → `high` automatically upgrade hota hai.
+**Exports (`taskDispatcher`):**
+| Method | Description |
+|---|---|
+| `.dispatch(spec)` → `TaskRoute` | Priority resolve + enqueue + history record |
+| `.addRule(rule)` | Custom priority rule add karo |
+| `.removeRule(ruleId)` | Custom rule remove karo |
+| `.getRoutes(runId)` | Route history (max 100) |
+| `.clearRun(runId)` | Cleanup |
 
-**Exports (`priorityRouter`):**
-- `.resolve(phase, mode, runId)` → `TaskPriority`
-- `.addRule(rule)` / `.removeRule(ruleId)` — custom rules
-- `.getStats()` — aggregate routing stats
-- `.resetStats()` — stats reset
+**`DispatchSpec` shape:**
+```typescript
+{
+  runId:    string;
+  phase:    OrchestrationPhase;
+  type:     string;
+  mode:     ExecutionMode;
+  category: GoalCategory;
+  input?:   Record<string, unknown>;
+}
+```
 
 ---
 
-### `core/supervisor-state.ts` — Session State Machine
+### `core/supervisor-state.ts` — Session State Machine *(mutable runtime state)*
 
-**Kya karta hai:** In-memory `Map<sessionId, SupervisorSession>` manage karta hai. State transitions enforce karta hai — invalid transitions throw karta hai.
+**Kya karta hai:** Active supervisor sessions ka lifecycle manage karta hai. Valid transitions enforce karta hai. **Mutable runtime state ka single owner.**
 
-**Valid state machine:**
+> **Refactor note (Fix 5):** State aur context mein responsibility overlap thi. Ab `supervisor-state.ts` = lifecycle + runtime state (status, currentPhase, retryCount, metadata mutations). `supervisor-context.ts` = immutable execution context.
+
+**State machine transitions:**
 ```
-idle → active → paused → active
-              ↘          ↘
-               shutdown ← shutdown
+idle → active → paused → shutdown
+            ↘──────────↗
 ```
 
 **Exports (`supervisorState`):**
 | Method | Description |
 |---|---|
-| `.create(...)` | Naya session banao, `idle` status se start |
-| `.transition(sessionId, status)` | Validated state change — invalid pe throw |
-| `.setPhase(sessionId, phase)` | `currentPhase` update |
-| `.incrementRetry(sessionId)` | `retryCount++`, returns new count |
-| `.setMeta(sessionId, key, value)` | Metadata update |
-| `.get(sessionId)` | Frozen copy return |
+| `.create(...)` | Naya session banao |
+| `.transition(sessionId, status)` | Valid transition enforce karo |
+| `.setPhase(sessionId, phase)` | Current phase update |
+| `.incrementRetry(sessionId)` | Retry counter badhao |
+| `.setMeta(sessionId, key, value)` | Runtime metadata set karo |
+| `.get(sessionId)` | Session snapshot lo |
 | `.getByRunId(runId)` | runId se session dhundo |
 | `.isActive(sessionId)` | Boolean active check |
-| `.activeSessions()` | All active + paused sessions |
-| `.clear(sessionId)` | Session delete |
+| `.activeSessions()` | Sab active sessions list |
+| `.clear(sessionId)` | Session delete karo |
 
 ---
 
-### `core/supervisor-context.ts` — Immutable Session Context
+### `core/supervisor-context.ts` — Immutable Execution Context
 
-**Kya karta hai:** `OrchestrationContext` se supervisor-specific context banata hai aur in-memory store karta hai. Session ke analysis results (complexity, classification) access deta hai.
+**Kya karta hai:** Session ke liye read-only execution context store karta hai. Goal, mode, category, complexity, classification — sab create hone ke baad freeze ho jaate hain.
 
-**`SupervisorContext` interface:**
+> **Refactor note (Fix 5):** `updateMeta()` method hata diya — context mein mutable metadata nahi hona chahiye. Mutable runtime metadata `supervisor-state.ts` mein hai. `Object.freeze()` lagaya gaya context aur metadata dono pe.
+
+**Interface `SupervisorContext` (all fields `readonly`):**
 ```typescript
-{ sessionId, runId, projectId, goal, timeoutMs,
-  mode, category, complexity, classification,
-  startedAt, metadata }
+{
+  readonly sessionId:      string;
+  readonly runId:          string;
+  readonly projectId:      string;
+  readonly goal:           string;
+  readonly timeoutMs:      number;
+  readonly mode:           ExecutionMode;
+  readonly category:       GoalCategory;
+  readonly complexity:     ComplexityResult;
+  readonly classification: ClassificationResult;
+  readonly startedAt:      Date;
+  readonly metadata:       Readonly<Record<string, unknown>>;
+}
 ```
 
 **Exports (`supervisorContext`):**
 | Method | Description |
 |---|---|
-| `.create(sessionId, orchCtx, mode, category, complexity, classification)` | Context store karo |
-| `.get(sessionId)` | Frozen copy |
-| `.getByRunId(runId)` | runId se dhundo |
-| `.updateMeta(sessionId, key, value)` | Metadata update |
-| `.toOrchestrationContext(sessionId)` | Back-convert to `OrchestrationContext` |
-| `.clear(sessionId)` | Cleanup |
+| `.create(...)` | Context banao + `Object.freeze()` lagao |
+| `.get(sessionId)` | Context lo (already frozen) |
+| `.getByRunId(runId)` | runId se context dhundo |
+| `.toOrchestrationContext(sessionId)` | Orchestration format mein convert karo |
+| `.clear(sessionId)` | Context delete karo |
 
 ---
 
-### `core/execution-controller.ts` — Single Phase Runner
+### `core/execution-controller.ts` — Phase Execution Coordinator
 
-**Kya karta hai:** Ek phase ko run karne ka poora logic — routing, monitoring, retry, failure handling sab wire karta hai.
+**Kya karta hai:** Ek phase ko retry wrapper ke saath chalata hai, monitoring update karta hai, aur typed result return karta hai.
 
-**`runPhase(opts, phase, phaseRunner)` full flow:**
+> **Refactor note (Fix 6):** Pehle per-phase metric noise tha (`phases.X.started`, `phases.X.completed`, `phases.X.failed`). Sab hata diye. Controller ab sirf: dispatch → retry → monitor update → delegate decisions → return result.
+
+**Responsibilities (sirf ye 4):**
+1. Task dispatch (`agentRouter` + `taskDispatcher`)
+2. Phase execution via `retryCoordinator.executeWithRetry()`
+3. Monitoring state update (`executionMonitor.update`)
+4. Return `PhaseExecutionResult` — decisions `decisions/` ko delegate
+
+**`PhaseExecutionResult` shape:**
+```typescript
+{
+  phase:      OrchestrationPhase;
+  success:    boolean;
+  durationMs: number;
+  skipped:    boolean;
+  decision?:  SupervisorDecision;
+  error?:     string;
+}
 ```
-1. agentRouter.route()               → RoutingDecision
-2. taskRouter.route()                → TaskRoute + enqueue
-3. pipelineCoordinator.startPhase() → timeout timer start
-4. executionMonitor.update()         → currentPhase update
-5. retryCoordinator.executeWithRetry() → actual runner
-6. SUCCESS:
-   pipelineCoordinator.endPhase(true)
-   → PhaseExecutionResult { success: true }
-7. FAILURE:
-   pipelineCoordinator.endPhase(false)
-   executionMonitor.checkHealth()      → health check
-   failureDecision.decide()            → skip ya continue
-   IF not skip: escalationDecision.shouldEscalate()
-   → PhaseExecutionResult { success: false, decision, error }
-```
 
-**`decideContinue(results[])`** — true agar sab phases succeed ya skip hui hain.
+**Exports (`executionController`):**
+- `.runPhase(opts, phase, phaseRunner)` → `PhaseExecutionResult`
+- `.decideContinue(results[])` → `boolean` — sab results pass/skip hain?
 
 ---
 
 ### `core/supervisor-engine.ts` — Full Pipeline Orchestrator
 
-**Kya karta hai:** Supervisor system ka dil. `run()` method poori pipeline chalata hai — analysis se lekar final result tak.
+**Kya karta hai:** Pura supervised pipeline chalata hai — analyze → plan → execute → verify → browser. Session lifecycle manage karta hai start se end tak.
 
-**`run(ctx, phaseRunners)` complete flow:**
+**Flow:**
 ```
-1. complexityAnalyzer.analyze(ctx.goal)       → ComplexityResult
-2. goalClassifier.classify(ctx.goal)           → ClassificationResult
-3. executionModeDetector.detect(...)           → mode + category
-4. supervisorState.create() + transition(active)
-5. supervisorContext.create()
-6. executionMonitor.track()
-7. emitSupervisorStarted()
-8. phasesForMode(mode) → phases[]
-9. For each phase:
-   a. supervisorState.setPhase()
-   b. emitCycleStarted()
-   c. executionController.runPhase()
-   d. SUCCESS → emitCycleCompleted()
-   e. FAILURE → emitCycleFailed() + BREAK
-10. supervisorState.transition(shutdown)
-11. executionMonitor.untrack()
-12. Metrics increment
-13. Return SupervisorRunResult
-```
-
-**Exports:** `SupervisorEngine` class + `supervisorEngine` singleton instance.
-
----
-
-## Cross-File Dependency Map
-
-```
-supervisor-agent.ts
-  └── supervisor-engine.ts
-        ├── supervisor-state.ts           (session state machine)
-        ├── supervisor-context.ts         (immutable context store)
-        ├── execution-controller.ts       (phase runner)
-        │     ├── retry-coordinator.ts    ← retryManager (orchestration)
-        │     ├── pipeline-coordinator.ts ← timeoutMonitor + loopDetector
-        │     ├── agent-router.ts         ← AGENT_REGISTRY
-        │     ├── task-router.ts          ← priorityRouter + taskCoordinator
-        │     ├── escalation-decision.ts
-        │     ├── failure-decision.ts
-        │     └── execution-monitor.ts
-        ├── complexity-analyzer.ts        (goal → score)
-        ├── goal-classifier.ts            (goal → category)
-        ├── execution-mode-detector.ts    (score+cat → mode+phases)
-        ├── execution-monitor.ts
-        │     ├── loop-detector.ts
-        │     ├── stuck-task-detector.ts
-        │     └── timeout-monitor.ts
-        ├── supervisor-events.ts          (supervisorBus + emit helpers)
-        ├── supervisor-logger.ts          ← runLogger (orchestration)
-        └── supervisor-metrics.ts         ← metricsCollector (orchestration)
-
-event-handlers.ts
-  └── supervisorBus            (registers all 8 listeners)
-       └── supervisor-logger + supervisor-metrics
-
-validators.ts                  (standalone Zod — no internal deps)
-supervisor-helpers.ts          (standalone pure functions)
-execution-utils.ts             ← withTimeout (orchestration)
-```
-
----
-
-## Orchestration Layer Integration Points
-
-| Supervisor Import | From | Used For |
-|---|---|---|
-| `orchestrationBus` | `orchestration/events/orchestration-events.ts` | Phase events emit |
-| `retryManager` | `orchestration/retry/retry-manager.ts` | Actual retry execution |
-| `taskQueue` | `orchestration/queue/task-queue.ts` | Task enqueue/dequeue |
-| `runManager` | `orchestration/core/run-manager.ts` | Run lifecycle |
-| `runLogger` | `orchestration/telemetry/run-logger.ts` | Structured logging |
-| `metricsCollector` | `orchestration/telemetry/metrics.ts` | Counters + timings |
-| `withTimeout`, `sleep` | `orchestration/utils/execution-utils.ts` | Async utilities |
-
----
-
-## Execution Mode Summary
-
-| Mode | Phases | Task Count | Use Case |
-|---|---|---|---|
-| `simple` | analyze → execution → verification | 1–3 | CRUD, simple forms |
-| `standard` | analyze → planning → execution → verification | 4–8 | Auth, backend API |
-| `complex` | analyze → planning → execution → verification → browser | 9–20 | AI app, SaaS, payments |
-
----
-
-## Complete Metrics Reference
-
-```
-supervisor.sessions.started
-supervisor.cycles.total / completed / failed / requested
-supervisor.runs.succeeded / failed
-supervisor.phases.<phase>.started / completed / failed
-supervisor.cycle.<phase>              (timing)
-supervisor.decision.<action>          (retry/skip/escalate/abort)
-supervisor.loops.detected
-supervisor.escalations
-supervisor.shutdowns
-supervisor.agent.<role>.routed
-supervisor.tasks.enqueued / started / completed / failed
-supervisor.tasks.routed.<phase>
-supervisor.priority.boosted
-```
-
----
-
-## Agent Coordination Flow
-
-How the supervisor coordinates agents across a full run:
-
-```
-runSupervisorCycle(OrchestrationContext)
-        │
-        ▼
-[1] ANALYSIS LAYER
-    complexityAnalyzer.analyze(goal)
-    ├── Regex-scan 12 complexity factors
-    ├── Compute score 0–100
-    └── → ComplexityResult { score, mode, factors[] }
-
-    goalClassifier.classify(goal)
-    ├── Pattern-match 6 goal categories
-    ├── Weight × matchCount scoring
-    └── → ClassificationResult { category, confidence, tags[] }
-
-    executionModeDetector.detect(complexity, classification)
-    ├── 7 priority rules (first match wins)
-    └── → { mode: simple|standard|complex, reason, ruleId }
-        │
-        ▼
-[2] SESSION BOOTSTRAP
-    supervisorState.create(sessionId, runId, ...)
-    supervisorContext.create(sessionId, orchCtx, mode, ...)
-    supervisorState.transition(sessionId, 'active')
-    executionMonitor.track(runId, snapshot)
-    emitSupervisorStarted(...)
-        │
-        ▼
-[3] PHASE LOOP  (per mode)
-    simple:   analyze → execution → verification
-    standard: analyze → planning → execution → verification
-    complex:  analyze → planning → execution → verification → browser
-        │
-        ├── [per phase]
-        │     agentRouter.route(runId, phase, priority)
-        │     ├── AGENT_REGISTRY[phase] → AgentDescriptor
-        │     └── → RoutingDecision { targetAgent, timeoutMs }
-        │
-        │     taskRouter.route(spec)
-        │     ├── priorityRouter.resolve(phase, mode)
-        │     └── taskCoordinator.enqueue(task)
-        │
-        │     pipelineCoordinator.startPhase(runId, phase, mode)
-        │     ├── timeoutMonitor.startPhase()
-        │     └── loopDetector.record(phase, true)
-        │
-        │     executionController.runPhase(opts, phase, runner)
-        │     └── [see Execution Flow above]
-        │
-        └── SUCCESS → next phase
-            FAILURE → stop, return SupervisorRunResult
-        │
-        ▼
-[4] TEARDOWN
-    supervisorState.transition(sessionId, 'shutdown')
-    executionMonitor.untrack(runId)
-    metrics: supervisor.runs.succeeded|failed
-    → SupervisorRunResult { sessionId, success, mode, durationMs, retries }
-```
-
----
-
-## Retry Lifecycle
-
-Full retry flow from first failure to final decision:
-
-```
-Phase execution throws error
-        │
-        ▼
-retryCoordinator.executeWithRetry(opts, fn)
+OrchestrationContext
     │
-    ├── retryDecision.maxRetries(phase, mode)
-    │   ├── analyze:      2  (complex: 3)
-    │   ├── planning:     2  (complex: 3)
-    │   ├── execution:    3  (complex: 4)
-    │   ├── verification: 3  (complex: 4)
-    │   └── browser:      1  (complex: 2)
+    ├── complexityAnalyzer.analyze(goal)
+    ├── goalClassifier.classify(goal)
+    ├── executionModeDetector.detect(complexity, classification)
     │
-    ├── retryManager.withRetry(taskId, runId, fn, { maxAttempts, backoff })
-    │   ├── attempt 1 → FAIL
-    │   │   delay = min(1000 × 2^0 + jitter, 30000) = ~1000ms
-    │   │   supervisorLogger.warn("retry 1/N in Xms")
-    │   ├── attempt 2 → FAIL
-    │   │   delay = min(1000 × 2^1 + jitter, 30000) = ~2000ms
-    │   └── attempt N → FAIL (max reached)
+    ├── supervisorState.create() + supervisorContext.create()
+    ├── supervisorState.transition('active')
+    ├── executionMonitor.track()
+    ├── emitSupervisorStarted()
     │
-    └── All retries exhausted → catch block
-            │
-            ▼
-        retryDecision.shouldRetry(phase, error, retries, mode)
-            │
-            ├── Non-retryable error?  (401, 403, quota exceeded, rate limit)
-            │   └── → decision: ESCALATE immediately
-            │
-            ├── retries >= max?
-            │   └── → decision: ESCALATE (max_retries_exceeded)
-            │
-            └── retries < max (shouldn't happen, safety check)
-                └── → decision: RETRY
-                        │
-                        ▼
-                failureDecision.decide(ctx)
-                    ├── Optional phase (browser)?  → SKIP
-                    ├── Recoverable error?          → RETRY
-                    └── Non-recoverable?            → ABORT
-                            │
-                            ▼
-                    escalationDecision.shouldEscalate(ctx)
-                        ├── loopRisk = critical → ABORT
-                        ├── loopRisk = high + non-critical phase → SKIP
-                        └── otherwise → ESCALATE
-                                │
-                                ▼
-                        PhaseExecutionResult { success: false, decision, error }
-                        Pipeline STOPS — SupervisorRunResult returned
+    ├── for each phase in phasesForMode(mode):
+    │       supervisorState.setPhase(sessionId, phase)
+    │       emitCycleStarted()
+    │       executionController.runPhase(opts, phase, runner)
+    │       ├── success → emitCycleCompleted()
+    │       └── failure → emitCycleFailed() + break
+    │
+    ├── supervisorState.transition('shutdown')
+    ├── executionMonitor.untrack()
+    │
+    └── return SupervisorRunResult
+```
+
+**Exports:** `supervisorEngine` (singleton instance of `SupervisorEngine`)
+
+---
+
+## Complete Execution Flow
+
+```
+[caller]
+    │
+    ▼
+supervisor-agent.ts → supervisorEngine.run(ctx, phaseRunners)
+    │
+    ├── [BOOTSTRAP]
+    │   complexityAnalyzer.analyze(goal)           → ComplexityResult
+    │   goalClassifier.classify(goal)              → ClassificationResult
+    │   executionModeDetector.detect(c, cl)        → { mode, reason }
+    │   supervisorState.create(sessionId, ...)     → SupervisorSession
+    │   supervisorContext.create(sessionId, ...)   → SupervisorContext (frozen)
+    │   supervisorState.transition('active')
+    │   executionMonitor.track(runId, ...)
+    │   emitSupervisorStarted()
+    │
+    ├── [PHASE LOOP — for each phase]
+    │   supervisorState.setPhase(sessionId, phase)
+    │   emitCycleStarted()
+    │   │
+    │   └── executionController.runPhase()
+    │           │
+    │           ├── agentRouter.route(runId, phase, 'normal')
+    │           ├── taskDispatcher.dispatch({ runId, phase, mode, category })
+    │           │       └── resolvePriority() → TaskPriority
+    │           │           taskCoordinator.enqueue(...)
+    │           ├── pipelineCoordinator.startPhase(runId, phase, mode)
+    │           ├── executionMonitor.update(runId, { currentPhase: phase })
+    │           │
+    │           └── retryCoordinator.executeWithRetry({ phase, runId, taskId, mode }, fn)
+    │                   │
+    │                   ├── [SUCCESS]
+    │                   │   pipelineCoordinator.endPhase(runId, phase, true)
+    │                   │   return { phase, success: true, durationMs, skipped: false }
+    │                   │
+    │                   └── [FAILURE]
+    │                       pipelineCoordinator.endPhase(runId, phase, false)
+    │                       failureDecision.decide({ phase, error, ... })
+    │                       ├── action === 'skip' → return skipped=true (optional phase)
+    │                       └── escalationDecision.shouldEscalate({ phase, loopRisk, ... })
+    │                           return { phase, success: false, decision, error }
+    │
+    ├── [POST-PHASE]
+    │   success → emitCycleCompleted()
+    │   failure → emitCycleFailed() + break loop
+    │
+    └── [TEARDOWN]
+        supervisorState.transition('shutdown')
+        executionMonitor.untrack(runId)
+        return SupervisorRunResult
 ```
 
 ---
 
-## Monitoring Lifecycle
-
-How execution health is continuously monitored during a run:
+## Monitoring Flow
 
 ```
-executionMonitor.track(runId, snapshot)        ← run start
-        │
-        ▼
-[Per phase execution]
-        │
-        ├── executionMonitor.update(runId, { currentPhase })
-        │
-        ├── timeoutMonitor.startPhase(runId, phase, mode)
-        │   └── deadline = phaseTimeout(phase, mode)
-        │       ├── analyze:      15s × mode_multiplier
-        │       ├── planning:     30s × mode_multiplier
-        │       ├── execution:   120s × mode_multiplier
-        │       ├── verification: 90s × mode_multiplier
-        │       └── browser:      60s × mode_multiplier
-        │       (simple=1×, standard=1.5×, complex=2×)
-        │
-        ├── stuckTaskDetector.register(runId, taskId, phase)
-        │   └── stuckThreshold = 60_000ms (1 minute no activity)
-        │
-        └── [during execution]
-                stuckTaskDetector.heartbeat(runId, taskId)  ← activity pulse
-                        │
-                        ▼
-        executionMonitor.checkHealth(runId)
-            ├── stuckTaskDetector.getStuckTasks(runId)
-            │   └── tasks where (now - lastActivityAt) > 60s
-            ├── timeoutMonitor.isTimedOut(runId, currentPhase)
-            │   └── (now - startedAt) > deadlineMs
-            ├── loopDetector.detectGlobal(runId)
-            │   └── rolling 5-min window failure pattern
-            │       none/low/medium/high/critical
-            └── retryCount >= 5 → retryExhausted
+executionMonitor.track(runId, { startedAt, currentPhase: null })
+    │
+    ├── timeoutMonitor.startPhase(runId, phase, mode)
+    │       deadlineMs = phaseTimeout(phase, mode)
+    │       ├── analyze:      15s × mode_multiplier
+    │       ├── planning:     30s × mode_multiplier
+    │       ├── execution:   120s × mode_multiplier
+    │       ├── verification: 90s × mode_multiplier
+    │       └── browser:      60s × mode_multiplier
+    │       (simple=1×, standard=1.5×, complex=2×)
+    │
+    ├── stuckTaskDetector.register(runId, taskId, phase)
+    │   └── stuckThreshold = 60_000ms (1 minute no activity)
+    │
+    └── [during execution]
+            stuckTaskDetector.heartbeat(runId, taskId)  ← activity pulse
+                    │
+                    ▼
+    executionMonitor.checkHealth(runId)
+        ├── stuckTaskDetector.getStuckTasks(runId)
+        │   └── tasks where (now - lastActivityAt) > 60s
+        ├── timeoutMonitor.isTimedOut(runId, currentPhase)
+        │   └── (now - startedAt) > deadlineMs
+        ├── loopDetector.detectGlobal(runId)
+        │   └── rolling 5-min window failure pattern
+        │       none/low/medium/high/critical
+        └── retryExhausted: []  ← always empty here
+            (retry exhaustion owned by retry-coordinator)
                     │
                     ▼
             ExecutionHealth {
@@ -1024,12 +881,12 @@ executionMonitor.track(runId, snapshot)        ← run start
                 stuckTasks[],
                 timedOutPhases[],
                 loopRisk,
-                retryExhausted[]
+                retryExhausted: []
             }
                     │
                     feeds into → escalationDecision.shouldEscalate()
-        │
-        ▼
+    │
+    ▼
 executionMonitor.untrack(runId)                ← run end
     ├── stuckTaskDetector.clearRun(runId)
     ├── timeoutMonitor.clearRun(runId)
@@ -1051,64 +908,53 @@ Consecutive failures │ Total failures │ Risk Level
 
 ## Event Lifecycle
 
-All 8 supervisor events — when emitted, who listens, what happens:
+6 supervisor events — when emitted, who listens, what happens:
 
 ```
 EVENT: supervisor.started
   Emitted by:  emitSupervisorStarted() in supervisor-engine.ts
   When:        Session bootstrap complete, pipeline about to start
   Payload:     { sessionId, runId, projectId, mode, category, timestamp }
-  Handler:     info log + supervisor.sessions.started counter
+  Handler:     info log + runs.started counter
 
 EVENT: supervisor.cycle.started
   Emitted by:  emitCycleStarted() in supervisor-engine.ts
   When:        Each phase loop iteration begins
   Payload:     { sessionId, runId, phase, durationMs=0, retries, timestamp }
-  Handler:     info log
+  Handler:     info log only
 
 EVENT: supervisor.cycle.completed
   Emitted by:  emitCycleCompleted() in supervisor-engine.ts
   When:        Phase passed successfully
   Payload:     { sessionId, runId, phase, durationMs, retries, timestamp }
-  Handler:     info log + supervisor.cycles.completed counter
-               + supervisor.cycle.<phase> timing metric
+  Handler:     info log + phase.duration timing + runs.completed counter
 
 EVENT: supervisor.cycle.failed
   Emitted by:  emitCycleFailed() in supervisor-engine.ts
   When:        Phase failed (after all retries)
   Payload:     { sessionId, runId, phase, durationMs, retries, timestamp }
-  Handler:     warn log + supervisor.cycles.failed counter
-
-EVENT: supervisor.decision.made
-  Emitted by:  emitDecisionMade() in decisions/
-  When:        Any retry/skip/escalate/abort decision is taken
-  Payload:     { sessionId, runId, action, reason, phase, timestamp }
-  Handler:     info log + supervisor.decision.<action> counter
+  Handler:     warn log + runs.failed counter + retry.count increment
 
 EVENT: supervisor.loop.detected
   Emitted by:  emitLoopDetected() in monitoring/
   When:        loopDetector reports risk ≥ low
   Payload:     { sessionId, runId, risk, pattern, occurrences, timestamp }
-  Handler:     warn log + supervisor.loops.detected counter
-
-EVENT: supervisor.escalated
-  Emitted by:  emitEscalated() in decisions/
-  When:        escalationDecision triggers escalation
-  Payload:     { sessionId, runId, reason, phase, retryCount, timestamp }
-  Handler:     error log + supervisor.escalations counter
+  Handler:     warn log + loop.detected counter
 
 EVENT: supervisor.shutdown
   Emitted by:  emitSupervisorShutdown() in supervisor-agent.ts
   When:        shutdownSupervisor() called
   Payload:     { sessionId, status, activeSessions, timestamp }
-  Handler:     info log + supervisor.shutdowns counter
+  Handler:     info log only
 ```
+
+> **Removed events:** `supervisor.decision.made` aur `supervisor.escalated` — ye telemetry noise the. Koi listener inhe meaningful way mein consume nahi karta tha. Escalation behavior `decisions/escalation-decision.ts` se directly traceable hai.
 
 **Event bus wiring:**
 ```
 supervisorBus (TypedSupervisorEmitter — extends EventEmitter)
     │
-    ├── event-handlers.ts registers all 8 listeners on init
+    ├── event-handlers.ts registers 6 listeners on init
     ├── max 30 listeners (setMaxListeners(30))
     └── fully typed — .on<K>() / .emit<K>() enforce payload shape
 ```
@@ -1144,10 +990,10 @@ Every module solves ONE problem in the most direct way possible. No lambda calcu
 The system prefers predictable execution over optimal execution. Exponential backoff with known bounds, fixed state machine transitions, explicit phase ordering — nothing is dynamic that doesn't need to be. Stability under failure is more valuable than throughput under ideal conditions.
 
 ### 3. Explicit > Magical
-Every decision is logged with a `reason` string. Every routing choice is recorded in history. Every state transition is validated against a whitelist. Nothing happens implicitly — if it happened, it was emitted as an event and written to a metric.
+Every decision is logged with a `reason` string. Every routing choice is recorded in history. Every state transition is validated against a whitelist. Nothing happens implicitly — if it happened, it was logged and the relevant counter incremented.
 
 ### 4. Observable > Hidden
-The entire system is wired to `supervisorBus` + `orchestrationBus`. Every phase transition, every retry, every escalation, every loop detection fires an event. `supervisorMetrics` captures 25+ named counters and timings. `supervisorLogger` keeps a 200-entry ring buffer per run. You can reconstruct exactly what happened from the telemetry alone.
+The entire system is wired to `supervisorBus` + `orchestrationBus`. Every phase transition, every retry, every loop detection fires an event. `supervisorMetrics` captures 6 signal-dense counters and timings — no noise, all signal. `supervisorLogger` keeps a 200-entry ring buffer per run. You can reconstruct exactly what happened from the telemetry alone.
 
 ### 5. Modular > Monolithic
 Each folder has a single axis of concern:
@@ -1171,3 +1017,16 @@ Per the specification — hard constraints, not guidelines:
 - Does NOT implement swarm/recursive/quantum orchestration
 - Does NOT contain business logic (that lives in pipeline phases)
 - Does NOT hold global mutable state beyond session maps (which are cleared on shutdown)
+
+---
+
+## Refactor Changelog
+
+| Fix | What changed | Files affected |
+|---|---|---|
+| Fix 1 — Routing merge | `task-router.ts` + `priority-router.ts` → `task-dispatcher.ts` | `routing/task-dispatcher.ts` (new), two files deleted, `execution-controller.ts` import updated |
+| Fix 2 — Metrics reduction | 25+ metrics → 6 approved metrics only | `event-handlers.ts`, `execution-controller.ts`, `agent-router.ts` |
+| Fix 3 — Event simplification | 8 events → 6 events (`decision.made` + `escalated` removed) | `event-types.ts`, `supervisor-events.ts`, `event-handlers.ts`, `supervisor.types.ts` |
+| Fix 4 — God object prevention | `retryCount >= 5` check moved out of execution-monitor | `execution-monitor.ts`, `retry-coordinator.ts` |
+| Fix 5 — State/context separation | `supervisor-context.ts` fully immutable, `updateMeta` removed | `supervisor-context.ts`, `supervisor-state.ts` |
+| Fix 6 — Controller clarity | Per-phase metric noise removed, 4 responsibilities only | `execution-controller.ts` |
