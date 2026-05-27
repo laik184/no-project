@@ -1,11 +1,11 @@
 import type { ExecutionStep, StepResult }            from './types.ts';
 import { elapsedMs }                                from './utils.ts';
-import { fileWriter }                               from '../filesystem/file-writer.ts';
-import { fileReader }                               from '../filesystem/file-reader.ts';
-import { patchFile }                                from '../filesystem/patch-file.ts';
-import { safeDelete }                               from '../filesystem/safe-delete.ts';
-import { grepLiteral }                              from '../filesystem/grep-search.ts';
-import { readDirectory, formatListing }             from '../filesystem/directory-reader.ts';
+import { writeFile }                                from '../filesystem/files/file-writer.ts';
+import { readFile }                                 from '../filesystem/files/file-reader.ts';
+import { patchFile as patchFileOp }                 from '../filesystem/files/patch-file.ts';
+import { deleteFileFromSandbox }                    from '../filesystem/files/file-deleter.ts';
+import { searchText }                               from '../filesystem/search/text-search.ts';
+import { readFolder }                               from '../filesystem/folders/folder-reader.ts';
 import { withTimeout }                              from '../../orchestration/utils/execution-utils.ts';
 import { runCommand }                               from '../terminal/execution/command-runner.ts';
 import { npmInstall }                               from '../terminal/npm/npm-installer.ts';
@@ -75,13 +75,18 @@ async function dispatchStep(
   const { type, input } = step;
   const cwd = getWorkspaceRoot(projectId);
 
+  const fsWrite = (path: string, content: string) =>
+    writeFile({ sandboxRoot: cwd, path, content });
+  const fsRead = (path: string) =>
+    readFile({ sandboxRoot: cwd, path });
+
   switch (type) {
     case 'generate_frontend': {
       const name = input.name ?? 'Component';
       const file = simpleFrontend(name);
       const check = validateGeneratedOutput(type, file.content);
       if (!check.valid) return { success: false, error: check.errors.join('; ') };
-      await fileWriter.write(projectId, file.relativePath, file.content);
+      await fsWrite(file.relativePath, file.content);
       return { success: true, filePath: file.relativePath, output: file.relativePath };
     }
     case 'generate_backend': {
@@ -89,64 +94,65 @@ async function dispatchStep(
       const file = simpleBackend(name);
       const check = validateGeneratedOutput(type, file.content);
       if (!check.valid) return { success: false, error: check.errors.join('; ') };
-      await fileWriter.write(projectId, file.relativePath, file.content);
+      await fsWrite(file.relativePath, file.content);
       return { success: true, filePath: file.relativePath, output: file.relativePath };
     }
     case 'generate_api': {
       const files = simpleApi(input.name ?? 'resource');
-      for (const f of files) await fileWriter.write(projectId, f.relativePath, f.content);
+      for (const f of files) await fsWrite(f.relativePath, f.content);
       return { success: true, output: files.map((f) => f.relativePath).join(', ') };
     }
     case 'generate_database': {
       const file = simpleDatabase(input.name ?? 'entity');
-      await fileWriter.write(projectId, file.relativePath, file.content);
+      await fsWrite(file.relativePath, file.content);
       return { success: true, filePath: file.relativePath, output: file.relativePath };
     }
     case 'generate_auth': {
       const files = simpleAuth();
-      for (const f of files) await fileWriter.write(projectId, f.relativePath, f.content);
+      for (const f of files) await fsWrite(f.relativePath, f.content);
       return { success: true, output: files.map((f) => f.relativePath).join(', ') };
     }
     case 'generate_component': {
       const file = simpleComponent(input.name ?? 'Component');
-      await fileWriter.write(projectId, file.relativePath, file.content);
+      await fsWrite(file.relativePath, file.content);
       return { success: true, filePath: file.relativePath, output: file.relativePath };
     }
     case 'write_file': {
       if (!input.filePath || !input.fileContent) return { success: false, error: 'write_file requires filePath and fileContent' };
-      await fileWriter.write(projectId, input.filePath, input.fileContent);
+      await fsWrite(input.filePath, input.fileContent);
       return { success: true, filePath: input.filePath };
     }
     case 'read_file': {
       if (!input.filePath) return { success: false, error: 'read_file requires filePath' };
-      const content = await fileReader.read(projectId, input.filePath);
+      const content = await fsRead(input.filePath);
       return { success: true, output: content, filePath: input.filePath };
     }
     case 'edit_file':
     case 'patch_file': {
-      if (!input.filePath)                   return { success: false, error: `${type} requires filePath` };
-      if (!input.oldString)                  return { success: false, error: `${type} requires oldString` };
-      if (input.newString === undefined)     return { success: false, error: `${type} requires newString` };
-      const result = await patchFile(projectId, input.filePath, input.oldString, input.newString);
-      if (!result.ok) return { success: false, error: result.error, filePath: input.filePath };
-      return { success: true, filePath: input.filePath, output: `Replaced ${result.replacements} occurrence(s)` };
+      if (!input.filePath)               return { success: false, error: `${type} requires filePath` };
+      if (!input.oldString)              return { success: false, error: `${type} requires oldString` };
+      if (input.newString === undefined) return { success: false, error: `${type} requires newString` };
+      const result = await patchFileOp({ sandboxRoot: cwd, path: input.filePath, oldString: input.oldString, newString: input.newString });
+      return { success: true, filePath: input.filePath, output: `Replaced ${result.occurrences} occurrence(s)` };
     }
     case 'delete_file': {
       if (!input.filePath) return { success: false, error: 'delete_file requires filePath' };
-      const result = await safeDelete(projectId, input.filePath);
-      return result.ok
+      const result = await deleteFileFromSandbox({ sandboxRoot: cwd, path: input.filePath });
+      return result.deleted
         ? { success: true, output: `Deleted: ${input.filePath}` }
-        : { success: false, error: result.error };
+        : { success: false, error: `File not found or could not be deleted: ${input.filePath}` };
     }
     case 'list_directory': {
-      const listing = await readDirectory(projectId, input.filePath ?? '.', input.recursive ?? false);
-      return { success: true, output: formatListing(listing) };
+      const entries = await readFolder({ sandboxRoot: cwd, path: input.filePath ?? '.' });
+      const listing = entries.map((e) => `${e.isDirectory ? 'd' : 'f'} ${e.relativePath}`).join('\n');
+      return { success: true, output: listing || '(empty directory)' };
     }
     case 'search_files': {
       if (!input.query) return { success: false, error: 'search_files requires query' };
-      const result = await grepLiteral(projectId, input.query, input.filePath ?? '.');
-      if (result.matches.length === 0) return { success: true, output: 'No matches found.' };
-      return { success: true, output: result.matches.slice(0, 30).map((m) => `${m.relativePath}:${m.lineNumber}: ${m.lineContent}`).join('\n') };
+      const results = await searchText({ sandboxRoot: cwd, path: input.filePath ?? '.', query: input.query });
+      const matches = results.flatMap((r) => r.matches.map((m) => `${r.relativePath}:${m.lineNumber}: ${m.lineContent}`));
+      if (matches.length === 0) return { success: true, output: 'No matches found.' };
+      return { success: true, output: matches.slice(0, 30).join('\n') };
     }
     case 'npm_install': {
       const args   = input.args ? (input.args as unknown as string[]) : [];
