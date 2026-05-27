@@ -204,3 +204,9 @@ id = "sIINbGJ3bES62DMFBnp68"
 uri = "file://server/orchestration/ORCHESTRATION_REPORT.md"
 type = "text"
 title = "Orchestration Report — Refactor Complete ✅"
+
+[[outputs]]
+id = "Yz0zm_ef_30uaxHA-UaVB"
+uri = "file://PLANNER_AGENT_REPORT.md"
+type = "text"
+title = "Planner Agent — Deep Scan Report"
