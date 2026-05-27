@@ -1,379 +1,204 @@
-# 📁 server/orchestration/ — Refactored Architecture Report
+# Orchestration — Simple Guide
 
-> **Architecture Version:** Simplified Production-Grade (Post-Refactor ✅ LIVE)
-> **Updated:** 26 May 2026
-> **Server Status:** ✅ Running — Zero import errors
-> **Design Philosophy:** Simple > Clever | Stability > Features | Debuggability > AI Magic
+> **Kya hai ye?**
+> Orchestration layer ek "factory manager" ki tarah hai. Jab user koi goal deta hai, ye layer use analyze karti hai, plan banati hai, execute karti hai, aur result deti hai. Supervisor ke neeche kaam karta hai — supervisor manager hai, orchestration worker hai.
 
 ---
 
-## 📂 Final Folder Structure (Actual)
+## Folder Structure
 
 ```
 server/orchestration/
 │
-├── index.ts                          ← Main entry point (server startup wiring)
+├── index.ts                          ← ENTRY POINT — server yahan se start karta hai
 │
 ├── core/
-│   ├── orchestrator.ts               ← Master controller (run start/stop)
-│   ├── execution-engine.ts           ← Phase-by-phase pipeline executor
-│   ├── run-manager.ts                ← ⭐ MERGED: state + lifecycle + transitions
-│   ├── orchestration-context.ts      ← Per-run context store (projectId, goal)
-│   └── orchestration-replay.ts       ← Checkpoint save/restore for replay
+│   ├── orchestrator.ts               ← Master controller — run start/stop karta hai
+│   ├── execution-engine.ts           ← Phases ek ek karke chalata hai
+│   ├── run-manager.ts                ← Run ka state track karta hai (pending→running→done)
+│   ├── orchestration-context.ts      ← Har run ka context store karta hai (goal, projectId)
+│   └── orchestration-replay.ts       ← Crash ke baad checkpoint se restart kar sakta hai
 │
 ├── pipeline/
-│   ├── analyze-phase.ts              ← Phase 1: Goal analysis & complexity
-│   ├── planning-phase.ts             ← Phase 2: Task plan generation
-│   ├── execution-phase.ts            ← Phase 3: Task execution loop
-│   ├── verification-phase.ts         ← Phase 4: TypeScript + build checks
-│   └── browser-phase.ts             ← Phase 5: Browser/UI validation
+│   ├── analyze-phase.ts              ← Phase 1: Goal ko samajhna
+│   ├── planning-phase.ts             ← Phase 2: Tasks ka plan banana
+│   ├── execution-phase.ts            ← Phase 3: Tasks execute karna
+│   ├── verification-phase.ts         ← Phase 4: Build check karna
+│   └── browser-phase.ts             ← Phase 5: Browser se UI check karna
 │
 ├── queue/
-│   ├── task-queue.ts                 ← Priority task queue (enqueue/dequeue)
-│   ├── queue-worker.ts               ← Worker that processes queued tasks
-│   └── priority-manager.ts           ← Task priority scoring & ranking
+│   ├── task-queue.ts                 ← Tasks ki waiting line (priority ke saath)
+│   ├── queue-worker.ts               ← Line se tasks uthake process karta hai
+│   └── priority-manager.ts           ← Kaun sa task pehle — priority decide karta hai
 │
 ├── routing/
-│   ├── agent-router.ts               ← Routes tasks to correct agent by phase
-│   └── retry-router.ts               ← Routes failed tasks for retry/cooldown
+│   ├── agent-router.ts               ← Sahi agent choose karta hai phase ke liye
+│   └── retry-router.ts               ← Failed task ko retry ke liye bhejtaa hai
 │
 ├── retry/
-│   ├── retry-manager.ts              ← Retry loop with exponential backoff
-│   ├── failure-handler.ts            ← Error classifier (network/LLM/build etc.)
-│   └── backoff-strategy.ts           ← Exponential backoff delay calculator
+│   ├── retry-manager.ts              ← Retry loop chalata hai (backoff ke saath)
+│   ├── failure-handler.ts            ← Error ki type identify karta hai
+│   └── backoff-strategy.ts           ← Kitni der baad retry karna — calculate karta hai
 │
 ├── events/
-│   ├── event-types.ts                ← All event/payload TypeScript types
-│   ├── orchestration-events.ts       ← Typed EventEmitter + emit helpers
-│   └── event-handlers.ts             ← Event listeners (logging, metrics)
+│   ├── event-types.ts                ← Sab TypeScript types ek jagah
+│   ├── orchestration-events.ts       ← Events fire karne ke functions
+│   └── event-handlers.ts             ← Events sun ke log aur metrics update karta hai
 │
 ├── telemetry/
-│   ├── run-logger.ts                 ← Per-run structured log store
-│   ├── metrics.ts                    ← Per-run + global counters + span stubs
-│   └── performance-monitor.ts        ← Memory/CPU interval monitor
+│   ├── run-logger.ts                 ← Har run ke logs store karta hai
+│   ├── metrics.ts                    ← Counters aur timings track karta hai
+│   └── performance-monitor.ts        ← Memory usage check karta hai (har 15s)
 │
 ├── utils/
-│   ├── orchestration-helpers.ts      ← Pure helpers (IDs, labels, timing)
-│   ├── execution-utils.ts            ← Async utils (timeout, retry, concurrency)
-│   └── validators.ts                 ← Zod schemas for input validation
+│   ├── orchestration-helpers.ts      ← Chhoti helper functions (ID, time, labels)
+│   ├── execution-utils.ts            ← Async helpers (timeout, retry, concurrency)
+│   └── validators.ts                 ← Input validate karna (Zod)
 │
 ├── agents/
-│   └── verification-bridge.ts        ← [BRIDGE] DAG verify-node interface
+│   └── verification-bridge.ts        ← DAG system ke saath connection point
 │
 └── execution/
-    └── execution-result-registry.ts  ← [BRIDGE] Run result/stats storage
-
-Total: 30 files
+    └── execution-result-registry.ts  ← Run ka result aur stats store karta hai
 ```
 
 ---
 
-## ✅ Kya Kiya Gaya (Refactor Summary)
-
-### 🔀 MERGE (3 → 1)
-
-| Purani Files (DELETED) | Naya File |
-|---|---|
-| `core/state-manager.ts` | → |
-| `core/orchestration-state.ts` | → **`core/run-manager.ts`** ✅ |
-| `core/lifecycle-manager.ts` | → |
-
-**`run-manager.ts` ab ye sab handle karta hai:**
-- Run state (`pending → running → completed/failed/cancelled`)
-- Invalid transitions block karna
-- Phase history tracking
-- Active run IDs
-- Duration calculation
-- Terminal state detection
-
----
-
-### 🗑️ DELETED FILES (7 files removed)
-
-| File | Reason |
-|---|---|
-| `core/state-manager.ts` | `run-manager.ts` mein merge |
-| `core/orchestration-state.ts` | `run-manager.ts` mein merge |
-| `core/lifecycle-manager.ts` | `run-manager.ts` mein merge |
-| `distributed/index.ts` + folder | Single-process architecture kaafi hai |
-| `swarm/intent-graph/` + folder | MVP mein instability badhata hai |
-| `routing/task-router.ts` | Queue system pehle se ordering handle karta hai |
-| `telemetry/orchestration-trace.ts` | MVP stage mein unnecessary |
-| `telemetry/orchestration-metrics.ts` | `metrics.ts` mein consolidate kiya |
-
----
-
-### 🛠️ FIXED IMPORTS (Existing codebase)
-
-Yeh files existing codebase ki thi — inke broken imports fix kiye:
-
-| File | Fix |
-|---|---|
-| `server/quantum/` (11 files) | `orchestration-metrics.ts` → `metrics.ts` |
-| `server/quantum/aggregation/` (2 files) | `orchestration-trace.ts` → `metrics.ts` stubs |
-| `server/engine/swarm/swarm-lifecycle-manager.ts` | `orchestration-metrics.ts` → `metrics.ts` |
-| `server/infrastructure/memory/run-cleanup-manager.ts` | `clearState()` → `runManager.clear()` |
-| `main.ts` | `parallelOrchestrationFabric` import + calls removed |
-
----
-
-## 📋 File-by-File Report
-
----
-
-### 🔑 index.ts
-**Kya karta hai:**
-Server ka main entry point. `main.ts` yahan se sirf do cheezein import karta hai:
-- `initOrchestration()` → orchestrator start karta hai, performance monitor shuru karta hai
-- `createOrchestrationRouter()` → 6 REST endpoints expose karta hai (`/runs`, `/runs/:id`, `/runs/:id/logs`, `/runs/:id/metrics`, `/active`, `/health`)
-
----
-
-### 📂 core/
-
-#### `orchestrator.ts`
-**Kya karta hai:**
-Poore system ka **master controller** — sirf coordinate karta hai, code generate nahi karta.
-- `startRun(input)` → run-manager se run create karta hai, pipeline trigger karta hai
-- Success/failure par events emit karta hai
-- `getActiveRuns()` / `getRunStatus()` expose karta hai
-
-#### `execution-engine.ts`
-**Kya karta hai:**
-Pipeline ko **phase-by-phase** execute karta hai.
-- Har phase ka timeout handle karta hai
-- Agar koi phase fail ho toh baki phases skip karta hai
-- Metrics aur logs har phase par emit karta hai
-
-#### `run-manager.ts` ⭐ NEW MERGED FILE
-**Kya karta hai:**
-**Teen purani files ka ek replacement.** Sab kuch ek jagah:
-- `create(runId)` → naya run register karta hai (`pending` state se)
-- `transition(runId, status)` → state change karta hai, invalid transitions throw karta hai
-- `setPhase(runId, phase)` → current phase aur phase history update karta hai
-- `setError()` / `setMeta()` → error aur metadata store karta hai
-- `isTerminal()` / `isRunning()` → run status check karta hai
-- `getActiveRuns()` → sab non-terminal runs ki list
-- `clear(runId)` → run cleanup par memory free karta hai
-
-#### `orchestration-context.ts`
-**Kya karta hai:**
-Har run ka context (projectId, goal, metadata) memory mein store karta hai.
-- `createContext()`, `getContext()`, `clearContext()` provide karta hai
-
-#### `orchestration-replay.ts`
-**Kya karta hai:**
-Run checkpoints save/restore karta hai.
-- `saveCheckpoint()` → phase snapshot save karta hai
-- `replayFromCheckpoint()` → crash ke baad specific phase se restart possible
-- `clearCheckpoints()` → run cleanup mein use hota hai
-
----
-
-### 📂 pipeline/
-
-#### `analyze-phase.ts` (Phase 1)
-Goal analyze karta hai — complexity score (0–100), execution mode (`simple/standard/complex`), tags extract karta hai.
-
-#### `planning-phase.ts` (Phase 2)
-Task plan banata hai — dependencies validate karta hai, `ExecutionPlan` return karta hai.
-
-#### `execution-phase.ts` (Phase 3)
-Tasks execute karta hai dependency order mein — progress % track karta hai.
-
-#### `verification-phase.ts` (Phase 4)
-Build checks run karta hai — `tsc --noEmit`, `npm run build`. Fail-closed design.
-
-#### `browser-phase.ts` (Phase 5)
-Browser se UI validate karta hai — server reachable? screenshot? accessibility?
-
----
-
-### 📂 queue/
-
-#### `task-queue.ts`
-Priority-based task queue — `enqueue()` / `dequeue()` / stats.
-
-#### `queue-worker.ts`
-Queue se tasks process karta hai — concurrency limit, graceful shutdown.
-
-#### `priority-manager.ts`
-Task priority decide karta hai — type-based scoring, age-based boost.
-
----
-
-### 📂 routing/
-
-#### `agent-router.ts`
-Phase ke basis par sahi agent select karta hai (`analyze` → analyzer, `execution` → executor etc.)
-
-#### `retry-router.ts`
-Failed tasks ko retry ke liye route karta hai — max retries check, cooldown support.
-
----
-
-### 📂 retry/
-
-#### `retry-manager.ts`
-Retry loop manage karta hai exponential backoff se. Per-task retry records track karta hai.
-
-#### `failure-handler.ts`
-Errors classify karta hai (`timeout`, `network`, `llm`, `build`, `runtime`, `validation`). Recoverable vs non-recoverable decide karta hai.
-
-#### `backoff-strategy.ts`
-Retry delay calculate karta hai — `baseDelay × 2^(attempt-1)` + jitter.
-
----
-
-### 📂 events/
-
-#### `event-types.ts`
-Poore system ke TypeScript types — `OrchestrationPhase`, `OrchestrationStatus`, `TaskPriority`, `TaskPayload`, `PhaseResult`.
-
-#### `orchestration-events.ts`
-Typed EventEmitter + `emitRunStarted()`, `emitRunFailed()`, `emitPhaseCompleted()` helpers.
-
-#### `event-handlers.ts`
-Event listeners — run events → logger, phase events → timing metrics.
-
----
-
-### 📂 telemetry/
-
-#### `run-logger.ts`
-Per-run structured logs (max 1000 entries). `exportLogs()` → plain text export.
-
-#### `metrics.ts` ⭐ ENHANCED
-**Ab teen cheezein handle karta hai:**
-1. **Per-run metrics** → `metricsCollector.increment(runId, metric)` / `timing()`
-2. **Global counters** → `incrementCounter(metric)` — quantum/engine files is se use karte hain
-3. **Span stubs** → `recordSpanStart()` / `recordSpanEnd()` / `addSpanEvent()` — quantum aggregation ke liye
-
-#### `performance-monitor.ts`
-Har 15s par memory usage check karta hai. Threshold breach par warning emit karta hai.
-
----
-
-### 📂 utils/
-
-#### `orchestration-helpers.ts`
-Pure helpers — `generateRunId()`, `formatDuration()`, `elapsed()`, `phaseLabel()`.
-
-#### `execution-utils.ts`
-Async utilities — `withTimeout()`, `sleep()`, `retryFixed()`, `runConcurrent()`, `timed()`.
-
-#### `validators.ts`
-Zod-based input validation — `validateStartRun()`, `validateContext()`, `validateTask()`.
-
----
-
-### 📂 agents/ (Bridge)
-
-#### `verification-bridge.ts`
-DAG verify-node ke liye interface. `VerificationCheck` type + `verificationBridge.verify()` method. `dag-verify-executor.ts` is se connect hai.
-
-### 📂 execution/ (Bridge)
-
-#### `execution-result-registry.ts`
-Run stats storage — `storeExecutionStats()`, `getRecentRuns()`, `getSuccessRate()`. `tool-loop.executor.ts` is se connect hai.
-
----
-
-## 🔄 Clean Execution Flow
+## Working Flow — Step by Step
 
 ```
-User Request
-     │
-     ▼
-orchestrator.startRun(input)
-     │
-     ├── runManager.create(runId)        ← state: pending
-     ├── runManager.transition('running') ← state: running
-     │
-     ▼
-execution-engine.execute(ctx)
-     │
-     ├── analyze-phase.ts   ←── Phase 1: Goal analysis
-     ├── planning-phase.ts  ←── Phase 2: Task planning
-     ├── execution-phase.ts ←── Phase 3: Code execution
-     ├── verification-phase.ts ←── Phase 4: Build check
-     └── browser-phase.ts   ←── Phase 5: UI validation
-          │
-          ▼
-     runManager.transition('completed' | 'failed')
-          │
-          ▼
-     events emit → telemetry record → logs flush
+1. User goal bhejta hai
+   POST /orchestration/runs  →  index.ts  →  orchestrator.ts
+
+2. Orchestrator run shuru karta hai
+   ├── run-manager  →  run create karo (state: pending)
+   ├── run-manager  →  state: running
+   └── supervisor-agent.ts ko call karta hai (runSupervisorCycle)
+
+3. Supervisor analysis karta hai
+   (complexity, goal type, simple/standard/complex mode decide)
+
+4. Phases ek ek karke chalti hain
+   execution-engine.ts har phase run karta hai:
+
+   ┌─────────────┐
+   │  Phase 1    │  analyze-phase      →  Goal kitna mushkil? Mode kya?
+   ├─────────────┤
+   │  Phase 2    │  planning-phase     →  Kya kya tasks karne hain?
+   ├─────────────┤
+   │  Phase 3    │  execution-phase    →  Tasks actually run karo
+   ├─────────────┤
+   │  Phase 4    │  verification-phase →  Build pass hua? TypeScript errors?
+   ├─────────────┤
+   │  Phase 5    │  browser-phase      →  UI sahi dikh rahi hai?
+   └─────────────┘
+   (simple mode mein sirf Phase 1, 3, 4 chalti hain)
+
+5. Har phase ke andar task queue kaam karta hai
+   priority-manager  →  priority decide karo
+   task-queue        →  line mein daalo
+   queue-worker      →  uthao aur chalao
+   agent-router      →  sahi agent ko bheojo
+
+6. Kuch fail hua toh:
+   failure-handler   →  error ki type pehchano (network? LLM? build?)
+   retry-manager     →  backoff ke saath dobara try karo
+   retry-router      →  retry ke liye sahi jagah bheojo
+
+7. Events fire hote hain (orchestrationBus par):
+   run.started        →  run shuru hua
+   run.completed      →  run khatam hua
+   run.failed         →  run fail hua
+   phase.started      →  ek phase shuru hui
+   phase.completed    →  ek phase pass hui
+
+8. Telemetry sab record karti hai
+   run-logger         →  sab logs save
+   metrics            →  counters + timings update
+   performance-monitor →  memory check
+
+9. Result wapas aata hai
+   { runId, success, durationMs, failedPhase? }  →  API response
 ```
 
 ---
 
-## 📦 Recommended Import Structure
+## Har File Kya Kaam Karti Hai
 
-```typescript
-// Core
-import { orchestrator }  from './core/orchestrator'
-import { runManager }    from './core/run-manager'
-
-// Events
-import { orchestrationBus, emitRunStarted } from './events/orchestration-events'
-import type { OrchestrationPhase, TaskPayload } from './events/event-types'
-
-// Telemetry
-import { runLogger }        from './telemetry/run-logger'
-import { metricsCollector, incrementCounter } from './telemetry/metrics'
-
-// Utils
-import { generateRunId, formatDuration } from './utils/orchestration-helpers'
-import { withTimeout, sleep }            from './utils/execution-utils'
-import { validateStartRun }              from './utils/validators'
-```
-
----
-
-## 🚀 Future-Safe Scaling Strategy
-
-| Stage | Kya Add Karein |
+### Entry Point
+| File | Kaam |
 |---|---|
-| **Ab (MVP)** | Current 30-file single-process architecture |
-| **Stage 2** | Redis queue — jab concurrent runs 5/min se zyada ho jaayein |
-| **Stage 3** | Worker threads — jab single-thread CPU bottleneck bane |
-| **Stage 4** | Distributed runs — jab multi-server deployment zaroorat ho |
-| **Kabhi Nahi** | Swarm, quantum routing, recursive agents, consensus systems |
+| `index.ts` | Server startup. `initOrchestration()` aur REST endpoints (`/runs`, `/health` etc.) expose karta hai. |
+
+### Core (Dimaag)
+| File | Kaam |
+|---|---|
+| `orchestrator.ts` | Master controller. Run start karta hai, supervisor call karta hai, success/fail handle karta hai. |
+| `execution-engine.ts` | Pipeline runner. Har phase ka timeout handle karta hai, fail ho toh baki skip. |
+| `run-manager.ts` | Run ka state machine. `pending → running → completed / failed`. Invalid transitions block karta hai. |
+| `orchestration-context.ts` | Har run ka context (goal, projectId, metadata) memory mein store karta hai. |
+| `orchestration-replay.ts` | Checkpoint save karta hai. Crash ke baad kisi bhi phase se restart possible. |
+
+### Pipeline (Kaam Karne Wale)
+| File | Kaam |
+|---|---|
+| `analyze-phase.ts` | Goal analyze karta hai — complexity score (0-100), mode (simple/standard/complex), tags. |
+| `planning-phase.ts` | Tasks ka plan banata hai — kya karna hai, kis order mein, dependencies. |
+| `execution-phase.ts` | Plan ke tasks actually execute karta hai dependency order mein, progress track karta hai. |
+| `verification-phase.ts` | Build checks — `tsc --noEmit`, `npm run build`. Fail ho toh pipeline rok deta hai. |
+| `browser-phase.ts` | Browser se UI check — server reachable hai? Page load ho raha hai? |
+
+### Queue (Waiting Line)
+| File | Kaam |
+|---|---|
+| `task-queue.ts` | Priority ke saath tasks ki line. `enqueue()` / `dequeue()` / stats. |
+| `queue-worker.ts` | Line se tasks uthata hai aur process karta hai. Concurrency limit, graceful shutdown. |
+| `priority-manager.ts` | Kaun sa task pehle chalega — type aur age dekh ke priority score deta hai. |
+
+### Routing (Kahan Bhejna)
+| File | Kaam |
+|---|---|
+| `agent-router.ts` | Phase dekh ke sahi agent select karta hai (analyze → analyzer, execution → executor). |
+| `retry-router.ts` | Failed task ko retry ke liye route karta hai — max retries check, cooldown. |
+
+### Retry (Dobara Try)
+| File | Kaam |
+|---|---|
+| `retry-manager.ts` | Retry loop chalata hai exponential backoff se. Per-task retry count track karta hai. |
+| `failure-handler.ts` | Error classify karta hai — network, timeout, LLM, build, runtime, validation. Recoverable ya nahi? |
+| `backoff-strategy.ts` | Retry delay calculate karta hai — `baseDelay × 2^attempt + jitter`. |
+
+### Events (Communication)
+| File | Kaam |
+|---|---|
+| `event-types.ts` | Sab TypeScript types — `OrchestrationPhase`, `TaskPayload`, `PhaseResult` etc. |
+| `orchestration-events.ts` | Typed EventEmitter + emit helpers — `emitRunStarted()`, `emitRunFailed()` etc. |
+| `event-handlers.ts` | Events sun ke logs likhta hai aur timing metrics update karta hai. |
+
+### Telemetry (Recording)
+| File | Kaam |
+|---|---|
+| `run-logger.ts` | Har run ke logs ek buffer mein store karta hai (max 1000 entries). Export bhi kar sakta hai. |
+| `metrics.ts` | Per-run counters + timings. Global counters bhi. Span stubs (tracing ke liye). |
+| `performance-monitor.ts` | Har 15 second par memory check karta hai. Zyada use pe warning emit karta hai. |
+
+### Utils (Tools)
+| File | Kaam |
+|---|---|
+| `orchestration-helpers.ts` | Pure functions — `generateRunId()`, `formatDuration()`, `elapsed()`. |
+| `execution-utils.ts` | Async helpers — `withTimeout()`, `sleep()`, `retryFixed()`, `runConcurrent()`. |
+| `validators.ts` | Zod schemas — `validateStartRun()`, `validateContext()`, `validateTask()`. |
+
+### Bridge Files (Connections)
+| File | Kaam |
+|---|---|
+| `agents/verification-bridge.ts` | DAG system ke saath connection — `verificationBridge.verify()`. |
+| `execution/execution-result-registry.ts` | Run stats store karta hai — success rate, recent runs, stats. |
 
 ---
 
-## ⚠️ Architecture Anti-Patterns (Avoid Karo)
+## 3 Rules Orchestration Follow Karti Hai
 
-1. **Over-abstraction** — Har kaam ke liye alag class mat banao
-2. **Premature distribution** — Redis/workers tabhi add karo jab zaroorat prove ho jaaye
-3. **Swarm/recursive agents** — MVP mein instability badhate hain, value nahi
-4. **Silent failures** — Har error explicit throw ya emit honi chahiye
-5. **God objects** — Orchestrator sirf coordinate kare, code generate nahi kare
-6. **Deep import chains** — Circular dependencies avoid karo
-
----
-
-## 📊 Final Summary
-
-| Folder | Files | Kaam |
-|--------|-------|------|
-| `core/` | 5 | Run lifecycle, state (merged), context, replay |
-| `pipeline/` | 5 | 5 execution phases |
-| `telemetry/` | 3 | Logging, metrics (enhanced), monitoring |
-| `events/` | 3 | Event types, bus, handlers |
-| `retry/` | 3 | Retry logic, failure classification, backoff |
-| `queue/` | 3 | Task queue, worker, priority |
-| `routing/` | 2 | Agent routing + retry routing |
-| `utils/` | 3 | Helpers, async utils, validators |
-| `agents/` | 1 | Verification bridge (DAG bridge) |
-| `execution/` | 1 | Result registry (tool-loop bridge) |
-| Root | 1 | index.ts |
-| **Total** | **30** | **Clean, production-ready** |
-
----
-
-> **Server Status:** ✅ Running with zero errors
-> **Files deleted:** 8 (distributed, swarm, 3 state files, task-router, 2 telemetry files)
-> **Files merged:** 3 → 1 (run-manager.ts)
-> **Import errors fixed:** 15 files across quantum, engine, infrastructure modules
+1. **Phase fail ho toh pipeline rok do** — koi silent skip nahi
+2. **Har cheez logged aur metered hoti hai** — koi hidden operation nahi
+3. **State machine strict hai** — `pending → running → completed` — ulta nahi ja sakta
