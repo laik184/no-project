@@ -1,17 +1,39 @@
 /**
  * server/tools/coding/index.ts
  *
- * Coding tool implementations — PENDING MIGRATION.
+ * Public entry point for the coding tool layer.
  *
- * This module will house the centralized coding/generation tools
- * once agents are migrated from server/agents/coderx/.
+ * Architecture:
+ *   Executor Agent → Tool Dispatcher → Coding Tools → Generated Code (string)
  *
- * Current implementations live at:
- *   server/agents/coderx/generators/
- *   server/agents/coderx/llm-loop/
- *   server/agents/coderx/templates/
- *
- * DO NOT use this module yet — it is a reserved namespace.
+ * Coding tools ONLY generate code as strings (Record<string, string>).
+ * They NEVER write files or run terminal commands.
+ * Filesystem tools handle writing; terminal tools handle commands.
  */
 
-export const CODING_TOOLS_PENDING = true;
+// ── Registration ──────────────────────────────────────────────────────────────
+export {
+  registerCodingTools,
+  CODING_TOOL_COUNT,
+  CODING_TOOL_NAMES,
+} from './registry/register-coding-tools.ts';
+
+// ── Shared types for consumers ────────────────────────────────────────────────
+export type { GenerationResult, GenerationStrategy } from './shared/coding-types.ts';
+export { CodingToolError }                           from './shared/coding-errors.ts';
+export {
+  codingOk,
+  codingFail,
+  codingValidationFail,
+  templateResult,
+  llmResult,
+}                                                    from './shared/coding-result.ts';
+
+// ── Telemetry ─────────────────────────────────────────────────────────────────
+export { codingContext }                             from './shared/coding-context.ts';
+
+// ── Validation pipeline (for external use by verifier tools) ──────────────────
+export { validateGeneratedCode }                     from './validation/generated-code-validator.ts';
+export { validateAllSyntax }                         from './validation/syntax-validator.ts';
+export { validateAllImports }                        from './validation/import-validator.ts';
+export { validateAllSchemas }                        from './validation/schema-validator.ts';

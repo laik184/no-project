@@ -1,0 +1,388 @@
+You are a senior principal AI code-generation systems engineer and TypeScript infrastructure architect.
+
+Your task is to IMPLEMENT the centralized Coding Tool System inside:
+
+server/tools/coding/
+
+IMPORTANT:
+Before generating ANY code:
+
+1. Deeply inspect:
+- server/agents/executor/
+- server/tools/registry/
+- server/tools/filesystem/
+- server/tools/terminal/
+- server/orchestration/
+- server/context/
+
+2. Reuse existing:
+- tool registry
+- dispatcher
+- filesystem tools
+- terminal tools
+- telemetry
+- validators
+- logging
+- sandbox systems
+
+3. DO NOT duplicate:
+- filesystem logic
+- terminal logic
+- orchestration logic
+- browser logic
+- verifier logic
+
+==================================================
+GOAL
+==================================================
+
+Create centralized AI-powered coding tools for:
+
+- frontend generation
+- backend generation
+- API generation
+- auth generation
+- database generation
+- component generation
+- CRUD generation
+- schema generation
+- route generation
+
+IMPORTANT:
+
+These are TOOLS.
+
+NOT AGENTS.
+
+Executor Agent will CALL these tools through:
+- tool registry
+- tool dispatcher
+
+==================================================
+STRICT RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+
+2. NO FILE > 250 LINES
+
+3. SINGLE RESPONSIBILITY ONLY
+
+4. STRICT TYPE SAFETY
+
+5. NO CIRCULAR IMPORTS
+
+6. FAIL-CLOSED GENERATION
+
+==================================================
+CREATE THIS STRUCTURE
+==================================================
+
+server/tools/coding/
+
+├── frontend/
+│   ├── generate-react-page.ts
+│   ├── generate-react-layout.ts
+│   ├── generate-react-hook.ts
+│   ├── generate-react-context.ts
+│   ├── generate-tailwind-ui.ts
+│   ├── generate-react-routing.ts
+│   └── generate-component-tree.ts
+│
+├── backend/
+│   ├── generate-express-route.ts
+│   ├── generate-controller.ts
+│   ├── generate-service.ts
+│   ├── generate-middleware.ts
+│   ├── generate-module.ts
+│   ├── generate-error-handler.ts
+│   └── generate-server-bootstrap.ts
+│
+├── api/
+│   ├── generate-rest-api.ts
+│   ├── generate-request-schema.ts
+│   ├── generate-response-schema.ts
+│   ├── generate-api-validation.ts
+│   ├── generate-api-handler.ts
+│   └── generate-api-client.ts
+│
+├── auth/
+│   ├── generate-jwt-auth.ts
+│   ├── generate-session-auth.ts
+│   ├── generate-login-flow.ts
+│   ├── generate-signup-flow.ts
+│   ├── generate-role-system.ts
+│   ├── generate-auth-middleware.ts
+│   └── generate-password-hashing.ts
+│
+├── database/
+│   ├── generate-schema.ts
+│   ├── generate-model.ts
+│   ├── generate-relation.ts
+│   ├── generate-migration.ts
+│   ├── generate-seed.ts
+│   ├── generate-repository.ts
+│   └── generate-db-config.ts
+│
+├── components/
+│   ├── generate-form.ts
+│   ├── generate-table.ts
+│   ├── generate-modal.ts
+│   ├── generate-dashboard.ts
+│   ├── generate-navbar.ts
+│   ├── generate-sidebar.ts
+│   └── generate-loading-state.ts
+│
+├── crud/
+│   ├── generate-crud-module.ts
+│   ├── generate-crud-api.ts
+│   ├── generate-crud-ui.ts
+│   ├── generate-crud-schema.ts
+│   └── generate-crud-tests.ts
+│
+├── templates/
+│   ├── react-template.ts
+│   ├── express-template.ts
+│   ├── auth-template.ts
+│   ├── crud-template.ts
+│   └── api-template.ts
+│
+├── llm/
+│   ├── prompt-builder.ts
+│   ├── response-parser.ts
+│   ├── code-normalizer.ts
+│   ├── generation-context.ts
+│   └── token-budget.ts
+│
+├── validation/
+│   ├── generated-code-validator.ts
+│   ├── import-validator.ts
+│   ├── schema-validator.ts
+│   ├── syntax-validator.ts
+│   └── dependency-validator.ts
+│
+├── shared/
+│   ├── coding-context.ts
+│   ├── coding-errors.ts
+│   ├── coding-result.ts
+│   └── coding-types.ts
+│
+├── registry/
+│   └── register-coding-tools.ts
+│
+└── index.ts
+
+==================================================
+IMPORTANT ARCHITECTURE RULES
+==================================================
+
+OLD BAD MODEL:
+
+Executor directly generates code.
+
+NEW CORRECT MODEL:
+
+Executor
+↓
+Tool Dispatcher
+↓
+Coding Tools
+↓
+Generated Code
+
+==================================================
+TOOL RESPONSIBILITY RULES
+==================================================
+
+Each tool MUST do ONLY ONE thing.
+
+Examples:
+
+generate-react-page.ts
+→ ONLY React page generation
+
+generate-controller.ts
+→ ONLY backend controller generation
+
+generate-jwt-auth.ts
+→ ONLY JWT auth generation
+
+NO mixed generation logic.
+
+==================================================
+TOOL EXECUTION RULES
+==================================================
+
+Every tool MUST:
+
+1. Register itself with:
+- tool-registry.ts
+
+2. Export:
+- metadata
+- handler
+- validation schema
+
+3. Use:
+- ToolExecutionContext
+- ToolExecutionResult
+
+4. Return normalized outputs
+
+==================================================
+GENERATION REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Generate production-grade TypeScript
+
+2. Generate modular code
+
+3. Generate strict typing
+
+4. Generate small maintainable files
+
+5. Respect:
+- project structure
+- existing imports
+- coding conventions
+- framework conventions
+
+==================================================
+CODE GENERATION RULES
+==================================================
+
+Generated code MUST:
+
+- avoid duplication
+- avoid dead code
+- avoid TODO comments
+- avoid placeholder implementations
+- avoid giant files
+- avoid circular imports
+
+==================================================
+VALIDATION REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+Validate:
+- imports
+- syntax
+- schema correctness
+- dependency correctness
+- generated structure
+
+FAIL generation if invalid.
+
+==================================================
+FILESYSTEM RULES
+==================================================
+
+Coding tools MUST NOT directly write files.
+
+Coding tools ONLY:
+- generate code
+- return generation result
+
+Filesystem tools handle:
+- write
+- patch
+- move
+- rename
+
+==================================================
+TERMINAL RULES
+==================================================
+
+Coding tools MUST NOT directly run commands.
+
+Terminal tools handle:
+- npm install
+- npm build
+- npm test
+
+==================================================
+SECURITY REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Sandbox-only generation
+
+2. Validate generated imports
+
+3. Validate generated paths
+
+4. Prevent dangerous code generation
+
+5. Prevent arbitrary shell execution
+
+==================================================
+TOOL REGISTRATION
+==================================================
+
+Each tool MUST register:
+
+- tool name
+- category
+- permissions
+- timeout
+- retry policy
+
+Example categories:
+- coding.frontend
+- coding.backend
+- coding.api
+- coding.auth
+- coding.database
+
+==================================================
+TELEMETRY
+==================================================
+
+Track:
+- generation count
+- generation duration
+- validation failures
+- syntax failures
+- retry count
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+
+1. Full coding tool architecture
+2. Fully typed TypeScript
+3. Registry integration
+4. Dispatcher integration
+5. Modular generation tools
+6. Validation pipeline
+7. Production-grade code generation
+8. Clean LLM generation pipeline
+
+==================================================
+FINAL RULES
+==================================================
+
+1. DO NOT turn tools into agents
+
+2. DO NOT embed orchestration logic
+
+3. DO NOT directly modify filesystem
+
+4. DO NOT directly run terminal commands
+
+5. Keep tools deterministic
+
+Everything must be:
+- modular
+- deterministic
+- secure
+- maintainable
+- production-ready
+- Cursor/Replit-level

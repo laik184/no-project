@@ -39,5 +39,9 @@ export {
   BROWSER_TOOL_NAMES,
 } from './browser/index.ts';
 
-// ── Coding domain (stub — pending migration) ──────────────────────────────────
-export { CODING_TOOLS_PENDING } from './coding/index.ts';
+// ── Coding domain (MIGRATED — fully registered) ───────────────────────────────
+export {
+  registerCodingTools,
+  CODING_TOOL_COUNT,
+  CODING_TOOL_NAMES,
+} from './coding/index.ts';
