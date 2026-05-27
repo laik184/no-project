@@ -4,6 +4,7 @@ import { emitPhaseStarted, emitMetric } from '../events/orchestration-events.ts'
 import { timed, withTimeout } from '../utils/execution-utils.ts';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { initializeVerifier, runVerification } from '../../agents/verifier/index.ts';
 
 const execAsync = promisify(exec);
 
@@ -50,7 +51,34 @@ async function runCheck(name: VerificationCheckName, cmd: string, cwd: string): 
 
 export async function runVerificationPhase(ctx: OrchestrationContext, projectRoot: string): Promise<PhaseResult> {
   emitPhaseStarted(ctx.runId, 'verification');
-  runLogger.log(ctx.runId, 'info', '[verification-phase] Running verification checks');
+  initializeVerifier();
+  runLogger.log(ctx.runId, 'info', '[verification-phase] Running verification checks via verifier agent');
+
+  // ── Verifier Agent call ────────────────────────────────────────────────────
+  const verifierResult = await runVerification({
+    runId:     ctx.runId,
+    projectId: String(ctx.projectId),
+    phases:    ['typecheck', 'build', 'runtime'],
+    timeoutMs: ctx.timeoutMs ?? 120_000,
+  }).catch((err) => {
+    runLogger.log(ctx.runId, 'warn', `[verification-phase] Verifier agent error: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  });
+
+  if (verifierResult) {
+    runLogger.log(ctx.runId, verifierResult.ok ? 'info' : 'warn',
+      `[verification-phase] Verifier agent done — ok=${verifierResult.ok} phases=${verifierResult.phases?.length ?? 0}`);
+    emitMetric(ctx.runId, 'verification.agent.ok', verifierResult.ok ? 1 : 0, 'bool');
+
+    if (verifierResult.ok) {
+      return {
+        phase:     'verification',
+        success:   true,
+        durationMs: verifierResult.durationMs,
+        output:    verifierResult as unknown as Record<string, unknown>,
+      };
+    }
+  }
 
   const { result: report, durationMs } = await timed(async (): Promise<VerificationReport> => {
     const checks: VerificationCheck[] = [];
