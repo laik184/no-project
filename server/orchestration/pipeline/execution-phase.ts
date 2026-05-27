@@ -1,9 +1,10 @@
 import type { OrchestrationContext, PhaseResult } from '../events/event-types.ts';
 import { runLogger } from '../telemetry/run-logger.ts';
 import { emitPhaseStarted, emitMetric, emitTaskStarted, emitTaskCompleted, emitTaskFailed } from '../events/orchestration-events.ts';
-import { timed, withTimeout, sleep } from '../utils/execution-utils.ts';
+import { timed, withTimeout } from '../utils/execution-utils.ts';
 import { generateTaskId } from '../utils/orchestration-helpers.ts';
 import type { ExecutionPlan, PlanTask } from './planning-phase.ts';
+import { runToolLoop } from '../../agents/coderx/index.ts';
 
 export interface ExecutionProgress {
   total: number;
@@ -36,16 +37,30 @@ async function executeTask(
   };
 
   emitTaskStarted(payload);
-  runLogger.log(runId, 'info', `[execution-phase] Running task "${task.type}": ${task.description}`);
+  runLogger.log(runId, 'info', `[execution-phase] Running task "${task.type}" via coderx: ${task.description}`);
 
   try {
-    await withTimeout(() => sleep(200 + Math.random() * 300), { timeoutMs: 30_000 });
-    emitTaskCompleted(payload, { taskId: task.id, status: 'completed' });
-    return true;
+    const loopResult = await withTimeout(
+      () => runToolLoop({
+        task:     `${task.type}: ${task.description}`,
+        basePath: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+      }),
+      { timeoutMs: 120_000 },
+    );
+
+    if (loopResult.success) {
+      emitTaskCompleted(payload, { taskId: task.id, status: 'completed' });
+      runLogger.log(runId, 'info', `[execution-phase] Task "${task.type}" done in ${loopResult.iterations} iteration(s): ${loopResult.summary ?? ''}`);
+      return true;
+    } else {
+      emitTaskFailed(payload, loopResult.error ?? 'coderx loop did not complete');
+      runLogger.log(runId, 'warn', `[execution-phase] Task "${task.type}" failed: ${loopResult.error}`);
+      return false;
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     emitTaskFailed(payload, msg);
-    runLogger.log(runId, 'error', `[execution-phase] Task "${task.type}" failed: ${msg}`);
+    runLogger.log(runId, 'error', `[execution-phase] Task "${task.type}" error: ${msg}`);
     return false;
   }
 }
