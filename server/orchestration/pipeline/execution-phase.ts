@@ -5,6 +5,7 @@ import { timed, withTimeout } from '../utils/execution-utils.ts';
 import { generateTaskId } from '../utils/orchestration-helpers.ts';
 import type { ExecutionPlan, PlanTask } from './planning-phase.ts';
 import { runToolLoop } from '../../agents/coderx/index.ts';
+import { initializeExecutor, executeTask as runExecutorTask } from '../../agents/executor/executor-agent.ts';
 
 export interface ExecutionProgress {
   total: number;
@@ -90,9 +91,45 @@ function sortByDependencies(tasks: PlanTask[]): PlanTask[] {
 
 export async function runExecutionPhase(ctx: OrchestrationContext, plan: ExecutionPlan): Promise<PhaseResult> {
   emitPhaseStarted(ctx.runId, 'execution');
-  runLogger.log(ctx.runId, 'info', `[execution-phase] Executing ${plan.tasks.length} tasks`);
+  initializeExecutor();
+  runLogger.log(ctx.runId, 'info', `[execution-phase] Executing ${plan.tasks.length} tasks via executor agent`);
 
   const { result, durationMs } = await timed(async (): Promise<ExecutionPhaseResult> => {
+    // ── Executor Agent call ──────────────────────────────────────────────────
+    const executorResult = await runExecutorTask({
+      runId:     ctx.runId,
+      projectId: String(ctx.projectId),
+      goal:      ctx.goal,
+      plan:      plan as unknown as import('../../agents/executor/types/executor.types.ts').ExecutorInput['plan'],
+      timeoutMs: ctx.timeoutMs,
+      metadata:  ctx.metadata,
+    }).catch((err) => {
+      runLogger.log(ctx.runId, 'warn', `[execution-phase] Executor agent error: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    });
+
+    if (executorResult) {
+      runLogger.log(ctx.runId, executorResult.ok ? 'info' : 'warn',
+        `[execution-phase] Executor agent result — ok=${executorResult.ok} completed=${executorResult.tasksCompleted} failed=${executorResult.tasksFailed}`);
+
+      const progress: ExecutionProgress = {
+        total:           executorResult.tasksTotal,
+        completed:       executorResult.tasksCompleted,
+        failed:          executorResult.tasksFailed,
+        percentComplete: executorResult.tasksTotal > 0
+          ? Math.round((executorResult.tasksCompleted / executorResult.tasksTotal) * 100)
+          : 0,
+      };
+      return {
+        tasksCompleted: executorResult.tasksCompleted,
+        tasksFailed:    executorResult.tasksFailed,
+        progress,
+        errors:         executorResult.error ? [{ taskId: 'executor', error: executorResult.error }] : [],
+      };
+    }
+
+    // ── Fallback: per-task coderx loop ───────────────────────────────────────
+    runLogger.log(ctx.runId, 'info', '[execution-phase] Falling back to per-task coderx loop');
     const ordered = sortByDependencies(plan.tasks);
     let completed = 0;
     let failed = 0;
