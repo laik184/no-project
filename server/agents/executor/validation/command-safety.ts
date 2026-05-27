@@ -23,10 +23,33 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /\/etc\/passwd/,
 ];
 
+/**
+ * Extended allowlist for the autonomous executor tool loop.
+ * All executables must be explicitly listed — fail-closed.
+ */
 const ALLOWED_EXECUTABLES = new Set([
-  'npm', 'npx', 'pnpm', 'node', 'tsc', 'tsx',
-  'ls', 'cat', 'echo', 'mkdir', 'cp', 'mv', 'touch',
-  'git', 'grep', 'find', 'which', 'env',
+  // JS runtimes & package managers
+  'npm', 'npx', 'pnpm', 'yarn', 'node', 'tsx', 'ts-node',
+  // TypeScript
+  'tsc',
+  // Shell utilities (read-only safe)
+  'ls', 'cat', 'echo', 'mkdir', 'cp', 'mv', 'touch', 'pwd', 'head', 'tail', 'wc',
+  // Text processing (read-only)
+  'grep', 'sed', 'awk', 'sort', 'uniq', 'cut', 'tr',
+  // File search
+  'find', 'which', 'type', 'stat',
+  // Git (read-only subcommands enforced in command-validator.ts)
+  'git',
+  // Environment
+  'env', 'printenv',
+  // Vite / bundlers
+  'vite', 'rollup', 'esbuild',
+  // Database tools (sandbox only)
+  'drizzle-kit', 'prisma',
+  // Testing
+  'vitest', 'jest', 'mocha',
+  // Linters
+  'eslint', 'prettier',
 ]);
 
 export function isCommandSafe(command: string): boolean {

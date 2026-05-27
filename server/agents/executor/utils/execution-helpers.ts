@@ -34,10 +34,16 @@ export function stepTimeout(type: string): number {
     generate_auth:      10_000,
     generate_component: 10_000,
     write_file:          5_000,
+    read_file:           5_000,
     edit_file:           5_000,
+    patch_file:          5_000,
+    delete_file:         3_000,
+    list_directory:      5_000,
+    search_files:       10_000,
     npm_install:        90_000,
     npm_run:            60_000,
     run_command:        30_000,
+    run_tests:          60_000,
     validate_output:    10_000,
     checkpoint:          5_000,
   };
@@ -51,7 +57,7 @@ export function categoryToStepType(category: string): string {
     api:     'generate_api',
     auth:    'generate_auth',
     ui:      'generate_frontend',
-    test:    'run_command',
+    test:    'run_tests',
     deploy:  'npm_run',
   };
   return map[category] ?? 'write_file';

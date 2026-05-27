@@ -8,18 +8,28 @@ export type StepType =
   | 'generate_auth'
   | 'generate_component'
   | 'write_file'
+  | 'read_file'
   | 'edit_file'
+  | 'patch_file'
+  | 'delete_file'
+  | 'list_directory'
+  | 'search_files'
   | 'npm_install'
   | 'npm_run'
   | 'run_command'
+  | 'run_tests'
   | 'validate_output'
   | 'checkpoint';
 
 export interface StepInput {
   filePath?:    string;
   fileContent?: string;
+  oldString?:   string;    // for patch_file / edit_file (surgical replacement)
+  newString?:   string;    // for patch_file / edit_file
   command?:     string;
   args?:        string[];
+  query?:       string;    // for search_files
+  recursive?:   boolean;  // for list_directory
   description?: string;
   category?:    string;
   template?:    string;
@@ -51,6 +61,7 @@ export interface CheckpointData {
   runId:         string;
   filesSnapshot: Array<{ path: string; content: string }>;
   createdAt:     Date;
+  diskPath?:     string;   // path to persisted checkpoint on disk
 }
 
 export interface ExecutionHistoryEntry {

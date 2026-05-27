@@ -1,1 +1,2 @@
 - [Agent deletion stubs](agent-deletion-stubs.md) — When deleting agents in nura-x, create no-op stubs not full rewrites; kept agents are self-contained; core/tool-loop must always be stubbed.
+- [Executor LLM tool loop](executor-llm-tool-loop.md) — Dynamic LLM loop wired into task-executor.ts; falls back to static steps when no LLM key; all new sub-modules in server/agents/executor/{llm,tools,context,memory,browser}.
