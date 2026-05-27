@@ -1,0 +1,392 @@
+```text id="step4browser"
+You are a senior principal browser automation engineer and UI verification systems architect.
+
+Your task is to MIGRATE the existing Browser Agent tools into the NEW centralized tool architecture.
+
+IMPORTANT:
+Before generating ANY code:
+
+1. Deeply inspect:
+- server/agents/browser/
+- server/tools/registry/
+- server/agents/verifier/
+- server/agents/terminal/
+- server/orchestration/
+- server/infrastructure/
+
+2. Reuse existing:
+- browser session systems
+- telemetry
+- logging
+- sandbox systems
+- validation systems
+- monitoring systems
+
+3. DO NOT break existing imports
+
+4. DO NOT delete old implementations yet
+
+5. This phase is ONLY:
+- extraction
+- migration
+- compatibility adaptation
+
+==================================================
+GOAL
+==================================================
+
+Move ALL browser execution logic OUT of:
+
+server/agents/browser/
+
+INTO:
+
+server/tools/browser/
+
+WITHOUT breaking the current system.
+
+==================================================
+STRICT RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+
+2. NO FILE > 250 LINES
+
+3. SINGLE RESPONSIBILITY ONLY
+
+4. FAIL-CLOSED VALIDATION
+
+5. STRICT TYPE SAFETY
+
+6. NO CIRCULAR IMPORTS
+
+==================================================
+IMPORTANT ARCHITECTURE CHANGE
+==================================================
+
+OLD:
+
+Browser Agent directly implements browser tools.
+
+NEW:
+
+Agents
+↓
+Tool Registry
+↓
+Tool Dispatcher
+↓
+Browser Tools
+
+==================================================
+CREATE THIS STRUCTURE
+==================================================
+
+server/tools/browser/
+
+├── navigation/
+│   ├── navigate-to-url.ts
+│   ├── reload-page.ts
+│   ├── wait-for-load.ts
+│   ├── run-user-flow.ts
+│   ├── test-viewport.ts
+│   └── responsive-tests.ts
+│
+├── interaction/
+│   ├── click-element.ts
+│   ├── fill-input.ts
+│   ├── select-option.ts
+│   ├── wait-for-element.ts
+│   ├── wait-for-visible.ts
+│   ├── is-element-present.ts
+│   ├── is-element-visible.ts
+│   ├── count-elements.ts
+│   └── capture-ui-state.ts
+│
+├── validation/
+│   ├── validate-ui.ts
+│   ├── compare-screenshots.ts
+│   ├── collect-performance.ts
+│   ├── validate-performance.ts
+│   ├── console-error-catcher.ts
+│   ├── runtime-crash-detector.ts
+│   ├── blank-screen-detector.ts
+│   └── hydration-error-detector.ts
+│
+├── capture/
+│   ├── take-screenshot.ts
+│   ├── take-element-screenshot.ts
+│   ├── attach-crash-listener.ts
+│   └── attach-console-listener.ts
+│
+├── session/
+│   ├── browser-session.ts
+│   ├── browser-context.ts
+│   ├── page-manager.ts
+│   └── browser-lifecycle.ts
+│
+├── monitoring/
+│   ├── browser-health-monitor.ts
+│   ├── performance-monitor.ts
+│   ├── action-logger.ts
+│   └── browser-metrics.ts
+│
+├── validation-core/
+│   ├── selector-validator.ts
+│   ├── url-validator.ts
+│   ├── interaction-validator.ts
+│   └── screenshot-validator.ts
+│
+├── shared/
+│   ├── browser-context.ts
+│   ├── browser-errors.ts
+│   ├── browser-result.ts
+│   └── browser-types.ts
+│
+├── registry/
+│   └── register-browser-tools.ts
+│
+└── index.ts
+
+==================================================
+MIGRATION REQUIREMENTS
+==================================================
+
+Migrate ALL existing browser tools from:
+
+server/agents/browser/
+
+INCLUDING:
+
+- navigateToUrl
+- reloadPage
+- waitForLoad
+- runUserFlow
+- testViewport
+- runResponsiveTests
+- clickElement
+- fillInput
+- selectOption
+- waitForElement
+- isElementVisible
+- captureUIState
+- validateUI
+- takeScreenshot
+- takeElementScreenshot
+- detectCrash
+- attachCrashListener
+- attachConsoleErrorCatcher
+- compareScreenshots
+- collectPerformanceTiming
+- validatePerformance
+
+and ALL related browser operations.
+
+==================================================
+IMPORTANT TOOL RULES
+==================================================
+
+Every tool MUST:
+
+1. Register itself with:
+- tool-registry.ts
+
+2. Export:
+- metadata
+- handler
+- validation schema
+
+3. Use:
+- ToolExecutionContext
+- ToolExecutionResult
+
+4. Return normalized outputs
+
+==================================================
+MAIN BROWSER REQUIREMENTS
+==================================================
+
+The MOST IMPORTANT capabilities are:
+
+1. Open local app URLs
+
+2. Detect whether app is actually running
+
+3. Capture screenshots
+
+4. Execute user flows
+
+5. Detect broken UI
+
+6. Detect browser console errors
+
+7. Detect frontend crashes
+
+8. Validate buttons/forms/pages actually work
+
+==================================================
+VALIDATION REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Detect:
+- blank screens
+- missing root app
+- hydration errors
+- console errors
+- network failures
+- frontend crashes
+
+2. Validate:
+- visible UI
+- working interactions
+- successful page loads
+- responsive layouts
+
+3. Normalize ALL browser errors
+
+4. Fail-closed validation behavior
+
+==================================================
+SECURITY REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Sandbox-only browser execution
+
+2. Restrict navigation to:
+- localhost
+- sandbox URLs
+- explicitly allowed URLs
+
+3. Block arbitrary external navigation
+
+4. Timeout ALL interactions
+
+5. Validate ALL selectors
+
+6. Prevent runaway browser sessions
+
+==================================================
+COMPATIBILITY REQUIREMENTS
+==================================================
+
+CRITICAL:
+
+DO NOT break existing agents.
+
+Create temporary compatibility adapters.
+
+Example:
+
+OLD:
+server/agents/browser/takeScreenshot()
+
+NEW:
+toolDispatcher.execute("take_screenshot")
+
+BUT:
+old APIs must still work during migration.
+
+==================================================
+CREATE ADAPTER LAYER
+==================================================
+
+Inside:
+
+server/agents/browser/
+
+Create lightweight wrappers ONLY.
+
+Wrappers should:
+- call tool dispatcher
+- preserve old signatures
+- preserve old return types
+
+NO real browser execution logic remains inside agents.
+
+==================================================
+IMPORTANT REFACTOR GOAL
+==================================================
+
+AFTER migration:
+
+Browser Agent becomes:
+- orchestration layer
+- browser coordination layer
+- compatibility layer
+
+NOT:
+- browser implementation layer
+
+==================================================
+TOOL REGISTRATION
+==================================================
+
+Each tool MUST register:
+
+- tool name
+- category
+- permissions
+- timeout
+- retry policy
+
+Example categories:
+- browser.navigation
+- browser.interaction
+- browser.validation
+- browser.capture
+
+==================================================
+TELEMETRY
+==================================================
+
+Track:
+- page loads
+- screenshots
+- interaction failures
+- console errors
+- crashes
+- validation failures
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+
+1. Full migrated browser tool architecture
+2. Fully typed TypeScript
+3. Registry integration
+4. Dispatcher integration
+5. Compatibility wrappers
+6. Centralized validation
+7. Sandbox-safe browser execution
+8. Production-grade browser tools
+
+==================================================
+FINAL RULES
+==================================================
+
+1. DO NOT delete old APIs yet
+
+2. DO NOT break executor
+
+3. DO NOT break verifier integration
+
+4. Migrate safely in phases
+
+5. Preserve backwards compatibility
+
+Everything must be:
+- modular
+- deterministic
+- secure
+- maintainable
+- Playwright-style
+- Replit-level
+- production-ready
+```

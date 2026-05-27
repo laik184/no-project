@@ -32,6 +32,12 @@ export { registerTerminalTools } from './terminal/index.ts';
 // ── Verifier domain (MIGRATED) ────────────────────────────────────────────────
 export { registerVerifierTools }    from './verifier/index.ts';
 
-// ── Domain namespaces (stubs — pending migration) ─────────────────────────────
-export { BROWSER_TOOLS_PENDING }    from './browser/index.ts';
-export { CODING_TOOLS_PENDING }     from './coding/index.ts';
+// ── Browser domain (MIGRATED — fully registered) ──────────────────────────────
+export {
+  registerBrowserTools,
+  BROWSER_TOOL_COUNT,
+  BROWSER_TOOL_NAMES,
+} from './browser/index.ts';
+
+// ── Coding domain (stub — pending migration) ──────────────────────────────────
+export { CODING_TOOLS_PENDING } from './coding/index.ts';

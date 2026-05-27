@@ -57,6 +57,7 @@ import { wireCoordinationSSE }         from './server/coordination/telemetry/coo
 import { initializePlanner }           from './server/agents/planner/planner-agent.ts';
 import { initializeExecutor }          from './server/agents/executor/executor-agent.ts';
 import { registerVerifierTools }       from './server/tools/verifier/index.ts';
+import { registerBrowserTools }        from './server/tools/browser/index.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -268,6 +269,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   wireCoordinationSSE();
   // Register verifier tools — build / tests / typecheck / runtime / diagnostics / recovery
   registerVerifierTools();
+  registerBrowserTools();
   // Boot Planner Agent — registers event handlers for the planning phase pipeline
   initializePlanner();
   // Boot Executor Agent — registers event handlers for the execution phase pipeline
