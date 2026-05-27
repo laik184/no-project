@@ -1,88 +1,98 @@
+/**
+ * browser-phase.ts
+ * Orchestration pipeline wrapper for the Browser Agent.
+ * Single responsibility: invoke runBrowserAgent and translate result to PhaseResult.
+ * All browser logic lives in server/agents/browser/.
+ */
+
 import type { OrchestrationContext, PhaseResult } from '../events/event-types.ts';
-import { runLogger } from '../telemetry/run-logger.ts';
-import { emitPhaseStarted, emitMetric } from '../events/orchestration-events.ts';
-import { timed, withTimeout } from '../utils/execution-utils.ts';
+import { runLogger }                               from '../telemetry/run-logger.ts';
+import { emitPhaseStarted, emitMetric }            from '../events/orchestration-events.ts';
+import { timed, withTimeout }                      from '../utils/execution-utils.ts';
+import { runBrowserAgent }                         from '../../agents/browser/index.ts';
 
-export interface BrowserCheck {
-  name: string;
-  passed: boolean;
-  detail: string;
+const BROWSER_PHASE_TIMEOUT_MS = 60_000;
+
+/**
+ * Resolve the preview URL for the given project.
+ * Falls back to the explicitly provided URL (e.g. from runtime-store / port-allocation).
+ */
+function resolvePreviewUrl(ctx: OrchestrationContext, hintUrl: string): string {
+  // If caller passed a real app URL, use it directly
+  if (hintUrl && !hintUrl.includes('3001')) return hintUrl;
+
+  // Try well-known dev ports (Vite default, then common alternatives)
+  const devPort = process.env.DEV_PORT ?? '5000';
+  return `http://localhost:${devPort}`;
 }
 
-export interface ScreenshotResult {
-  captured: boolean;
-  path?: string;
-  error?: string;
-}
-
-export interface BrowserReport {
-  accessible: boolean;
-  screenshot: ScreenshotResult;
-  checks: BrowserCheck[];
-  issues: string[];
-}
-
-async function probeUrl(url: string, timeoutMs = 10_000): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timer);
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function takeScreenshot(url: string, projectId: string): Promise<ScreenshotResult> {
-  try {
-    const { chromium } = await import('playwright');
-    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
-
-    const path = `.sandbox/${projectId}/screenshot.png`;
-    await page.screenshot({ path, fullPage: false });
-    await browser.close();
-
-    return { captured: true, path };
-  } catch (err) {
-    return { captured: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-function buildChecks(accessible: boolean, screenshot: ScreenshotResult): BrowserCheck[] {
-  return [
-    { name: 'server_reachable', passed: accessible, detail: accessible ? 'Server responded with 200' : 'Server not reachable' },
-    { name: 'screenshot_captured', passed: screenshot.captured, detail: screenshot.captured ? `Saved to ${screenshot.path}` : screenshot.error ?? 'Unknown' },
-  ];
-}
-
-export async function runBrowserPhase(ctx: OrchestrationContext, previewUrl: string): Promise<PhaseResult> {
+export async function runBrowserPhase(
+  ctx:        OrchestrationContext,
+  previewUrl: string,
+): Promise<PhaseResult> {
   emitPhaseStarted(ctx.runId, 'browser');
-  runLogger.log(ctx.runId, 'info', `[browser-phase] Probing: ${previewUrl}`);
+  runLogger.log(ctx.runId, 'info', `[browser-phase] Starting — url hint: ${previewUrl}`);
 
-  const { result: report, durationMs } = await timed(async (): Promise<BrowserReport> => {
-    const accessible = await withTimeout(() => probeUrl(previewUrl), { timeoutMs: 15_000 }).catch(() => false);
-    const screenshot = accessible
-      ? await withTimeout(() => takeScreenshot(previewUrl, ctx.projectId), { timeoutMs: 30_000 }).catch((e) => ({ captured: false, error: String(e) }))
-      : { captured: false, error: 'Server not reachable' };
+  const url = resolvePreviewUrl(ctx, previewUrl);
+  runLogger.log(ctx.runId, 'info', `[browser-phase] Resolved preview URL: ${url}`);
 
-    const checks = buildChecks(accessible, screenshot);
-    const issues = checks.filter((c) => !c.passed).map((c) => c.detail);
+  const { result: report, durationMs } = await timed(() =>
+    withTimeout(
+      () => runBrowserAgent({
+        runId:        ctx.runId,
+        url,
+        projectId:    typeof ctx.projectId === 'number' ? ctx.projectId : undefined,
+        allowedHosts: ['localhost', '127.0.0.1'],
+        launchOptions: { headless: true, timeoutMs: 20_000 },
+        timeoutMs:    BROWSER_PHASE_TIMEOUT_MS,
+      }),
+      { timeoutMs: BROWSER_PHASE_TIMEOUT_MS },
+    ).catch((err) => ({
+      runId:      ctx.runId,
+      sessionId:  'timeout',
+      url,
+      ok:         false as const,
+      navigation: { loaded: false },
+      validation: { passed: 0, failed: 0, crashDetected: false, consoleErrors: 0 },
+      screenshots:   [],
+      consoleErrors: [],
+      flows:         [],
+      performance:   {},
+      actions:       [],
+      durationMs:    BROWSER_PHASE_TIMEOUT_MS,
+      timestamp:     Date.now(),
+      error:         err instanceof Error ? err.message : String(err),
+    })),
+  );
 
-    return { accessible, screenshot, checks, issues };
-  });
+  // Emit telemetry metrics
+  emitMetric(ctx.runId, 'browser.accessible',  report.navigation.loaded ? 1 : 0, 'bool');
+  emitMetric(ctx.runId, 'browser.ok',          report.ok ? 1 : 0, 'bool');
+  emitMetric(ctx.runId, 'browser.screenshots', report.screenshots.length, 'count');
+  emitMetric(ctx.runId, 'browser.console_errors', report.consoleErrors.length, 'count');
+  emitMetric(ctx.runId, 'browser.crashed',     report.validation.crashDetected ? 1 : 0, 'bool');
 
-  emitMetric(ctx.runId, 'browser.accessible', report.accessible ? 1 : 0, 'bool');
-  emitMetric(ctx.runId, 'browser.screenshot', report.screenshot.captured ? 1 : 0, 'bool');
-  runLogger.log(ctx.runId, report.accessible ? 'info' : 'warn', `[browser-phase] Accessible=${report.accessible} Screenshot=${report.screenshot.captured}`);
+  const level = report.ok ? 'info' : 'warn';
+  runLogger.log(
+    ctx.runId,
+    level,
+    `[browser-phase] Complete — ok=${report.ok} nav=${report.navigation.loaded} ` +
+    `crashes=${report.validation.crashDetected} consoleErrors=${report.consoleErrors.length} ` +
+    `screenshots=${report.screenshots.length} duration=${durationMs}ms`,
+  );
+
+  const issues: string[] = [];
+  if (!report.navigation.loaded)       issues.push('Page did not load');
+  if (report.validation.crashDetected) issues.push('Frontend crash detected');
+  if (report.validation.failed > 0)    issues.push(`${report.validation.failed} UI validation failure(s)`);
+  if (report.consoleErrors.length > 0) issues.push(`${report.consoleErrors.length} console error(s)`);
+  if (report.error)                    issues.push(report.error);
 
   return {
-    phase: 'browser',
-    success: report.accessible,
+    phase:   'browser',
+    success: report.ok,
     durationMs,
-    output: report as unknown as Record<string, unknown>,
-    error: report.accessible ? undefined : `UI issues: ${report.issues.join('; ')}`,
+    output:  report as unknown as Record<string, unknown>,
+    error:   issues.length > 0 ? issues.join('; ') : undefined,
   };
 }
