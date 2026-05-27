@@ -1,10 +1,10 @@
 import type { ExecutorInput } from '../types/executor.types.ts';
 import type { ExecutionStateData } from './execution-state.ts';
 import { executionState } from './execution-state.ts';
-import { workspaceManager } from '../sandbox/workspace-manager.ts';
-import { isolationManager, type IsolatedContext } from '../sandbox/isolation-manager.ts';
+import { workspaceManager } from '../../filesystem/workspace-manager.ts';
+import { isolationManager, type IsolatedContext } from '../../filesystem/isolation-manager.ts';
 import { ExecutionQueue } from '../execution/execution-queue.ts';
-import { runtimeMonitor } from '../runtime/runtime-monitor.ts';
+import { runtimeMonitor } from '../../runtime/runtime-monitor.ts';
 
 export interface ExecutionContext {
   input:       ExecutorInput;

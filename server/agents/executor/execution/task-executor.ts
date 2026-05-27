@@ -8,19 +8,19 @@
  */
 
 import type { PlanTask, TaskExecutionResult } from '../types/executor.types.ts';
-import { interpretTask }       from '../planning/task-interpreter.ts';
+import { interpretTask }       from '../../coder/planning/task-interpreter.ts';
 import { runStep }             from './step-runner.ts';
 import { executionHistory }    from './execution-history.ts';
-import { runtimeMonitor }      from '../runtime/runtime-monitor.ts';
-import { retryHandler }        from '../recovery/retry-handler.ts';
-import { failureRecovery }     from '../recovery/failure-recovery.ts';
+import { runtimeMonitor }      from '../../runtime/runtime-monitor.ts';
+import { retryHandler }        from '../../validator/recovery/retry-handler.ts';
+import { failureRecovery }     from '../../validator/recovery/failure-recovery.ts';
 import { emitStepStarted, emitStepCompleted } from '../events/executor-events.ts';
 import { executorLogger }      from '../telemetry/executor-logger.ts';
 import { elapsedMs }           from '../utils/execution-helpers.ts';
-import { runToolLoop }         from '../llm/tool-loop.ts';
-import { isLLMAvailable }      from '../llm/llm-client.ts';
-import { executionMemory }     from '../memory/execution-memory.ts';
-import { failureMemory }       from '../memory/failure-memory.ts';
+import { runToolLoop }         from '../../coder/llm/tool-loop.ts';
+import { isLLMAvailable }      from '../../coder/llm/llm-client.ts';
+import { executionMemory }     from '../../coder/memory/execution-memory.ts';
+import { failureMemory }       from '../../coder/memory/failure-memory.ts';
 
 const LLM_ELIGIBLE_CATEGORIES = new Set([
   'setup', 'schema', 'api', 'auth', 'ui', 'test', 'deploy',

@@ -1,21 +1,21 @@
 import type { ExecutionStep, StepResult } from '../types/execution.types.ts';
 import { elapsedMs }                     from '../utils/execution-helpers.ts';
-import { fileWriter }                    from '../filesystem/file-writer.ts';
-import { fileReader }                    from '../filesystem/file-reader.ts';
-import { patchFile }                     from '../filesystem/patch-file.ts';
-import { safeDelete }                    from '../filesystem/safe-delete.ts';
-import { shellExecutor }                 from '../runtime/shell-executor.ts';
-import { npmManager }                    from '../runtime/npm-manager.ts';
-import { checkpointManager }             from '../recovery/checkpoint-manager.ts';
-import { validateGeneratedCode, validateCommandOutput } from '../validation/output-validator.ts';
-import { frontendGenerator }             from '../coding/frontend-generator.ts';
-import { backendGenerator }              from '../coding/backend-generator.ts';
-import { apiGenerator }                  from '../coding/api-generator.ts';
-import { databaseGenerator }             from '../coding/database-generator.ts';
-import { authGenerator }                 from '../coding/auth-generator.ts';
-import { componentGenerator }            from '../coding/component-generator.ts';
-import { grepLiteral }                   from '../filesystem/grep-search.ts';
-import { readDirectory, formatListing }  from '../filesystem/directory-reader.ts';
+import { fileWriter }                    from '../../filesystem/file-writer.ts';
+import { fileReader }                    from '../../filesystem/file-reader.ts';
+import { patchFile }                     from '../../filesystem/patch-file.ts';
+import { safeDelete }                    from '../../filesystem/safe-delete.ts';
+import { shellExecutor }                 from '../../runtime/shell-executor.ts';
+import { npmManager }                    from '../../runtime/npm-manager.ts';
+import { checkpointManager }             from '../../validator/recovery/checkpoint-manager.ts';
+import { validateGeneratedCode, validateCommandOutput } from '../../runtime/validation/output-validator.ts';
+import { frontendGenerator }             from '../../coder/coding/frontend-generator.ts';
+import { backendGenerator }              from '../../coder/coding/backend-generator.ts';
+import { apiGenerator }                  from '../../coder/coding/api-generator.ts';
+import { databaseGenerator }             from '../../coder/coding/database-generator.ts';
+import { authGenerator }                 from '../../coder/coding/auth-generator.ts';
+import { componentGenerator }            from '../../coder/coding/component-generator.ts';
+import { grepLiteral }                   from '../../filesystem/grep-search.ts';
+import { readDirectory, formatListing }  from '../../filesystem/directory-reader.ts';
 import { withTimeout }                   from '../../../orchestration/utils/execution-utils.ts';
 
 export async function runStep(

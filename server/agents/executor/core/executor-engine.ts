@@ -3,7 +3,7 @@ import { createExecutionContext, releaseExecutionContext } from './execution-con
 import { executionState } from './execution-state.ts';
 import { executeTask } from '../execution/task-executor.ts';
 import { executionHistory } from '../execution/execution-history.ts';
-import { checkpointManager } from '../recovery/checkpoint-manager.ts';
+import { checkpointManager } from '../../validator/recovery/checkpoint-manager.ts';
 import {
   emitExecutionStarted,
   emitExecutionCompleted,
