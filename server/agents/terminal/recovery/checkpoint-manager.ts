@@ -48,4 +48,15 @@ export const checkpointManager = {
     Array.from(checkpoints.values()).filter((c) => c.runId === runId),
 
   get: (id: string): Checkpoint | undefined => checkpoints.get(id),
+
+  pruneOlderThan(runId: string, keepLatestN: number): void {
+    const runCkpts = Array.from(checkpoints.entries())
+      .filter(([, c]) => c.runId === runId)
+      .sort(([, a], [, b]) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const toDelete = runCkpts.slice(keepLatestN);
+    for (const [id] of toDelete) {
+      checkpoints.delete(id);
+    }
+  },
 };
