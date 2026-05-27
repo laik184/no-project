@@ -1,3 +1,10 @@
+/**
+ * event-handlers.ts — Supervisor event listeners.
+ *
+ * Kept metrics: loop.detected, runs.started, runs.completed, runs.failed,
+ *               phase.duration, retry.count
+ */
+
 import { supervisorBus } from './supervisor-events.ts';
 import { supervisorLogger } from '../telemetry/supervisor-logger.ts';
 import { supervisorMetrics } from '../telemetry/supervisor-metrics.ts';
@@ -10,42 +17,32 @@ export function registerSupervisorHandlers(): void {
 
   supervisorBus.on('supervisor.started', (p) => {
     supervisorLogger.info(p.runId, `[supervisor] Session ${p.sessionId} started — mode=${p.mode} category=${p.category}`);
-    supervisorMetrics.increment(p.runId, 'supervisor.sessions.started');
+    supervisorMetrics.increment(p.runId, 'runs.started');
   });
 
   supervisorBus.on('supervisor.cycle.started', (p) => {
-    supervisorLogger.info(p.runId, `[supervisor] Cycle started — phase=${p.phase}`);
+    supervisorLogger.info(p.runId, `[supervisor] Phase "${p.phase}" started`);
   });
 
   supervisorBus.on('supervisor.cycle.completed', (p) => {
-    supervisorLogger.info(p.runId, `[supervisor] Cycle completed — phase=${p.phase} duration=${p.durationMs}ms retries=${p.retries}`);
-    supervisorMetrics.increment(p.runId, 'supervisor.cycles.completed');
-    supervisorMetrics.timing(p.runId, `supervisor.cycle.${p.phase}`, p.durationMs);
+    supervisorLogger.info(p.runId, `[supervisor] Phase "${p.phase}" completed — ${p.durationMs}ms`);
+    supervisorMetrics.timing(p.runId, 'phase.duration', p.durationMs);
+    supervisorMetrics.increment(p.runId, 'runs.completed');
   });
 
   supervisorBus.on('supervisor.cycle.failed', (p) => {
-    supervisorLogger.warn(p.runId, `[supervisor] Cycle failed — phase=${p.phase} duration=${p.durationMs}ms retries=${p.retries}`);
-    supervisorMetrics.increment(p.runId, 'supervisor.cycles.failed');
-  });
-
-  supervisorBus.on('supervisor.decision.made', (p) => {
-    supervisorLogger.info(p.runId, `[supervisor] Decision: ${p.action} — ${p.reason}`);
-    supervisorMetrics.increment(p.runId, `supervisor.decision.${p.action}`);
+    supervisorLogger.warn(p.runId, `[supervisor] Phase "${p.phase}" failed — ${p.durationMs}ms retries=${p.retries}`);
+    supervisorMetrics.increment(p.runId, 'runs.failed');
+    supervisorMetrics.increment(p.runId, 'retry.count', p.retries);
   });
 
   supervisorBus.on('supervisor.loop.detected', (p) => {
     supervisorLogger.warn(p.runId, `[supervisor] Loop detected — risk=${p.risk} pattern="${p.pattern}" occurrences=${p.occurrences}`);
-    supervisorMetrics.increment(p.runId, 'supervisor.loops.detected');
-  });
-
-  supervisorBus.on('supervisor.escalated', (p) => {
-    supervisorLogger.error(p.runId, `[supervisor] Escalated — reason=${p.reason} phase=${p.phase} retries=${p.retryCount}`);
-    supervisorMetrics.increment(p.runId, 'supervisor.escalations');
+    supervisorMetrics.increment(p.runId, 'loop.detected');
   });
 
   supervisorBus.on('supervisor.shutdown', (p) => {
     supervisorLogger.info('system', `[supervisor] Shutdown — activeSessions=${p.activeSessions} status=${p.status}`);
-    supervisorMetrics.increment('system', 'supervisor.shutdowns');
   });
 }
 

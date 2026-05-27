@@ -4,7 +4,6 @@ import type { TaskPriority } from '../types/supervisor.types.ts';
 import { AGENT_REGISTRY } from '../types/routing.types.ts';
 import { generateTaskId } from '../utils/supervisor-helpers.ts';
 import { supervisorLogger } from '../telemetry/supervisor-logger.ts';
-import { supervisorMetrics } from '../telemetry/supervisor-metrics.ts';
 
 const routingHistory = new Map<string, RoutingDecision[]>();
 
@@ -27,7 +26,6 @@ export const agentRouter = {
 
     this._record(runId, decision);
     supervisorLogger.info(runId, `[agent-router] ${decision.reason}`);
-    supervisorMetrics.increment(runId, `supervisor.agent.${descriptor.role}.routed`);
 
     return decision;
   },

@@ -1,15 +1,25 @@
+/**
+ * supervisor-events.ts — Typed event emitter for supervisor bus.
+ *
+ * Emits: run.started, phase.started, phase.completed,
+ *        phase.failed, loop.detected, run.completed
+ */
+
 import { EventEmitter } from 'events';
 import type { SupervisorEventMap, SupervisorEventName } from './event-types.ts';
 import type {
   SupervisorStartedPayload,
   SupervisorCyclePayload,
-  SupervisorDecisionPayload,
   LoopDetectedPayload,
-  EscalationPayload,
   SupervisorShutdownPayload,
 } from './event-types.ts';
 import type { OrchestrationPhase } from '../../../orchestration/events/event-types.ts';
-import type { ExecutionMode, GoalCategory, LoopRiskLevel, EscalationReason, SupervisorStatus } from '../types/supervisor.types.ts';
+import type {
+  ExecutionMode,
+  GoalCategory,
+  LoopRiskLevel,
+  SupervisorStatus,
+} from '../types/supervisor.types.ts';
 
 class TypedSupervisorEmitter extends EventEmitter {
   emit<K extends SupervisorEventName>(event: K, payload: SupervisorEventMap[K]): boolean {
@@ -57,25 +67,11 @@ export function emitCycleFailed(
   supervisorBus.emit('supervisor.cycle.failed', { sessionId, runId, phase, success: false, durationMs, retries, timestamp: new Date() });
 }
 
-export function emitDecisionMade(
-  sessionId: string, runId: string, action: string,
-  reason: string, phase: OrchestrationPhase,
-): void {
-  supervisorBus.emit('supervisor.decision.made', { sessionId, runId, action, reason, phase, timestamp: new Date() });
-}
-
 export function emitLoopDetected(
   sessionId: string, runId: string, risk: LoopRiskLevel,
   pattern: string, occurrences: number,
 ): void {
   supervisorBus.emit('supervisor.loop.detected', { sessionId, runId, risk, pattern, occurrences, timestamp: new Date() });
-}
-
-export function emitEscalated(
-  sessionId: string, runId: string, reason: EscalationReason,
-  phase: OrchestrationPhase, retryCount: number,
-): void {
-  supervisorBus.emit('supervisor.escalated', { sessionId, runId, reason, phase, retryCount, timestamp: new Date() });
 }
 
 export function emitSupervisorShutdown(

@@ -23,77 +23,77 @@ export type EscalationReason =
   | 'stuck_task';
 
 export interface SupervisorSession {
-  sessionId: string;
-  runId: string;
-  projectId: string;
-  goal: string;
-  mode: ExecutionMode;
-  category: GoalCategory;
-  status: SupervisorStatus;
-  startedAt: Date;
-  endedAt: Date | null;
+  sessionId:    string;
+  runId:        string;
+  projectId:    string;
+  goal:         string;
+  mode:         ExecutionMode;
+  category:     GoalCategory;
+  status:       SupervisorStatus;
+  startedAt:    Date;
+  endedAt:      Date | null;
   currentPhase: OrchestrationPhase | null;
-  retryCount: number;
-  metadata: Record<string, unknown>;
+  retryCount:   number;
+  metadata:     Record<string, unknown>;
 }
 
 export interface ComplexityResult {
-  score: number;
-  mode: ExecutionMode;
-  estimatedTaskCount: number;
-  requiresBrowser: boolean;
+  score:                number;
+  mode:                 ExecutionMode;
+  estimatedTaskCount:   number;
+  requiresBrowser:      boolean;
   requiresVerification: boolean;
-  factors: string[];
+  factors:              string[];
 }
 
 export interface ClassificationResult {
-  category: GoalCategory;
+  category:   GoalCategory;
   confidence: number;
-  tags: string[];
-  reasoning: string;
+  tags:       string[];
+  reasoning:  string;
 }
 
 export interface SupervisorDecision {
-  action: 'continue' | 'retry' | 'escalate' | 'abort' | 'skip';
-  reason: string;
+  action:    'continue' | 'retry' | 'escalate' | 'abort' | 'skip';
+  reason:    string;
   metadata?: Record<string, unknown>;
 }
 
 export interface LoopDetectionResult {
-  detected: boolean;
-  risk: LoopRiskLevel;
-  pattern?: string;
+  detected:    boolean;
+  risk:        LoopRiskLevel;
+  pattern?:    string;
   occurrences?: number;
 }
 
 export interface ExecutionHealth {
-  runId: string;
-  healthy: boolean;
-  stuckTasks: string[];
-  timedOutPhases: OrchestrationPhase[];
-  retryExhausted: string[];
-  loopRisk: LoopRiskLevel;
-  checkedAt: Date;
+  runId:           string;
+  healthy:         boolean;
+  stuckTasks:      string[];
+  timedOutPhases:  OrchestrationPhase[];
+  retryExhausted:  string[];
+  loopRisk:        LoopRiskLevel;
+  checkedAt:       Date;
 }
 
 export interface SupervisorRunResult {
-  sessionId: string;
-  runId: string;
-  success: boolean;
-  mode: ExecutionMode;
-  category: GoalCategory;
-  durationMs: number;
-  retries: number;
+  sessionId:    string;
+  runId:        string;
+  success:      boolean;
+  mode:         ExecutionMode;
+  category:     GoalCategory;
+  durationMs:   number;
+  retries:      number;
   failedPhase?: OrchestrationPhase;
-  error?: string;
+  error?:       string;
 }
 
 export interface PhaseDispatch {
-  phase: OrchestrationPhase;
-  runId: string;
+  phase:     OrchestrationPhase;
+  runId:     string;
   timeoutMs: number;
   retryable: boolean;
-  priority: TaskPriority;
+  priority:  TaskPriority;
 }
 
 export type SupervisorEventName =
@@ -101,9 +101,7 @@ export type SupervisorEventName =
   | 'supervisor.cycle.started'
   | 'supervisor.cycle.completed'
   | 'supervisor.cycle.failed'
-  | 'supervisor.decision.made'
   | 'supervisor.loop.detected'
-  | 'supervisor.escalated'
   | 'supervisor.shutdown';
 
 export { OrchestrationPhase, OrchestrationStatus, TaskPriority };
