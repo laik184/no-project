@@ -1,10 +1,5 @@
 import type { OrchestrationContext } from '../events/event-types.ts';
 import { runManager } from './run-manager.ts';
-import { ExecutionEngine } from './execution-engine.ts';
-import { runAnalyzePhase } from '../pipeline/analyze-phase.ts';
-import { runPlanningPhase } from '../pipeline/planning-phase.ts';
-import { runExecutionPhase } from '../pipeline/execution-phase.ts';
-import { runVerificationPhase } from '../pipeline/verification-phase.ts';
 import { failureHandler } from '../retry/failure-handler.ts';
 import { performanceMonitor } from '../telemetry/performance-monitor.ts';
 import { registerEventHandlers, unregisterEventHandlers } from '../events/event-handlers.ts';
@@ -12,6 +7,7 @@ import { emitRunStarted, emitRunCompleted, emitRunFailed } from '../events/orche
 import { runLogger } from '../telemetry/run-logger.ts';
 import { generateRunId, elapsed } from '../utils/orchestration-helpers.ts';
 import { validateStartRun } from '../utils/validators.ts';
+import { initializeSupervisor, runSupervisorCycle } from '../../agents/supervisor/supervisor-agent.ts';
 
 export interface StartRunInput {
   projectId: string;
@@ -34,9 +30,10 @@ export class Orchestrator {
   init(): void {
     if (this.initialized) return;
     registerEventHandlers();
+    initializeSupervisor();
     performanceMonitor.start();
     this.initialized = true;
-    console.log('[orchestrator] Initialized');
+    console.log('[orchestrator] Initialized — supervisor wired');
   }
 
   shutdown(): void {
@@ -67,7 +64,7 @@ export class Orchestrator {
       runManager.transition(runId, 'running');
       emitRunStarted(runId);
 
-      const result = await this.executePipeline(ctx);
+      const result = await runSupervisorCycle(ctx);
 
       if (result.success) {
         runManager.transition(runId, 'completed');
@@ -93,49 +90,6 @@ export class Orchestrator {
     } finally {
       performanceMonitor.trackRunEnd();
     }
-  }
-
-  private async executePipeline(ctx: OrchestrationContext): Promise<{ success: boolean; failedPhase?: string; error?: string }> {
-    const engine = new ExecutionEngine();
-
-    engine.register({
-      phase: 'analyze',
-      timeoutMs: 15_000,
-      run: (c) => runAnalyzePhase(c),
-    });
-
-    engine.register({
-      phase: 'planning',
-      timeoutMs: 30_000,
-      run: async (c) => {
-        const fakeAnalysis = { complexityScore: 50, executionMode: 'standard' as const, estimatedTaskCount: 5, requiresBrowser: true, requiresVerification: true, tags: [] };
-        return runPlanningPhase(c, fakeAnalysis);
-      },
-    });
-
-    engine.register({
-      phase: 'execution',
-      timeoutMs: ctx.timeoutMs,
-      run: async (c) => {
-        const fakePlan = { planId: `plan_${c.runId}`, runId: c.runId, phases: [], tasks: [
-          { id: `${c.runId}_t1`, type: 'implement', description: c.goal, dependsOn: [], priority: 'high' as const },
-        ], estimatedDurationMs: 10_000, createdAt: new Date() };
-        return runExecutionPhase(c, fakePlan);
-      },
-    });
-
-    engine.register({
-      phase: 'verification',
-      timeoutMs: 90_000,
-      run: (c) => runVerificationPhase(c, `.sandbox/${c.projectId}`),
-    });
-
-    const result = await engine.execute(ctx);
-    return {
-      success: result.success,
-      failedPhase: result.failedPhase,
-      error: result.phases.find((p) => !p.success)?.error,
-    };
   }
 
   getActiveRuns(): string[] {
