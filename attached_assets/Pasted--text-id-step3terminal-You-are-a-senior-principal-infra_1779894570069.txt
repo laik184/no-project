@@ -1,0 +1,354 @@
+```text id="step3terminal"
+You are a senior principal infrastructure engineer and terminal runtime systems architect.
+
+Your task is to MIGRATE the existing Terminal Agent tools into the NEW centralized tool architecture.
+
+IMPORTANT:
+Before generating ANY code:
+
+1. Deeply inspect:
+- server/agents/terminal/
+- server/tools/registry/
+- server/orchestration/
+- server/infrastructure/
+- server/agents/executor/
+
+2. Reuse existing:
+- sandbox systems
+- process monitors
+- telemetry
+- validators
+- logging
+- workspace systems
+- timeout systems
+
+3. DO NOT break existing imports
+
+4. DO NOT delete old implementations yet
+
+5. This phase is ONLY:
+- extraction
+- migration
+- compatibility adaptation
+
+==================================================
+GOAL
+==================================================
+
+Move ALL terminal execution logic OUT of:
+
+server/agents/terminal/
+
+INTO:
+
+server/tools/terminal/
+
+WITHOUT breaking the current system.
+
+==================================================
+STRICT RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+
+2. NO FILE > 250 LINES
+
+3. SINGLE RESPONSIBILITY ONLY
+
+4. FAIL-CLOSED SECURITY
+
+5. STRICT TYPE SAFETY
+
+6. NO CIRCULAR IMPORTS
+
+==================================================
+IMPORTANT ARCHITECTURE CHANGE
+==================================================
+
+OLD:
+
+Agents directly implement runtime tools.
+
+NEW:
+
+Agents
+↓
+Tool Registry
+↓
+Tool Dispatcher
+↓
+Terminal Tools
+
+==================================================
+CREATE THIS STRUCTURE
+==================================================
+
+server/tools/terminal/
+
+├── execution/
+│   ├── shell-execute.ts
+│   ├── run-command.ts
+│   ├── spawn-process.ts
+│   ├── terminate-process.ts
+│   ├── force-kill.ts
+│   └── timeout-manager.ts
+│
+├── npm/
+│   ├── npm-install.ts
+│   ├── npm-ci.ts
+│   ├── npm-run-script.ts
+│   ├── npm-test.ts
+│   ├── npm-build.ts
+│   ├── write-package-json.ts
+│   ├── lockfile-status.ts
+│   ├── delete-lockfile.ts
+│   ├── validate-package-name.ts
+│   └── validate-package-list.ts
+│
+├── ports/
+│   ├── resolve-port.ts
+│   ├── release-port.ts
+│   ├── release-run-ports.ts
+│   ├── assigned-port.ts
+│   ├── port-in-use.ts
+│   ├── scan-port-range.ts
+│   └── find-free-port.ts
+│
+├── process/
+│   ├── process-started.ts
+│   ├── process-exited.ts
+│   ├── cleanup-run.ts
+│   ├── process-start.ts
+│   ├── process-stop.ts
+│   ├── process-watch.ts
+│   ├── process-register.ts
+│   └── process-history.ts
+│
+├── validation/
+│   ├── command-validator.ts
+│   ├── sandbox-validator.ts
+│   ├── process-validator.ts
+│   ├── npm-validator.ts
+│   └── execution-validator.ts
+│
+├── security/
+│   ├── command-safety.ts
+│   ├── blocked-commands.ts
+│   ├── execution-policy.ts
+│   └── resource-limits.ts
+│
+├── monitoring/
+│   ├── process-monitor.ts
+│   ├── runtime-monitor.ts
+│   ├── resource-monitor.ts
+│   └── execution-metrics.ts
+│
+├── shared/
+│   ├── terminal-context.ts
+│   ├── terminal-errors.ts
+│   ├── terminal-result.ts
+│   └── terminal-types.ts
+│
+├── registry/
+│   └── register-terminal-tools.ts
+│
+└── index.ts
+
+==================================================
+MIGRATION REQUIREMENTS
+==================================================
+
+Migrate ALL existing tools from:
+
+server/agents/terminal/
+
+INCLUDING:
+
+- shellExecute
+- runCommand
+- spawnProcess
+- terminateProcess
+- forceKill
+- npmInstall
+- npmBuild
+- npmTest
+- npmRunScript
+- resolvePort
+- releasePort
+- findFreePort
+- processManager.start
+- processManager.stop
+- processMonitor.watch
+- processRegistry.register
+- processHistory.record
+
+and ALL other terminal operations.
+
+==================================================
+IMPORTANT TOOL RULES
+==================================================
+
+Every tool MUST:
+
+1. Register itself with:
+- tool-registry.ts
+
+2. Export:
+- metadata
+- handler
+- validation schema
+
+3. Use:
+- ToolExecutionContext
+- ToolExecutionResult
+
+4. Return normalized outputs
+
+==================================================
+SECURITY REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Sandbox-only command execution
+
+2. Block dangerous commands:
+- rm -rf
+- sudo
+- shutdown
+- reboot
+- curl | bash
+- wget | sh
+
+3. shell: false ONLY
+
+4. Validate ALL cwd paths
+
+5. Validate ALL package names
+
+6. Enforce:
+- timeout limits
+- process limits
+- memory limits
+
+7. Fail-closed execution
+
+==================================================
+COMPATIBILITY REQUIREMENTS
+==================================================
+
+CRITICAL:
+
+DO NOT break existing agents.
+
+Create temporary compatibility adapters.
+
+Example:
+
+OLD:
+server/agents/terminal/npmInstall()
+
+NEW:
+toolDispatcher.execute("npm_install")
+
+BUT:
+old APIs must still work during migration.
+
+==================================================
+CREATE ADAPTER LAYER
+==================================================
+
+Inside:
+
+server/agents/terminal/
+
+Create lightweight wrappers ONLY.
+
+Wrappers should:
+- call tool dispatcher
+- preserve old signatures
+- preserve old return types
+
+NO real execution logic remains inside agents.
+
+==================================================
+IMPORTANT REFACTOR GOAL
+==================================================
+
+AFTER migration:
+
+Terminal Agent becomes:
+- orchestration layer
+- runtime coordination layer
+- compatibility layer
+
+NOT:
+- tool implementation layer
+
+==================================================
+TOOL REGISTRATION
+==================================================
+
+Each tool MUST register:
+
+- tool name
+- category
+- permissions
+- timeout
+- retry policy
+
+Example categories:
+- terminal.execution
+- terminal.npm
+- terminal.process
+- terminal.ports
+
+==================================================
+TELEMETRY
+==================================================
+
+Track:
+- execution count
+- execution duration
+- process failures
+- blocked commands
+- timeout failures
+- port allocations
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+
+1. Full migrated terminal tool architecture
+2. Fully typed TypeScript
+3. Registry integration
+4. Dispatcher integration
+5. Compatibility wrappers
+6. Centralized validation
+7. Sandbox-safe execution
+8. Production-grade runtime tools
+
+==================================================
+FINAL RULES
+==================================================
+
+1. DO NOT delete old APIs yet
+
+2. DO NOT break executor
+
+3. DO NOT break verifier/browser imports
+
+4. Migrate safely in phases
+
+5. Preserve backwards compatibility
+
+Everything must be:
+- modular
+- deterministic
+- secure
+- maintainable
+- production-ready
+- Replit-level
+```

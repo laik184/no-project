@@ -26,8 +26,10 @@ export {
   FILESYSTEM_TOOL_NAMES,
 } from './filesystem/index.ts';
 
+// ── Terminal domain (MIGRATED) ────────────────────────────────────────────────
+export { registerTerminalTools } from './terminal/index.ts';
+
 // ── Domain namespaces (stubs — pending migration) ─────────────────────────────
-export { TERMINAL_TOOLS_PENDING }   from './terminal/index.ts';
 export { BROWSER_TOOLS_PENDING }    from './browser/index.ts';
 export { VERIFIER_TOOLS_PENDING }   from './verifier/index.ts';
 export { CODING_TOOLS_PENDING }     from './coding/index.ts';
