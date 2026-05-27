@@ -1,0 +1,605 @@
+You are a senior principal infrastructure engineer and terminal runtime systems architect.
+
+Your task is to IMPLEMENT a production-grade Terminal Agent using the EXACT folder structure below.
+
+IMPORTANT:
+Before generating ANY code:
+
+1. Deeply inspect:
+- server/orchestration/
+- server/agents/filesystem/
+- server/agents/executor/
+- server/infrastructure/
+
+2. Reuse existing systems:
+- event bus
+- logging
+- telemetry
+- sandbox utilities
+- workspace isolation
+- validation systems
+
+3. DO NOT duplicate:
+- filesystem logic
+- orchestration logic
+- sandbox logic
+- validation logic
+
+4. Terminal Agent is ONLY responsible for:
+- command execution
+- process lifecycle
+- terminal streaming
+- npm operations
+- runtime monitoring
+- port management
+- runtime recovery
+
+==================================================
+STRICT ENGINEERING RULES
+==================================================
+
+1. SINGLE RESPONSIBILITY ONLY
+
+Every file handles ONLY ONE responsibility.
+
+Examples:
+- shell-executor.ts → ONLY shell spawn
+- process-stream.ts → ONLY realtime stream
+- command-validator.ts → ONLY command validation
+- runtime-monitor.ts → ONLY runtime health
+
+NO mixed responsibilities.
+
+==================================================
+
+2. HIGH COHESION, LOW COUPLING
+
+- clear module boundaries
+- no hidden dependencies
+- composition over inheritance
+- dependency direction must remain clean
+
+==================================================
+
+3. FILE SIZE LIMIT
+
+NO file may exceed 250 lines.
+
+==================================================
+
+4. FAIL-CLOSED SECURITY MODEL
+
+Default behavior:
+❌ BLOCK
+
+Only explicitly validated operations are allowed.
+
+==================================================
+
+5. PRODUCTION-FIRST DESIGN
+
+Optimize for:
+- stability
+- maintainability
+- deterministic execution
+- terminal safety
+- realtime streaming
+- debugging clarity
+
+==================================================
+TARGET STRUCTURE (STRICT)
+==================================================
+
+server/agents/terminal/
+
+├── index.ts
+
+├── execution/
+│   ├── shell-executor.ts
+│   ├── command-runner.ts
+│   ├── process-spawner.ts
+│   ├── process-terminator.ts
+│   └── execution-timeout.ts
+
+├── streaming/
+│   ├── process-stream.ts
+│   ├── output-streamer.ts
+│   ├── stream-buffer.ts
+│   ├── line-parser.ts
+│   └── stream-sanitizer.ts
+
+├── npm/
+│   ├── npm-installer.ts
+│   ├── npm-script-runner.ts
+│   ├── package-json-writer.ts
+│   ├── dependency-validator.ts
+│   └── package-lock-manager.ts
+
+├── process/
+│   ├── process-manager.ts
+│   ├── process-monitor.ts
+│   ├── process-history.ts
+│   ├── process-lifecycle.ts
+│   └── process-registry.ts
+
+├── monitoring/
+│   ├── runtime-monitor.ts
+│   ├── failure-monitor.ts
+│   ├── execution-metrics.ts
+│   ├── resource-monitor.ts
+│   └── runtime-alerts.ts
+
+├── ports/
+│   ├── port-manager.ts
+│   ├── port-scanner.ts
+│   ├── port-resolver.ts
+│   └── port-registry.ts
+
+├── recovery/
+│   ├── runtime-recovery.ts
+│   ├── process-restart.ts
+│   ├── crash-handler.ts
+│   ├── recovery-policy.ts
+│   └── checkpoint-manager.ts
+
+├── security/
+│   ├── command-validator.ts
+│   ├── command-safety.ts
+│   ├── sandbox-guard.ts
+│   ├── resource-limits.ts
+│   └── execution-policy.ts
+
+├── validation/
+│   ├── output-validator.ts
+│   ├── execution-validator.ts
+│   ├── exitcode-validator.ts
+│   ├── stream-validator.ts
+│   └── runtime-validator.ts
+
+├── workspace/
+│   ├── runtime-workspace.ts
+│   ├── workspace-resolver.ts
+│   ├── execution-context.ts
+│   └── sandbox-context.ts
+
+├── events/
+│   ├── runtime-events.ts
+│   ├── stream-events.ts
+│   ├── process-events.ts
+│   └── event-publisher.ts
+
+├── telemetry/
+│   ├── runtime-logger.ts
+│   ├── runtime-metrics.ts
+│   ├── execution-trace.ts
+│   └── performance-tracker.ts
+
+├── types/
+│   ├── runtime.types.ts
+│   ├── process.types.ts
+│   ├── stream.types.ts
+│   └── execution.types.ts
+
+└── utils/
+    ├── command-utils.ts
+    ├── process-utils.ts
+    ├── stream-utils.ts
+    └── runtime-utils.ts
+
+==================================================
+ARCHITECTURE RULES
+==================================================
+
+##################################################
+index.ts
+##################################################
+
+ROLE:
+Public export gateway only.
+
+Responsibilities:
+- re-export modules
+- expose public API
+
+NOT ALLOWED:
+- execution logic
+- process logic
+- validation logic
+
+==================================================
+EXECUTION MODULE
+==================================================
+
+##################################################
+shell-executor.ts
+##################################################
+
+ROLE:
+ONLY shell command execution.
+
+Responsibilities:
+- spawn child process
+- execute validated command
+- collect stdout/stderr
+
+MANDATORY:
+- shell: false
+- timeout support
+- safe cwd handling
+
+NOT ALLOWED:
+- streaming
+- retries
+- monitoring
+- event publishing
+
+==================================================
+
+##################################################
+command-runner.ts
+##################################################
+
+ROLE:
+ONLY execution flow coordination.
+
+Responsibilities:
+- validate command
+- invoke shell executor
+- invoke validators
+- return normalized result
+
+==================================================
+
+##################################################
+process-spawner.ts
+##################################################
+
+ROLE:
+ONLY child_process spawning.
+
+==================================================
+
+##################################################
+process-terminator.ts
+##################################################
+
+ROLE:
+ONLY process kill and cleanup.
+
+==================================================
+STREAMING MODULE
+==================================================
+
+##################################################
+process-stream.ts
+##################################################
+
+ROLE:
+ONLY realtime command streaming.
+
+Responsibilities:
+- stream stdout/stderr
+- emit chunks
+- collect buffered output
+
+==================================================
+
+##################################################
+stream-buffer.ts
+##################################################
+
+ROLE:
+ONLY memory-safe output buffering.
+
+MANDATORY:
+- output cap
+- truncation detection
+
+==================================================
+
+##################################################
+line-parser.ts
+##################################################
+
+ROLE:
+ONLY line splitting/parsing.
+
+==================================================
+NPM MODULE
+==================================================
+
+##################################################
+npm-installer.ts
+##################################################
+
+ROLE:
+ONLY npm install operations.
+
+MANDATORY:
+- dependency validation
+- blocked package checks
+
+==================================================
+
+##################################################
+npm-script-runner.ts
+##################################################
+
+ROLE:
+ONLY npm run operations.
+
+==================================================
+
+##################################################
+package-json-writer.ts
+##################################################
+
+ROLE:
+ONLY package.json generation/writing.
+
+==================================================
+PROCESS MODULE
+==================================================
+
+##################################################
+process-manager.ts
+##################################################
+
+ROLE:
+ONLY process registry coordination.
+
+==================================================
+
+##################################################
+process-monitor.ts
+##################################################
+
+ROLE:
+ONLY process health monitoring.
+
+==================================================
+
+##################################################
+process-history.ts
+##################################################
+
+ROLE:
+ONLY process history/log storage.
+
+==================================================
+MONITORING MODULE
+==================================================
+
+##################################################
+resource-monitor.ts
+##################################################
+
+ROLE:
+ONLY CPU/RAM/process usage tracking.
+
+MANDATORY:
+- memory tracking
+- cpu tracking
+- runaway process detection
+
+==================================================
+PORTS MODULE
+==================================================
+
+##################################################
+port-manager.ts
+##################################################
+
+ROLE:
+ONLY port allocation.
+
+Responsibilities:
+- reserve ports
+- release ports
+- avoid conflicts
+
+==================================================
+
+##################################################
+port-scanner.ts
+##################################################
+
+ROLE:
+ONLY detect used ports.
+
+==================================================
+RECOVERY MODULE
+==================================================
+
+##################################################
+runtime-recovery.ts
+##################################################
+
+ROLE:
+ONLY runtime recovery coordination.
+
+==================================================
+
+##################################################
+process-restart.ts
+##################################################
+
+ROLE:
+ONLY restart crashed processes.
+
+==================================================
+SECURITY MODULE
+==================================================
+
+##################################################
+command-validator.ts
+##################################################
+
+ROLE:
+ONLY command validation.
+
+MANDATORY:
+- whitelist commands
+- block dangerous commands
+- fail-closed behavior
+
+BLOCK:
+- rm -rf
+- sudo
+- reboot
+- shutdown
+- curl | sh
+- wget | bash
+
+==================================================
+
+##################################################
+sandbox-guard.ts
+##################################################
+
+ROLE:
+ONLY sandbox boundary enforcement.
+
+MANDATORY:
+- prevent host escape
+- validate cwd
+- validate execution paths
+
+==================================================
+
+##################################################
+resource-limits.ts
+##################################################
+
+ROLE:
+ONLY execution resource limits.
+
+MANDATORY:
+- max memory
+- max processes
+- max runtime duration
+
+==================================================
+VALIDATION MODULE
+==================================================
+
+##################################################
+output-validator.ts
+##################################################
+
+ROLE:
+ONLY output validation.
+
+Check:
+- empty output
+- suspicious output
+- command failures
+
+==================================================
+
+##################################################
+execution-validator.ts
+##################################################
+
+ROLE:
+ONLY execution integrity validation.
+
+==================================================
+EVENTS MODULE
+==================================================
+
+KEEP EVENTS SIMPLE.
+
+ONLY:
+- terminal.execution.started
+- terminal.execution.completed
+- terminal.execution.failed
+- terminal.stream.chunk
+- process.crashed
+
+NO excessive lifecycle complexity.
+
+==================================================
+TELEMETRY MODULE
+==================================================
+
+KEEP TELEMETRY LIGHTWEIGHT.
+
+ONLY TRACK:
+- execution count
+- failure count
+- duration
+- resource usage
+- restart count
+
+==================================================
+DEPENDENCY DIRECTION RULES
+==================================================
+
+LOW-LEVEL:
+utils/
+types/
+validation/
+
+MID-LEVEL:
+security/
+workspace/
+process/
+
+HIGH-LEVEL:
+execution/
+streaming/
+npm/
+monitoring/
+recovery/
+
+TOP:
+index.ts
+
+NO circular imports.
+
+==================================================
+MANDATORY FINAL RULES
+==================================================
+
+1. NO FILE > 250 LINES
+
+2. NO PLACEHOLDER CODE
+
+3. NO TODO COMMENTS
+
+4. NO DEAD CODE
+
+5. NO GOD OBJECTS
+
+6. STRICT TYPE SAFETY
+
+7. SINGLE RESPONSIBILITY ONLY
+
+8. SECURITY FIRST
+
+9. SANDBOX-FIRST EXECUTION
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+1. All terminal agent files
+2. Proper imports/exports
+3. Fully typed TypeScript
+4. Realtime terminal streaming
+5. Secure process execution
+6. Safe npm operations
+7. Resource monitoring
+8. Port management
+9. Runtime recovery
+10. Production-grade sandbox security
+
+Everything must be:
+- CLEAN
+- MODULAR
+- SECURE
+- MAINTAINABLE
+- REPLIT-LEVEL
+- PRODUCTION-READY
