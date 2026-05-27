@@ -29,7 +29,9 @@ export {
 // ── Terminal domain (MIGRATED) ────────────────────────────────────────────────
 export { registerTerminalTools } from './terminal/index.ts';
 
+// ── Verifier domain (MIGRATED) ────────────────────────────────────────────────
+export { registerVerifierTools }    from './verifier/index.ts';
+
 // ── Domain namespaces (stubs — pending migration) ─────────────────────────────
 export { BROWSER_TOOLS_PENDING }    from './browser/index.ts';
-export { VERIFIER_TOOLS_PENDING }   from './verifier/index.ts';
 export { CODING_TOOLS_PENDING }     from './coding/index.ts';
