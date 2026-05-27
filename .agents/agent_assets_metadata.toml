@@ -228,3 +228,9 @@ id = "qWIwJlaUt9POuqbqIdO9L"
 uri = "file://AGENT_TOOLS_REPORT.md"
 type = "text"
 title = "Nura-X Agent Tools Report"
+
+[[outputs]]
+id = "-JZjgq_7xnkMkHmiuwhyD"
+uri = "file://ARCHITECTURE_AUDIT_server_tools.md"
+type = "text"
+title = "server/tools/ Architecture Audit Report"

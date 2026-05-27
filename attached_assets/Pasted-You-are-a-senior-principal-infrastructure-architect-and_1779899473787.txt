@@ -1,0 +1,285 @@
+You are a senior principal infrastructure architect and autonomous systems auditor.
+
+Your task is to perform a DEEP ARCHITECTURE SCAN of:
+
+server/tools/
+
+IMPORTANT:
+DO NOT modify code.
+DO NOT refactor anything.
+DO NOT generate implementations.
+
+This task is STRICTLY:
+- architecture analysis
+- structure auditing
+- coupling analysis
+- tool boundary validation
+- migration readiness review
+
+==================================================
+MAIN GOAL
+==================================================
+
+Analyze the CURRENT state of:
+
+server/tools/
+
+Then produce a COMPLETE REPORT explaining:
+
+1. Current folder structure
+2. Current tool organization
+3. What is GOOD
+4. What is WRONG
+5. Missing categories
+6. Coupling problems
+7. Duplicate tools
+8. Wrong abstractions
+9. Missing boundaries
+10. What the FINAL production-grade structure SHOULD be
+
+==================================================
+DEEP SCAN REQUIREMENTS
+==================================================
+
+Inspect ALL:
+
+- folders
+- tool files
+- imports
+- dependencies
+- dispatcher usage
+- registry usage
+- validation systems
+- shared utilities
+- telemetry usage
+- tool ownership
+
+==================================================
+ANALYZE THESE THINGS
+==================================================
+
+# 1. TOOL OWNERSHIP
+
+Detect:
+- tools inside wrong category
+- duplicated execution logic
+- embedded orchestration
+- agent leakage into tools
+
+==================================================
+
+# 2. TOOL BOUNDARIES
+
+Detect:
+- mixed responsibilities
+- God tools
+- giant files
+- circular imports
+- category violations
+
+==================================================
+
+# 3. REGISTRY INTEGRATION
+
+Check:
+- which tools register correctly
+- which tools bypass dispatcher
+- missing metadata
+- missing schemas
+- inconsistent execution APIs
+
+==================================================
+
+# 4. SECURITY STRUCTURE
+
+Detect:
+- unsafe filesystem access
+- unsafe shell execution
+- missing sandbox validation
+- dangerous direct process execution
+
+==================================================
+
+# 5. EXECUTION FLOW
+
+Analyze:
+
+Current:
+Agent → Tool directly?
+
+OR:
+
+Correct:
+Agent
+↓
+Tool Dispatcher
+↓
+Registry
+↓
+Tool
+
+==================================================
+
+# 6. CATEGORY HEALTH
+
+Analyze current categories:
+
+- filesystem
+- terminal
+- browser
+- verifier
+- coding
+- shared
+
+Detect:
+- missing categories
+- overloaded categories
+- wrong abstractions
+
+==================================================
+REPORT REQUIREMENTS
+==================================================
+
+Generate a DETAILED REPORT FILE.
+
+The report MUST include:
+
+==================================================
+
+# SECTION 1 — CURRENT STRUCTURE
+
+Show:
+- actual current structure
+- category organization
+- tool placement
+
+==================================================
+
+# SECTION 2 — CURRENT PROBLEMS
+
+Explain:
+- architecture issues
+- coupling issues
+- duplication
+- anti-patterns
+- missing abstractions
+
+==================================================
+
+# SECTION 3 — RISK ANALYSIS
+
+Explain risks like:
+- scaling issues
+- debugging difficulty
+- security risks
+- orchestration leakage
+- maintainability issues
+
+==================================================
+
+# SECTION 4 — TOOL MATURITY ANALYSIS
+
+Classify tools:
+
+- production-ready
+- partially migrated
+- tightly coupled
+- unsafe
+- legacy
+- duplicated
+
+==================================================
+
+# SECTION 5 — IDEAL TARGET STRUCTURE
+
+Generate the FINAL recommended structure for:
+
+server/tools/
+
+Include:
+- proper categories
+- proper boundaries
+- proper layering
+- registry flow
+- dispatcher flow
+
+==================================================
+
+# SECTION 6 — MIGRATION GAPS
+
+Show:
+- what still needs migration
+- what is still embedded in agents
+- which categories are incomplete
+
+==================================================
+
+# SECTION 7 — PRIORITY FIXES
+
+Create:
+- HIGH priority fixes
+- MEDIUM priority fixes
+- LOW priority fixes
+
+==================================================
+
+# SECTION 8 — FINAL VERDICT
+
+Answer:
+
+1. Is current architecture scalable?
+2. Is it Replit-level?
+3. Is it production-safe?
+4. Is tool separation correct?
+5. What is the biggest architecture weakness?
+
+==================================================
+IMPORTANT ANALYSIS RULES
+==================================================
+
+1. Be BRUTALLY HONEST
+
+2. DO NOT sugarcoat
+
+3. Detect overengineering
+
+4. Detect underengineering
+
+5. Detect unnecessary abstractions
+
+6. Detect missing execution boundaries
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Generate:
+- ONE detailed report file
+
+The report should be:
+- structured
+- professional
+- architecture-focused
+- brutally honest
+- production-grade
+
+==================================================
+FINAL RULES
+==================================================
+
+DO NOT:
+- modify files
+- generate implementations
+- refactor code
+- create placeholders
+
+ONLY:
+- deeply analyze
+- audit
+- explain
+- recommend
+
+The final report must feel like:
+- a senior principal architecture audit
+- a production readiness review
+- a Replit/Cursor-level systems analysis
