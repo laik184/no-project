@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera, AlertTriangle } from "lucide-react";
+import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera, AlertTriangle, MonitorPlay } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Preview from "@/pages/preview/index";
 import { DatabasePanel } from "@/components/panels/DatabasePanel";
@@ -9,7 +9,8 @@ import { ConsolePanel } from "@/components/console";
 import { PublishingPanel, AuthPanel } from "@/components/panels/PublishingPanel";
 import { FileTreePanel } from "@/components/file-explorer";
 import { GitPanel } from "./GitPanel";
-import { CheckpointPanel } from "@/components/panels/CheckpointPanel";
+import { CheckpointPanel }     from "@/components/panels/CheckpointPanel";
+import { BrowserSessionPanel } from "@/components/panels/BrowserSessionPanel";
 import {
   EditorToolbar, StatusBar, ToolbarBtn,
   fileTabIcon, langDisplayName,
@@ -31,7 +32,8 @@ function urlTabIcon(url: string): React.ReactElement {
   if (url === "__publishing__")  return <Globe      style={{ width: 11, height: 11, color: "#4ade80" }} />;
   if (url === "__auth__")        return <Lock       style={{ width: 11, height: 11, color: "#a78bfa" }} />;
   if (url === "__git__")         return <GitBranch  style={{ width: 11, height: 11, color: "#86efac" }} />;
-  if (url === "__checkpoints__") return <Camera     style={{ width: 11, height: 11, color: "#fbbf24" }} />;
+  if (url === "__checkpoints__") return <Camera      style={{ width: 11, height: 11, color: "#fbbf24" }} />;
+  if (url === "__browser__")    return <MonitorPlay  style={{ width: 11, height: 11, color: "#60a5fa" }} />;
   return <Globe style={{ width: 11, height: 11, color: "#94a3b8" }} />;
 }
 
@@ -60,7 +62,13 @@ const toolItems = [
   {
     section: "Safety",
     items: [
-      { id: "checkpoints", label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera, color: "#fbbf24", bg: "rgba(251,191,36,0.1)", url: "__checkpoints__" },
+      { id: "checkpoints", label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera,       color: "#fbbf24", bg: "rgba(251,191,36,0.1)",  url: "__checkpoints__" },
+    ],
+  },
+  {
+    section: "Agent Tools",
+    items: [
+      { id: "browser",     label: "Browser",     sub: "Live Playwright session status, screenshots, and validation", icon: MonitorPlay, color: "#60a5fa", bg: "rgba(96,165,250,0.1)", url: "__browser__"     },
     ],
   },
 ];
@@ -438,6 +446,7 @@ export function CenterPanel({
               if (activeTab?.url === "__auth__")        return <AuthPanel onClose={() => void handleCloseTab(activeTabId)} />;
               if (activeTab?.url === "__git__")         return <GitPanel />;
               if (activeTab?.url === "__checkpoints__") return <CheckpointPanel />;
+              if (activeTab?.url === "__browser__")    return <BrowserSessionPanel />;
               if (activeTab?.url) {
                 return (
                   <iframe

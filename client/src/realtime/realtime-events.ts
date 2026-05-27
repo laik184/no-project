@@ -17,6 +17,7 @@ export const TOPIC = {
   PREVIEW_LIFECYCLE:   "preview.lifecycle",
   DEBUG_LIFECYCLE:     "debug.lifecycle",
   TOOL_EXECUTION:      "tool.execution",
+  BROWSER_SESSION:     "browser.session",
 } as const;
 
 export type RealtimeTopic = typeof TOPIC[keyof typeof TOPIC];

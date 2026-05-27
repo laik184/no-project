@@ -23,9 +23,12 @@ export type {
   QuantumScanEvent, MemoryWriteEvent, QuantumAggregationEvent,
 } from "./quantum-event.types.ts";
 
+export type { BrowserSessionEvent } from "./browser-event.types.ts";
+
 import type { AgentEvent, RunLifecycleEvent, ToolExecutionEvent, AgentDiffEvent, CheckpointEvent }            from "./agent-event.types.ts";
 import type { ConsoleLogEvent, FileChangeEvent, RuntimeVerifiedEvent, RuntimeObservationEvent, DebugLifecycleEvent, PreviewLifecycleEvent, RuntimePortEvent, RuntimeSyncEvent } from "./runtime-event.types.ts";
 import type { QuantumScanEvent, MemoryWriteEvent }  from "./quantum-event.types.ts";
+import type { BrowserSessionEvent }                 from "./browser-event.types.ts";
 
 export type BusEvents = {
   "agent.event":              (event: AgentEvent) => void;
@@ -59,4 +62,6 @@ export type BusEvents = {
   "memory.rollback":          (event: MemoryWriteEvent) => void;
   "memory.retry":             (event: MemoryWriteEvent) => void;
   "memory.recovery":          (event: MemoryWriteEvent) => void;
+  // ── Browser Session ────────────────────────────────────────────────────────
+  "browser.session":          (event: BrowserSessionEvent) => void;
 };

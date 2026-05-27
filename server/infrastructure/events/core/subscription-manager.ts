@@ -30,6 +30,7 @@ import type { RuntimePortEvent }      from "../types/event.types.ts";
 import { matchesDiff }                from "../channels/diff-channel.ts";
 import { matchesCheckpoint }          from "../channels/checkpoint-channel.ts";
 import { matchesPreviewLifecycle }    from "../channels/preview-lifecycle-channel.ts";
+import { matchesBrowserSession }     from "../channels/browser-session-channel.ts";
 
 // ── Unlimited listeners — the hub pattern means always exactly 1 per event ──
 bus.setMaxListeners(0);
@@ -132,6 +133,17 @@ bus.on("tool.execution", (e) => {
   );
 });
 
+// ── browser.session ───────────────────────────────────────────────────────────
+// Streams Playwright browser session lifecycle events (started/closed/crashed,
+// screenshots captured, UI validation results) for the Browser Session panel.
+bus.on("browser.session", (e) => {
+  const seqId = record(TOPIC.BROWSER_SESSION, e);
+  pool.fanOut(
+    TOPIC.BROWSER_SESSION, e, seqId,
+    (conn) => matchesBrowserSession(conn, e),
+  );
+});
+
 // ── Listener leak detection ───────────────────────────────────────────────────
 // The hub pattern keeps SSE fan-out to exactly 1 listener per event type.
 // However, a small number of non-SSE architectural subscribers are expected:
@@ -149,7 +161,7 @@ const LEAK_THRESHOLD = 20;
 const WATCHED_EVENTS = [
   "agent.event", "run.lifecycle", "console.log", "file.change",
   "runtime.verified", "runtime.observation", "runtime.port", "agent.diff", "checkpoint.event",
-  "preview.lifecycle", "debug.lifecycle", "tool.execution",
+  "preview.lifecycle", "debug.lifecycle", "tool.execution", "browser.session",
 ] as const;
 
 const _leakTimer = setInterval(() => {

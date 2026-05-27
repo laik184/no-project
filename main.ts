@@ -52,6 +52,8 @@ import { initReflectionMemoryBridge }  from './server/memory/reflection/reflecti
 import { fileLockManager }            from './server/quantum/locks/index.ts';
 import { startSweeper as startPortSweeper } from './server/runtime/network/port-allocation-authority.ts';
 import { createRunTelemetryRouter }    from './server/api/run-telemetry.routes.ts';
+import { createBrowserRouter }         from './server/api/browser.routes.ts';
+import { initBrowserBusBridge }        from './server/agents/browser/events/browser-bus-bridge.ts';
 import { contextRegistry }             from './server/coordination/index.ts';
 import { wireCoordinationSSE }         from './server/coordination/telemetry/coordination-sse-bridge.ts';
 import { initializePlanner }           from './server/agents/planner/planner-agent.ts';
@@ -111,6 +113,7 @@ app.use('/api/dag',   createDagRouter());
 
 // Run-scoped telemetry — isolated SSE stream + event buffer per run
 app.use('/api/telemetry', createRunTelemetryRouter());
+app.use('/api/browser',  createBrowserRouter());
 
 // Real runtime endpoints (project run/stop/restart, packages, git, screenshot)
 // Mounted BEFORE legacy aliases so it wins on overlapping paths.
@@ -286,6 +289,8 @@ server.listen(PORT, '0.0.0.0', async () => {
   initializePlanner();
   // Boot Executor Agent — registers event handlers for the execution phase pipeline
   initializeExecutor();
+  // Bridge browserBus events into the main infrastructure bus (SSE fan-out)
+  initBrowserBusBridge();
   console.log('[nura-x] Distributed isolation systems online — run-isolation-fabric ✓ port-authority ✓ parallel-orchestration ✓ coordination-sweeper ✓ planner-agent ✓ executor-agent ✓ verifier-tools ✓');
 });
 
