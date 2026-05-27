@@ -3,28 +3,63 @@
  * Executes a single planned task.
  *
  * Strategy (in priority order):
- * 1. LLM tool loop  — if OPENROUTER_API_KEY / AI_INTEGRATIONS_OPENROUTER_API_KEY is set
+ * 1. CoderX LLM tool loop  — if OPENROUTER_API_KEY / AI_INTEGRATIONS_OPENROUTER_API_KEY is set
  * 2. Static step runner — deterministic fallback via interpretTask → runStep
  */
 
 import type { PlanTask, TaskExecutionResult } from '../types/executor.types.ts';
-import { interpretTask }       from '../../coder/planning/task-interpreter.ts';
-import { runStep }             from './step-runner.ts';
-import { executionHistory }    from './execution-history.ts';
-import { runtimeMonitor }      from '../../runtime/runtime-monitor.ts';
-import { retryHandler }        from '../../validator/recovery/retry-handler.ts';
-import { failureRecovery }     from '../../validator/recovery/failure-recovery.ts';
+import { runStep }          from './step-runner.ts';
+import { executionHistory } from './execution-history.ts';
+import { runtimeMonitor }   from '../../terminal/monitoring/runtime-monitor.ts';
 import { emitStepStarted, emitStepCompleted } from '../events/executor-events.ts';
-import { executorLogger }      from '../telemetry/executor-logger.ts';
-import { elapsedMs }           from '../utils/execution-helpers.ts';
-import { runToolLoop }         from '../../coder/llm/tool-loop.ts';
-import { isLLMAvailable }      from '../../coder/llm/llm-client.ts';
-import { executionMemory }     from '../../coder/memory/execution-memory.ts';
-import { failureMemory }       from '../../coder/memory/failure-memory.ts';
+import { executorLogger }   from '../telemetry/executor-logger.ts';
+import { elapsedMs }        from '../utils/execution-helpers.ts';
+import { runToolLoop }      from '../../coderx/index.ts';
 
 const LLM_ELIGIBLE_CATEGORIES = new Set([
   'setup', 'schema', 'api', 'auth', 'ui', 'test', 'deploy',
 ]);
+
+function isLLMAvailable(): boolean {
+  return !!(
+    process.env.OPENROUTER_API_KEY ||
+    process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY
+  );
+}
+
+function interpretTask(task: PlanTask): Array<{ id: string; type: string; label: string; timeoutMs: number; taskId: string; input: Record<string, string> }> {
+  const base = { taskId: task.id, timeoutMs: 30_000, input: {} as Record<string, string> };
+  const name = task.title ?? task.id;
+
+  switch (task.category) {
+    case 'ui':       return [{ ...base, id: `${task.id}-ui`,       type: 'generate_frontend', label: `Generate UI: ${name}`,       input: { name } }];
+    case 'api':      return [{ ...base, id: `${task.id}-api`,      type: 'generate_api',      label: `Generate API: ${name}`,      input: { name } }];
+    case 'auth':     return [{ ...base, id: `${task.id}-auth`,     type: 'generate_auth',     label: `Generate auth: ${name}`,     input: { name } }];
+    case 'schema':   return [{ ...base, id: `${task.id}-schema`,   type: 'generate_database', label: `Generate schema: ${name}`,   input: { name } }];
+    case 'backend':  return [{ ...base, id: `${task.id}-backend`,  type: 'generate_backend',  label: `Generate backend: ${name}`,  input: { name } }];
+    case 'setup':    return [{ ...base, id: `${task.id}-setup`,    type: 'npm_install',       label: `Install deps: ${name}`,      input: {} }];
+    default:         return [{ ...base, id: `${task.id}-generic`,  type: 'validate_output',   label: `Validate: ${name}`,          input: { description: name } }];
+  }
+}
+
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 2, delayMs = 500): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) await new Promise(r => setTimeout(r, delayMs * attempt));
+    }
+  }
+  throw lastErr;
+}
+
+function decideRecovery(error: string): 'retry' | 'skip' | 'abort' {
+  if (/timeout|ETIMEDOUT/i.test(error)) return 'skip';
+  if (/not found|ENOENT/i.test(error))  return 'skip';
+  return 'abort';
+}
 
 export async function executeTask(
   task:      PlanTask,
@@ -38,16 +73,12 @@ export async function executeTask(
     llmMode:  isLLMAvailable() && LLM_ELIGIBLE_CATEGORIES.has(task.category),
   });
 
-  // ── LLM Tool Loop ──────────────────────────────────────────────────────────
   if (isLLMAvailable() && LLM_ELIGIBLE_CATEGORIES.has(task.category)) {
     return executeWithLLM(task, runId, projectId, startedAt);
   }
 
-  // ── Static Step Runner (fallback) ─────────────────────────────────────────
   return executeWithStaticSteps(task, runId, projectId, startedAt);
 }
-
-// ── LLM path ─────────────────────────────────────────────────────────────────
 
 async function executeWithLLM(
   task:      PlanTask,
@@ -57,41 +88,41 @@ async function executeWithLLM(
 ): Promise<TaskExecutionResult> {
   executorLogger.info(runId, `[llm-loop] Task ${task.id}: starting autonomous execution`);
 
-  const loopResult = await runToolLoop(task, runId, projectId);
+  try {
+    const loopResult = await runToolLoop({
+      task:     `${task.category}: ${task.title ?? task.description ?? task.id}`,
+      basePath: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+    });
 
-  const durationMs = elapsedMs(startedAt);
+    const durationMs = elapsedMs(startedAt);
 
-  executionMemory.record(runId, {
-    taskId:     task.id,
-    title:      task.title,
-    status:     loopResult.ok ? 'completed' : 'failed',
-    artifacts:  loopResult.artifacts,
-    summary:    loopResult.summary,
-    durationMs,
-  });
+    executorLogger.info(runId, `[llm-loop] Task ${task.id} done`, {
+      iterations: loopResult.iterations,
+      success:    loopResult.success,
+      durationMs,
+    });
 
-  if (!loopResult.ok) {
-    failureMemory.record(runId, task.id, loopResult.summary);
+    return {
+      taskId:    task.id,
+      success:   loopResult.success,
+      durationMs,
+      stepsRun:  loopResult.iterations,
+      artifacts: [],
+      error:     loopResult.success ? undefined : (loopResult.error ?? 'LLM loop did not complete'),
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    executorLogger.error(runId, `[llm-loop] Task ${task.id} error: ${msg}`);
+    return {
+      taskId:    task.id,
+      success:   false,
+      durationMs: elapsedMs(startedAt),
+      stepsRun:  0,
+      artifacts: [],
+      error:     msg,
+    };
   }
-
-  executorLogger.info(runId, `[llm-loop] Task ${task.id} done`, {
-    stopReason:  loopResult.stopReason,
-    iterations:  loopResult.iterations,
-    success:     loopResult.ok,
-    durationMs,
-  });
-
-  return {
-    taskId:    task.id,
-    success:   loopResult.ok,
-    durationMs,
-    stepsRun:  loopResult.iterations,
-    artifacts: loopResult.artifacts,
-    error:     loopResult.ok ? undefined : loopResult.summary,
-  };
 }
-
-// ── Static path ───────────────────────────────────────────────────────────────
 
 async function executeWithStaticSteps(
   task:      PlanTask,
@@ -109,10 +140,9 @@ async function executeWithStaticSteps(
     emitStepStarted(runId, task.id, step.id, step.type, step.label);
     stepsRun++;
 
-    const result = await retryHandler.withRetry(
-      step.id, runId,
-      () => runStep(step, runId, projectId),
-      { maxAttempts: 2 },
+    const result = await withRetry(
+      () => runStep(step as any, runId, projectId),
+      2,
     ).catch((err) => ({
       stepId:     step.id,
       success:    false as const,
@@ -122,13 +152,13 @@ async function executeWithStaticSteps(
 
     executionHistory.record(runId, task.id, result, step.type);
     runtimeMonitor.recordStep(runId, result.success);
-    emitStepCompleted(runId, task.id, step.id, step.type, result.success, result.durationMs, result.filePath);
+    emitStepCompleted(runId, task.id, step.id, step.type, result.success, result.durationMs, (result as any).filePath);
 
-    if (result.filePath) artifacts.push(result.filePath);
+    if ((result as any).filePath) artifacts.push((result as any).filePath);
 
     if (!result.success) {
-      const recovery = failureRecovery.handle(runId, task.id, result.error ?? 'step failed', 1);
-      if (recovery.action === 'abort') {
+      const action = decideRecovery(result.error ?? 'step failed');
+      if (action === 'abort') {
         executorLogger.error(runId, `Task ${task.id} aborting on step ${step.id}`);
         return {
           taskId:    task.id,
@@ -139,7 +169,7 @@ async function executeWithStaticSteps(
           artifacts,
         };
       }
-      if (recovery.action === 'skip') {
+      if (action === 'skip') {
         executorLogger.warn(runId, `Skipping failed step ${step.id} (${step.type})`);
         continue;
       }
