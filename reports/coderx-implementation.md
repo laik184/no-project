@@ -1,7 +1,7 @@
 # CoderX — Implementation Report
 
 **Date:** 2025-05-27  
-**Location:** `coderx/`  
+**Location:** `server/agents/coderx/`  
 **Total Files:** 14  
 **Total Lines:** 1194  
 **Spec Compliance:** 100%
@@ -22,7 +22,7 @@ Do modes mein kaam karta hai:
 ## Final Folder Structure
 
 ```
-coderx/
+server/agents/coderx/
 ├── index.ts                        ← Public API only (32 lines)
 │
 ├── llm-loop/
@@ -244,7 +244,7 @@ utils/code-utils.ts
 ## Usage Examples
 
 ```typescript
-import { generateApi, generateAuth, generateFrontend, runToolLoop } from './coderx/index.ts';
+import { generateApi, generateAuth, generateFrontend, runToolLoop } from './server/agents/coderx/index.ts';
 
 // Template mode — instant, no LLM
 const apiResult = await generateApi({
