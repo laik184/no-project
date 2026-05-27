@@ -5,7 +5,7 @@
  * Validates tool input shapes before dispatch.
  */
 
-import { assertRelativePath } from '../../../agents/filesystem/validation/path-validator.ts';
+import { assertRelativePath } from '../lib/validation/path-validator.ts';
 
 export interface OpValidationResult {
   valid:  boolean;

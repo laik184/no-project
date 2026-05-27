@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { insertAt } from '../../../agents/filesystem/files/file-editor.ts';
+import { insertAt } from '../lib/files/file-editor.ts';
 import { assertInputPath, assertInputString, validateLineNumber } from '../validation/operation-validator.ts';
 
 export const insertAtTool: ToolDefinition = {

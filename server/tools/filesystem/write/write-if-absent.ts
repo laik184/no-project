@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeFileIfAbsent } from '../../../agents/filesystem/files/file-writer.ts';
+import { writeFileIfAbsent } from '../lib/files/file-writer.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const writeIfAbsentTool: ToolDefinition = {

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { readSubfolderEntries } from '../../../agents/filesystem/folders/folder-reader.ts';
+import { readSubfolderEntries } from '../lib/folders/folder-reader.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const subfolderEntriesTool: ToolDefinition = {

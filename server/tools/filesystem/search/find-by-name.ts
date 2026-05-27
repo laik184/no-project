@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { findByName } from '../../../agents/filesystem/search/file-search.ts';
+import { findByName } from '../lib/search/file-search.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const findByNameTool: ToolDefinition = {

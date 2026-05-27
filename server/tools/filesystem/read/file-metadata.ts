@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { getFileMetadata } from '../../../agents/filesystem/files/file-reader.ts';
+import { getFileMetadata } from '../lib/files/file-reader.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const fileMetadataTool: ToolDefinition = {

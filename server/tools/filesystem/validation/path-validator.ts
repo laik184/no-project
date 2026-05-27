@@ -13,8 +13,8 @@ export {
   assertRelativePath,
   assertFilename,
   PathValidationError,
-} from '../../../agents/filesystem/validation/path-validator.ts';
+} from '../lib/validation/path-validator.ts';
 
 export type {
   PathValidationResult,
-} from '../../../agents/filesystem/validation/path-validator.ts';
+} from '../lib/validation/path-validator.ts';

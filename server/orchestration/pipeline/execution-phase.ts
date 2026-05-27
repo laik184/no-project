@@ -6,7 +6,8 @@ import { generateTaskId } from '../utils/orchestration-helpers.ts';
 import type { ExecutionPlan, PlanTask } from './planning-phase.ts';
 import { runToolLoop } from '../../agents/coderx/index.ts';
 import { initializeExecutor, executeTask as runExecutorTask } from '../../agents/executor/executor-agent.ts';
-import { workspaceManager, getFolderStructure } from '../../agents/filesystem/index.ts';
+import { workspaceManager } from '../../tools/filesystem/lib/workspace/workspace-manager.ts';
+import { getFolderStructure } from '../../tools/filesystem/lib/folders/folder-structure.ts';
 import { runCommand } from '../../agents/terminal/index.ts';
 
 export interface ExecutionProgress {

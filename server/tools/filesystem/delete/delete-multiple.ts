@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteMultipleFiles } from '../../../agents/filesystem/files/file-deleter.ts';
+import { deleteMultipleFiles } from '../lib/files/file-deleter.ts';
 
 const MAX_BATCH = 100;
 

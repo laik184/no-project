@@ -1,11 +1,11 @@
 import type { ExecutionStep, StepResult }            from './types.ts';
 import { elapsedMs }                                from './utils.ts';
-import { writeFile }                                from '../filesystem/files/file-writer.ts';
-import { readFile }                                 from '../filesystem/files/file-reader.ts';
-import { patchFile as patchFileOp }                 from '../filesystem/files/patch-file.ts';
-import { deleteFileFromSandbox }                    from '../filesystem/files/file-deleter.ts';
-import { searchText }                               from '../filesystem/search/text-search.ts';
-import { readFolder }                               from '../filesystem/folders/folder-reader.ts';
+import { writeFile }                                from '../../tools/filesystem/lib/files/file-writer.ts';
+import { readFile }                                 from '../../tools/filesystem/lib/files/file-reader.ts';
+import { patchFile as patchFileOp }                 from '../../tools/filesystem/lib/files/patch-file.ts';
+import { deleteFileFromSandbox }                    from '../../tools/filesystem/lib/files/file-deleter.ts';
+import { searchText }                               from '../../tools/filesystem/lib/search/text-search.ts';
+import { readFolder }                               from '../../tools/filesystem/lib/folders/folder-reader.ts';
 import { withTimeout }                              from '../../orchestration/utils/execution-utils.ts';
 import { runCommand }                               from '../terminal/execution/command-runner.ts';
 import { npmInstall }                               from '../terminal/npm/npm-installer.ts';

@@ -13,9 +13,9 @@ export {
   assertWriteOperation,
   assertDeleteOperation,
   FileValidationError,
-} from '../../../agents/filesystem/validation/file-validator.ts';
+} from '../lib/validation/file-validator.ts';
 
 export type {
   FileOperationContext,
   ValidationResult,
-} from '../../../agents/filesystem/validation/file-validator.ts';
+} from '../lib/validation/file-validator.ts';

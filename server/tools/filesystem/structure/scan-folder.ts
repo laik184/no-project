@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { scanFolder } from '../../../agents/filesystem/folders/folder-scanner.ts';
+import { scanFolder } from '../lib/folders/folder-scanner.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const scanFolderTool: ToolDefinition = {

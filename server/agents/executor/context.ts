@@ -1,8 +1,8 @@
 import type { ExecutorInput, ExecutionStateData }    from './types.ts';
 import { executionState }                            from './state.ts';
 import { ExecutionQueue }                            from './queue.ts';
-import { workspaceManager }                          from '../filesystem/workspace/workspace-manager.ts';
-import { isolationManager, type IsolatedContext }    from '../filesystem/workspace/isolation-manager.ts';
+import { workspaceManager }                          from '../../tools/filesystem/lib/workspace/workspace-manager.ts';
+import { isolationManager, type IsolatedContext }    from '../../tools/filesystem/lib/workspace/isolation-manager.ts';
 import { runtimeMonitor }                            from '../terminal/monitoring/runtime-monitor.ts';
 
 export interface ExecutionContext {

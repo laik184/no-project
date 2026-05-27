@@ -12,8 +12,8 @@ export {
   isInsideSandbox,
   validateMultiplePaths,
   SandboxViolationError,
-} from '../../../agents/filesystem/validation/sandbox-validator.ts';
+} from '../lib/validation/sandbox-validator.ts';
 
 export type {
   SandboxValidationResult,
-} from '../../../agents/filesystem/validation/sandbox-validator.ts';
+} from '../lib/validation/sandbox-validator.ts';

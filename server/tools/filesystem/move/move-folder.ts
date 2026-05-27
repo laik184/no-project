@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { moveFolder } from '../../../agents/filesystem/folders/folder-mover.ts';
+import { moveFolder } from '../lib/folders/folder-mover.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const moveFolderTool: ToolDefinition = {

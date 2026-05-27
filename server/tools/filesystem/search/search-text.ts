@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchText } from '../../../agents/filesystem/search/text-search.ts';
+import { searchText } from '../lib/search/text-search.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const searchTextTool: ToolDefinition = {

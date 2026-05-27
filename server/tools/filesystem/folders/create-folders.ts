@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { createFolders } from '../../../agents/filesystem/folders/folder-creator.ts';
+import { createFolders } from '../lib/folders/folder-creator.ts';
 
 export const createFoldersTool: ToolDefinition = {
   name:        'fs_create_folders',

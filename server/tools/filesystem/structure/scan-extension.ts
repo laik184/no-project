@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { scanFilesByExtension } from '../../../agents/filesystem/folders/folder-scanner.ts';
+import { scanFilesByExtension } from '../lib/folders/folder-scanner.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const scanExtensionTool: ToolDefinition = {

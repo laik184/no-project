@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { patchFileAll } from '../../../agents/filesystem/files/patch-file.ts';
+import { patchFileAll } from '../lib/files/patch-file.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const patchAllTool: ToolDefinition = {

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteFileFromSandbox } from '../../../agents/filesystem/files/file-deleter.ts';
+import { deleteFileFromSandbox } from '../lib/files/file-deleter.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const deleteFileTool: ToolDefinition = {

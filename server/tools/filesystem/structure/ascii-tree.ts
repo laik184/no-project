@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { getAsciiTree } from '../../../agents/filesystem/folders/folder-structure.ts';
+import { getAsciiTree } from '../lib/folders/folder-structure.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const asciiTreeTool: ToolDefinition = {

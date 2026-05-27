@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { renameFile } from '../../../agents/filesystem/files/file-renamer.ts';
+import { renameFile } from '../lib/files/file-renamer.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const renameFileTool: ToolDefinition = {

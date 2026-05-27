@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { cloneFolder } from '../../../agents/filesystem/folders/folder-cloner.ts';
+import { cloneFolder } from '../lib/folders/folder-cloner.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const cloneFolderTool: ToolDefinition = {
