@@ -9,7 +9,7 @@ import type { ModalInput }                           from '../shared/coding-type
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils/code-utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
 
 function modalTemplate(name: string, content?: string): string {
   const Name = toPascalCase(name);

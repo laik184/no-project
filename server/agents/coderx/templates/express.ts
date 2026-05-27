@@ -1,8 +1,8 @@
-import { toPascalCase, toCamelCase } from '../utils/code-utils.ts';
+import { toPascalCase, toCamelCase } from '../utils.ts';
 
 export interface ExpressRouterOptions {
-  prefix: string;
-  middlewares?: string[];
+  prefix:        string;
+  middlewares?:  string[];
 }
 
 export function expressRouterTemplate(opts: ExpressRouterOptions): string {

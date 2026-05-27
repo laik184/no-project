@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { expressMiddlewareTemplate }                  from '../templates/express-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
 
 const DEFAULT_LOGIC = `  // Add middleware logic here\n  next();`;
 

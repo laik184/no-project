@@ -12,7 +12,7 @@ import type { ComponentTreeInput }                   from '../shared/coding-type
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils.ts';
 
 function componentStub(name: string): string {
   const Name = toPascalCase(name);

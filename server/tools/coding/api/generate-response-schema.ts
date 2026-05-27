@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { responseSchemaTemplate }                     from '../templates/api-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
 
 export const generateResponseSchemaTool = {
   name:        'coding_generate_response_schema',

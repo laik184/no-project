@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { reactHookTemplate }                          from '../templates/react-template.ts';
-import { toKebabCase, toCamelCase }                   from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase, toCamelCase }                   from '../../../agents/coderx/utils.ts';
 
 export const generateReactHookTool = {
   name:        'coding_generate_react_hook',

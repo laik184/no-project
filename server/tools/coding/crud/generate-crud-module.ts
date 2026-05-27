@@ -13,7 +13,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudApiTemplate, crudUiTemplate, crudSchemaTemplate } from '../templates/crud-template.ts';
-import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils.ts';
 
 export const generateCrudModuleTool = {
   name:        'coding_generate_crud_module',

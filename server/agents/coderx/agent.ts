@@ -1,58 +1,57 @@
-import OpenAI from 'openai';
-import { buildPrompt, type PromptContext } from './prompt-builder.ts';
-import { parseResponse, type ParsedResponse } from './response-parser.ts';
-import { dispatch, type DispatchOptions } from './tool-dispatcher.ts';
+import OpenAI               from 'openai';
+import { buildPrompt }      from './prompt.ts';
+import { parseResponse }    from './parser.ts';
+import { dispatch }         from './dispatcher.ts';
+import type { PromptContext } from './prompt.ts';
+import type { ParsedResponse } from './parser.ts';
+import type { DispatchOptions } from './dispatcher.ts';
 
 export interface LoopOptions {
-  task: string;
-  basePath: string;
-  projectFiles?: Record<string, string>;
+  task:               string;
+  basePath:           string;
+  projectFiles?:      Record<string, string>;
   extraInstructions?: string;
-  maxIterations?: number;
-  timeoutMs?: number;
+  maxIterations?:     number;
+  timeoutMs?:         number;
 }
 
 export interface LoopResult {
-  success: boolean;
-  summary?: string;
-  iterations: number;
+  success:      boolean;
+  summary?:     string;
+  iterations:   number;
   observations: string[];
-  error?: string;
+  error?:       string;
 }
 
 interface ToolSignature {
-  name: string;
+  name:     string;
   argsHash: string;
 }
 
-const MAX_ITERATIONS = 20;
-const DEFAULT_TIMEOUT_MS = 120_000;
+const MAX_ITERATIONS    = 20;
+const DEFAULT_TIMEOUT   = 120_000;
 
 function hashArgs(args: Record<string, unknown>): string {
   return JSON.stringify(args);
 }
 
-function isDuplicateTool(sig: ToolSignature, seen: ToolSignature[]): boolean {
+function isDuplicate(sig: ToolSignature, seen: ToolSignature[]): boolean {
   return seen.some(s => s.name === sig.name && s.argsHash === sig.argsHash);
 }
 
 function buildClient(): OpenAI {
-  const apiKey = process.env.OPENROUTER_API_KEY ?? process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY ?? '';
+  const apiKey  = process.env.OPENROUTER_API_KEY ?? process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY ?? '';
   const baseURL = process.env.LLM_BASE_URL ?? 'https://openrouter.ai/api/v1';
   return new OpenAI({ apiKey, baseURL });
 }
 
-async function callLLM(
-  client: OpenAI,
-  system: string,
-  user: string,
-): Promise<string> {
+async function callLLM(client: OpenAI, system: string, user: string): Promise<string> {
   const model = process.env.LLM_MODEL ?? 'openai/gpt-4o-mini';
   const res = await client.chat.completions.create({
     model,
     messages: [
       { role: 'system', content: system },
-      { role: 'user', content: user },
+      { role: 'user',   content: user   },
     ],
     temperature: 0.2,
   });
@@ -60,13 +59,13 @@ async function callLLM(
 }
 
 export async function runToolLoop(opts: LoopOptions): Promise<LoopResult> {
-  const maxIter = opts.maxIterations ?? MAX_ITERATIONS;
-  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxIter     = opts.maxIterations ?? MAX_ITERATIONS;
+  const timeoutMs   = opts.timeoutMs     ?? DEFAULT_TIMEOUT;
   const dispatchOpts: DispatchOptions = { basePath: opts.basePath };
-  const client = buildClient();
+  const client      = buildClient();
 
-  const observations: string[] = [];
-  const seenTools: ToolSignature[] = [];
+  const observations: string[]         = [];
+  const seenTools:    ToolSignature[]  = [];
   const deadline = Date.now() + timeoutMs;
 
   for (let i = 0; i < maxIter; i++) {
@@ -75,10 +74,10 @@ export async function runToolLoop(opts: LoopOptions): Promise<LoopResult> {
     }
 
     const ctx: PromptContext = {
-      task: opts.task,
-      projectFiles: opts.projectFiles,
-      extraInstructions: opts.extraInstructions,
-      iteration: i + 1,
+      task:               opts.task,
+      projectFiles:       opts.projectFiles,
+      extraInstructions:  opts.extraInstructions,
+      iteration:          i + 1,
       observations,
     };
 
@@ -100,12 +99,7 @@ export async function runToolLoop(opts: LoopOptions): Promise<LoopResult> {
     }
 
     if (parsed.done) {
-      return {
-        success: true,
-        summary: parsed.summary,
-        iterations: i + 1,
-        observations,
-      };
+      return { success: true, summary: parsed.summary, iterations: i + 1, observations };
     }
 
     if (!parsed.toolCall) {
@@ -113,30 +107,27 @@ export async function runToolLoop(opts: LoopOptions): Promise<LoopResult> {
       continue;
     }
 
-    const sig: ToolSignature = {
-      name: parsed.toolCall.name,
-      argsHash: hashArgs(parsed.toolCall.arguments),
-    };
+    const sig: ToolSignature = { name: parsed.toolCall.name, argsHash: hashArgs(parsed.toolCall.arguments) };
 
-    if (isDuplicateTool(sig, seenTools)) {
-      observations.push(`[loop guard] Duplicate tool call detected: ${sig.name} — stopping`);
+    if (isDuplicate(sig, seenTools)) {
+      observations.push(`[loop guard] Duplicate tool call: ${sig.name} — stopping`);
       return { success: false, iterations: i + 1, observations, error: 'Repeated tool call detected' };
     }
 
     seenTools.push(sig);
 
     const result = await dispatch(parsed.toolCall.name, parsed.toolCall.arguments, dispatchOpts);
-    const obs = result.success
-      ? `[${parsed.toolCall.name}] OK — ${result.output.slice(0, 200)}`
-      : `[${parsed.toolCall.name}] ERROR — ${result.error}`;
-
-    observations.push(obs);
+    observations.push(
+      result.success
+        ? `[${parsed.toolCall.name}] OK — ${result.output.slice(0, 200)}`
+        : `[${parsed.toolCall.name}] ERROR — ${result.error}`,
+    );
   }
 
   return {
-    success: false,
+    success:    false,
     iterations: maxIter,
     observations,
-    error: `Max iterations (${maxIter}) reached without completion`,
+    error:      `Max iterations (${maxIter}) reached without completion`,
   };
 }

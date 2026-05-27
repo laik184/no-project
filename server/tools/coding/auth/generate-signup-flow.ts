@@ -8,7 +8,7 @@ import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-m
 import type { SignupFlowInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase }                               from '../../../agents/coderx/utils/code-utils.ts';
+import { toPascalCase }                               from '../../../agents/coderx/utils.ts';
 
 function signupFlowTemplate(fields: string[]): string {
   const allFields  = Array.from(new Set(['email', 'password', ...fields]));

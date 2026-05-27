@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { restApiRouterTemplate }                      from '../templates/api-template.ts';
-import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils.ts';
 
 export const generateRestApiTool = {
   name:        'coding_generate_rest_api',

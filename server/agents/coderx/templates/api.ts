@@ -1,17 +1,17 @@
-import { toPascalCase, toCamelCase, pluralize } from '../utils/code-utils.ts';
+import { toPascalCase, toCamelCase, pluralize } from '../utils.ts';
 
 export interface ApiTemplateOptions {
   resource: string;
-  fields: string[];
+  fields:   string[];
 }
 
 export function apiRouterTemplate(opts: ApiTemplateOptions): string {
   const { resource, fields } = opts;
-  const Name = toPascalCase(resource);
-  const name = toCamelCase(resource);
+  const Name       = toPascalCase(resource);
+  const name       = toCamelCase(resource);
   const collection = pluralize(name);
 
-  const fieldList = fields.map(f => `  ${f}: string;`).join('\n');
+  const fieldList  = fields.map(f => `  ${f}: string;`).join('\n');
   const createBody = fields.map(f => `    ${f}: req.body.${f},`).join('\n');
   const updateBody = fields.map(f => `    if (req.body.${f} !== undefined) item.${f} = req.body.${f};`).join('\n');
 
@@ -70,8 +70,9 @@ export default router;
 }
 
 export function apiTypeTemplate(resource: string, fields: string[]): string {
-  const Name = toPascalCase(resource);
+  const Name       = toPascalCase(resource);
   const fieldLines = fields.map(f => `  ${f}: string;`).join('\n');
+
   return `export interface ${Name} {
   id: string;
 ${fieldLines}

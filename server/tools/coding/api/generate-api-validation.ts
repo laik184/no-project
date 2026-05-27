@@ -9,7 +9,7 @@ import type { ApiValidationInput }                   from '../shared/coding-type
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toCamelCase, toKebabCase }     from '../../../agents/coderx/utils/code-utils.ts';
+import { toPascalCase, toCamelCase, toKebabCase }     from '../../../agents/coderx/utils.ts';
 
 function apiValidationTemplate(resource: string, fields: string[]): string {
   const Name      = toPascalCase(resource);

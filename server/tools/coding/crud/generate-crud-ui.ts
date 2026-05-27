@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudUiTemplate }                             from '../templates/crud-template.ts';
-import { toPascalCase }                               from '../../../agents/coderx/utils/code-utils.ts';
+import { toPascalCase }                               from '../../../agents/coderx/utils.ts';
 
 export const generateCrudUITool = {
   name:        'coding_generate_crud_ui',

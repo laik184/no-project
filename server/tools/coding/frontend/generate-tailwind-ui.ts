@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { tailwindUITemplate }                         from '../templates/react-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
 
 const VALID_VARIANTS = new Set(['card', 'button', 'input', 'badge', 'alert'] as const);
 type Variant = 'card' | 'button' | 'input' | 'badge' | 'alert';

@@ -9,7 +9,7 @@ import type { MigrationInput }                       from '../shared/coding-type
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
 
 function migrationTemplate(name: string, up: string, down?: string): string {
   const stamp = new Date().toISOString().replace(/[:.TZ-]/g, '').slice(0, 14);

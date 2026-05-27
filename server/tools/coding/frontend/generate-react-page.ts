@@ -10,7 +10,7 @@ import { codingOk, codingFail, templateResult }      from '../shared/coding-resu
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { reactPageTemplate }                          from '../templates/react-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils/code-utils.ts';
+import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
 
 export const generateReactPageTool = {
   name:        'coding_generate_react_page',

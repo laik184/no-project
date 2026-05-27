@@ -1,19 +1,19 @@
-import { getAllTools, type ToolMeta } from './tool-registry.ts';
+import { CODERX_TOOLS, type ToolSchema } from './schema.ts';
 
 export interface PromptContext {
-  task: string;
-  projectFiles?: Record<string, string>;
+  task:               string;
+  projectFiles?:      Record<string, string>;
   extraInstructions?: string;
-  iteration?: number;
-  observations?: string[];
+  iteration?:         number;
+  observations?:      string[];
 }
 
 export interface BuiltPrompt {
   system: string;
-  user: string;
+  user:   string;
 }
 
-function renderTool(t: ToolMeta): string {
+function renderTool(t: ToolSchema): string {
   const params = Object.entries(t.parameters)
     .map(([k, v]) => `    - ${k} (${v.type}${v.required ? ', required' : ''}): ${v.description}`)
     .join('\n');
@@ -27,13 +27,11 @@ function renderFiles(files: Record<string, string>): string {
 }
 
 function renderObservations(obs: string[]): string {
-  return obs
-    .map((o, i) => `[Step ${i + 1}] ${o}`)
-    .join('\n');
+  return obs.map((o, i) => `[Step ${i + 1}] ${o}`).join('\n');
 }
 
 export function buildPrompt(ctx: PromptContext): BuiltPrompt {
-  const tools = getAllTools().map(renderTool).join('\n\n');
+  const tools = CODERX_TOOLS.map(renderTool).join('\n\n');
 
   const system = [
     'You are CoderX — a precise, autonomous coding assistant.',
