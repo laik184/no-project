@@ -1,12 +1,15 @@
 /**
  * server/tools/registry/tool-dispatcher.ts
  *
- * Executes a resolved tool with:
- *   - execution context injection
- *   - structured output normalization
+ * THE single execution pipeline for all tool invocations.
+ *
+ * Responsibilities:
+ *   - permission resolution
  *   - timeout enforcement
  *   - retry with backoff
- *   - fail-safe error capture
+ *   - metrics recording  (Fix #3 — was dead)
+ *   - audit recording    (Fix #4 — was dead)
+ *   - normalized output
  *
  * Never throws — always returns ToolExecutionResult.
  */
@@ -19,22 +22,23 @@ import type {
 } from './tool-types.ts';
 import { resolveToolWithPermissions } from './tool-resolver.ts';
 import { ToolNotFoundError, ToolPermissionError } from './tool-resolver.ts';
+import { recordMetric }  from './tool-metrics.ts';
+import { recordAudit }   from './tool-security.ts';
+import { getTool }       from './tool-registry.ts';
 
 // ── Dispatch options ──────────────────────────────────────────────────────────
 
 export interface DispatchOptions {
-  /** Override the tool's default timeoutMs. */
   timeoutMs?: number;
-  /** Override the tool's default retry policy. */
   retry?:     RetryPolicy;
 }
 
 // ── Internal: timeout wrapper ─────────────────────────────────────────────────
 
 function withTimeout<T>(
-  fn:        () => Promise<T>,
-  ms:        number,
-  toolName:  string,
+  fn:       () => Promise<T>,
+  ms:       number,
+  toolName: string,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
@@ -43,7 +47,7 @@ function withTimeout<T>(
     );
     fn()
       .then((v) => { clearTimeout(timer); resolve(v); })
-      .catch((e) => { clearTimeout(timer); reject(e);  });
+      .catch((e) => { clearTimeout(timer); reject(e); });
   });
 }
 
@@ -52,22 +56,23 @@ function withTimeout<T>(
 async function withRetry<T>(
   fn:     () => Promise<T>,
   policy: RetryPolicy,
-): Promise<T> {
+): Promise<{ result: T; retries: number }> {
   let lastErr: unknown;
+  let retries = 0;
 
   for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
     try {
-      return await fn();
+      const result = await fn();
+      return { result, retries };
     } catch (err) {
       lastErr = err;
-
       if (attempt < policy.maxAttempts) {
+        retries++;
         const delay = policy.backoff === 'exponential'
           ? policy.delayMs * Math.pow(2, attempt - 1)
           : policy.backoff === 'linear'
             ? policy.delayMs * attempt
             : 0;
-
         if (delay > 0) await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -76,15 +81,20 @@ async function withRetry<T>(
   throw lastErr;
 }
 
-// ── Internal: normalize error ─────────────────────────────────────────────────
+// ── Internal: error classification ───────────────────────────────────────────
 
 function classifyError(err: unknown, durationMs: number): ToolExecutionResult<never> {
   if (err instanceof ToolNotFoundError)   return { ok: false, error: err.message, code: 'NOT_FOUND',        durationMs };
   if (err instanceof ToolPermissionError) return { ok: false, error: err.message, code: 'PERMISSION_DENIED', durationMs };
-
-  const msg = err instanceof Error ? err.message : String(err);
+  const msg  = err instanceof Error ? err.message : String(err);
   const code = msg.includes('timed out') ? 'TIMEOUT' : 'EXECUTION_ERROR';
   return { ok: false, error: msg, code, durationMs };
+}
+
+// ── Internal: derive category from tool name (best-effort) ────────────────────
+
+function categoryOf(name: string, def?: ToolDefinition): string {
+  return def?.category ?? name.split('_')[0] ?? 'unknown';
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -92,6 +102,7 @@ function classifyError(err: unknown, durationMs: number): ToolExecutionResult<ne
 /**
  * Dispatch a tool by name.
  * Resolves → validates permissions → retries → enforces timeout.
+ * Records metrics and audit on every execution path.
  * Never throws. Always returns a typed ToolExecutionResult.
  */
 export async function dispatch<TInput = Record<string, unknown>, TOutput = unknown>(
@@ -102,19 +113,36 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
 ): Promise<ToolExecutionResult<TOutput>> {
   const start = Date.now();
 
+  // ── Permission resolution ──────────────────────────────────────────────────
   let resolved: { definition: ToolDefinition };
   try {
     resolved = resolveToolWithPermissions(name, context);
   } catch (err) {
-    return classifyError(err, Date.now() - start);
+    const durationMs = Date.now() - start;
+    const result     = classifyError(err, durationMs);
+    const def        = getTool(name);
+
+    recordMetric(name, false, durationMs);
+    recordAudit({
+      ts:        new Date().toISOString(),
+      toolName:  name,
+      category:  categoryOf(name, def) as never,
+      runId:     context.runId,
+      ok:        false,
+      durationMs,
+      errorCode: result.code,
+    });
+
+    return result;
   }
 
   const { definition } = resolved;
-  const timeoutMs = opts.timeoutMs ?? definition.timeoutMs;
-  const retry     = opts.retry     ?? definition.retry;
+  const timeoutMs      = opts.timeoutMs ?? definition.timeoutMs;
+  const retry          = opts.retry     ?? definition.retry;
 
+  // ── Execution with retry + timeout ────────────────────────────────────────
   try {
-    const data = await withRetry(
+    const { result: data, retries } = await withRetry(
       () => withTimeout(
         () => definition.handler(input as Record<string, unknown>, context) as Promise<TOutput>,
         timeoutMs,
@@ -123,15 +151,43 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       retry,
     );
 
-    return { ok: true, data, durationMs: Date.now() - start };
+    const durationMs = Date.now() - start;
+    const timedOut   = false;
+
+    recordMetric(name, true, durationMs, retries, timedOut);
+    recordAudit({
+      ts:        new Date().toISOString(),
+      toolName:  name,
+      category:  definition.category,
+      runId:     context.runId,
+      ok:        true,
+      durationMs,
+    });
+
+    return { ok: true, data, durationMs };
+
   } catch (err) {
-    return classifyError(err, Date.now() - start);
+    const durationMs = Date.now() - start;
+    const result     = classifyError(err, durationMs);
+    const timedOut   = result.code === 'TIMEOUT';
+
+    recordMetric(name, false, durationMs, 0, timedOut);
+    recordAudit({
+      ts:        new Date().toISOString(),
+      toolName:  name,
+      category:  definition.category,
+      runId:     context.runId,
+      ok:        false,
+      durationMs,
+      errorCode: result.code,
+    });
+
+    return result;
   }
 }
 
 /**
  * Dispatch multiple tools in parallel.
- * Returns results in the same order as inputs.
  * Individual failures do not abort sibling dispatches.
  */
 export async function dispatchAll<TOutput = unknown>(
@@ -159,7 +215,6 @@ export async function dispatchSequential<TOutput = unknown>(
   }>,
 ): Promise<Array<ToolExecutionResult<TOutput>>> {
   const results: Array<ToolExecutionResult<TOutput>> = [];
-
   for (const call of calls) {
     const result = await dispatch<Record<string, unknown>, TOutput>(
       call.name, call.input, call.context, call.opts,
@@ -167,6 +222,5 @@ export async function dispatchSequential<TOutput = unknown>(
     results.push(result);
     if (!result.ok) break;
   }
-
   return results;
 }

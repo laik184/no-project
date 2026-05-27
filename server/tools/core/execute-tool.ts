@@ -1,13 +1,27 @@
 /**
  * server/tools/core/execute-tool.ts
  *
- * Low-level tool executor — invoked by the node executor.
- * Takes a registered entry + args + context, runs the handler,
- * and returns a normalized { ok, result, error } envelope.
+ * DEPRECATED — Fix #1 + #7.
+ *
+ * This module was a shadow executor used by node-executor.ts.
+ * node-executor.ts has been migrated to use the canonical
+ * `dispatch()` from `registry/tool-dispatcher.ts`.
+ *
+ * This file is preserved as a compatibility shim so any remaining
+ * imports continue to compile. DO NOT use in new code.
+ *
+ * Migration path:
+ *   OLD: import { executeTool } from '../../tools/core/execute-tool.ts'
+ *   NEW: import { dispatch }    from '../../tools/registry/tool-dispatcher.ts'
  */
 
-import type { ToolContext } from './tool-context.ts';
+import { dispatch }     from '../registry/tool-dispatcher.ts';
+import type { ToolExecutionContext } from '../registry/tool-types.ts';
 
+/** @deprecated Use ToolExecutionContext from registry/tool-types.ts */
+export type ToolContext = ToolExecutionContext;
+
+/** @deprecated Retained for type compatibility only */
 export interface RegisteredToolEntry {
   tool: {
     name:        string;
@@ -17,39 +31,31 @@ export interface RegisteredToolEntry {
   category:    string;
   terminal:    boolean;
   permissions: readonly string[];
-  handler:     (args: Record<string, unknown>, ctx: ToolContext) => Promise<unknown>;
+  handler:     (args: Record<string, unknown>, ctx: ToolExecutionContext) => Promise<unknown>;
   timeoutMs:   number;
 }
 
+/** @deprecated Retained for type compatibility only */
 export interface ToolExecuteResult {
-  ok:      boolean;
-  result?: unknown;
-  error?:  string;
+  ok:         boolean;
+  result?:    unknown;
+  error?:     string;
   durationMs: number;
 }
 
 /**
- * Execute a registered tool entry with timeout protection.
- * Never throws — always returns ToolExecuteResult.
+ * @deprecated Use dispatch() from registry/tool-dispatcher.ts directly.
+ * Routes through the canonical dispatcher so existing callers maintain
+ * correct behavior while being migrated.
  */
 export async function executeTool(
-  entry:  RegisteredToolEntry,
-  args:   Record<string, unknown>,
-  ctx:    ToolContext,
+  entry: RegisteredToolEntry,
+  args:  Record<string, unknown>,
+  ctx:   ToolExecutionContext,
 ): Promise<ToolExecuteResult> {
-  const start = Date.now();
-  const ms    = entry.timeoutMs ?? 30_000;
-
-  try {
-    const result = await Promise.race([
-      entry.handler(args, ctx),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Tool "${entry.tool.name}" timed out after ${ms}ms`)), ms),
-      ),
-    ]);
-    return { ok: true, result, durationMs: Date.now() - start };
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    return { ok: false, error, durationMs: Date.now() - start };
+  const result = await dispatch(entry.tool.name, args, ctx);
+  if (result.ok) {
+    return { ok: true, result: (result as { ok: true; data: unknown }).data, durationMs: result.durationMs };
   }
+  return { ok: false, error: result.error, durationMs: result.durationMs };
 }

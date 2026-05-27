@@ -1,23 +1,28 @@
 /**
- * node-executor.ts  (memory-safe — ≤250 lines)
+ * node-executor.ts  (≤250 lines)
  *
  * Dispatches DAG nodes to tool / agent / verify / checkpoint / decision subsystems.
  *
- * MEMORY SAFETY UPGRADE:
+ * Fix #1 + #7 — Dual executor elimination + context unification.
+ *   The shadow path (unifiedRegistry.getEntry → executeTool from core/) has been
+ *   replaced with the canonical path (dispatch() from registry/tool-dispatcher.ts).
+ *   Benefits:
+ *     - retry policy is now enforced on engine tool calls
+ *     - permission validation runs on all tool invocations
+ *     - metrics and audit are recorded for every tool call
+ *     - single ToolExecutionContext type used throughout
+ *
+ * MEMORY SAFETY (retained):
  *   File writes produced by tool nodes are routed through nodeWriteDispatcher
  *   → transactionalMemoryWriter → deterministicWriteCoordinator.
  *   No direct fs writes are permitted from this module.
- *
- * PREVIOUS FIX (retained):
- *   dispatchAgent() no longer fire-and-forgets. Agent nodes register a promise
- *   via agentPromiseRegistry and await actual completion before returning.
  */
 
-import { bus }                   from "../../infrastructure/events/bus.ts";
-import { dagCheckpointStore }    from "../checkpoints/dag-checkpoint-store.ts";
-import { createCheckpoint }      from "../graph/graph-state.ts";
-import { agentPromiseRegistry }  from "./agent-promise-registry.ts";
-import { nodeWriteDispatcher }   from "./node-write-dispatcher.ts";
+import { bus }                    from "../../infrastructure/events/bus.ts";
+import { dagCheckpointStore }     from "../checkpoints/dag-checkpoint-store.ts";
+import { createCheckpoint }       from "../graph/graph-state.ts";
+import { agentPromiseRegistry }   from "./agent-promise-registry.ts";
+import { nodeWriteDispatcher }    from "./node-write-dispatcher.ts";
 import {
   emitNodeStarted,
   emitNodeCompleted,
@@ -27,6 +32,10 @@ import {
 import type { ExecutionGraph, ExecutionNode } from "../graph/graph-types.ts";
 import type { NodeExecutor }                  from "../graph/parallel-runner.ts";
 
+// ── Canonical imports (Fix #1 — eliminates shadow executor) ──────────────────
+import { dispatch }       from "../../tools/registry/tool-dispatcher.ts";
+import { buildContext }   from "../../tools/shared/context-builder.ts";
+
 export interface NodeExecutorContext {
   runId:     string;
   projectId: number;
@@ -34,10 +43,6 @@ export interface NodeExecutorContext {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-/**
- * Creates a NodeExecutor closure bound to a runId + projectId.
- * Called by runGraph() for each ready node.
- */
 export function createNodeExecutor(ctx: NodeExecutorContext): NodeExecutor {
   const telCtx = { runId: ctx.runId, projectId: ctx.projectId, graphId: ctx.runId };
 
@@ -85,30 +90,24 @@ async function dispatchNode(node: ExecutionNode, ctx: NodeExecutorContext): Prom
   }
 }
 
-// ── Tool dispatch — memory-safe ───────────────────────────────────────────────
+// ── Tool dispatch — canonical path (Fix #1 + #7) ─────────────────────────────
 
 async function dispatchTool(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
   const toolName = node.toolName;
   if (!toolName) throw new Error(`Node "${node.id}" type=tool missing toolName`);
 
-  const { unifiedRegistry } = await import("../../tools/registry/tool-registry.ts");
-  const entry = unifiedRegistry.getEntry(toolName);
-  if (!entry) throw new Error(`Tool "${toolName}" not found in registry`);
+  // Fix #7: single context type — ToolExecutionContext via buildContext()
+  // Fix #1: canonical dispatch() — includes retry, permissions, timeout, metrics, audit
+  const toolCtx = buildContext(ctx.runId, String(ctx.projectId));
+  const result  = await dispatch(toolName, node.args as Record<string, unknown>, toolCtx);
 
-  const { executeTool }  = await import("../../tools/core/execute-tool.ts");
-  const { createContext } = await import("../../tools/core/tool-context.ts");
+  if (!result.ok) {
+    throw new Error(result.error ?? `Tool "${toolName}" failed`);
+  }
 
-  // createContext(projectId, runId, signal?)
-  const toolCtx = createContext(ctx.projectId, ctx.runId);
-
-  // executeTool(entry: RegisteredTool, args, ctx, opts?)
-  const result = await executeTool(entry, node.args as Record<string, unknown>, toolCtx);
-
-  if (!result.ok) throw new Error(result.error ?? `Tool "${toolName}" failed`);
-
-  // Route any file writes declared in result metadata through the safe write queue.
-  // Tool handlers that produce file writes should attach them as result.result.fileWrites[].
-  const fileWrites = (result.result as any)?.fileWrites;
+  // Route file writes through the safe write queue
+  const data       = (result as { ok: true; data: unknown }).data;
+  const fileWrites = (data as Record<string, unknown>)?.fileWrites;
   if (Array.isArray(fileWrites) && fileWrites.length > 0) {
     await nodeWriteDispatcher.dispatchBatch(
       fileWrites,
@@ -116,22 +115,21 @@ async function dispatchTool(node: ExecutionNode, ctx: NodeExecutorContext): Prom
     );
   }
 
-  return result.result;
+  return data;
 }
 
 // ── Agent dispatch ────────────────────────────────────────────────────────────
 
-/** Build the canonical registry key — mirrors AgentPromiseRegistry.key() static. */
 function registryKey(runId: string, nodeId: string): string {
   return `${runId}:${nodeId}`;
 }
 
 async function dispatchAgent(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
   const key            = registryKey(ctx.runId, node.id);
-  const agentTimeoutMs = (node.args as any)?.agentTimeoutMs as number | undefined;
+  const agentTimeoutMs = (node.args as Record<string, unknown>)?.agentTimeoutMs as number | undefined;
   const resultPromise  = agentPromiseRegistry.register(key, agentTimeoutMs);
 
-  bus.emit("agent.event" as any, {
+  bus.emit("agent.event" as never, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
     phase:     "dag.agent",
@@ -140,8 +138,8 @@ async function dispatchAgent(node: ExecutionNode, ctx: NodeExecutorContext): Pro
     payload:   {
       nodeId:     node.id,
       label:      node.label,
-      goal:       (node.args as any)?.goal ?? node.label,
-      tools:      (node.args as any)?.tools,
+      goal:       (node.args as Record<string, unknown>)?.goal ?? node.label,
+      tools:      (node.args as Record<string, unknown>)?.tools,
       promiseKey: key,
     },
     ts: Date.now(),
@@ -156,7 +154,7 @@ async function dispatchVerify(node: ExecutionNode, ctx: NodeExecutorContext): Pr
   const key           = registryKey(ctx.runId, node.id);
   const resultPromise = agentPromiseRegistry.register(key);
 
-  bus.emit("agent.event" as any, {
+  bus.emit("agent.event" as never, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
     phase:     "dag.verify",
@@ -172,7 +170,7 @@ async function dispatchVerify(node: ExecutionNode, ctx: NodeExecutorContext): Pr
 // ── Checkpoint node dispatch ──────────────────────────────────────────────────
 
 async function dispatchCheckpointNode(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
-  bus.emit("agent.event" as any, {
+  bus.emit("agent.event" as never, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
     phase:     "dag.checkpoint",
@@ -187,7 +185,7 @@ async function dispatchCheckpointNode(node: ExecutionNode, ctx: NodeExecutorCont
 // ── Decision node dispatch ────────────────────────────────────────────────────
 
 async function dispatchDecision(node: ExecutionNode, ctx: NodeExecutorContext): Promise<unknown> {
-  bus.emit("agent.event" as any, {
+  bus.emit("agent.event" as never, {
     runId:     ctx.runId,
     projectId: ctx.projectId,
     phase:     "dag.decision",

@@ -56,9 +56,12 @@ import { contextRegistry }             from './server/coordination/index.ts';
 import { wireCoordinationSSE }         from './server/coordination/telemetry/coordination-sse-bridge.ts';
 import { initializePlanner }           from './server/agents/planner/planner-agent.ts';
 import { initializeExecutor }          from './server/agents/executor/executor-agent.ts';
+import { registerFilesystemTools }     from './server/tools/filesystem/index.ts';
+import { registerTerminalTools }       from './server/tools/terminal/index.ts';
 import { registerVerifierTools }       from './server/tools/verifier/index.ts';
 import { registerBrowserTools }        from './server/tools/browser/index.ts';
 import { registerCodingTools }         from './server/tools/coding/index.ts';
+import { sealRegistry }                from './server/tools/registry/tool-registry.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -268,10 +271,17 @@ server.listen(PORT, '0.0.0.0', async () => {
   contextRegistry.startSweeper(60_000);
   // Wire coordination bus events → SSE so the frontend receives real-time swarm updates
   wireCoordinationSSE();
-  // Register verifier tools — build / tests / typecheck / runtime / diagnostics / recovery
+  // ── Tool registration — all categories (Fix #5 + missing registrations) ──────
+  // Order: filesystem → terminal → verifier → browser → coding
+  // sealRegistry() must be called AFTER all categories are registered.
+  registerFilesystemTools();
+  registerTerminalTools();
   registerVerifierTools();
   registerBrowserTools();
   registerCodingTools();
+  // Seal the registry — prevents any post-boot tool injection (Fix #5)
+  sealRegistry();
+  console.log('[nura-x] Tool registry sealed — all categories registered and locked.');
   // Boot Planner Agent — registers event handlers for the planning phase pipeline
   initializePlanner();
   // Boot Executor Agent — registers event handlers for the execution phase pipeline

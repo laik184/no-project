@@ -1,104 +1,99 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import { getTool } from './tool-registry.ts';
-import { apiRouterTemplate, apiTypeTemplate } from '../templates/api-template.ts';
-import { toPascalCase } from '../utils/code-utils.ts';
+/**
+ * server/agents/coderx/llm-loop/tool-dispatcher.ts
+ *
+ * Fix #9 — CoderX private dispatcher eliminated.
+ *
+ * Previously this file contained a fully isolated execution system with
+ * hand-rolled implementations of write_file, read_file, edit_file, and
+ * generate_api — bypassing the central registry, permissions, retry,
+ * metrics, and audit entirely.
+ *
+ * This file is now a thin adapter that:
+ *   1. Maps coderX tool names → canonical registry tool names
+ *   2. Builds a ToolExecutionContext from the basePath option
+ *   3. Routes all calls through the central dispatch() function
+ *
+ * Benefits:
+ *   - retry policy enforced on all coderX tool calls
+ *   - metrics + audit recorded for coderX tool calls
+ *   - permission model applies to coderX tool calls
+ *   - single execution ecosystem (Fix #9 success criteria)
+ */
+
+import { dispatch as centralDispatch } from '../../../tools/registry/tool-dispatcher.ts';
+import type { ToolExecutionContext }   from '../../../tools/registry/tool-types.ts';
 
 export interface DispatchResult {
   success: boolean;
-  output: string;
-  error?: string;
+  output:  string;
+  error?:  string;
 }
 
 export interface DispatchOptions {
   basePath: string;
 }
 
-async function writeFile(args: Record<string, unknown>, basePath: string): Promise<DispatchResult> {
-  const filePath = String(args.path ?? '');
-  const content = String(args.content ?? '');
-  if (!filePath) return { success: false, output: '', error: 'path is required' };
+// ── coderX tool name → canonical registry tool name ───────────────────────────
 
-  const absolute = path.resolve(basePath, filePath);
-  await fs.mkdir(path.dirname(absolute), { recursive: true });
-  await fs.writeFile(absolute, content, 'utf-8');
-  return { success: true, output: `Wrote ${filePath} (${content.length} chars)` };
-}
+const TOOL_NAME_MAP: Record<string, string> = {
+  write_file:    'fs_write_file',
+  read_file:     'fs_read_file',
+  edit_file:     'fs_patch_file',
+  generate_api:  'coding_generate_rest_api',
+};
 
-async function readFile(args: Record<string, unknown>, basePath: string): Promise<DispatchResult> {
-  const filePath = String(args.path ?? '');
-  if (!filePath) return { success: false, output: '', error: 'path is required' };
+// ── Argument adapters for tools with different schemas ────────────────────────
 
-  const absolute = path.resolve(basePath, filePath);
-  try {
-    const content = await fs.readFile(absolute, 'utf-8');
-    return { success: true, output: content };
-  } catch {
-    return { success: false, output: '', error: `File not found: ${filePath}` };
+function adaptArgs(
+  coderxName: string,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  if (coderxName === 'edit_file') {
+    // coderX uses old_content/new_content; fs_patch_file uses target/replacement
+    return {
+      path:        args.path,
+      target:      args.old_content,
+      replacement: args.new_content,
+    };
   }
+  return args;
 }
 
-async function editFile(args: Record<string, unknown>, basePath: string): Promise<DispatchResult> {
-  const filePath = String(args.path ?? '');
-  const oldContent = String(args.old_content ?? '');
-  const newContent = String(args.new_content ?? '');
-  if (!filePath) return { success: false, output: '', error: 'path is required' };
-  if (!oldContent) return { success: false, output: '', error: 'old_content is required' };
+// ── Context builder — basePath becomes the sandboxRoot ───────────────────────
 
-  const absolute = path.resolve(basePath, filePath);
-  let existing: string;
-  try {
-    existing = await fs.readFile(absolute, 'utf-8');
-  } catch {
-    return { success: false, output: '', error: `File not found: ${filePath}` };
-  }
-
-  if (!existing.includes(oldContent)) {
-    return { success: false, output: '', error: 'old_content not found in file — check exact whitespace' };
-  }
-
-  const updated = existing.replace(oldContent, newContent);
-  await fs.writeFile(absolute, updated, 'utf-8');
-  return { success: true, output: `Edited ${filePath}` };
+function buildCoderXContext(basePath: string): ToolExecutionContext {
+  return Object.freeze({
+    runId:       'coderx',
+    projectId:   'coderx',
+    sandboxRoot: basePath,
+    meta:        {},
+  });
 }
 
-function generateApi(args: Record<string, unknown>): DispatchResult {
-  const resource = String(args.resource ?? '').trim();
-  const rawFields = String(args.fields ?? '').trim();
-  if (!resource) return { success: false, output: '', error: 'resource is required' };
-
-  const fields = rawFields.split(',').map(f => f.trim()).filter(Boolean);
-  if (fields.length === 0) return { success: false, output: '', error: 'at least one field is required' };
-
-  const router = apiRouterTemplate({ resource, fields });
-  const types = apiTypeTemplate(resource, fields);
-  const Name = toPascalCase(resource);
-
-  const output = [
-    `=== routes/${resource}.ts ===`,
-    router,
-    `=== types/${Name}.ts ===`,
-    types,
-  ].join('\n\n');
-
-  return { success: true, output };
-}
+// ── Public dispatch (same signature as before — backward compat) ──────────────
 
 export async function dispatch(
   toolName: string,
-  args: Record<string, unknown>,
-  opts: DispatchOptions,
+  args:     Record<string, unknown>,
+  opts:     DispatchOptions,
 ): Promise<DispatchResult> {
-  if (!getTool(toolName)) {
+  const centralName = TOOL_NAME_MAP[toolName];
+  if (!centralName) {
     return { success: false, output: '', error: `Unknown tool: "${toolName}"` };
   }
 
-  switch (toolName) {
-    case 'write_file':   return writeFile(args, opts.basePath);
-    case 'read_file':    return readFile(args, opts.basePath);
-    case 'edit_file':    return editFile(args, opts.basePath);
-    case 'generate_api': return generateApi(args);
-    default:
-      return { success: false, output: '', error: `No handler registered for tool: "${toolName}"` };
+  const ctx    = buildCoderXContext(opts.basePath);
+  const mapped = adaptArgs(toolName, args);
+  const result = await centralDispatch(centralName, mapped, ctx);
+
+  if (!result.ok) {
+    return { success: false, output: '', error: result.error };
   }
+
+  const data = (result as { ok: true; data: unknown }).data;
+  const output = typeof data === 'string'
+    ? data
+    : data != null ? JSON.stringify(data) : '';
+
+  return { success: true, output };
 }

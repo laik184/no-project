@@ -1,14 +1,19 @@
 import type { ToolExecutionResult } from '../../registry/tool-types.ts';
-import type { PhaseResult, VerificationStatus } from './verifier-types.ts';
+import type { PhaseResult, VerificationPhase, VerificationStatus } from './verifier-types.ts';
 
+/**
+ * Fix #15 — Remove `phase as any` type escape hatch.
+ * phasePass and phaseFail now accept VerificationPhase directly.
+ * Callers that pass string literals will get a compile-time check.
+ */
 export function phasePass(
-  phase:      string,
+  phase:      VerificationPhase,
   durationMs: number,
   output?:    string,
   warnings:   string[] = [],
 ): PhaseResult {
   return {
-    phase:      phase as any,
+    phase,
     status:     'passed',
     durationMs,
     errors:     [],
@@ -18,14 +23,14 @@ export function phasePass(
 }
 
 export function phaseFail(
-  phase:      string,
+  phase:      VerificationPhase,
   durationMs: number,
   errors:     string[],
   warnings:   string[] = [],
   output?:    string,
 ): PhaseResult {
   return {
-    phase:      phase as any,
+    phase,
     status:     'failed',
     durationMs,
     errors,

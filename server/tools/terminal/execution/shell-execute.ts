@@ -1,9 +1,17 @@
-import { spawnProcess }      from './spawn-process.ts';
+/**
+ * server/tools/terminal/execution/shell-execute.ts
+ *
+ * Fix #13 — Production-grade shell argument parsing.
+ * Replaced naive `command.split(/\s+/)` with `parseShellArgs()`.
+ * Quoted arguments and paths with spaces are now handled correctly.
+ */
+
+import { spawnProcess }           from './spawn-process.ts';
 import { registerTimeout, cancelTimeout } from './timeout-manager.ts';
-import { validateCommand }   from '../validation/command-validator.ts';
-import { clampTimeout }      from '../security/resource-limits.ts';
-import type { ExecutionResult } from '../shared/terminal-types.ts';
-import type { ToolExecutionContext } from '../../registry/tool-types.ts';
+import { validateCommand }        from '../validation/command-validator.ts';
+import { clampTimeout }           from '../security/resource-limits.ts';
+import { parseShellArgs }         from './parse-shell-args.ts';
+import type { ExecutionResult }   from '../shared/terminal-types.ts';
 
 export async function shellExecute(
   command:   string,
@@ -14,14 +22,19 @@ export async function shellExecute(
   validateCommand(command);
   const safeTimeout = clampTimeout(timeoutMs);
   const start       = Date.now();
-  let stdout = '';
-  let stderr = '';
+  let stdout  = '';
+  let stderr  = '';
   let timedOut = false;
 
   return new Promise<ExecutionResult>((resolve, reject) => {
-    const parts = command.split(/\s+/);
-    const exe   = parts[0];
-    const args  = parts.slice(1);
+    // Fix #13: production-grade parsing — preserves quoted args and escaped spaces
+    const parts = parseShellArgs(command);
+    if (parts.length === 0) {
+      reject(new Error('[shell-execute] Empty command'));
+      return;
+    }
+    const exe  = parts[0];
+    const args = parts.slice(1);
 
     const { process: proc } = spawnProcess(exe, args, { cwd, env });
 
@@ -37,7 +50,15 @@ export async function shellExecute(
     proc.on('close', (code) => {
       cancelTimeout(key);
       const exitCode = code ?? 1;
-      resolve({ command, stdout, stderr, exitCode, durationMs: Date.now() - start, success: exitCode === 0, timedOut });
+      resolve({
+        command,
+        stdout,
+        stderr,
+        exitCode,
+        durationMs: Date.now() - start,
+        success:    exitCode === 0,
+        timedOut,
+      });
     });
 
     proc.on('error', (err) => {

@@ -1,49 +1,43 @@
 /**
  * server/tools/core/tool-context.ts
  *
- * Factory for ToolExecutionContext used by the node executor
- * and any code that dispatches tools directly.
+ * DEPRECATED — Fix #7 (multiple context systems unified).
+ *
+ * The duplicate ToolContext type and createContext() factory have been
+ * unified into the canonical ToolExecutionContext + buildContext() in:
+ *   - server/tools/registry/tool-types.ts  (type)
+ *   - server/tools/shared/context-builder.ts (factory)
+ *
+ * This shim re-exports from those canonical locations so existing
+ * imports continue to compile without changes.
+ *
+ * Migration path:
+ *   OLD: import { ToolContext, createContext } from '../../tools/core/tool-context.ts'
+ *   NEW: import { ToolExecutionContext, buildContext } from '../../tools/shared/context-builder.ts'
  */
 
-import path from 'path';
+export type {
+  ToolExecutionContext as ToolContext,
+} from '../registry/tool-types.ts';
 
-export interface ToolContext {
-  projectId:   string;
-  runId:       string;
-  sandboxRoot: string;
-  signal?:     AbortSignal;
-  meta:        Record<string, unknown>;
-}
-
-const SANDBOX_ROOT = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
+import { buildContext, buildSystemContext } from '../shared/context-builder.ts';
+import type { ToolExecutionContext }        from '../registry/tool-types.ts';
 
 /**
- * Build a ToolContext from projectId + runId.
- * Accepts number projectId (coerced to string for path safety).
- * Optional AbortSignal for cancellation support.
+ * @deprecated Use buildContext(runId, projectId) from shared/context-builder.ts.
+ * NOTE: argument order is swapped from the original createContext(projectId, runId).
+ * This adapter preserves the OLD order for backward compatibility.
  */
 export function createContext(
   projectId: string | number,
   runId:     string,
   signal?:   AbortSignal,
-): ToolContext {
-  const pid = String(projectId);
-  return Object.freeze({
-    projectId:   pid,
-    runId,
-    sandboxRoot: path.join(SANDBOX_ROOT, pid),
-    signal,
-    meta: {},
-  });
+): ToolExecutionContext {
+  return buildContext(runId, String(projectId), { signal });
 }
 
-/**
- * Build a system-level context (no project/run isolation).
- */
-export function createSystemContext(overrides: Partial<ToolContext> = {}): ToolContext {
-  return createContext(
-    overrides.projectId ?? 'system',
-    overrides.runId     ?? 'system',
-    overrides.signal,
-  );
+export function createSystemContext(
+  overrides: Partial<ToolExecutionContext> = {},
+): ToolExecutionContext {
+  return buildSystemContext(overrides);
 }

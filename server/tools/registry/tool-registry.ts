@@ -1,17 +1,26 @@
 /**
  * server/tools/registry/tool-registry.ts
  *
- * Singleton tool registry.
+ * Singleton tool registry — CORE responsibility only (Fix #8 — SRP).
+ *
  * Responsibilities:
  *   - register / unregister tools
  *   - prevent duplicate registration
  *   - expose immutable reads
  *   - singleton-safe (module-level store)
+ *   - sealing after boot
+ *
+ * Metrics are in:     ./tool-metrics.ts
+ * Audit / security:   ./tool-security.ts
+ * Compat shim:        ./tool-registry-adapter.ts  (new)
+ *
+ * The unifiedRegistry export and recordMetric export are preserved here
+ * as re-exports for backward-compatibility with existing consumers.
  */
 
-import type { ToolDefinition, ToolHandler, ToolCategory } from './tool-types.ts';
-import { registerMetadata } from './tool-metadata.ts';
-import type { RegisteredToolEntry } from '../core/execute-tool.ts';
+import type { ToolDefinition, ToolCategory } from './tool-types.ts';
+import { registerMetadata }                  from './tool-metadata.ts';
+import { recordMetric, getMetrics, getAllMetricsSnapshot } from './tool-metrics.ts';
 
 // ── Internal store ─────────────────────────────────────────────────────────────
 
@@ -29,10 +38,6 @@ export class ToolRegistryError extends Error {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * Register a tool.
- * Throws if the name is already taken (unless `force` is set for hot-reload).
- */
 export function registerTool(
   definition: ToolDefinition,
   opts: { force?: boolean } = {},
@@ -40,15 +45,12 @@ export function registerTool(
   if (_sealed) {
     throw new ToolRegistryError('Registry is sealed — no new registrations allowed after boot.');
   }
-
   if (!definition.name || !definition.name.trim()) {
     throw new ToolRegistryError('Tool name must be a non-empty string.');
   }
-
   if (!definition.handler || typeof definition.handler !== 'function') {
     throw new ToolRegistryError(`Tool "${definition.name}" must provide a handler function.`);
   }
-
   if (registry.has(definition.name) && !opts.force) {
     throw new ToolRegistryError(
       `Duplicate tool registration: "${definition.name}". Use { force: true } to override.`,
@@ -71,10 +73,6 @@ export function registerTool(
   });
 }
 
-/**
- * Remove a tool from the registry.
- * Only allowed before sealing.
- */
 export function unregisterTool(name: string): boolean {
   if (_sealed) {
     throw new ToolRegistryError('Registry is sealed — cannot unregister after boot.');
@@ -82,87 +80,51 @@ export function unregisterTool(name: string): boolean {
   return registry.delete(name);
 }
 
-/**
- * Retrieve a single tool definition (immutable).
- */
 export function getTool(name: string): ToolDefinition | undefined {
   return registry.get(name);
 }
 
-/**
- * List all registered tool names.
- */
 export function listTools(): readonly string[] {
   return Object.freeze([...registry.keys()]);
 }
 
-/**
- * List all tool definitions for a category.
- */
 export function listToolsByCategory(category: ToolCategory): readonly ToolDefinition[] {
   return Object.freeze(
     [...registry.values()].filter(t => t.category === category),
   );
 }
 
-/**
- * Check if a tool is registered.
- */
 export function hasTool(name: string): boolean {
   return registry.has(name);
 }
 
-/**
- * Total number of registered tools.
- */
 export function toolCount(): number {
   return registry.size;
 }
 
-/**
- * Seal the registry after boot — prevents any further registrations.
- * Call once at application startup, after all tools are registered.
- */
+/** Seal the registry. Call once at application startup, after all tools are registered. */
 export function sealRegistry(): void {
   _sealed = true;
 }
 
-/**
- * Whether the registry has been sealed.
- */
 export function isSealed(): boolean {
   return _sealed;
 }
 
-/**
- * ONLY for use in tests — resets internal state completely.
- */
+/** ONLY for use in tests — resets internal state completely. */
 export function _resetRegistryForTests(): void {
   registry.clear();
   _sealed = false;
 }
 
-// ── Metrics store ─────────────────────────────────────────────────────────────
+// ── Backward-compat re-exports ────────────────────────────────────────────────
+// Consumers that imported recordMetric from tool-registry.ts continue to work.
 
-interface ToolMetrics {
-  invocations: number;
-  failures:    number;
-  avgDurationMs: number;
-}
+export { recordMetric } from './tool-metrics.ts';
 
-const metricsStore = new Map<string, ToolMetrics>();
-
-export function recordMetric(name: string, ok: boolean, durationMs: number): void {
-  const prev = metricsStore.get(name) ?? { invocations: 0, failures: 0, avgDurationMs: 0 };
-  const invocations = prev.invocations + 1;
-  const failures    = prev.failures + (ok ? 0 : 1);
-  const avgDurationMs = Math.round(
-    (prev.avgDurationMs * prev.invocations + durationMs) / invocations,
-  );
-  metricsStore.set(name, { invocations, failures, avgDurationMs });
-}
-
-// ── unifiedRegistry — compat shim for tools.routes.ts + node-executor.ts ──────
+// ── unifiedRegistry — compat shim for tools.routes.ts ────────────────────────
+// Kept here for backward compat. The adapter logic is now also available
+// from registry/tool-registry-adapter.ts with cleaner ownership.
 
 export interface UnifiedRegistryEntry {
   tool: {
@@ -189,9 +151,7 @@ function toEntry(def: ToolDefinition): UnifiedRegistryEntry {
 }
 
 export const unifiedRegistry = {
-  get totalCount(): number {
-    return registry.size;
-  },
+  get totalCount(): number { return registry.size; },
 
   list(): UnifiedRegistryEntry[] {
     return [...registry.values()].map(toEntry);
@@ -203,28 +163,18 @@ export const unifiedRegistry = {
   },
 
   getByCategory(category: ToolCategory): UnifiedRegistryEntry[] {
-    return [...registry.values()]
-      .filter(d => d.category === category)
-      .map(toEntry);
+    return [...registry.values()].filter(d => d.category === category).map(toEntry);
   },
 
-  getMetrics(name: string): ToolMetrics {
-    return metricsStore.get(name) ?? { invocations: 0, failures: 0, avgDurationMs: 0 };
+  getMetrics(name: string) {
+    return getMetrics(name);
   },
 
-  getStats(): {
-    total:      number;
-    byCategory: Record<string, number>;
-    metrics:    Record<string, ToolMetrics>;
-  } {
+  getStats() {
     const byCategory: Record<string, number> = {};
     for (const def of registry.values()) {
       byCategory[def.category] = (byCategory[def.category] ?? 0) + 1;
     }
-    return {
-      total:      registry.size,
-      byCategory,
-      metrics:    Object.fromEntries(metricsStore.entries()),
-    };
+    return { total: registry.size, byCategory, metrics: getAllMetricsSnapshot() };
   },
 } as const;

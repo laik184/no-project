@@ -1,3 +1,12 @@
+/**
+ * Fix #10 — Atomic registration with fail-fast idempotency guard.
+ *
+ * Previous bug: _registered was set BEFORE the loop, so partial failures
+ * left the category permanently half-registered with no way to detect it.
+ *
+ * Fix: _registered is only set AFTER the full loop completes without errors.
+ *      Any registration failure throws immediately (fail-closed).
+ */
 import { registerTool } from '../../registry/tool-registry.ts';
 import { npmInstallTool }       from '../npm/npm-install.ts';
 import { npmCiTool }            from '../npm/npm-ci.ts';
@@ -25,9 +34,20 @@ import { cleanupRunTool }       from '../process/cleanup-run.ts';
 
 let _registered = false;
 
+export const TERMINAL_TOOL_NAMES = [
+  'npm_install', 'npm_ci', 'npm_run_script', 'npm_build', 'npm_test',
+  'write_package_json', 'lockfile_status', 'delete_lockfile',
+  'validate_package_name', 'validate_package_list',
+  'resolve_port', 'release_port', 'release_run_ports',
+  'assigned_port', 'port_in_use', 'scan_port_range', 'find_free_port',
+  'process_register', 'process_history', 'process_start',
+  'process_stop', 'process_watch', 'cleanup_run',
+] as const;
+
+export const TERMINAL_TOOL_COUNT = TERMINAL_TOOL_NAMES.length;
+
 export function registerTerminalTools(opts: { force?: boolean } = {}): void {
   if (_registered && !opts.force) return;
-  _registered = true;
 
   const tools = [
     npmInstallTool, npmCiTool, npmRunScriptTool, npmBuildTool, npmTestTool,
@@ -39,13 +59,12 @@ export function registerTerminalTools(opts: { force?: boolean } = {}): void {
     processStopTool, processWatchTool, cleanupRunTool,
   ];
 
+  // Fail-fast: any error aborts the entire registration.
+  // _registered is only set on full success (Fix #10).
   for (const tool of tools) {
-    try {
-      registerTool(tool, opts);
-    } catch (err) {
-      console.warn(`[register-terminal-tools] Skipped "${tool.name}": ${(err as Error).message}`);
-    }
+    registerTool(tool, opts);
   }
 
+  _registered = true;
   console.log(`[register-terminal-tools] Registered ${tools.length} terminal tools`);
 }

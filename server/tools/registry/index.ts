@@ -79,6 +79,18 @@ export {
 } from './tool-security.ts';
 export type { AuditLogEntry } from './tool-security.ts';
 
-// Compat shim
-export { unifiedRegistry, recordMetric } from './tool-registry.ts';
+// Metrics (extracted from registry — Fix #8)
+export {
+  recordMetric,
+  getMetrics,
+  getAllMetricsSnapshot,
+  resetMetrics,
+} from './tool-metrics.ts';
+export type { ToolMetrics } from './tool-metrics.ts';
+
+// Type-safe tool definition helper (Fix #15)
+export { defineTool, defineCodingTool } from './define-tool.ts';
+
+// Compat shim (preserved for backward compat — consumers migrate to dispatch())
+export { unifiedRegistry } from './tool-registry.ts';
 export type { UnifiedRegistryEntry } from './tool-registry.ts';
