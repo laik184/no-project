@@ -1,0 +1,263 @@
+You are a senior staff-level AI systems engineer and TypeScript architect.
+
+Your task is to GENERATE and INTEGRATE a production-grade Supervisor Agent system into the EXISTING orchestration architecture.
+
+IMPORTANT:
+Before generating ANY code:
+1. Deeply inspect existing `server/orchestration/`
+2. Reuse existing systems wherever possible
+3. DO NOT duplicate orchestration logic
+4. DO NOT create unnecessary abstractions
+5. DO NOT create extra folders/files outside the requested structure
+6. ONLY create files from the exact structure below
+7. Connect everything properly with the existing orchestration pipeline
+
+==================================================
+CRITICAL RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+- Each module should have ONE responsibility only
+- Avoid tight dependencies
+- Use interfaces/events instead of direct coupling
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines
+- Split logic if necessary
+- Maintain readability
+
+3. NO OVERENGINEERING
+DO NOT ADD:
+- swarm systems
+- quantum systems
+- recursive orchestration
+- distributed execution
+- multi-brain architectures
+- speculative AI abstractions
+
+4. PRODUCTION FIRST
+Optimize for:
+- maintainability
+- debuggability
+- stability
+- execution reliability
+
+==================================================
+TARGET STRUCTURE (STRICT)
+==================================================
+
+server/agents/supervisor/
+
+├── supervisor-agent.ts
+│
+├── core/
+│   ├── supervisor-engine.ts
+│   ├── supervisor-state.ts
+│   ├── supervisor-context.ts
+│   └── execution-controller.ts
+│
+├── routing/
+│   ├── agent-router.ts
+│   ├── task-router.ts
+│   └── priority-router.ts
+│
+├── analysis/
+│   ├── complexity-analyzer.ts
+│   ├── goal-classifier.ts
+│   └── execution-mode-detector.ts
+│
+├── monitoring/
+│   ├── loop-detector.ts
+│   ├── execution-monitor.ts
+│   ├── timeout-monitor.ts
+│   └── stuck-task-detector.ts
+│
+├── coordination/
+│   ├── task-coordinator.ts
+│   ├── pipeline-coordinator.ts
+│   └── retry-coordinator.ts
+│
+├── decisions/
+│   ├── retry-decision.ts
+│   ├── escalation-decision.ts
+│   └── failure-decision.ts
+│
+├── events/
+│   ├── supervisor-events.ts
+│   ├── event-handlers.ts
+│   └── event-types.ts
+│
+├── telemetry/
+│   ├── supervisor-logger.ts
+│   └── supervisor-metrics.ts
+│
+├── utils/
+│   ├── supervisor-helpers.ts
+│   ├── execution-utils.ts
+│   └── validators.ts
+│
+└── types/
+    ├── supervisor.types.ts
+    └── routing.types.ts
+
+==================================================
+PRIMARY RESPONSIBILITIES
+==================================================
+
+Supervisor Agent MUST ONLY:
+
+- analyze incoming goals
+- classify execution complexity
+- coordinate orchestration phases
+- route tasks to proper agents
+- monitor execution health
+- detect stuck loops
+- manage retries
+- manage failures
+- emit orchestration events
+- coordinate completion flow
+
+Supervisor Agent MUST NOT:
+- generate application code
+- directly manipulate files
+- execute shell commands
+- contain business logic
+- implement swarm orchestration
+- implement recursive planning
+
+==================================================
+EXISTING SYSTEM INTEGRATION
+==================================================
+
+FIRST inspect and connect with:
+
+server/orchestration/
+server/orchestration/core/
+server/orchestration/pipeline/
+server/orchestration/events/
+server/orchestration/retry/
+server/orchestration/queue/
+server/orchestration/utils/
+
+Reuse existing:
+- event bus
+- retry manager
+- metrics
+- validators
+- queue systems
+- orchestration phases
+- execution lifecycle
+
+DO NOT duplicate these systems.
+
+==================================================
+INTEGRATION REQUIREMENTS
+==================================================
+
+1. supervisor-agent.ts
+- Main public entrypoint
+- Connect with existing orchestrator.ts
+- Expose:
+  - initializeSupervisor()
+  - runSupervisorCycle()
+  - shutdownSupervisor()
+
+2. supervisor-engine.ts
+- Core coordination logic
+- Pipeline execution coordination
+- Agent dispatching
+
+3. execution-controller.ts
+- Sequential/parallel execution decisions
+- Retry coordination
+- Timeout handling
+
+4. complexity-analyzer.ts
+Analyze:
+- CRUD app
+- SaaS dashboard
+- AI app
+- auth systems
+- backend APIs
+- database operations
+
+Return:
+- complexity score
+- recommended execution mode
+
+5. loop-detector.ts
+Detect:
+- repeated retries
+- repeated failures
+- infinite execution loops
+- stuck verification cycles
+
+6. retry-coordinator.ts
+Must integrate with:
+server/orchestration/retry/
+
+7. supervisor-events.ts
+Must integrate with:
+existing orchestration event bus
+
+==================================================
+REPLIT.MD REQUIREMENT
+==================================================
+
+Create a root-level:
+
+replit.md
+
+This file MUST contain:
+
+1. Full supervisor folder structure
+2. Every file responsibility
+3. Execution flow
+4. Agent coordination flow
+5. Retry lifecycle
+6. Monitoring lifecycle
+7. Event lifecycle
+8. Integration points with orchestration system
+9. Dependency map
+10. Design philosophy
+
+Use clean markdown formatting.
+
+==================================================
+OUTPUT REQUIREMENTS
+==================================================
+
+Generate:
+
+1. All files from requested structure
+2. Proper imports/exports
+3. Type-safe TypeScript
+4. Clean interfaces
+5. Minimal dependencies
+6. Existing orchestration integration
+7. Root replit.md documentation
+
+==================================================
+ARCHITECTURE RULES
+==================================================
+
+Design principles:
+
+- Simple > Clever
+- Stable > Complex
+- Explicit > Magical
+- Observable > Hidden
+- Modular > Monolithic
+
+==================================================
+IMPORTANT FINAL RULE
+==================================================
+
+Before creating ANY file:
+- inspect existing orchestration structure
+- reuse existing logic
+- avoid duplicate systems
+- avoid dead code
+- avoid placeholder architecture
+
+Everything must be REALISTIC and PRODUCTION-READY.

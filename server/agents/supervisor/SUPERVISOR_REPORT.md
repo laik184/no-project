@@ -853,3 +853,321 @@ supervisor.tasks.enqueued / started / completed / failed
 supervisor.tasks.routed.<phase>
 supervisor.priority.boosted
 ```
+
+---
+
+## Agent Coordination Flow
+
+How the supervisor coordinates agents across a full run:
+
+```
+runSupervisorCycle(OrchestrationContext)
+        │
+        ▼
+[1] ANALYSIS LAYER
+    complexityAnalyzer.analyze(goal)
+    ├── Regex-scan 12 complexity factors
+    ├── Compute score 0–100
+    └── → ComplexityResult { score, mode, factors[] }
+
+    goalClassifier.classify(goal)
+    ├── Pattern-match 6 goal categories
+    ├── Weight × matchCount scoring
+    └── → ClassificationResult { category, confidence, tags[] }
+
+    executionModeDetector.detect(complexity, classification)
+    ├── 7 priority rules (first match wins)
+    └── → { mode: simple|standard|complex, reason, ruleId }
+        │
+        ▼
+[2] SESSION BOOTSTRAP
+    supervisorState.create(sessionId, runId, ...)
+    supervisorContext.create(sessionId, orchCtx, mode, ...)
+    supervisorState.transition(sessionId, 'active')
+    executionMonitor.track(runId, snapshot)
+    emitSupervisorStarted(...)
+        │
+        ▼
+[3] PHASE LOOP  (per mode)
+    simple:   analyze → execution → verification
+    standard: analyze → planning → execution → verification
+    complex:  analyze → planning → execution → verification → browser
+        │
+        ├── [per phase]
+        │     agentRouter.route(runId, phase, priority)
+        │     ├── AGENT_REGISTRY[phase] → AgentDescriptor
+        │     └── → RoutingDecision { targetAgent, timeoutMs }
+        │
+        │     taskRouter.route(spec)
+        │     ├── priorityRouter.resolve(phase, mode)
+        │     └── taskCoordinator.enqueue(task)
+        │
+        │     pipelineCoordinator.startPhase(runId, phase, mode)
+        │     ├── timeoutMonitor.startPhase()
+        │     └── loopDetector.record(phase, true)
+        │
+        │     executionController.runPhase(opts, phase, runner)
+        │     └── [see Execution Flow above]
+        │
+        └── SUCCESS → next phase
+            FAILURE → stop, return SupervisorRunResult
+        │
+        ▼
+[4] TEARDOWN
+    supervisorState.transition(sessionId, 'shutdown')
+    executionMonitor.untrack(runId)
+    metrics: supervisor.runs.succeeded|failed
+    → SupervisorRunResult { sessionId, success, mode, durationMs, retries }
+```
+
+---
+
+## Retry Lifecycle
+
+Full retry flow from first failure to final decision:
+
+```
+Phase execution throws error
+        │
+        ▼
+retryCoordinator.executeWithRetry(opts, fn)
+    │
+    ├── retryDecision.maxRetries(phase, mode)
+    │   ├── analyze:      2  (complex: 3)
+    │   ├── planning:     2  (complex: 3)
+    │   ├── execution:    3  (complex: 4)
+    │   ├── verification: 3  (complex: 4)
+    │   └── browser:      1  (complex: 2)
+    │
+    ├── retryManager.withRetry(taskId, runId, fn, { maxAttempts, backoff })
+    │   ├── attempt 1 → FAIL
+    │   │   delay = min(1000 × 2^0 + jitter, 30000) = ~1000ms
+    │   │   supervisorLogger.warn("retry 1/N in Xms")
+    │   ├── attempt 2 → FAIL
+    │   │   delay = min(1000 × 2^1 + jitter, 30000) = ~2000ms
+    │   └── attempt N → FAIL (max reached)
+    │
+    └── All retries exhausted → catch block
+            │
+            ▼
+        retryDecision.shouldRetry(phase, error, retries, mode)
+            │
+            ├── Non-retryable error?  (401, 403, quota exceeded, rate limit)
+            │   └── → decision: ESCALATE immediately
+            │
+            ├── retries >= max?
+            │   └── → decision: ESCALATE (max_retries_exceeded)
+            │
+            └── retries < max (shouldn't happen, safety check)
+                └── → decision: RETRY
+                        │
+                        ▼
+                failureDecision.decide(ctx)
+                    ├── Optional phase (browser)?  → SKIP
+                    ├── Recoverable error?          → RETRY
+                    └── Non-recoverable?            → ABORT
+                            │
+                            ▼
+                    escalationDecision.shouldEscalate(ctx)
+                        ├── loopRisk = critical → ABORT
+                        ├── loopRisk = high + non-critical phase → SKIP
+                        └── otherwise → ESCALATE
+                                │
+                                ▼
+                        PhaseExecutionResult { success: false, decision, error }
+                        Pipeline STOPS — SupervisorRunResult returned
+```
+
+---
+
+## Monitoring Lifecycle
+
+How execution health is continuously monitored during a run:
+
+```
+executionMonitor.track(runId, snapshot)        ← run start
+        │
+        ▼
+[Per phase execution]
+        │
+        ├── executionMonitor.update(runId, { currentPhase })
+        │
+        ├── timeoutMonitor.startPhase(runId, phase, mode)
+        │   └── deadline = phaseTimeout(phase, mode)
+        │       ├── analyze:      15s × mode_multiplier
+        │       ├── planning:     30s × mode_multiplier
+        │       ├── execution:   120s × mode_multiplier
+        │       ├── verification: 90s × mode_multiplier
+        │       └── browser:      60s × mode_multiplier
+        │       (simple=1×, standard=1.5×, complex=2×)
+        │
+        ├── stuckTaskDetector.register(runId, taskId, phase)
+        │   └── stuckThreshold = 60_000ms (1 minute no activity)
+        │
+        └── [during execution]
+                stuckTaskDetector.heartbeat(runId, taskId)  ← activity pulse
+                        │
+                        ▼
+        executionMonitor.checkHealth(runId)
+            ├── stuckTaskDetector.getStuckTasks(runId)
+            │   └── tasks where (now - lastActivityAt) > 60s
+            ├── timeoutMonitor.isTimedOut(runId, currentPhase)
+            │   └── (now - startedAt) > deadlineMs
+            ├── loopDetector.detectGlobal(runId)
+            │   └── rolling 5-min window failure pattern
+            │       none/low/medium/high/critical
+            └── retryCount >= 5 → retryExhausted
+                    │
+                    ▼
+            ExecutionHealth {
+                healthy,
+                stuckTasks[],
+                timedOutPhases[],
+                loopRisk,
+                retryExhausted[]
+            }
+                    │
+                    feeds into → escalationDecision.shouldEscalate()
+        │
+        ▼
+executionMonitor.untrack(runId)                ← run end
+    ├── stuckTaskDetector.clearRun(runId)
+    ├── timeoutMonitor.clearRun(runId)
+    └── loopDetector.clearRun(runId)
+```
+
+**Loop detection rolling window (5 minutes):**
+```
+Consecutive failures │ Total failures │ Risk Level
+─────────────────────┼────────────────┼────────────
+        ≥ 5          │      ≥ 8       │  critical
+        ≥ 3          │      ≥ 5       │  high
+        ≥ 2          │      ≥ 3       │  medium
+        ≥ 1          │      ≥ 2       │  low
+         0           │       0        │  none
+```
+
+---
+
+## Event Lifecycle
+
+All 8 supervisor events — when emitted, who listens, what happens:
+
+```
+EVENT: supervisor.started
+  Emitted by:  emitSupervisorStarted() in supervisor-engine.ts
+  When:        Session bootstrap complete, pipeline about to start
+  Payload:     { sessionId, runId, projectId, mode, category, timestamp }
+  Handler:     info log + supervisor.sessions.started counter
+
+EVENT: supervisor.cycle.started
+  Emitted by:  emitCycleStarted() in supervisor-engine.ts
+  When:        Each phase loop iteration begins
+  Payload:     { sessionId, runId, phase, durationMs=0, retries, timestamp }
+  Handler:     info log
+
+EVENT: supervisor.cycle.completed
+  Emitted by:  emitCycleCompleted() in supervisor-engine.ts
+  When:        Phase passed successfully
+  Payload:     { sessionId, runId, phase, durationMs, retries, timestamp }
+  Handler:     info log + supervisor.cycles.completed counter
+               + supervisor.cycle.<phase> timing metric
+
+EVENT: supervisor.cycle.failed
+  Emitted by:  emitCycleFailed() in supervisor-engine.ts
+  When:        Phase failed (after all retries)
+  Payload:     { sessionId, runId, phase, durationMs, retries, timestamp }
+  Handler:     warn log + supervisor.cycles.failed counter
+
+EVENT: supervisor.decision.made
+  Emitted by:  emitDecisionMade() in decisions/
+  When:        Any retry/skip/escalate/abort decision is taken
+  Payload:     { sessionId, runId, action, reason, phase, timestamp }
+  Handler:     info log + supervisor.decision.<action> counter
+
+EVENT: supervisor.loop.detected
+  Emitted by:  emitLoopDetected() in monitoring/
+  When:        loopDetector reports risk ≥ low
+  Payload:     { sessionId, runId, risk, pattern, occurrences, timestamp }
+  Handler:     warn log + supervisor.loops.detected counter
+
+EVENT: supervisor.escalated
+  Emitted by:  emitEscalated() in decisions/
+  When:        escalationDecision triggers escalation
+  Payload:     { sessionId, runId, reason, phase, retryCount, timestamp }
+  Handler:     error log + supervisor.escalations counter
+
+EVENT: supervisor.shutdown
+  Emitted by:  emitSupervisorShutdown() in supervisor-agent.ts
+  When:        shutdownSupervisor() called
+  Payload:     { sessionId, status, activeSessions, timestamp }
+  Handler:     info log + supervisor.shutdowns counter
+```
+
+**Event bus wiring:**
+```
+supervisorBus (TypedSupervisorEmitter — extends EventEmitter)
+    │
+    ├── event-handlers.ts registers all 8 listeners on init
+    ├── max 30 listeners (setMaxListeners(30))
+    └── fully typed — .on<K>() / .emit<K>() enforce payload shape
+```
+
+**Orchestration event bridge (supervisor → orchestration bus):**
+```
+pipelineCoordinator.startPhase()
+    └── emitPhaseStarted(runId, phase)   → orchestrationBus
+
+taskCoordinator.enqueue()
+    └── emitTaskQueued(task)             → orchestrationBus
+
+taskCoordinator.markStarted()
+    └── emitTaskStarted(task)            → orchestrationBus
+
+taskCoordinator.markCompleted()
+    └── emitTaskCompleted(task, result)  → orchestrationBus
+
+taskCoordinator.markFailed()
+    └── emitTaskFailed(task, error)      → orchestrationBus
+```
+
+---
+
+## Design Philosophy
+
+The Supervisor Agent is built around five explicit principles drawn from the specification:
+
+### 1. Simple > Clever
+Every module solves ONE problem in the most direct way possible. No lambda calculus, no meta-programming, no "smart" inference — just `if error → retry`, `if loop → escalate`, `if timeout → abort`. A new engineer should read any file and understand it in under 5 minutes.
+
+### 2. Stable > Complex
+The system prefers predictable execution over optimal execution. Exponential backoff with known bounds, fixed state machine transitions, explicit phase ordering — nothing is dynamic that doesn't need to be. Stability under failure is more valuable than throughput under ideal conditions.
+
+### 3. Explicit > Magical
+Every decision is logged with a `reason` string. Every routing choice is recorded in history. Every state transition is validated against a whitelist. Nothing happens implicitly — if it happened, it was emitted as an event and written to a metric.
+
+### 4. Observable > Hidden
+The entire system is wired to `supervisorBus` + `orchestrationBus`. Every phase transition, every retry, every escalation, every loop detection fires an event. `supervisorMetrics` captures 25+ named counters and timings. `supervisorLogger` keeps a 200-entry ring buffer per run. You can reconstruct exactly what happened from the telemetry alone.
+
+### 5. Modular > Monolithic
+Each folder has a single axis of concern:
+- `analysis/` — input understanding only
+- `decisions/` — decision logic only, no side effects
+- `monitoring/` — observation only, no modification
+- `coordination/` — lifecycle management only
+- `routing/` — dispatch only
+- `core/` — orchestration only
+- `events/` — communication only
+- `telemetry/` — recording only
+- `utils/` — pure functions only
+
+No module reaches into another module's domain. Cross-cutting concerns (logging, metrics) are injected via the telemetry layer, not scattered through business logic.
+
+### What the Supervisor NEVER does
+Per the specification — hard constraints, not guidelines:
+- Does NOT generate application code
+- Does NOT read or write files directly
+- Does NOT execute shell commands
+- Does NOT implement swarm/recursive/quantum orchestration
+- Does NOT contain business logic (that lives in pipeline phases)
+- Does NOT hold global mutable state beyond session maps (which are cleared on shutdown)
