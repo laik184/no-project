@@ -210,3 +210,9 @@ id = "Yz0zm_ef_30uaxHA-UaVB"
 uri = "file://PLANNER_AGENT_REPORT.md"
 type = "text"
 title = "Planner Agent — Deep Scan Report"
+
+[[outputs]]
+id = "1sxwQhMSnkefl8_qmkeT0"
+uri = "file://reports/coder-agent-deep-scan.md"
+type = "text"
+title = "Coder Agent Deep Scan Report"
