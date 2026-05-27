@@ -1,6 +1,6 @@
 import { readFile } from './file-reader.ts';
 import { writeFile } from './file-writer.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 import { assertWriteOperation } from '../validation/file-validator.ts';
 
 export interface EditorOptions {

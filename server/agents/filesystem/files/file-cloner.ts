@@ -1,7 +1,7 @@
 import { copyFile, fileExists, isFile } from '../utils/filesystem-utils.ts';
 import { assertSandboxPath } from '../validation/sandbox-validator.ts';
 import { assertRelativePath } from '../validation/path-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 
 export interface CloneOptions {
   sandboxRoot: string;

@@ -37,11 +37,14 @@ export { isolationManager, IsolationManager } from './workspace/isolation-manage
 export { snapshotManager, SnapshotManager } from './workspace/snapshot-manager.ts';
 export { workspaceHistory, WorkspaceHistory } from './workspace/workspace-history.ts';
 
-// permissions
-export { canWrite, canDelete, canRead, isProtectedPath, DEFAULT_POLICY } from './permissions/access-policy.ts';
-export { guardWrite, guardDelete, guardMove, guardRename, guardBulkDelete } from './permissions/operation-guard.ts';
-export { validateShellCommand, isCommandSafe, getAllowedCommands } from './permissions/command-safety.ts';
-export { permissionManager, PermissionManager } from './permissions/permission-manager.ts';
+// permissions (merged: access-policy + command-safety + operation-guard + permission-manager)
+export {
+  canWrite, canDelete, canRead, isProtectedPath, DEFAULT_POLICY,
+  guardWrite, guardDelete, guardMove, guardRename, guardBulkDelete,
+  validateShellCommand, isCommandSafe, getAllowedCommands,
+  permissionManager, PermissionManager,
+} from './permissions.ts';
+export type { AccessPolicy, CommandValidationResult, PermissionCheckResult } from './permissions.ts';
 
 // validation
 export { validatePath, assertPath, validateRelativePath, assertRelativePath, validateFilename } from './validation/path-validator.ts';

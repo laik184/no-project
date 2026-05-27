@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import { joinPath, dirname, basename } from '../utils/path-utils.ts';
 import { assertSandboxPath } from '../validation/sandbox-validator.ts';
 import { assertFilename } from '../validation/path-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 import { fileExists, isFile } from '../utils/filesystem-utils.ts';
 
 export interface RenameOptions {

@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import { basename, joinPath } from '../utils/path-utils.ts';
 import { assertSandboxPath } from '../validation/sandbox-validator.ts';
 import { assertRelativePath } from '../validation/path-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 import { isDirectory, fileExists, ensureDir } from '../utils/filesystem-utils.ts';
 
 export interface MoveFolderOptions {

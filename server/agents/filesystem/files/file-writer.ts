@@ -1,6 +1,6 @@
 import { writeTextFile, fileExists, ensureParentDir } from '../utils/filesystem-utils.ts';
 import { assertWriteOperation } from '../validation/file-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 
 export interface WriteOptions {
   sandboxRoot: string;

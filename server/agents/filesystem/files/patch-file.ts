@@ -1,7 +1,7 @@
 import { readFile } from './file-reader.ts';
 import { writeFile } from './file-writer.ts';
 import { assertSingleReplacement, assertReplacement } from '../validation/replacement-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
+import { permissionManager } from '../permissions.ts';
 import { lineDiff, type DiffResult } from '../utils/diff-utils.ts';
 
 export interface PatchOptions {

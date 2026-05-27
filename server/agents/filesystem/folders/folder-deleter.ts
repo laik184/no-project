@@ -1,8 +1,7 @@
 import { deleteDir, isDirectory, fileExists } from '../utils/filesystem-utils.ts';
 import { assertSandboxPath } from '../validation/sandbox-validator.ts';
 import { assertRelativePath } from '../validation/path-validator.ts';
-import { permissionManager } from '../permissions/permission-manager.ts';
-import { guardDelete } from '../permissions/operation-guard.ts';
+import { permissionManager, guardDelete } from '../permissions.ts';
 
 export interface DeleteFolderOptions {
   sandboxRoot: string;
