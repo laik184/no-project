@@ -7,6 +7,7 @@ import type { ExecutionPlan, PlanTask } from './planning-phase.ts';
 import { runToolLoop } from '../../agents/coderx/index.ts';
 import { initializeExecutor, executeTask as runExecutorTask } from '../../agents/executor/executor-agent.ts';
 import { workspaceManager, getFolderStructure } from '../../agents/filesystem/index.ts';
+import { runCommand } from '../../agents/terminal/index.ts';
 
 export interface ExecutionProgress {
   total: number;
@@ -109,6 +110,10 @@ export async function runExecutionPhase(ctx: OrchestrationContext, plan: Executi
   })();
   if (wsInfo) {
     runLogger.log(ctx.runId, 'info', `[execution-phase] Workspace ready: ${wsInfo.root}`);
+    // ── Terminal: verify workspace via shell ──────────────────────────────────
+    runCommand({ command: `ls "${wsInfo.root}"`, cwd: wsInfo.root, timeoutMs: 5_000 })
+      .then((r) => runLogger.log(ctx.runId, 'info', `[execution-phase] Terminal verify — exit=${r.exitCode} files=${r.stdout.trim().split('\n').filter(Boolean).length}`))
+      .catch((err) => runLogger.log(ctx.runId, 'warn', `[execution-phase] Terminal verify warn: ${err instanceof Error ? err.message : String(err)}`));
   }
 
   runLogger.log(ctx.runId, 'info', `[execution-phase] Executing ${plan.tasks.length} tasks via executor agent`);
