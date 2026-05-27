@@ -6,6 +6,7 @@ import { generateTaskId } from '../utils/orchestration-helpers.ts';
 import type { ExecutionPlan, PlanTask } from './planning-phase.ts';
 import { runToolLoop } from '../../agents/coderx/index.ts';
 import { initializeExecutor, executeTask as runExecutorTask } from '../../agents/executor/executor-agent.ts';
+import { workspaceManager, getFolderStructure } from '../../agents/filesystem/index.ts';
 
 export interface ExecutionProgress {
   total: number;
@@ -92,6 +93,24 @@ function sortByDependencies(tasks: PlanTask[]): PlanTask[] {
 export async function runExecutionPhase(ctx: OrchestrationContext, plan: ExecutionPlan): Promise<PhaseResult> {
   emitPhaseStarted(ctx.runId, 'execution');
   initializeExecutor();
+
+  // ── Filesystem: workspace init ─────────────────────────────────────────────
+  const projectId = String(ctx.projectId);
+  const wsInfo = await (async () => {
+    try {
+      const exists = await workspaceManager.exists(projectId);
+      return exists
+        ? await workspaceManager.create(projectId)
+        : await workspaceManager.create(projectId);
+    } catch (err) {
+      runLogger.log(ctx.runId, 'warn', `[execution-phase] Workspace init warn: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
+  })();
+  if (wsInfo) {
+    runLogger.log(ctx.runId, 'info', `[execution-phase] Workspace ready: ${wsInfo.root}`);
+  }
+
   runLogger.log(ctx.runId, 'info', `[execution-phase] Executing ${plan.tasks.length} tasks via executor agent`);
 
   const { result, durationMs } = await timed(async (): Promise<ExecutionPhaseResult> => {
@@ -164,6 +183,13 @@ export async function runExecutionPhase(ctx: OrchestrationContext, plan: Executi
   const success = result.tasksFailed === 0;
   runLogger.log(ctx.runId, success ? 'info' : 'warn', `[execution-phase] Done — ${result.tasksCompleted} ok, ${result.tasksFailed} failed`);
   emitMetric(ctx.runId, 'execution.duration', durationMs);
+
+  // ── Filesystem: post-execution structure snapshot ──────────────────────────
+  if (wsInfo) {
+    getFolderStructure({ sandboxRoot: wsInfo.root, path: '.', maxDepth: 3 })
+      .then((tree) => runLogger.log(ctx.runId, 'info', `[execution-phase] Workspace files: ${tree.length} top-level entries`))
+      .catch(() => { /* non-critical */ });
+  }
 
   return {
     phase: 'execution',
