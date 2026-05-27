@@ -1,0 +1,341 @@
+```text id="step2filesystem"
+You are a senior principal TypeScript infrastructure engineer and filesystem systems architect.
+
+Your task is to MIGRATE the existing Filesystem Agent tools into the NEW centralized tool architecture.
+
+IMPORTANT:
+Before generating ANY code:
+
+1. Deeply inspect:
+- server/agents/filesystem/
+- server/tools/registry/
+- server/orchestration/
+- server/infrastructure/
+
+2. Reuse existing:
+- validators
+- sandbox systems
+- telemetry
+- path guards
+- logging
+- workspace systems
+
+3. DO NOT break existing imports
+
+4. DO NOT delete old implementations yet
+
+5. This phase is ONLY:
+- extraction
+- migration
+- adapter compatibility
+
+==================================================
+GOAL
+==================================================
+
+Move ALL filesystem execution logic OUT of:
+
+server/agents/filesystem/
+
+INTO:
+
+server/tools/filesystem/
+
+WITHOUT breaking the current system.
+
+==================================================
+STRICT RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+
+2. NO FILE > 250 LINES
+
+3. SINGLE RESPONSIBILITY ONLY
+
+4. FAIL-CLOSED SECURITY
+
+5. STRICT TYPE SAFETY
+
+6. NO CIRCULAR IMPORTS
+
+==================================================
+IMPORTANT ARCHITECTURE CHANGE
+==================================================
+
+OLD:
+
+Agents directly implement tools.
+
+NEW:
+
+Agents
+↓
+Tool Registry
+↓
+Tool Dispatcher
+↓
+Filesystem Tools
+
+==================================================
+CREATE THIS STRUCTURE
+==================================================
+
+server/tools/filesystem/
+
+├── read/
+│   ├── read-file.ts
+│   ├── read-lines.ts
+│   ├── read-folder.ts
+│   └── file-metadata.ts
+│
+├── write/
+│   ├── write-file.ts
+│   ├── append-file.ts
+│   ├── ensure-file.ts
+│   └── write-if-absent.ts
+│
+├── edit/
+│   ├── patch-file.ts
+│   ├── patch-all.ts
+│   ├── replace-line.ts
+│   ├── insert-at.ts
+│   └── replace-all.ts
+│
+├── delete/
+│   ├── delete-file.ts
+│   ├── delete-folder.ts
+│   └── delete-multiple.ts
+│
+├── move/
+│   ├── move-file.ts
+│   ├── move-folder.ts
+│   ├── rename-file.ts
+│   └── rename-folder.ts
+│
+├── clone/
+│   ├── clone-file.ts
+│   └── clone-folder.ts
+│
+├── search/
+│   ├── find-by-name.ts
+│   ├── find-by-extension.ts
+│   ├── find-by-pattern.ts
+│   ├── search-text.ts
+│   ├── search-regex.ts
+│   ├── find-imports.ts
+│   ├── find-exports.ts
+│   └── find-symbol-usages.ts
+│
+├── structure/
+│   ├── scan-folder.ts
+│   ├── folder-structure.ts
+│   ├── ascii-tree.ts
+│   └── scan-extension.ts
+│
+├── folders/
+│   ├── create-folder.ts
+│   ├── create-folders.ts
+│   ├── folder-entries.ts
+│   ├── folder-names.ts
+│   ├── subfolder-entries.ts
+│   └── file-entries.ts
+│
+├── validation/
+│   ├── path-validator.ts
+│   ├── sandbox-validator.ts
+│   ├── file-validator.ts
+│   └── operation-validator.ts
+│
+├── shared/
+│   ├── filesystem-context.ts
+│   ├── filesystem-errors.ts
+│   ├── filesystem-result.ts
+│   └── filesystem-types.ts
+│
+├── registry/
+│   └── register-filesystem-tools.ts
+│
+└── index.ts
+
+==================================================
+MIGRATION REQUIREMENTS
+==================================================
+
+Migrate ALL existing tools from:
+
+server/agents/filesystem/
+
+INCLUDING:
+
+- readFile
+- writeFile
+- patchFile
+- moveFile
+- renameFile
+- deleteFile
+- searchText
+- scanFolder
+- getAsciiTree
+- cloneFolder
+- replaceLine
+- insertAt
+- replaceAll
+
+and ALL other filesystem operations.
+
+==================================================
+IMPORTANT TOOL RULES
+==================================================
+
+Every tool MUST:
+
+1. Register itself with:
+- tool-registry.ts
+
+2. Export:
+- metadata
+- handler
+- validation schema
+
+3. Use:
+- ToolExecutionContext
+- ToolExecutionResult
+
+4. Return normalized outputs
+
+==================================================
+SECURITY REQUIREMENTS
+==================================================
+
+MANDATORY:
+
+1. Sandbox-only filesystem access
+
+2. Prevent:
+- ../ traversal
+- absolute system paths
+- root access
+
+3. Validate ALL paths
+
+4. Validate overwrite operations
+
+5. Fail-closed behavior
+
+==================================================
+COMPATIBILITY REQUIREMENTS
+==================================================
+
+CRITICAL:
+
+DO NOT break existing agents.
+
+Create temporary compatibility adapters.
+
+Example:
+
+OLD:
+server/agents/filesystem/readFile()
+
+NEW:
+toolDispatcher.execute("read_file")
+
+BUT:
+old APIs must still work during migration.
+
+==================================================
+CREATE ADAPTER LAYER
+==================================================
+
+Inside:
+
+server/agents/filesystem/
+
+Create lightweight wrappers ONLY.
+
+Wrappers should:
+- call tool dispatcher
+- preserve old signatures
+- preserve old return types
+
+NO real execution logic remains inside agents.
+
+==================================================
+IMPORTANT REFACTOR GOAL
+==================================================
+
+AFTER migration:
+
+Filesystem Agent becomes:
+- orchestration layer
+- compatibility layer
+
+NOT:
+- tool implementation layer
+
+==================================================
+TOOL REGISTRATION
+==================================================
+
+Each tool MUST register:
+
+- tool name
+- category
+- permissions
+- timeout
+- retry policy
+
+Example categories:
+- filesystem.read
+- filesystem.write
+- filesystem.edit
+- filesystem.search
+
+==================================================
+TELEMETRY
+==================================================
+
+Track:
+- tool execution count
+- execution duration
+- failures
+- permission denials
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+
+1. Full migrated filesystem tool architecture
+2. Fully typed TypeScript
+3. Registry integration
+4. Dispatcher integration
+5. Compatibility wrappers
+6. Centralized validation
+7. Sandbox-safe execution
+8. Production-grade filesystem tools
+
+==================================================
+FINAL RULES
+==================================================
+
+1. DO NOT delete old APIs yet
+
+2. DO NOT break executor
+
+3. DO NOT break browser/verifier imports
+
+4. Migrate safely in phases
+
+5. Preserve backwards compatibility
+
+Everything must be:
+- modular
+- deterministic
+- secure
+- maintainable
+- production-ready
+- Replit-level
+```

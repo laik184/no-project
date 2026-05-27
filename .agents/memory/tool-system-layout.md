@@ -23,7 +23,10 @@ server/tools/
 │   ├── input-validator.ts  — validateInput / applyDefaults
 │   ├── result-helpers.ts   — ok() / fail() / unwrapOrThrow() etc.
 │   └── logger.ts           — toolsLogger (JSON-lines to stdout/stderr)
-├── filesystem/index.ts     — stub (PENDING MIGRATION)
+├── filesystem/             — MIGRATED (50 files, 38 tools registered)
+│   ├── read/ write/ edit/ delete/ move/ clone/ search/ structure/ folders/
+│   ├── shared/ validation/ registry/register-filesystem-tools.ts
+│   └── index.ts            — barrel; call registerFilesystemTools() at boot
 ├── terminal/index.ts       — stub (PENDING MIGRATION)
 ├── browser/index.ts        — stub (PENDING MIGRATION)
 ├── verifier/index.ts       — stub (PENDING MIGRATION)
@@ -51,8 +54,15 @@ server/tools/
 
 **Why:** The server uses `tsx` at runtime (not tsc), so `noEmit` is correct — tsc is type-check only.
 
+## Filesystem migration conventions
+
+- Tool files wrap agent implementations — never duplicate fs logic.
+- All validation re-exported from agents (no duplication in tools layer).
+- `classifyFsError()` maps agent errors → ToolErrorCode for dispatcher.
+- Compatibility adapter at `server/agents/filesystem/adapter/filesystem-tool-adapter.ts` — preserves old signatures for agent callers that want to route through dispatcher.
+- `registerFilesystemTools()` is idempotent (guarded by `_registered` flag).
+
 ## DO NOT yet
 
-- Register actual tools in registry (domain stubs are placeholders only)
-- Migrate agents to use the centralized tools (domain dirs are reserved namespaces)
-- Add business logic to domain index files
+- Migrate terminal/browser/verifier/coding agents — stubs only
+- Delete anything from server/agents/filesystem/ — old APIs still live there

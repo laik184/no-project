@@ -1,0 +1,31 @@
+/**
+ * server/tools/filesystem/structure/scan-extension.ts
+ * Tool: fs_scan_by_extension
+ */
+
+import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
+import { scanFilesByExtension } from '../../../agents/filesystem/folders/folder-scanner.ts';
+import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+
+export const scanExtensionTool: ToolDefinition = {
+  name:        'fs_scan_by_extension',
+  category:    'filesystem',
+  description: 'Recursively find all files with given extensions within a directory',
+  inputSchema: {
+    path:       { type: 'string', description: 'Root directory to scan', required: true },
+    extensions: { type: 'array',  description: 'Extensions to match (e.g. [".ts", ".js"])', required: true },
+  },
+  permissions: ['read'],
+  timeoutMs:   TIMEOUT.LONG,
+  retry:       RETRY_ONCE,
+
+  handler: async (input, ctx: ToolExecutionContext) => {
+    const path       = assertInputPath(input.path, 'path');
+    const extensions = input.extensions as string[];
+    if (!Array.isArray(extensions) || extensions.length === 0) {
+      throw new Error('"extensions" must be a non-empty array');
+    }
+    return scanFilesByExtension(ctx.sandboxRoot, path, extensions);
+  },
+};

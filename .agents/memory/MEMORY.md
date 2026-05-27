@@ -1,4 +1,4 @@
 - [Agent deletion stubs](agent-deletion-stubs.md) — When deleting agents in nura-x, create no-op stubs not full rewrites; kept agents are self-contained; core/tool-loop must always be stubbed.
 - [Executor 5-way split](executor-split.md) — executor/ split into coder/, filesystem/, runtime/, validator/ + executor/ (orchestrator only); cross-depth import rules documented.
 - [Browser Agent structure](browser-agent-structure.md) — 37-file browser agent in server/agents/browser/; 11 modules; Playwright-based; reuses runLogger + bus patterns from executor.
-- [Centralized tool system layout](tool-system-layout.md) — server/tools/ foundation: registry/ (5 files), core/ (2 files), shared/ (4 files), 5 domain stubs; tsconfig needs allowImportingTsExtensions+noEmit; unifiedRegistry compat shim lives in tool-registry.ts.
+- [Centralized tool system layout](tool-system-layout.md) — server/tools/ foundation + filesystem domain migrated (50 files, 38 tools); tsconfig needs allowImportingTsExtensions+noEmit; unifiedRegistry compat shim in tool-registry.ts.

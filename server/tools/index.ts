@@ -19,8 +19,14 @@ export { validateInput, applyDefaults }     from './shared/input-validator.ts';
 export { ok, fail, isOk, isFail, unwrapOrThrow, unwrapOrDefault } from './shared/result-helpers.ts';
 export { toolsLogger }                      from './shared/logger.ts';
 
-// ── Domain namespaces (stubs — implementations pending migration) ─────────────
-export { FILESYSTEM_TOOLS_PENDING } from './filesystem/index.ts';
+// ── Filesystem domain (MIGRATED — fully registered) ──────────────────────────
+export {
+  registerFilesystemTools,
+  FILESYSTEM_TOOL_COUNT,
+  FILESYSTEM_TOOL_NAMES,
+} from './filesystem/index.ts';
+
+// ── Domain namespaces (stubs — pending migration) ─────────────────────────────
 export { TERMINAL_TOOLS_PENDING }   from './terminal/index.ts';
 export { BROWSER_TOOLS_PENDING }    from './browser/index.ts';
 export { VERIFIER_TOOLS_PENDING }   from './verifier/index.ts';
