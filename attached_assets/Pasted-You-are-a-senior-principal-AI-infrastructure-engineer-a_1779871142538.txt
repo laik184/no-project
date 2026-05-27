@@ -1,0 +1,462 @@
+You are a senior principal AI infrastructure engineer and TypeScript systems architect.
+
+Your task is to IMPLEMENT a production-grade Executor Agent system using the EXACT folder structure below.
+
+IMPORTANT:
+Before generating ANY code:
+1. Deeply inspect:
+   - server/orchestration/
+   - server/agents/supervisor/
+   - server/agents/planner/
+2. Reuse existing orchestration systems
+3. Reuse existing:
+   - event bus
+   - retry systems
+   - telemetry
+   - validators
+   - execution lifecycle
+4. DO NOT duplicate orchestration logic
+5. DO NOT create extra folders/files outside the provided structure
+
+==================================================
+STRICT ENGINEERING RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+- Every module must have ONE responsibility
+- Avoid tight dependencies
+- Use interfaces/contracts
+- Prefer composition over inheritance
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines
+- Split logic cleanly
+- Keep functions focused and readable
+
+3. NO OVERENGINEERING
+DO NOT ADD:
+- swarm execution
+- recursive executors
+- self-modifying systems
+- quantum orchestration
+- distributed execution
+- speculative AI abstractions
+
+4. PRODUCTION-FIRST DESIGN
+Optimize for:
+- stability
+- deterministic execution
+- execution safety
+- debugging clarity
+- maintainability
+- sandbox safety
+
+==================================================
+TARGET STRUCTURE (STRICT)
+==================================================
+
+server/agents/executor/
+
+├── executor-agent.ts
+│
+├── core/
+│   ├── executor-engine.ts
+│   ├── execution-session.ts
+│   ├── execution-context.ts
+│   └── execution-state.ts
+│
+├── planning/
+│   ├── task-interpreter.ts
+│   ├── execution-strategy.ts
+│   ├── action-selector.ts
+│   └── tool-selection.ts
+│
+├── coding/
+│   ├── frontend-generator.ts
+│   ├── backend-generator.ts
+│   ├── api-generator.ts
+│   ├── database-generator.ts
+│   ├── auth-generator.ts
+│   └── component-generator.ts
+│
+├── filesystem/
+│   ├── file-writer.ts
+│   ├── file-editor.ts
+│   ├── file-reader.ts
+│   ├── file-search.ts
+│   └── path-manager.ts
+│
+├── runtime/
+│   ├── shell-executor.ts
+│   ├── process-manager.ts
+│   ├── npm-manager.ts
+│   ├── runtime-monitor.ts
+│   └── command-validator.ts
+│
+├── templates/
+│   ├── react-template.ts
+│   ├── express-template.ts
+│   ├── auth-template.ts
+│   ├── crud-template.ts
+│   └── api-template.ts
+│
+├── execution/
+│   ├── task-executor.ts
+│   ├── step-runner.ts
+│   ├── execution-queue.ts
+│   └── execution-history.ts
+│
+├── sandbox/
+│   ├── workspace-manager.ts
+│   ├── sandbox-validator.ts
+│   ├── permission-manager.ts
+│   └── isolation-manager.ts
+│
+├── recovery/
+│   ├── rollback-manager.ts
+│   ├── failure-recovery.ts
+│   ├── retry-handler.ts
+│   └── checkpoint-manager.ts
+│
+├── validation/
+│   ├── execution-validator.ts
+│   ├── file-integrity.ts
+│   ├── command-safety.ts
+│   └── output-validator.ts
+│
+├── events/
+│   ├── executor-events.ts
+│   ├── event-handlers.ts
+│   └── event-types.ts
+│
+├── telemetry/
+│   ├── executor-logger.ts
+│   └── executor-metrics.ts
+│
+├── utils/
+│   ├── execution-helpers.ts
+│   ├── code-utils.ts
+│   ├── filesystem-utils.ts
+│   └── validators.ts
+│
+└── types/
+    ├── executor.types.ts
+    └── execution.types.ts
+
+==================================================
+EXECUTOR AGENT RESPONSIBILITIES
+==================================================
+
+Executor Agent MUST ONLY:
+
+- execute planned tasks
+- generate frontend code
+- generate backend code
+- generate APIs
+- generate database schemas
+- generate auth systems
+- create/edit/read files
+- execute safe shell commands
+- manage runtime processes
+- validate execution output
+- manage execution recovery
+- operate inside sandbox
+
+Executor Agent MUST NOT:
+- orchestrate agents
+- create architecture plans
+- recursively re-plan
+- manage orchestration lifecycle
+- implement swarm systems
+- bypass sandbox restrictions
+
+==================================================
+INTEGRATION REQUIREMENTS
+==================================================
+
+FIRST inspect and integrate with:
+
+server/orchestration/
+server/agents/supervisor/
+server/agents/planner/
+
+Reuse existing:
+- orchestration event bus
+- retry manager
+- queue systems
+- metrics
+- validators
+- logging
+- execution lifecycle
+- monitoring systems
+
+DO NOT duplicate these systems.
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+# executor-agent.ts
+Main public API.
+
+Expose:
+- initializeExecutor()
+- executeTask()
+- shutdownExecutor()
+
+==================================================
+
+# executor-engine.ts
+Main execution coordinator.
+
+Responsibilities:
+- task execution lifecycle
+- tool coordination
+- runtime coordination
+- validation coordination
+- recovery coordination
+
+==================================================
+
+# task-interpreter.ts
+Convert planning tasks into executable actions.
+
+Examples:
+- create API route
+- generate React component
+- create schema
+- install dependencies
+
+==================================================
+
+# execution-strategy.ts
+Determine:
+- create vs edit
+- sequential vs parallel
+- template vs generated code
+
+==================================================
+
+# tool-selection.ts
+Choose tools safely:
+- file_writer
+- file_editor
+- shell_executor
+- npm_manager
+
+==================================================
+
+# frontend-generator.ts
+Generate:
+- React pages
+- components
+- layouts
+- hooks
+- routing structures
+
+==================================================
+
+# backend-generator.ts
+Generate:
+- Express routes
+- controllers
+- services
+- middleware
+- module structure
+
+==================================================
+
+# api-generator.ts
+Generate:
+- REST APIs
+- validation
+- request handlers
+- response schemas
+
+==================================================
+
+# database-generator.ts
+Generate:
+- schemas
+- migrations
+- models
+- relations
+
+==================================================
+
+# auth-generator.ts
+Generate:
+- login/signup
+- JWT/session auth
+- role systems
+- middleware
+
+==================================================
+
+# file-writer.ts
+Safe file creation.
+
+==================================================
+
+# file-editor.ts
+Safe partial file modifications.
+
+==================================================
+
+# shell-executor.ts
+Safe shell execution.
+
+Allowed:
+- npm install
+- npm run build
+- npm run dev
+- pnpm install
+
+Blocked:
+- rm -rf
+- sudo
+- shutdown
+- reboot
+- curl external scripts
+
+==================================================
+
+# command-validator.ts
+Strict dangerous command detection.
+
+Fail-closed behavior required.
+
+==================================================
+
+# sandbox-validator.ts
+Validate:
+- workspace isolation
+- path traversal prevention
+- root access prevention
+
+==================================================
+
+# rollback-manager.ts
+Restore previous state on failure.
+
+==================================================
+
+# checkpoint-manager.ts
+Create execution checkpoints before risky operations.
+
+==================================================
+
+# execution-validator.ts
+Validate:
+- successful execution
+- file generation
+- runtime integrity
+
+==================================================
+EVENT SYSTEM
+==================================================
+
+KEEP EVENTS SIMPLE.
+
+ONLY USE:
+- execution.started
+- execution.step.started
+- execution.step.completed
+- execution.failed
+- execution.completed
+
+NO excessive lifecycle events.
+
+==================================================
+METRICS RULES
+==================================================
+
+KEEP ONLY:
+- executions.started
+- executions.completed
+- executions.failed
+- execution.duration
+- retry.count
+- validation.failures
+
+NO telemetry overengineering.
+
+==================================================
+SECURITY RULES
+==================================================
+
+MANDATORY:
+
+1. Sandbox-only execution
+
+2. Block dangerous shell commands
+
+3. Prevent path traversal:
+- ../
+- absolute system paths
+
+4. Restrict workspace access
+
+5. Validate all generated file paths
+
+6. Fail-closed validation behavior
+
+==================================================
+EXECUTION FLOW
+==================================================
+
+Task
+↓
+task-interpreter.ts
+↓
+execution-strategy.ts
+↓
+tool-selection.ts
+↓
+generator/filesystem/runtime
+↓
+validation/
+↓
+recovery/
+↓
+result
+
+==================================================
+MANDATORY FINAL RULES
+==================================================
+
+1. NO FILE > 250 LINES
+
+2. NO PLACEHOLDER CODE
+
+3. NO TODO COMMENTS
+
+4. NO DEAD CODE
+
+5. NO DUPLICATE UTILITIES
+
+6. NO CIRCULAR IMPORTS
+
+7. STRICT TYPE SAFETY
+
+8. FAIL-CLOSED SECURITY
+
+9. SANDBOX-FIRST EXECUTION
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+1. All executor files
+2. Proper imports/exports
+3. Fully typed TypeScript
+4. Sandbox-safe execution
+5. Clean runtime lifecycle
+6. Minimal architecture complexity
+7. Stable execution flow
+8. Existing orchestration integration
+9. Recovery-safe execution
+10. Production-grade safety validation
+
+Everything must be REALISTIC, SECURE, PRODUCTION-READY, and MAINTAINABLE.
