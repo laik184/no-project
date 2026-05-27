@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": ".",
-    "declaration": true
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist", ".local"]

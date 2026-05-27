@@ -1,0 +1,167 @@
+You are a senior TypeScript infrastructure architect.
+
+Your task is to create the INITIAL centralized tool system foundation.
+
+IMPORTANT:
+DO NOT migrate agents yet.
+DO NOT delete anything.
+DO NOT modify existing agent logic.
+
+ONLY create the new tool architecture safely.
+
+==================================================
+GOAL
+==================================================
+
+Create:
+
+server/tools/
+
+This will become the centralized execution layer for:
+- filesystem
+- terminal
+- browser
+- verifier
+- coding
+
+==================================================
+STRICT RULES
+==================================================
+
+1. DO NOT break existing system
+
+2. DO NOT move old implementations yet
+
+3. ONLY create:
+- folder structure
+- registry system
+- dispatcher system
+- shared types/interfaces
+
+4. NO file > 250 lines
+
+5. HIGH COHESION, LOW COUPLING
+
+6. STRICT TYPE SAFETY
+
+==================================================
+CREATE THIS STRUCTURE
+==================================================
+
+server/tools/
+
+├── registry/
+│   ├── tool-registry.ts
+│   ├── tool-dispatcher.ts
+│   ├── tool-resolver.ts
+│   ├── tool-metadata.ts
+│   └── tool-types.ts
+│
+├── filesystem/
+├── terminal/
+├── browser/
+├── verifier/
+├── coding/
+└── shared/
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+# tool-types.ts
+
+Create:
+- ToolDefinition
+- ToolExecutionContext
+- ToolExecutionResult
+- ToolCategory
+- ToolHandler
+
+==================================================
+
+# tool-metadata.ts
+
+Central metadata definitions.
+
+Each tool metadata includes:
+- name
+- category
+- description
+- input schema
+- permissions
+- timeout
+- retry policy
+
+==================================================
+
+# tool-registry.ts
+
+Responsibilities:
+- register tools
+- unregister tools
+- get tool
+- list tools
+- validate uniqueness
+
+MANDATORY:
+- prevent duplicate registration
+- immutable registry reads
+- singleton-safe
+
+==================================================
+
+# tool-resolver.ts
+
+Responsibilities:
+- resolve tool by name
+- validate tool exists
+- validate permissions
+
+==================================================
+
+# tool-dispatcher.ts
+
+Responsibilities:
+- execute tools
+- inject execution context
+- normalize outputs
+- catch execution errors
+
+MANDATORY:
+- fail-safe execution
+- timeout handling hooks
+- structured errors
+
+==================================================
+IMPORTANT
+==================================================
+
+DO NOT:
+- implement filesystem tools
+- implement terminal tools
+- migrate agents
+- remove existing code
+
+ONLY create:
+- foundation
+- registry
+- dispatcher
+- interfaces
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+1. complete folder structure
+2. fully typed TypeScript
+3. registry architecture
+4. dispatcher architecture
+5. production-safe interfaces
+
+Everything must be:
+- modular
+- production-ready
+- scalable
+- maintainable
+- Replit-level
