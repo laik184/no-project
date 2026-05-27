@@ -216,3 +216,9 @@ id = "1sxwQhMSnkefl8_qmkeT0"
 uri = "file://reports/coder-agent-deep-scan.md"
 type = "text"
 title = "Coder Agent Deep Scan Report"
+
+[[outputs]]
+id = "baf_-FMr1viSCUJjWH4-H"
+uri = "file://reports/filesystem-agent-deep-scan.md"
+type = "text"
+title = "Filesystem Agent Deep Scan Report"
