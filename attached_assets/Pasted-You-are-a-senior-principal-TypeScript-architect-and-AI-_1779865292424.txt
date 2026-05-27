@@ -1,0 +1,385 @@
+You are a senior principal TypeScript architect and AI systems engineer.
+
+Your task is to IMPLEMENT a production-grade Planner Agent system using the EXACT folder structure below.
+
+IMPORTANT:
+Before writing ANY code:
+1. Inspect existing:
+   - server/orchestration/
+   - server/agents/supervisor/
+2. Reuse existing orchestration systems
+3. Reuse existing event bus, telemetry, retry utilities, validators
+4. DO NOT duplicate orchestration logic
+5. DO NOT create extra files/folders outside the provided structure
+
+==================================================
+STRICT RULES
+==================================================
+
+1. HIGH COHESION, LOW COUPLING
+- Every file must have ONE responsibility only
+- Avoid deep dependency chains
+- Use interfaces/contracts
+- Prefer composition over coupling
+
+2. FILE SIZE LIMIT
+- NO file may exceed 250 lines
+- Split logic cleanly
+- Keep functions small and readable
+
+3. NO OVERENGINEERING
+DO NOT ADD:
+- swarm planning
+- recursive planning
+- self-modifying planners
+- distributed planning
+- quantum orchestration
+- AGI abstractions
+
+4. PRODUCTION-FIRST
+Optimize for:
+- maintainability
+- deterministic planning
+- debuggability
+- readability
+- execution clarity
+
+==================================================
+TARGET STRUCTURE (STRICT)
+==================================================
+
+server/agents/planner/
+
+├── planner-agent.ts
+│
+├── core/
+│   ├── planner-engine.ts
+│   ├── planning-session.ts
+│   ├── planning-context.ts
+│   └── planning-state.ts
+│
+├── analysis/
+│   ├── goal-analyzer.ts
+│   ├── app-classifier.ts
+│   ├── requirement-extractor.ts
+│   └── complexity-estimator.ts
+│
+├── architecture/
+│   ├── frontend-planner.ts
+│   ├── backend-planner.ts
+│   ├── database-planner.ts
+│   ├── api-planner.ts
+│   └── deployment-planner.ts
+│
+├── decomposition/
+│   ├── phase-builder.ts
+│   ├── task-breakdown.ts
+│   ├── dependency-graph.ts
+│   └── milestone-generator.ts
+│
+├── sequencing/
+│   ├── execution-order.ts
+│   ├── task-prioritizer.ts
+│   └── pipeline-sequencer.ts
+│
+├── validation/
+│   ├── dependency-validator.ts
+│   ├── circular-check.ts
+│   └── plan-validator.ts
+│
+├── templates/
+│   ├── saas-template.ts
+│   ├── crud-template.ts
+│   ├── ai-app-template.ts
+│   ├── auth-template.ts
+│   └── dashboard-template.ts
+│
+├── events/
+│   ├── planner-events.ts
+│   ├── event-handlers.ts
+│   └── event-types.ts
+│
+├── telemetry/
+│   ├── planner-logger.ts
+│   └── planner-metrics.ts
+│
+├── utils/
+│   ├── planning-helpers.ts
+│   ├── graph-utils.ts
+│   └── validators.ts
+│
+└── types/
+    ├── planner.types.ts
+    └── planning.types.ts
+
+==================================================
+PLANNER AGENT RESPONSIBILITIES
+==================================================
+
+Planner Agent MUST ONLY:
+
+- analyze goals
+- classify app types
+- extract requirements
+- estimate complexity
+- generate architecture plans
+- create execution phases
+- generate task breakdowns
+- resolve dependencies
+- create execution ordering
+- validate plans
+
+Planner Agent MUST NOT:
+- generate application code
+- execute shell commands
+- manipulate files
+- install dependencies
+- run tools directly
+- perform orchestration retries
+- manage runtime execution
+
+==================================================
+INTEGRATION REQUIREMENTS
+==================================================
+
+FIRST inspect and integrate with:
+
+server/orchestration/
+server/agents/supervisor/
+
+Reuse existing:
+- event bus
+- telemetry systems
+- validators
+- helper utilities
+- retry-safe patterns
+- orchestration lifecycle
+
+DO NOT duplicate systems.
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+# planner-agent.ts
+Main public API.
+
+Expose:
+- initializePlanner()
+- createExecutionPlan()
+- shutdownPlanner()
+
+==================================================
+
+# planner-engine.ts
+Core planning orchestration.
+
+Responsibilities:
+- run analysis pipeline
+- generate architecture plan
+- generate phases
+- build dependency graph
+- validate execution plan
+
+==================================================
+
+# goal-analyzer.ts
+Analyze:
+- frontend requirements
+- backend requirements
+- database requirements
+- auth
+- payments
+- realtime
+- AI integrations
+- deployment needs
+
+==================================================
+
+# app-classifier.ts
+Detect app categories:
+- CRUD
+- SaaS
+- AI app
+- ecommerce
+- dashboard
+- auth system
+- backend API
+
+==================================================
+
+# requirement-extractor.ts
+Extract:
+- APIs
+- auth
+- search
+- analytics
+- uploads
+- payments
+- notifications
+
+==================================================
+
+# frontend-planner.ts
+Generate frontend architecture:
+- framework
+- routing
+- state management
+- UI architecture
+
+==================================================
+
+# backend-planner.ts
+Generate backend architecture:
+- API structure
+- services
+- middleware
+- modules
+
+==================================================
+
+# database-planner.ts
+Generate:
+- database type
+- schema structure
+- entity relations
+- indexing recommendations
+
+==================================================
+
+# phase-builder.ts
+Generate:
+- setup phase
+- backend phase
+- frontend phase
+- verification phase
+- deployment phase
+
+==================================================
+
+# dependency-graph.ts
+Generate:
+- task dependencies
+- execution graph
+- dependency validation
+
+==================================================
+
+# execution-order.ts
+Generate:
+- deterministic task execution order
+- phase sequencing
+- dependency-safe ordering
+
+==================================================
+
+# dependency-validator.ts
+Validate:
+- missing dependencies
+- invalid ordering
+- broken references
+
+==================================================
+
+# circular-check.ts
+Detect:
+- circular dependencies
+- recursive task chains
+
+==================================================
+
+# plan-validator.ts
+Final validation before returning plan.
+
+==================================================
+EVENT SYSTEM
+==================================================
+
+KEEP EVENTS SIMPLE.
+
+ONLY USE:
+- planning.started
+- planning.phase.generated
+- planning.completed
+- planning.failed
+
+DO NOT create excessive event types.
+
+==================================================
+METRICS RULES
+==================================================
+
+KEEP ONLY:
+- plans.created
+- plans.failed
+- planning.duration
+- dependency.errors
+
+NO telemetry overengineering.
+
+==================================================
+OUTPUT PLAN STRUCTURE
+==================================================
+
+ExecutionPlan must include:
+
+- appType
+- complexity
+- frontendPlan
+- backendPlan
+- databasePlan
+- apiPlan
+- deploymentPlan
+- phases[]
+- tasks[]
+- dependencyGraph
+- executionOrder
+- milestones[]
+- validationResults
+
+==================================================
+DESIGN PRINCIPLES
+==================================================
+
+- deterministic planning
+- explicit flows
+- stable outputs
+- predictable task ordering
+- modular architecture
+- simple abstractions
+
+==================================================
+MANDATORY FINAL RULES
+==================================================
+
+1. NO FILE > 250 LINES
+
+2. NO PLACEHOLDER CODE
+
+3. NO TODO COMMENTS
+
+4. NO DEAD FILES
+
+5. NO DUPLICATE UTILITIES
+
+6. NO CIRCULAR IMPORTS
+
+7. KEEP TYPE SAFETY STRICT
+
+8. KEEP FAIL-CLOSED VALIDATION
+
+==================================================
+EXPECTED OUTPUT
+==================================================
+
+Generate:
+1. All planner files
+2. Proper imports/exports
+3. Fully typed TypeScript
+4. Clean dependency graph
+5. Existing orchestration integration
+6. Minimal architecture complexity
+7. Stable deterministic planning flow
+8. Updated planner execution lifecycle
+
+Everything must be REALISTIC, PRODUCTION-READY, and MAINTAINABLE.
