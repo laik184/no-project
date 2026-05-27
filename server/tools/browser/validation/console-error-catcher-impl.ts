@@ -5,9 +5,9 @@
  */
 
 import type { Page, ConsoleMessage, Request, Response } from 'playwright';
-import type { ConsoleError, ConsoleErrorType }           from '../types/validation.types.ts';
-import { browserMetrics }                                from '../telemetry/browser-metrics.ts';
-import { browserLogger }                                 from '../telemetry/browser-logger.ts';
+import type { ConsoleError, ConsoleErrorType }           from '../../../agents/browser/types/validation.types.ts';
+import { browserMetrics }                                from '../../../agents/browser/telemetry/browser-metrics.ts';
+import { browserLogger }                                 from '../../../agents/browser/telemetry/browser-logger.ts';
 
 const HYDRATION_PATTERNS = [
   'Hydration failed',

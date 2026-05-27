@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getSession }                                 from '../session/browser-context.ts';
-import { testViewport }                               from '../../../agents/browser/navigation/responsive-tester.ts';
+import { testViewport }                               from './responsive-tester.ts';
 import { assertUrl }                                  from '../validation-core/url-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { ViewportTestInput }                     from '../shared/browser-types.ts';

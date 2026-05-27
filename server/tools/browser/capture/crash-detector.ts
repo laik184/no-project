@@ -5,9 +5,9 @@
  */
 
 import type { Page } from 'playwright';
-import type { CrashReport, CrashType } from '../types/validation.types.ts';
-import { browserLogger }                from '../telemetry/browser-logger.ts';
-import { browserMetrics }               from '../telemetry/browser-metrics.ts';
+import type { CrashReport, CrashType } from '../../../agents/browser/types/validation.types.ts';
+import { browserLogger }                from '../../../agents/browser/telemetry/browser-logger.ts';
+import { browserMetrics }               from '../../../agents/browser/telemetry/browser-metrics.ts';
 
 const REACT_ERROR_PATTERNS = [
   'The above error occurred in',

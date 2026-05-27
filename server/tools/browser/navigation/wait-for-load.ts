@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { waitForLoad }                                from '../../../agents/browser/navigation/page-navigator.ts';
+import { waitForLoad }                                from './page-navigator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 
 export const browserWaitForLoadTool: ToolDefinition = {

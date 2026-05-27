@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
-import { compareScreenshots }                         from '../../../agents/browser/validation/visual-diff-detector.ts';
+import { compareScreenshots }                         from './visual-diff-detector.ts';
 import { validateScreenshotLabel }                    from '../validation-core/screenshot-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 

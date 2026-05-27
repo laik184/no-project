@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { isElementVisible }                           from '../../../agents/browser/interaction/element-finder.ts';
+import { isElementVisible }                           from './element-finder.ts';
 import { assertSelector }                             from '../validation-core/selector-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 

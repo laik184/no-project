@@ -12,7 +12,7 @@ import { getOrOpenPage }                              from '../session/page-mana
 import {
   attachConsoleErrorCatcher,
   getErrorSummary,
-}                                                    from '../../../agents/browser/validation/console-error-catcher.ts';
+}                                                    from './console-error-catcher-impl.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { ConsoleError }                          from '../shared/browser-types.ts';
 

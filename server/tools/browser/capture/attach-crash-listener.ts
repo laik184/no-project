@@ -9,7 +9,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { attachCrashListener }                        from '../../../agents/browser/capture/crash-detector.ts';
+import { attachCrashListener }                        from './crash-detector.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { CrashReport }                           from '../shared/browser-types.ts';
 

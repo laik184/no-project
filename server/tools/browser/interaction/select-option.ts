@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { selectOption }                               from '../../../agents/browser/interaction/dom-interactor.ts';
+import { selectOption }                               from './dom-interactor.ts';
 import { assertSelector }                             from '../validation-core/selector-validator.ts';
 import { validateSelectValue, clampInteractionTimeout } from '../validation-core/interaction-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';

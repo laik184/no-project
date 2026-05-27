@@ -1,48 +1,18 @@
 ---
 name: Browser Agent structure
-description: Architecture of the 37-file browser agent in server/agents/browser/ — modules, dependency direction, key patterns, and reuse decisions.
+description: server/agents/browser/ is the pure agent core; server/tools/browser/ owns all implementations + tool registrations
 ---
 
-# Browser Agent — Architecture
+## Rule
+`server/agents/browser/` = 22 files, 7 folders — PURE agent only:
+- `core/` (browser-agent, browser-session, browser-state, navigation-engine)
+- `types/`, `events/`, `telemetry/`, `reporting/`, `utils/`, `index.ts`
 
-## Entry point
-`server/agents/browser/index.ts` — public export gateway only, no logic.
+`server/tools/browser/` = 60 files — ALL implementations + ToolDefinition wrappers:
+- `capture/`, `interaction/`, `navigation/`, `validation/`, `monitoring/`
+- Implementations have `../../../agents/browser/types|utils|events|telemetry` imports (3 levels up)
+- agents/browser/core/ imports tools with `../../../tools/browser/` (3 levels up)
 
-## Primary API
-`runBrowserAgent(input: BrowserAgentInput): Promise<BrowserReport>` from `core/browser-agent.ts`.
+**Why:** Moved 15 implementation files (capture, interaction, navigation, validation, monitoring) from agents/ to tools/ so agents/ contains only orchestration logic.
 
-## Module dependency direction (low → high)
-```
-utils/ + types/
-  ↓
-events/ + telemetry/
-  ↓
-capture/ + validation/
-  ↓
-navigation/ + interaction/ + monitoring/
-  ↓
-reporting/
-  ↓
-core/ → index.ts
-```
-No circular imports.
-
-## Key reuse decisions
-- `runLogger` from `server/orchestration/telemetry/run-logger.ts` — same wrapping pattern as executor-logger.ts (`[browser]` prefix).
-- Local `TypedEventEmitter` pattern (same as `executorBus`) for `browserBus`, `navigationBus`, `interactionBus`.
-- Global `bus` NOT used directly — browser agent emits to its own buses only.
-- Playwright `chromium` only; headless by default; `--no-sandbox` for Replit container.
-
-## Security
-- `isAllowedUrl()` in `utils/navigation-utils.ts` — allows localhost, loopback, `.replit.dev`, `.repl.co`, and explicit `allowedHosts` list. Blocks everything else.
-- URL checked before every navigation in `page-navigator.ts` AND `navigation-engine.ts`.
-
-## Fail-closed
-- `ui-validator.ts`: default result is FAIL; only explicitly passing error-severity checks flip to ok=true.
-- `browser-agent.ts`: catch block returns `ok: false` report.
-
-## File counts and line limits
-- 37 files total across 11 directories.
-- Largest file: `dom-interactor.ts` at 122 lines (well under 250 limit).
-
-**Why:** Keeping browser automation isolated from orchestration prevents event-bus pollution and makes it independently testable.
+**How to apply:** Never add implementation files (Playwright page ops, DOM manipulation) into agents/browser/. Those belong in tools/browser/. The only agents/ additions allowed are core orchestration changes.

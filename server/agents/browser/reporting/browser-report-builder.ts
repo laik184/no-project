@@ -10,7 +10,7 @@ import type { ConsoleError }         from '../types/validation.types.ts';
 import type { FlowResult }           from '../types/navigation.types.ts';
 import type { NavigationResult }     from '../types/navigation.types.ts';
 import { actionTrace }               from '../telemetry/action-trace.ts';
-import { getPerformanceSummary }     from '../monitoring/performance-metrics.ts';
+import { getPerformanceSummary }     from '../../../tools/browser/monitoring/performance-metrics.ts';
 
 export interface ReportInput {
   runId:         string;

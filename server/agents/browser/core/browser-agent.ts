@@ -10,11 +10,11 @@ import type { BrowserReport }            from '../types/reporting.types.ts';
 import { launchBrowserSession,
          closeBrowserSession }           from './browser-session.ts';
 import { runNavigationWorkflow }         from './navigation-engine.ts';
-import { runUserFlow }                   from '../navigation/user-flow-runner.ts';
-import { runResponsiveTests }            from '../navigation/responsive-tester.ts';
+import { runUserFlow }                   from '../../../tools/browser/navigation/user-flow-runner.ts';
+import { runResponsiveTests }            from '../../../tools/browser/navigation/responsive-tester.ts';
 import { buildBrowserReport,
          summarizeReport }               from '../reporting/browser-report-builder.ts';
-import { evictPerformanceData }          from '../monitoring/performance-metrics.ts';
+import { evictPerformanceData }          from '../../../tools/browser/monitoring/performance-metrics.ts';
 import { browserMetrics }                from '../telemetry/browser-metrics.ts';
 import { actionTrace }                   from '../telemetry/action-trace.ts';
 import { browserLogger }                 from '../telemetry/browser-logger.ts';

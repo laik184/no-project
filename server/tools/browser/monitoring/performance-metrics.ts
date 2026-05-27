@@ -4,10 +4,10 @@
  */
 
 import type { Page }            from 'playwright';
-import type { PerformanceSummary } from '../types/reporting.types.ts';
+import type { PerformanceSummary } from '../../../agents/browser/types/reporting.types.ts';
 import { collectPerformanceTiming } from '../validation/performance-tracker.ts';
-import { browserLogger }        from '../telemetry/browser-logger.ts';
-import { elapsed }              from '../utils/performance-utils.ts';
+import { browserLogger }        from '../../../agents/browser/telemetry/browser-logger.ts';
+import { elapsed }              from '../../../agents/browser/utils/performance-utils.ts';
 
 interface InteractionSample {
   action:     string;

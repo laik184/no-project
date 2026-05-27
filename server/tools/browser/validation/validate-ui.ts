@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getSession }                                 from '../session/browser-context.ts';
-import { validateUI }                                 from '../../../agents/browser/validation/ui-validator.ts';
+import { validateUI }                                 from './ui-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { ConsoleError }                          from '../shared/browser-types.ts';
 

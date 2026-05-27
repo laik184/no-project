@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getSession }                                 from '../session/browser-context.ts';
-import { takeElementScreenshot }                      from '../../../agents/browser/capture/screenshot-taker.ts';
+import { takeElementScreenshot }                      from './screenshot-taker.ts';
 import { assertSelector }                             from '../validation-core/selector-validator.ts';
 import { validateScreenshotLabel }                    from '../validation-core/screenshot-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';

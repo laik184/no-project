@@ -5,14 +5,14 @@
  */
 
 import type { Page }                        from 'playwright';
-import type { UIValidationResult, UICheck } from '../types/validation.types.ts';
-import type { ConsoleError }                from '../types/validation.types.ts';
-import { buildRootAppSelectors }            from '../utils/dom-utils.ts';
+import type { UIValidationResult, UICheck } from '../../../agents/browser/types/validation.types.ts';
+import type { ConsoleError }                from '../../../agents/browser/types/validation.types.ts';
+import { buildRootAppSelectors }            from '../../../agents/browser/utils/dom-utils.ts';
 import { emitValidationFailed,
-         emitValidationPassed }             from '../events/browser-events.ts';
-import { browserLogger }                    from '../telemetry/browser-logger.ts';
-import { browserMetrics }                   from '../telemetry/browser-metrics.ts';
-import { elapsed }                          from '../utils/performance-utils.ts';
+         emitValidationPassed }             from '../../../agents/browser/events/browser-events.ts';
+import { browserLogger }                    from '../../../agents/browser/telemetry/browser-logger.ts';
+import { browserMetrics }                   from '../../../agents/browser/telemetry/browser-metrics.ts';
+import { elapsed }                          from '../../../agents/browser/utils/performance-utils.ts';
 
 const ROOT_VISIBLE_TIMEOUT_MS = 5_000;
 

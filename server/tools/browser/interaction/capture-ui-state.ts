@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { captureUIState }                             from '../../../agents/browser/interaction/state-capturer.ts';
+import { captureUIState }                             from './state-capturer.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 
 export const browserCaptureUIStateTool: ToolDefinition = {

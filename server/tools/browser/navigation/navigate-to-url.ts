@@ -9,7 +9,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { navigateToUrl }                              from '../../../agents/browser/navigation/page-navigator.ts';
+import { navigateToUrl }                              from './page-navigator.ts';
 import { assertUrl }                                  from '../validation-core/url-validator.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { NavigateInput }                         from '../shared/browser-types.ts';

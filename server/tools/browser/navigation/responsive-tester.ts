@@ -5,11 +5,11 @@
 
 import type { Page }                   from 'playwright';
 import type { ViewportSize,
-              ResponsiveTestResult }    from '../types/navigation.types.ts';
+              ResponsiveTestResult }    from '../../../agents/browser/types/navigation.types.ts';
 import { navigateToUrl }               from './page-navigator.ts';
 import { takeScreenshot }              from '../capture/screenshot-taker.ts';
-import { browserLogger }               from '../telemetry/browser-logger.ts';
-import { elapsed }                     from '../utils/performance-utils.ts';
+import { browserLogger }               from '../../../agents/browser/telemetry/browser-logger.ts';
+import { elapsed }                     from '../../../agents/browser/utils/performance-utils.ts';
 
 export const VIEWPORTS: ViewportSize[] = [
   { width: 375,  height: 812,  label: 'mobile'  },

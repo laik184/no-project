@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getOrOpenPage }                              from '../session/page-manager.ts';
-import { collectPerformanceTiming }                   from '../../../agents/browser/validation/performance-tracker.ts';
+import { collectPerformanceTiming }                   from './performance-tracker.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 
 export const browserCollectPerformanceTool: ToolDefinition = {

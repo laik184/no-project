@@ -9,12 +9,12 @@ import type { NavigationResult }         from '../types/navigation.types.ts';
 import type { UIValidationResult }       from '../types/validation.types.ts';
 import type { ConsoleError }             from '../types/validation.types.ts';
 import type { ScreenshotMeta }           from '../types/reporting.types.ts';
-import { navigateToUrl }                 from '../navigation/page-navigator.ts';
-import { takeScreenshot }                from '../capture/screenshot-taker.ts';
-import { detectCrash, attachCrashListener } from '../capture/crash-detector.ts';
-import { attachConsoleErrorCatcher }     from '../validation/console-error-catcher.ts';
-import { validateUI }                    from '../validation/ui-validator.ts';
-import { capturePageMetrics }            from '../monitoring/performance-metrics.ts';
+import { navigateToUrl }                 from '../../../tools/browser/navigation/page-navigator.ts';
+import { takeScreenshot }                from '../../../tools/browser/capture/screenshot-taker.ts';
+import { detectCrash, attachCrashListener } from '../../../tools/browser/capture/crash-detector.ts';
+import { attachConsoleErrorCatcher }     from '../../../tools/browser/validation/console-error-catcher-impl.ts';
+import { validateUI }                    from '../../../tools/browser/validation/ui-validator.ts';
+import { capturePageMetrics }            from '../../../tools/browser/monitoring/performance-metrics.ts';
 import { isAllowedUrl }                  from '../utils/navigation-utils.ts';
 import { browserLogger }                 from '../telemetry/browser-logger.ts';
 

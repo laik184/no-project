@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
 import { getSession }                                 from '../session/browser-context.ts';
-import { runUserFlow }                                from '../../../agents/browser/navigation/user-flow-runner.ts';
+import { runUserFlow }                                from './user-flow-runner.ts';
 import { browserFail }                                from '../shared/browser-result.ts';
 import type { UserFlowInput }                         from '../shared/browser-types.ts';
 
