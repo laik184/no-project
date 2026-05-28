@@ -9,7 +9,7 @@
  */
 
 import { dispatch, dispatchSequential, dispatchAll } from '../../../tools/registry/tool-dispatcher.ts';
-import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
 
 export type { ToolExecutionResult, ToolExecutionContext };

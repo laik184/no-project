@@ -16,7 +16,7 @@ import {
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
-} from '../../../tools/registry/tool-types.ts';
+} from '../../../shared/types/execution-contracts.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };
 

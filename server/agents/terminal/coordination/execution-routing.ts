@@ -7,7 +7,7 @@
  */
 
 import type { ExecutionStep, StepOutcome } from '../types/terminal.types.ts';
-import type { ToolExecutionContext }        from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext }        from '../../../shared/types/execution-contracts.ts';
 import {
   coordinateCommand,
   coordinateNpmInstall,

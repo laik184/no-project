@@ -1,4 +1,12 @@
-import { metricsCollector } from '../../../orchestration/telemetry/metrics.ts';
+/**
+ * server/tools/verifier/monitoring/verification-metrics.ts
+ *
+ * Self-contained in-process metrics for the verifier tool layer.
+ * Local counters only — no imports from orchestration or agents.
+ *
+ * GOVERNANCE: Tools must not import from orchestration/ or agents/.
+ * Telemetry aggregation is the responsibility of the orchestration layer.
+ */
 
 export interface VerifierMetricsSnapshot {
   builds:        { passed: number; failed: number; totalMs: number };
@@ -16,45 +24,35 @@ const counts = {
 };
 
 export const verifierMetrics = {
-  recordBuild(runId: string, durationMs: number, passed: boolean): void {
-    metricsCollector.timing(runId, 'verifier.build', durationMs);
-    metricsCollector.increment(runId, passed ? 'verifier.build.passed' : 'verifier.build.failed');
+  recordBuild(_runId: string, durationMs: number, passed: boolean): void {
     if (passed) { counts.buildsPassed++; } else { counts.buildsFailed++; }
     counts.buildsMs += durationMs;
   },
 
-  recordTests(runId: string, passed: number, failed: number): void {
-    metricsCollector.increment(runId, 'verifier.tests.passed', passed);
-    metricsCollector.increment(runId, 'verifier.tests.failed', failed);
+  recordTests(_runId: string, passed: number, failed: number): void {
     counts.testsPassed += passed;
     counts.testsFailed += failed;
   },
 
-  recordTypecheck(runId: string, durationMs: number, passed: boolean): void {
-    metricsCollector.timing(runId, 'verifier.typecheck', durationMs);
-    metricsCollector.increment(runId, passed ? 'verifier.typecheck.passed' : 'verifier.typecheck.failed');
+  recordTypecheck(_runId: string, durationMs: number, passed: boolean): void {
     if (passed) { counts.tcPassed++; } else { counts.tcFailed++; }
     counts.tcMs += durationMs;
   },
 
-  recordCrash(runId: string): void {
-    metricsCollector.increment(runId, 'verifier.runtime.crashes');
+  recordCrash(_runId: string): void {
     counts.crashes++;
   },
 
-  recordRecovery(runId: string): void {
-    metricsCollector.increment(runId, 'verifier.recovery.attempts');
+  recordRecovery(_runId: string): void {
     counts.recoveries++;
   },
 
-  recordPhase(runId: string, phase: string, durationMs: number, passed: boolean): void {
-    metricsCollector.timing(runId, `verifier.phase.${phase}`, durationMs);
-    metricsCollector.increment(runId, passed ? `verifier.${phase}.passed` : `verifier.${phase}.failed`);
+  recordPhase(_runId: string, _phase: string, _durationMs: number, _passed: boolean): void {
+    // Phase-level telemetry aggregated by orchestration layer.
   },
 
-  recordVerification(runId: string, durationMs: number, passed: boolean): void {
-    metricsCollector.timing(runId, 'verifier.total', durationMs);
-    metricsCollector.increment(runId, passed ? 'verifier.runs.passed' : 'verifier.runs.failed');
+  recordVerification(_runId: string, _durationMs: number, _passed: boolean): void {
+    // Run-level telemetry aggregated by orchestration layer.
   },
 
   snapshot(): VerifierMetricsSnapshot {

@@ -5,7 +5,7 @@
  * Wraps ToolExecutionContext for agent-layer consumption.
  */
 
-import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../../shared/types/execution-contracts.ts';
 
 export interface SupervisionContext {
   readonly runId:       string;

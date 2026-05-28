@@ -1,66 +1,73 @@
 /**
- * planned.executor.ts
- * Uses the Planner Agent (agents/planner/) to generate a full execution plan.
+ * server/chat/run/planned.executor.ts
+ *
+ * Routes goal execution through the SINGLE authoritative orchestration entry
+ * point: orchestrator.ts → orchestration-loop.ts → agent-coordinator.ts → agent.
+ *
+ * GOVERNANCE RULE: This file MUST NOT import from server/agents/ directly.
+ * All agent activation flows through orchestrate() only.
+ * Violation of this rule bypasses lifecycle tracking, validation, and recovery.
  */
 
-import { createExecutionPlan, initializePlanner } from '../../agents/planner/planner-agent.ts';
-import { ensureProjectDir }                        from '../../infrastructure/sandbox/sandbox.util.ts';
-import { emitAgentEvent, withRunLifecycle }        from './run-lifecycle.ts';
-import type { RunHandle, RunInput }                from './types.ts';
+import { orchestrate }              from '../../orchestration/orchestrator.ts';
+import { newOrchestrationId }       from '../../orchestration/utils/orchestration-utils.ts';
+import { ensureProjectDir }         from '../../infrastructure/sandbox/sandbox.util.ts';
+import { emitAgentEvent, withRunLifecycle } from './run-lifecycle.ts';
+import type { RunHandle, RunInput } from './types.ts';
 
 export async function executePlannedRun(handle: RunHandle, input: RunInput): Promise<void> {
   const { runId, projectId } = handle;
 
   emitAgentEvent({
-    runId, projectId, phase: 'planner',
+    runId, projectId, phase: 'orchestration',
     eventType: 'phase.started',
     payload: { goal: input.goal, mode: 'planned' },
     ts: Date.now(),
   });
 
-  return withRunLifecycle(handle, 'planner', async () => {
+  return withRunLifecycle(handle, 'orchestration', async () => {
     await ensureProjectDir(projectId);
 
-    initializePlanner();
-
-    const result = await createExecutionPlan({
+    const result = await orchestrate({
+      orchestrationId: newOrchestrationId(),
       runId,
-      projectId,
-      goal:      input.goal,
-      timeoutMs: 55_000,
+      projectId:   String(projectId),
+      sandboxRoot: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+      goal:        input.goal,
+      context:     input.context as Record<string, unknown> ?? {},
+      options: {
+        timeoutMs: (input.context as Record<string, unknown> | undefined)?.timeoutMs as number | undefined ?? 120_000,
+      },
     });
 
-    if (!result.ok || !result.plan) {
-      throw new Error(result.error ?? 'Planner agent returned no plan');
+    if (!result.ok) {
+      throw new Error(
+        (result as unknown as { error?: string }).error ?? 'Orchestration returned a failure result',
+      );
     }
 
-    const { plan } = result;
-
     emitAgentEvent({
-      runId, projectId, phase: 'planner',
+      runId, projectId, phase: 'orchestration',
       eventType: 'phase.completed',
       payload: {
-        planId:     plan.planId,
-        appType:    plan.appType,
-        complexity: plan.complexity,
-        phases:     plan.phases.length,
-        totalSteps: plan.tasks.length,
-        durationMs: result.durationMs,
+        orchestrationId:    result.orchestrationId,
+        workflowsTotal:     result.workflowsTotal,
+        workflowsCompleted: result.workflowsCompleted,
+        workflowsFailed:    result.workflowsFailed,
+        durationMs:         result.durationMs,
       },
       ts: Date.now(),
     });
 
     return {
-      success: true,
+      success: result.workflowsFailed === 0,
       result: {
-        planned:      true,
-        planId:       plan.planId,
-        appType:      plan.appType,
-        complexity:   plan.complexity,
-        phases:       plan.phases.length,
-        totalSteps:   plan.tasks.length,
-        durationMs:   result.durationMs,
-        overallSuccess: plan.validationResults.valid,
+        orchestrated:       true,
+        orchestrationId:    result.orchestrationId,
+        workflowsTotal:     result.workflowsTotal,
+        workflowsCompleted: result.workflowsCompleted,
+        workflowsFailed:    result.workflowsFailed,
+        durationMs:         result.durationMs,
       },
     };
   });

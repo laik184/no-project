@@ -10,7 +10,7 @@ import {
   executeTool,
   type SupervisorDispatchOptions,
 } from './dispatcher-client.ts';
-import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 import type { AgentDomain } from '../types/supervisor.types.ts';
 
 // ── Agent routing tool name constants ─────────────────────────────────────────

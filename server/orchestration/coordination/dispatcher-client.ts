@@ -4,6 +4,9 @@
  * THE single gateway from the orchestration layer to the central tool dispatcher.
  * ALL execution coordination MUST flow through this client — never directly.
  *
+ * API STANDARD: executeTool / executeAll / executeSequential
+ * (normalized to match agent-layer dispatcher-client naming convention)
+ *
  * Orchestration layer imports only from tool-dispatcher — never from tool implementations.
  */
 
@@ -23,10 +26,10 @@ export type { ToolExecutionResult, ToolExecutionContext };
 // ── Single dispatch ───────────────────────────────────────────────────────────
 
 /**
- * Route a single orchestration command through the central dispatcher.
+ * Execute a single tool through the central dispatcher.
  * Never throws — always returns a ToolExecutionResult.
  */
-export async function routeCommand<TOutput = unknown>(
+export async function executeTool<TOutput = unknown>(
   toolName: string,
   input:    Record<string, unknown>,
   context:  ToolExecutionContext,
@@ -38,10 +41,10 @@ export async function routeCommand<TOutput = unknown>(
 // ── Parallel dispatch ─────────────────────────────────────────────────────────
 
 /**
- * Route multiple orchestration commands in parallel.
- * Individual failures do not abort sibling commands.
+ * Execute multiple tools in parallel.
+ * Individual failures do not abort sibling executions.
  */
-export async function routeParallel<TOutput = unknown>(
+export async function executeAll<TOutput = unknown>(
   commands: Array<{
     toolName: string;
     input:    Record<string, unknown>;
@@ -62,9 +65,9 @@ export async function routeParallel<TOutput = unknown>(
 // ── Sequential dispatch ───────────────────────────────────────────────────────
 
 /**
- * Route orchestration commands in sequence, stopping on first failure.
+ * Execute tools in sequence, stopping on first failure.
  */
-export async function routeSequential<TOutput = unknown>(
+export async function executeSequential<TOutput = unknown>(
   commands: Array<{
     toolName: string;
     input:    Record<string, unknown>;

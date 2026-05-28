@@ -14,7 +14,7 @@ import {
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
-}                               from '../../../tools/registry/tool-types.ts';
+}                               from '../../../shared/types/execution-contracts.ts';
 import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };

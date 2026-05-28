@@ -6,7 +6,7 @@
  */
 
 import type { VerificationStep, VerificationStepResult } from '../types/verifier.types.ts';
-import type { ToolExecutionContext }                       from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext }                       from '../../../shared/types/execution-contracts.ts';
 import {
   coordinateBuild,
   coordinateTypecheck,

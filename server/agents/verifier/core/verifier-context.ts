@@ -3,7 +3,7 @@
  * Immutable execution context passed through the verifier agent pipeline.
  */
 
-import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../../shared/types/execution-contracts.ts';
 import type { VerificationPhase }    from '../types/verifier.types.ts';
 
 export interface VerifierExecutionContext {

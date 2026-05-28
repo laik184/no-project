@@ -7,7 +7,7 @@
  */
 
 import { executeTool, type TerminalDispatchOptions } from './dispatcher-client.ts';
-import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 
 // ── Terminal tool name constants ──────────────────────────────────────────────
 

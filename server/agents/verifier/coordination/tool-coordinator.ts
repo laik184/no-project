@@ -6,7 +6,7 @@
  */
 
 import { executeTool, type VerifierDispatchOptions } from './dispatcher-client.ts';
-import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
+import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 
 // ── Verifier tool name constants ──────────────────────────────────────────────
 
