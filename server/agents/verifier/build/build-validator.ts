@@ -1,14 +1,17 @@
-import type { OutputValidationResult } from '../types/validation.types.ts';
-import { parseBuildErrors, hasTerminalBuildError } from './build-error-parser.ts';
+/**
+ * build/build-validator.ts
+ * Validates build output to determine pass/fail.
+ * Called by server/tools/verifier/build/build-validator.ts.
+ */
 
-const SUCCESS_MARKERS = [
-  'build succeeded',
-  'successfully compiled',
-  'built in',
-  '✓ built',
-  'done in',
-  'compiled successfully',
-];
+export interface OutputValidationResult {
+  valid:    boolean;
+  errors:   string[];
+  warnings: string[];
+}
+
+const FATAL_RE = /error TS\d{4}|build failed|fatal error/i;
+const WARN_RE  = /\bwarn(ing)?\b/i;
 
 export function validateBuildResult(
   stdout:   string,
@@ -17,33 +20,21 @@ export function validateBuildResult(
 ): OutputValidationResult {
   const errors:   string[] = [];
   const warnings: string[] = [];
-  const combined  = `${stdout}\n${stderr}`;
 
   if (exitCode !== 0) {
-    errors.push(`Build process exited with code ${exitCode}`);
+    errors.push(`Build exited with code ${exitCode}`);
   }
 
-  if (hasTerminalBuildError(combined)) {
-    errors.push('Terminal build failure detected in output');
+  const combined = `${stdout}\n${stderr}`;
+  const lines    = combined.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  for (const line of lines) {
+    if (FATAL_RE.test(line)) {
+      errors.push(line.slice(0, 200));
+    } else if (WARN_RE.test(line)) {
+      warnings.push(line.slice(0, 200));
+    }
   }
 
-  const buildErrors = parseBuildErrors(stderr || combined);
-  for (const e of buildErrors.slice(0, 10)) {
-    errors.push(e.message);
-  }
-
-  const hasSuccess = SUCCESS_MARKERS.some((m) =>
-    combined.toLowerCase().includes(m.toLowerCase()),
-  );
-
-  if (!hasSuccess && exitCode === 0 && errors.length === 0) {
-    warnings.push('No explicit build success marker found');
-  }
-
-  return { valid: errors.length === 0, exitCode, errors, warnings };
-}
-
-export function isBuildSuccessful(exitCode: number, stdout: string, stderr: string): boolean {
-  const result = validateBuildResult(stdout, stderr, exitCode);
-  return result.valid;
+  return { valid: errors.length === 0, errors, warnings };
 }

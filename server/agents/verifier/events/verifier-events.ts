@@ -1,29 +1,73 @@
-export const VERIFIER_EVENTS = {
-  STARTED:   'verification.started',
-  COMPLETED: 'verification.completed',
-  FAILED:    'verification.failed',
+/**
+ * events/verifier-events.ts
+ * Event name constants and payload types for the verifier agent.
+ */
+
+import type { VerificationPhase, VerificationStatus } from '../types/verifier.types.ts';
+import type { WorkflowKind } from '../types/workflow.types.ts';
+
+export const VERIFIER_EVENT = {
+  STARTED:       'verifier.started',
+  COMPLETED:     'verifier.completed',
+  FAILED:        'verifier.failed',
+  CANCELLED:     'verifier.cancelled',
+  PHASE_START:   'verifier.phase.start',
+  PHASE_END:     'verifier.phase.end',
+  PHASE_FAIL:    'verifier.phase.fail',
+  PHASE_SKIP:    'verifier.phase.skip',
+  STEP_DISPATCH: 'verifier.step.dispatch',
+  STEP_COMPLETE: 'verifier.step.complete',
+  STEP_FAIL:     'verifier.step.fail',
+  RETRY:         'verifier.retry',
+  RECOVERY:      'verifier.recovery',
 } as const;
 
-export const BUILD_EVENTS = {
-  STARTED: 'build.started',
-  PASSED:  'build.passed',
-  FAILED:  'build.failed',
-} as const;
+export type VerifierEventName = typeof VERIFIER_EVENT[keyof typeof VERIFIER_EVENT];
 
-export const RUNTIME_EVENTS = {
-  STARTED:  'runtime.check.started',
-  HEALTHY:  'runtime.healthy',
-  CRASHED:  'runtime.crashed',
-} as const;
+export interface VerifierStartedPayload {
+  runId:     string;
+  projectId: string;
+  phases:    VerificationPhase[];
+  timestamp: Date;
+}
 
-export const TEST_EVENTS = {
-  STARTED: 'tests.started',
-  PASSED:  'tests.passed',
-  FAILED:  'tests.failed',
-} as const;
+export interface VerifierCompletedPayload {
+  runId:      string;
+  projectId:  string;
+  status:     VerificationStatus;
+  durationMs: number;
+  errorCount: number;
+  timestamp:  Date;
+}
 
-export type VerifierEventName =
-  | typeof VERIFIER_EVENTS[keyof typeof VERIFIER_EVENTS]
-  | typeof BUILD_EVENTS[keyof typeof BUILD_EVENTS]
-  | typeof RUNTIME_EVENTS[keyof typeof RUNTIME_EVENTS]
-  | typeof TEST_EVENTS[keyof typeof TEST_EVENTS];
+export interface VerifierFailedPayload {
+  runId:     string;
+  projectId: string;
+  phase?:    VerificationPhase;
+  errors:    string[];
+  timestamp: Date;
+}
+
+export interface PhaseEventPayload {
+  runId:      string;
+  phase:      VerificationPhase;
+  durationMs?: number;
+  errors?:    string[];
+  timestamp:  Date;
+}
+
+export interface StepEventPayload {
+  runId:      string;
+  toolName:   string;
+  phase:      VerificationPhase;
+  durationMs?: number;
+  error?:     string;
+  timestamp:  Date;
+}
+
+export interface WorkflowEventPayload {
+  runId:     string;
+  kind:      WorkflowKind;
+  status:    'start' | 'end' | 'fail';
+  timestamp: Date;
+}

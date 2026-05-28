@@ -1,63 +1,44 @@
-import { promises as fs } from 'node:fs';
-import path               from 'node:path';
+/**
+ * validation/dependency-validator.ts
+ * Validates project dependencies (package.json, node_modules).
+ * Called by server/tools/verifier/validation/dependency-validator.ts.
+ */
+
+import { existsSync } from 'node:fs';
+import * as path from 'node:path';
 import type { DependencyCheckResult } from '../types/validation.types.ts';
 
-interface PackageJson {
-  dependencies?:    Record<string, string>;
-  devDependencies?: Record<string, string>;
-}
+export type { DependencyCheckResult };
 
-export async function validateDependencies(
-  sandboxRoot: string,
-): Promise<DependencyCheckResult[]> {
-  const pkgPath = path.join(sandboxRoot, 'package.json');
-  const nodeModulesPath = path.join(sandboxRoot, 'node_modules');
+const SANDBOX_ROOT = process.env['AGENT_PROJECT_ROOT'] ?? '.sandbox';
 
-  let pkg: PackageJson;
-  try {
-    const raw = await fs.readFile(pkgPath, 'utf8');
-    pkg = JSON.parse(raw) as PackageJson;
-  } catch {
-    return [{ packageName: 'package.json', installed: false, valid: false, error: 'package.json missing or unreadable' }];
-  }
-
-  const allDeps = {
-    ...(pkg.dependencies    ?? {}),
-    ...(pkg.devDependencies ?? {}),
-  };
-
+export async function validateDependencies(sandboxRoot: string): Promise<DependencyCheckResult[]> {
   const results: DependencyCheckResult[] = [];
 
-  for (const [name, expectedVersion] of Object.entries(allDeps)) {
-    const modPath = path.join(nodeModulesPath, name, 'package.json');
-    try {
-      const raw     = await fs.readFile(modPath, 'utf8');
-      const modPkg  = JSON.parse(raw) as { version?: string };
-      results.push({
-        packageName:     name,
-        installed:       true,
-        version:         modPkg.version,
-        expectedVersion,
-        valid:           true,
-      });
-    } catch {
-      results.push({
-        packageName:     name,
-        installed:       false,
-        expectedVersion,
-        valid:           false,
-        error:           `Not installed in node_modules`,
-      });
-    }
+  const pkgPath = path.join(sandboxRoot, 'package.json');
+  if (!existsSync(pkgPath)) {
+    return [{ packageName: 'package.json', valid: false, installed: false, error: 'Missing package.json' }];
   }
 
-  return results;
-}
+  const modulesPath = path.join(sandboxRoot, 'node_modules');
+  if (!existsSync(modulesPath)) {
+    return [{ packageName: 'node_modules', valid: false, installed: false, error: 'node_modules not found — run npm install' }];
+  }
 
-export function summarizeDependencyResults(results: DependencyCheckResult[]): {
-  allInstalled: boolean;
-  missing:      string[];
-} {
-  const missing = results.filter((r) => !r.installed).map((r) => r.packageName);
-  return { allInstalled: missing.length === 0, missing };
+  let pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> } = {};
+  try {
+    const { readFileSync } = await import('node:fs');
+    pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+  } catch {
+    return [{ packageName: 'package.json', valid: false, installed: false, error: 'Could not parse package.json' }];
+  }
+
+  const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  for (const [pkgName] of Object.entries(allDeps ?? {})) {
+    const installed = existsSync(path.join(modulesPath, pkgName));
+    results.push({ packageName: pkgName, valid: installed, installed, error: installed ? undefined : `Not installed: ${pkgName}` });
+  }
+
+  return results.length > 0 ? results : [{ packageName: 'all', valid: true, installed: true }];
 }

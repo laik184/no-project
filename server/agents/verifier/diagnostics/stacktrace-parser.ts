@@ -1,46 +1,44 @@
-import type { ParsedStackTrace, StackFrame } from '../types/diagnostics.types.ts';
-import { parseLines } from '../utils/parser-utils.ts';
+/**
+ * diagnostics/stacktrace-parser.ts
+ * Parses stack traces into structured StackFrame objects.
+ * Called by server/tools/verifier/diagnostics/stacktrace-parser.ts.
+ */
 
-const FRAME_PATTERN  = /at (?:(.+?) \()?(.+?):(\d+)(?::(\d+))?\)?$/;
-const ERROR_PATTERN  = /^(\w+(?:Error|Exception)?): (.+)$/;
+import type { StackFrame, ParsedStackTrace } from '../types/diagnostics.types.ts';
 
-export function parseStackTrace(raw: string): ParsedStackTrace {
-  const lines     = parseLines(raw);
-  const frames:   StackFrame[] = [];
-  let message     = 'Unknown error';
-  let errorType   = 'Error';
+const FRAME_RE        = /\s+at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/;
+const FRAME_SIMPLE_RE = /\s+at\s+(.+?):(\d+):(\d+)/;
+const NODE_INTERNAL   = /^(node:|internal\/)|(Node\.js|node_modules\/)/;
 
-  for (const line of lines) {
-    const errorMatch = line.match(ERROR_PATTERN);
-    if (errorMatch && frames.length === 0) {
-      errorType = errorMatch[1];
-      message   = errorMatch[2];
-      continue;
-    }
-
-    const trimmed = line.trim();
-    if (!trimmed.startsWith('at ')) continue;
-
-    const frameMatch = trimmed.match(FRAME_PATTERN);
-    if (!frameMatch) continue;
-
-    frames.push({
-      functionName: frameMatch[1] ?? undefined,
-      file:         frameMatch[2],
-      line:         parseInt(frameMatch[3], 10),
-      column:       frameMatch[4] ? parseInt(frameMatch[4], 10) : undefined,
-    });
-  }
-
-  return { message, errorType, frames, raw };
+export function parseFrame(line: string): StackFrame | null {
+  let m = FRAME_RE.exec(line);
+  if (m) return { fn: m[1], file: m[2], line: parseInt(m[3], 10), col: parseInt(m[4], 10) };
+  m = FRAME_SIMPLE_RE.exec(line);
+  if (m) return { fn: '<anonymous>', file: m[1], line: parseInt(m[2], 10), col: parseInt(m[3], 10) };
+  return null;
 }
 
-export function extractFirstUserFrame(trace: ParsedStackTrace): StackFrame | undefined {
-  return trace.frames.find(
-    (f) => !f.file.includes('node_modules') && !f.file.startsWith('node:'),
-  );
+export function parseStackTrace(raw: string): ParsedStackTrace {
+  const lines  = raw.split('\n');
+  const frames: StackFrame[] = [];
+  let message  = '';
+
+  for (const line of lines) {
+    if (!message && !line.trimStart().startsWith('at ')) {
+      message = line.trim();
+      continue;
+    }
+    const frame = parseFrame(line);
+    if (frame) frames.push(frame);
+  }
+
+  return { message, frames, raw };
+}
+
+export function extractFirstUserFrame(parsed: ParsedStackTrace): StackFrame | undefined {
+  return parsed.frames.find((f) => !isNodeInternalFrame(f));
 }
 
 export function isNodeInternalFrame(frame: StackFrame): boolean {
-  return frame.file.startsWith('node:') || frame.file.includes('node_modules');
+  return NODE_INTERNAL.test(frame.file);
 }

@@ -1,51 +1,58 @@
-import type { SchemaValidationResult } from '../types/validation.types.ts';
+/**
+ * validation/response-validator.ts
+ * Validates tool dispatch responses at the orchestration layer.
+ */
 
-export interface HttpResponseSpec {
-  status:         number;
-  expectedStatus: number;
-  body?:          unknown;
-  contentType?:   string;
+import type { ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
+import { resultError } from '../coordination/dispatcher-client.ts';
+
+export interface ResponseValidation<T> {
+  valid:    boolean;
+  data?:    T;
+  errors:   string[];
 }
 
-export interface ResponseValidationResult {
-  valid:          boolean;
-  errors:         string[];
-  statusOk:       boolean;
-  bodyOk:         boolean;
+export function validateToolResponse<T>(
+  result:        ToolExecutionResult<T>,
+  toolName:      string,
+  required = true,
+): ResponseValidation<T> {
+  if (!result.ok) {
+    const msg = `Tool "${toolName}" failed: ${resultError(result)}`;
+    return { valid: !required, errors: required ? [msg] : [] };
+  }
+
+  if (result.data === undefined || result.data === null) {
+    const msg = `Tool "${toolName}" returned no data`;
+    return { valid: !required, data: undefined, errors: required ? [msg] : [] };
+  }
+
+  return { valid: true, data: result.data, errors: [] };
 }
 
-export function validateHttpResponse(spec: HttpResponseSpec): ResponseValidationResult {
+export function validateRequiredFields<T extends object>(
+  data:   T,
+  fields: (keyof T)[],
+  label:  string,
+): ResponseValidation<T> {
   const errors: string[] = [];
-
-  const statusOk = spec.status === spec.expectedStatus;
-  if (!statusOk) {
-    errors.push(`Expected status ${spec.expectedStatus}, got ${spec.status}`);
-  }
-
-  let bodyOk = true;
-  if (spec.body !== undefined && spec.body === null) {
-    errors.push('Response body is null');
-    bodyOk = false;
-  }
-
-  return { valid: errors.length === 0, errors, statusOk, bodyOk };
-}
-
-export function validateJsonBody(body: unknown, requiredFields: string[]): SchemaValidationResult {
-  if (typeof body !== 'object' || body === null) {
-    return { valid: false, errors: ['Response body is not a JSON object'] };
-  }
-
-  const errors: string[] = [];
-  for (const field of requiredFields) {
-    if (!(field in (body as Record<string, unknown>))) {
-      errors.push(`Missing required field: ${field}`);
+  for (const field of fields) {
+    if (data[field] === undefined || data[field] === null) {
+      errors.push(`[${label}] Required field missing: "${String(field)}"`);
     }
   }
-
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, data: errors.length === 0 ? data : undefined, errors };
 }
 
-export function validateStatusRange(status: number, min: number, max: number): boolean {
-  return status >= min && status <= max;
+export function isSuccessResponse(result: ToolExecutionResult): boolean {
+  return result.ok && (result as { ok: true; data: unknown; durationMs: number }).data !== undefined;
+}
+
+export function extractOrDefault<T>(result: ToolExecutionResult<T>, defaultValue: T): T {
+  return result.ok ? result.data : defaultValue;
+}
+
+export function extractErrors(result: ToolExecutionResult): string[] {
+  if (!result.ok) return [resultError(result)];
+  return [];
 }

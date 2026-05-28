@@ -1,62 +1,76 @@
-import type { RuntimeCheckResult, ServerState } from '../types/runtime.types.ts';
-import { sleep } from '../../../orchestration/utils/execution-utils.ts';
+/**
+ * runtime/server-healthcheck.ts
+ * HTTP health-check implementation for the running dev server.
+ * Called by server/tools/verifier/runtime/check-server-health.ts.
+ */
 
-const DEFAULT_TIMEOUT_MS = 5_000;
-const DEFAULT_PORT       = 3001;
+import type { RuntimeCheckResult } from '../types/runtime.types.ts';
 
 export interface HealthCheckOptions {
-  host?:      string;
   port?:      number;
+  host?:      string;
   path?:      string;
   timeoutMs?: number;
   retries?:   number;
-  retryDelayMs?: number;
 }
 
-export async function checkServerHealth(
-  opts: HealthCheckOptions = {},
-): Promise<RuntimeCheckResult> {
-  const host     = opts.host    ?? '127.0.0.1';
-  const port     = opts.port    ?? DEFAULT_PORT;
-  const path     = opts.path    ?? '/';
-  const timeout  = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const retries  = opts.retries ?? 1;
-  const delay    = opts.retryDelayMs ?? 1000;
+const DEFAULT_PORT    = 3001;
+const DEFAULT_TIMEOUT = 10_000;
+const HEALTH_PATHS    = ['/', '/health', '/api/health'];
 
-  const url = `http://${host}:${port}${path}`;
+async function tryFetch(url: string, timeoutMs: number): Promise<{ ok: boolean; status: number }> {
+  try {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const resp  = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return { ok: resp.status < 500, status: resp.status };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
 
-  for (let attempt = 0; attempt < retries; attempt++) {
-    const start = Date.now();
-    try {
-      const controller = new AbortController();
-      const timer      = setTimeout(() => controller.abort(), timeout);
+export async function checkServerHealth(opts: HealthCheckOptions = {}): Promise<RuntimeCheckResult> {
+  const port      = opts.port      ?? DEFAULT_PORT;
+  const host      = opts.host      ?? 'localhost';
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT;
+  const retries   = opts.retries   ?? 0;
+  const paths     = opts.path ? [opts.path] : HEALTH_PATHS;
 
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-
-      const responseTimeMs = Date.now() - start;
-      const state: ServerState = res.status < 500 ? 'up' : 'down';
-
-      return { healthy: state === 'up', state, responseTimeMs, checkedAt: new Date() };
-    } catch (err) {
-      if (attempt < retries - 1) await sleep(delay);
+  for (const path of paths) {
+    const url = `http://${host}:${port}${path}`;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const result = await tryFetch(url, timeoutMs);
+      if (result.ok) {
+        return {
+          healthy:   true,
+          state:     'running',
+          details:   `Healthy on ${url} (${result.status})`,
+          checkedAt: new Date(),
+          errors:    [],
+        };
+      }
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 1_000));
     }
   }
 
-  return { healthy: false, state: 'down', error: `Server unreachable at ${url}`, checkedAt: new Date() };
+  return {
+    healthy:   false,
+    state:     'unhealthy',
+    details:   `No healthy endpoint on port ${port}`,
+    checkedAt: new Date(),
+    errors:    [`No healthy endpoint found on port ${port}`],
+  };
 }
 
-export async function waitForServer(
-  opts:       HealthCheckOptions,
-  maxWaitMs:  number,
-): Promise<boolean> {
+export async function waitForServer(opts: HealthCheckOptions, maxWaitMs: number): Promise<boolean> {
   const start    = Date.now();
-  const interval = opts.retryDelayMs ?? 1000;
+  const interval = 1_000;
 
   while (Date.now() - start < maxWaitMs) {
-    const result = await checkServerHealth({ ...opts, retries: 1 });
+    const result = await checkServerHealth(opts);
     if (result.healthy) return true;
-    await sleep(interval);
+    await new Promise((r) => setTimeout(r, interval));
   }
   return false;
 }

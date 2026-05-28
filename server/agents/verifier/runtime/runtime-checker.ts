@@ -1,55 +1,71 @@
-import type { ServerHealth, ServerState } from '../types.ts';
-import type { EndpointSpec } from '../types.ts';
+/**
+ * runtime/runtime-checker.ts
+ * Full runtime validation: server health + optional endpoint checks.
+ * Called by server/tools/verifier/runtime/runtime-validator.ts.
+ */
+
+import type { RuntimeCheckResult } from '../types/runtime.types.ts';
+import type { EndpointSpec } from '../types/verifier.types.ts';
 import { checkServerHealth } from './server-healthcheck.ts';
-import { checkAllEndpoints, summarizeEndpointResults } from './endpoint-checker.ts';
-import { verifierLogger } from '../telemetry.ts';
+import { checkAllEndpoints } from './endpoint-checker.ts';
 
 export interface RuntimeCheckOptions {
   port?:      number;
-  endpoints?: EndpointSpec[];
+  host?:      string;
   timeoutMs?: number;
   retries?:   number;
+  endpoints?: EndpointSpec[];
 }
 
-export interface RuntimeCheckSummary {
-  healthy:         boolean;
-  state:           ServerState;
+export interface RuntimeCheckSummary extends RuntimeCheckResult {
   endpointsPassed: number;
   endpointsFailed: number;
-  errors:          string[];
-  health:          ServerHealth;
 }
 
-export async function checkRuntime(runId: string, opts: RuntimeCheckOptions = {}): Promise<RuntimeCheckSummary> {
-  verifierLogger.phase(runId, 'runtime', 'start', { port: opts.port });
-
+export async function checkRuntime(
+  runId: string,
+  opts:  RuntimeCheckOptions = {},
+): Promise<RuntimeCheckSummary> {
   const healthResult = await checkServerHealth({
-    port:         opts.port ?? 3001,
-    timeoutMs:    opts.timeoutMs ?? 5000,
-    retries:      opts.retries ?? 2,
-    retryDelayMs: 1000,
+    port:      opts.port,
+    host:      opts.host,
+    timeoutMs: opts.timeoutMs,
+    retries:   opts.retries,
   });
 
-  const health: ServerHealth = { state: healthResult.state, port: opts.port, checks: [healthResult] };
-  const errors: string[] = [];
+  if (!healthResult.healthy) {
+    return { ...healthResult, endpointsPassed: 0, endpointsFailed: 0 };
+  }
+
   let endpointsPassed = 0;
   let endpointsFailed = 0;
-
-  if (!healthResult.healthy) {
-    errors.push(healthResult.error ?? 'Server is unreachable');
-    verifierLogger.phase(runId, 'runtime', 'fail', { state: healthResult.state });
-    return { healthy: false, state: healthResult.state, endpointsPassed, endpointsFailed, errors, health };
-  }
+  const extraErrors: string[] = [];
 
   if (opts.endpoints?.length) {
-    const results = await checkAllEndpoints(opts.endpoints, { port: opts.port });
-    const summary  = summarizeEndpointResults(results);
-    endpointsPassed = summary.passed;
-    endpointsFailed = summary.failed;
-    errors.push(...summary.errors);
+    const epResults = await checkAllEndpoints(opts.endpoints, {
+      port:      opts.port,
+      timeoutMs: opts.timeoutMs,
+    });
+    endpointsPassed = epResults.filter((r) => r.passed).length;
+    endpointsFailed = epResults.filter((r) => !r.passed).length;
+    for (const r of epResults) {
+      if (!r.passed) extraErrors.push(r.error ?? `Endpoint failed: ${r.path}`);
+    }
   }
 
-  const healthy = errors.length === 0;
-  verifierLogger.phase(runId, 'runtime', healthy ? 'end' : 'fail', { endpointsPassed, endpointsFailed });
-  return { healthy, state: healthResult.state, endpointsPassed, endpointsFailed, errors, health };
+  return {
+    ...healthResult,
+    healthy:   endpointsFailed === 0,
+    errors:    [...healthResult.errors, ...extraErrors],
+    endpointsPassed,
+    endpointsFailed,
+  };
+}
+
+export async function validateRuntime(
+  runId: string,
+  opts:  RuntimeCheckOptions = {},
+): Promise<{ valid: boolean; errors: string[] }> {
+  const result = await checkRuntime(runId, opts);
+  return { valid: result.healthy, errors: result.errors };
 }

@@ -1,45 +1,58 @@
-import type { ParsedError } from '../types/diagnostics.types.ts';
-import { parseLines } from '../utils/parser-utils.ts';
+/**
+ * build/build-error-parser.ts
+ * Parses raw build output into structured ParsedError objects.
+ * Called by server/tools/verifier/build/build-error-classifier.ts.
+ */
 
-const ERROR_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /error ts\d+/i,                          label: 'TypeScript error' },
-  { pattern: /\[error\]/i,                             label: 'Build error'      },
-  { pattern: /build failed/i,                          label: 'Build failed'     },
-  { pattern: /cannot find module/i,                    label: 'Missing module'   },
-  { pattern: /unexpected token/i,                      label: 'Syntax error'     },
-  { pattern: /failed to resolve/i,                     label: 'Resolution error' },
-  { pattern: /rollup.*error/i,                         label: 'Rollup error'     },
-  { pattern: /vite.*error/i,                           label: 'Vite error'       },
-  { pattern: /esbuild.*error/i,                        label: 'ESBuild error'    },
+import type { ParsedError } from '../types/diagnostics.types.ts';
+
+const ERROR_PATTERNS: Array<{
+  regex: RegExp;
+  category: ParsedError['category'];
+}> = [
+  { regex: /error TS\d{4}/i,                         category: 'typecheck'   },
+  { regex: /vite.*build.*error|esbuild.*error/i,     category: 'build'       },
+  { regex: /cannot find module|module not found/i,   category: 'dependency'  },
+  { regex: /syntax.*error|unexpected token/i,        category: 'build'       },
 ];
 
-const FILE_LOCATION = /([^\s(]+\.(ts|tsx|js|jsx)):(\d+):(\d+)/;
+const SEVERITY_RE: Record<ParsedError['severity'], RegExp> = {
+  fatal:   /fatal|crash|oom/i,
+  error:   /\berror\b|\bfailed\b/i,
+  warning: /\bwarn(ing)?\b/i,
+  info:    /.*/,
+};
+
+function detectCategory(line: string): ParsedError['category'] {
+  for (const { regex, category } of ERROR_PATTERNS) {
+    if (regex.test(line)) return category;
+  }
+  return 'build';
+}
+
+function detectSeverity(line: string): ParsedError['severity'] {
+  for (const [severity, re] of Object.entries(SEVERITY_RE) as [ParsedError['severity'], RegExp][]) {
+    if (re.test(line)) return severity;
+  }
+  return 'info';
+}
 
 export function parseBuildErrors(output: string): ParsedError[] {
-  const lines  = parseLines(output);
+  const lines  = output.split('\n');
   const errors: ParsedError[] = [];
 
   for (const line of lines) {
-    for (const { pattern } of ERROR_PATTERNS) {
-      if (!pattern.test(line)) continue;
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (!/error|fail|warn/i.test(trimmed)) continue;
 
-      const locMatch = line.match(FILE_LOCATION);
-      errors.push({
-        message:  line.trim().slice(0, 300),
-        severity: 'error',
-        category: 'build',
-        file:     locMatch ? locMatch[1] : undefined,
-        line:     locMatch ? parseInt(locMatch[3], 10) : undefined,
-        column:   locMatch ? parseInt(locMatch[4], 10) : undefined,
-        raw:      line,
-      });
-      break;
-    }
+    errors.push({
+      message:  trimmed.slice(0, 400),
+      severity: detectSeverity(trimmed),
+      category: detectCategory(trimmed),
+      raw:      trimmed,
+    });
   }
 
   return errors;
-}
-
-export function hasTerminalBuildError(output: string): boolean {
-  return /build failed|fatal error|compilation failed/i.test(output);
 }

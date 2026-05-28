@@ -1,35 +1,28 @@
-import type { VerificationPhase } from '../types/verifier.types.ts';
-import { verifierLogger } from '../telemetry/verifier-logger.ts';
+/**
+ * recovery/failure-recovery.ts
+ * Determines recovery action for a given failure.
+ * Called by server/tools/verifier/recovery/failure-recovery.ts.
+ */
 
-export type RecoveryAction = 'retry' | 'skip' | 'abort' | 'partial';
+import type { VerificationPhase } from '../types/verifier.types.ts';
+
+export type RecoveryAction = 'retry' | 'rollback' | 'skip' | 'abort';
 
 export interface RecoveryDecision {
-  action:  RecoveryAction;
-  reason:  string;
-  retryIn?: number;
+  action:      RecoveryAction;
+  reason:      string;
+  canRetry:    boolean;
+  maxRetries:  number;
+  retryIn?:    number;
 }
 
-const RECOVERABLE_PHASES = new Set<VerificationPhase>(['runtime', 'endpoints', 'tests']);
-const MAX_FAILURES_MAP: Partial<Record<VerificationPhase, number>> = {
-  typecheck: 1,
-  build:     1,
-  runtime:   2,
-  endpoints: 2,
-  tests:     1,
-};
+const RETRY_PHASES: VerificationPhase[] = ['runtime', 'endpoints'];
+const ABORT_PHASES: VerificationPhase[] = ['typecheck'];
 
-const failureCounts = new Map<string, Map<VerificationPhase, number>>();
+const recoveryAttempts = new Map<string, number>();
 
-function getFailureCount(runId: string, phase: VerificationPhase): number {
-  return failureCounts.get(runId)?.get(phase) ?? 0;
-}
-
-function incrementFailure(runId: string, phase: VerificationPhase): number {
-  if (!failureCounts.has(runId)) failureCounts.set(runId, new Map());
-  const counts = failureCounts.get(runId)!;
-  const next   = (counts.get(phase) ?? 0) + 1;
-  counts.set(phase, next);
-  return next;
+function runKey(runId: string, phase: VerificationPhase): string {
+  return `${runId}:${phase}`;
 }
 
 export function decideRecovery(
@@ -37,23 +30,31 @@ export function decideRecovery(
   phase:  VerificationPhase,
   error:  string,
 ): RecoveryDecision {
-  const count   = incrementFailure(runId, phase);
-  const maxFail = MAX_FAILURES_MAP[phase] ?? 1;
+  const key      = runKey(runId, phase);
+  const attempts = recoveryAttempts.get(key) ?? 0;
 
-  if (!RECOVERABLE_PHASES.has(phase)) {
-    verifierLogger.warn(runId, `[recovery] Phase "${phase}" is not recoverable — aborting`);
-    return { action: 'abort', reason: `Phase ${phase} does not support recovery` };
+  if (ABORT_PHASES.includes(phase)) {
+    return { action: 'abort', reason: 'Non-retryable phase failure', canRetry: false, maxRetries: 0 };
   }
 
-  if (count >= maxFail) {
-    verifierLogger.warn(runId, `[recovery] Phase "${phase}" exceeded max failures (${maxFail})`);
-    return { action: 'skip', reason: `Max failures reached for phase ${phase}` };
+  if (error.includes('permission') || error.includes('EACCES')) {
+    return { action: 'abort', reason: 'Permission error', canRetry: false, maxRetries: 0 };
   }
 
-  verifierLogger.info(runId, `[recovery] Retrying phase "${phase}" (attempt ${count})`);
-  return { action: 'retry', reason: `Attempt ${count}`, retryIn: 1000 * count };
+  if (RETRY_PHASES.includes(phase) && attempts < 2) {
+    recoveryAttempts.set(key, attempts + 1);
+    return { action: 'retry', reason: 'Transient failure — retrying', canRetry: true, maxRetries: 2, retryIn: 1_000 };
+  }
+
+  if (attempts >= 2) {
+    return { action: 'rollback', reason: 'Retry exhausted — rolling back', canRetry: false, maxRetries: 2 };
+  }
+
+  return { action: 'skip', reason: 'Non-critical phase skipped', canRetry: false, maxRetries: 0 };
 }
 
 export function clearRecoveryState(runId: string): void {
-  failureCounts.delete(runId);
+  for (const key of recoveryAttempts.keys()) {
+    if (key.startsWith(`${runId}:`)) recoveryAttempts.delete(key);
+  }
 }

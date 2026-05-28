@@ -1,66 +1,54 @@
+/**
+ * typecheck/type-error-parser.ts
+ * Parses tsc output into structured TypeScript error objects.
+ * Called by server/tools/verifier/typecheck/typescript-parser.ts.
+ */
+
 import type { ParsedError } from '../types/diagnostics.types.ts';
-import { parseLines } from '../utils/parser-utils.ts';
 
-const TS_ERROR_PATTERN = /^(.+?)\((\d+),(\d+)\):\s*error\s+(TS\d+):\s*(.+)$/;
-const TS_WARN_PATTERN  = /^(.+?)\((\d+),(\d+)\):\s*warning\s+(TS\d+):\s*(.+)$/;
-
-export interface RawTypeError {
-  file:     string;
-  line:     number;
-  column:   number;
-  code:     string;
-  message:  string;
-  isError:  boolean;
+export interface TypeScriptError {
+  file:    string;
+  line:    number;
+  col:     number;
+  code:    number;
+  message: string;
+  raw:     string;
 }
 
-export function parseTscOutput(output: string): RawTypeError[] {
-  const lines  = parseLines(output);
-  const errors: RawTypeError[] = [];
+const TS_ERROR_RE = /^(.+?)\((\d+),(\d+)\):\s+error TS(\d+):\s+(.+)$/;
 
-  for (const line of lines) {
-    const errMatch = line.match(TS_ERROR_PATTERN);
-    if (errMatch) {
-      errors.push({
-        file:    errMatch[1],
-        line:    parseInt(errMatch[2], 10),
-        column:  parseInt(errMatch[3], 10),
-        code:    errMatch[4],
-        message: errMatch[5],
-        isError: true,
-      });
-      continue;
-    }
-
-    const warnMatch = line.match(TS_WARN_PATTERN);
-    if (warnMatch) {
-      errors.push({
-        file:    warnMatch[1],
-        line:    parseInt(warnMatch[2], 10),
-        column:  parseInt(warnMatch[3], 10),
-        code:    warnMatch[4],
-        message: warnMatch[5],
-        isError: false,
-      });
-    }
+export function parseTscOutput(output: string): TypeScriptError[] {
+  const errors: TypeScriptError[] = [];
+  for (const line of output.split('\n')) {
+    const m = TS_ERROR_RE.exec(line.trim());
+    if (!m) continue;
+    errors.push({ file: m[1], line: parseInt(m[2], 10), col: parseInt(m[3], 10), code: parseInt(m[4], 10), message: m[5], raw: line.trim() });
   }
-
   return errors;
 }
 
-export function rawToParseError(raw: RawTypeError): ParsedError {
+export function extractErrorCount(output: string): number {
+  return (output.match(/error TS\d{4}/g) ?? []).length;
+}
+
+export function rawToParseError(e: TypeScriptError): ParsedError {
   return {
-    message:  raw.message,
-    severity: raw.isError ? 'error' : 'warning',
+    message:  `TS${e.code}: ${e.message}`,
+    severity: 'error',
     category: 'typecheck',
-    file:     raw.file,
-    line:     raw.line,
-    column:   raw.column,
-    code:     raw.code,
-    raw:      `${raw.file}(${raw.line},${raw.column}): ${raw.code}: ${raw.message}`,
+    file:     e.file,
+    line:     e.line,
+    column:   e.col,
+    code:     `TS${e.code}`,
+    raw:      e.raw,
   };
 }
 
-export function extractErrorCount(output: string): number {
-  const m = output.match(/Found (\d+) error/);
-  return m ? parseInt(m[1], 10) : 0;
+export function groupByFile(errors: TypeScriptError[]): Map<string, TypeScriptError[]> {
+  const map = new Map<string, TypeScriptError[]>();
+  for (const e of errors) {
+    if (!map.has(e.file)) map.set(e.file, []);
+    map.get(e.file)!.push(e);
+  }
+  return map;
 }

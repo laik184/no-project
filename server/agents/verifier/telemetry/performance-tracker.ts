@@ -1,53 +1,69 @@
+/**
+ * telemetry/performance-tracker.ts
+ * Phase and step timing tracker.
+ */
+
 import type { VerificationPhase } from '../types/verifier.types.ts';
 
-interface PhaseTimer {
-  phase:     VerificationPhase;
+interface ActiveTimer {
   startedAt: number;
+  label:     string;
 }
 
-const activeTimers = new Map<string, Map<VerificationPhase, PhaseTimer>>();
-const completedMs  = new Map<string, Map<VerificationPhase, number>>();
+const activeTimers    = new Map<string, Map<string, ActiveTimer>>();
+const completedTimers = new Map<string, Map<string, number>>();
 
-function getTimers(runId: string): Map<VerificationPhase, PhaseTimer> {
+function getActive(runId: string): Map<string, ActiveTimer> {
   if (!activeTimers.has(runId)) activeTimers.set(runId, new Map());
   return activeTimers.get(runId)!;
 }
-
-function getCompleted(runId: string): Map<VerificationPhase, number> {
-  if (!completedMs.has(runId)) completedMs.set(runId, new Map());
-  return completedMs.get(runId)!;
+function getCompleted(runId: string): Map<string, number> {
+  if (!completedTimers.has(runId)) completedTimers.set(runId, new Map());
+  return completedTimers.get(runId)!;
 }
 
 export const performanceTracker = {
-  startPhase(runId: string, phase: VerificationPhase): void {
-    getTimers(runId).set(phase, { phase, startedAt: Date.now() });
+  start(runId: string, key: string): void {
+    getActive(runId).set(key, { startedAt: Date.now(), label: key });
   },
 
-  endPhase(runId: string, phase: VerificationPhase): number {
-    const timer = getTimers(runId).get(phase);
+  end(runId: string, key: string): number {
+    const timer = getActive(runId).get(key);
     if (!timer) return 0;
     const durationMs = Date.now() - timer.startedAt;
-    getCompleted(runId).set(phase, durationMs);
-    getTimers(runId).delete(phase);
+    getCompleted(runId).set(key, durationMs);
+    getActive(runId).delete(key);
     return durationMs;
   },
 
-  getDuration(runId: string, phase: VerificationPhase): number {
-    return getCompleted(runId).get(phase) ?? 0;
+  startPhase(runId: string, phase: VerificationPhase): void {
+    this.start(runId, `phase:${phase}`);
   },
 
-  getAllDurations(runId: string): Record<string, number> {
-    return Object.fromEntries(getCompleted(runId).entries());
+  endPhase(runId: string, phase: VerificationPhase): number {
+    return this.end(runId, `phase:${phase}`);
   },
 
-  getTotalDuration(runId: string): number {
+  get(runId: string, key: string): number {
+    return getCompleted(runId).get(key) ?? 0;
+  },
+
+  getPhase(runId: string, phase: VerificationPhase): number {
+    return this.get(runId, `phase:${phase}`);
+  },
+
+  totalDuration(runId: string): number {
     let total = 0;
     for (const ms of getCompleted(runId).values()) total += ms;
     return total;
   },
 
+  allDurations(runId: string): Record<string, number> {
+    return Object.fromEntries(getCompleted(runId).entries());
+  },
+
   clear(runId: string): void {
     activeTimers.delete(runId);
-    completedMs.delete(runId);
+    completedTimers.delete(runId);
   },
 };

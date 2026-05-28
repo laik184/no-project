@@ -1,40 +1,9 @@
-import type { StackFrame, ParsedError, ErrorSeverity } from '../types/diagnostics.types.ts';
+/**
+ * utils/diagnostics-utils.ts
+ * Utility functions for working with diagnostics data.
+ */
 
-export function formatStackTrace(frames: StackFrame[]): string {
-  return frames
-    .map((f) => {
-      const loc = f.column !== undefined ? `${f.line}:${f.column}` : `${f.line}`;
-      const fn  = f.functionName ? `${f.functionName} ` : '';
-      return `  at ${fn}(${f.file}:${loc})`;
-    })
-    .join('\n');
-}
-
-export function buildErrorContext(
-  error:    ParsedError,
-  maxLines  = 5,
-): string {
-  const lines: string[] = [
-    `[${error.severity.toUpperCase()}] ${error.message}`,
-  ];
-  if (error.file) {
-    const loc = error.line !== undefined ? `:${error.line}` : '';
-    lines.push(`  File: ${error.file}${loc}`);
-  }
-  if (error.code) lines.push(`  Code: ${error.code}`);
-  return lines.slice(0, maxLines).join('\n');
-}
-
-export function summarizeErrors(errors: ParsedError[]): string {
-  const fatal   = errors.filter((e) => e.severity === 'fatal').length;
-  const errs    = errors.filter((e) => e.severity === 'error').length;
-  const warns   = errors.filter((e) => e.severity === 'warning').length;
-  const parts: string[] = [];
-  if (fatal > 0) parts.push(`${fatal} fatal`);
-  if (errs  > 0) parts.push(`${errs} error(s)`);
-  if (warns > 0) parts.push(`${warns} warning(s)`);
-  return parts.length ? parts.join(', ') : 'no issues';
-}
+import type { ParsedError, ErrorSeverity, FailureCategory, FailureSummary } from '../types/diagnostics.types.ts';
 
 export function highestSeverity(errors: ParsedError[]): ErrorSeverity {
   if (errors.some((e) => e.severity === 'fatal'))   return 'fatal';
@@ -51,4 +20,52 @@ export function deduplicateErrors(errors: ParsedError[]): ParsedError[] {
     seen.add(key);
     return true;
   });
+}
+
+export function buildFailureSummary(errors: ParsedError[]): FailureSummary {
+  const fatal    = errors.filter((e) => e.severity === 'fatal').length;
+  const errs     = errors.filter((e) => e.severity === 'error').length;
+  const warns    = errors.filter((e) => e.severity === 'warning').length;
+  const topErrors = errors.slice(0, 5).map((e) => e.message);
+
+  const categories: Partial<Record<FailureCategory, number>> = {};
+  for (const e of errors) {
+    categories[e.category] = (categories[e.category] ?? 0) + 1;
+  }
+
+  return {
+    total:       errors.length,
+    fatal,
+    errors:      errs,
+    warnings:    warns,
+    categories,
+    topErrors,
+    hasCritical: fatal > 0 || errs > 0,
+  };
+}
+
+export function errorMessagesToStrings(errors: ParsedError[]): string[] {
+  return errors.map((e) => {
+    const loc  = e.file ? ` [${e.file}${e.line !== undefined ? `:${e.line}` : ''}]` : '';
+    const code = e.code ? ` (${e.code})` : '';
+    return `${e.message}${code}${loc}`;
+  });
+}
+
+export function filterByCategory(
+  errors:   ParsedError[],
+  category: FailureCategory,
+): ParsedError[] {
+  return errors.filter((e) => e.category === category);
+}
+
+export function filterBySeverity(
+  errors:   ParsedError[],
+  severity: ErrorSeverity,
+): ParsedError[] {
+  return errors.filter((e) => e.severity === severity);
+}
+
+export function isCriticalFailure(errors: ParsedError[]): boolean {
+  return errors.some((e) => e.severity === 'fatal' || e.severity === 'error');
 }

@@ -1,44 +1,36 @@
-import type { ParsedError, DiagnosticsReport } from '../types/diagnostics.types.ts';
-import { classifyError } from './failure-classifier.ts';
-import { deduplicateErrors, highestSeverity, summarizeErrors } from '../utils/diagnostics-utils.ts';
-import { parseLines } from '../utils/parser-utils.ts';
+/**
+ * diagnostics/error-analyzer.ts
+ * Analyzes raw error output and classifies error lines.
+ * Called by server/tools/verifier/diagnostics/error-analyzer.ts and runtime-log-parser.ts.
+ */
 
-const ERROR_LINE_PATTERN = /(?:error|exception|failed|cannot find).*$/im;
+import type { ParsedError, DiagnosticsReport } from '../types/diagnostics.types.ts';
+import { classifyError } from './error-classifier.ts';
 
 export function analyzeOutput(runId: string, output: string): ParsedError[] {
-  const lines = parseLines(output);
+  const lines = output.split('\n').map((l) => l.trim()).filter(Boolean);
   const errors: ParsedError[] = [];
-
   for (const line of lines) {
-    if (ERROR_LINE_PATTERN.test(line)) {
-      errors.push(classifyError(line));
-    }
+    if (!/error|fail|warn|exception/i.test(line)) continue;
+    errors.push(classifyError(line));
   }
-
-  return deduplicateErrors(errors);
+  return errors;
 }
 
-export function analyzeMultipleOutputs(
-  runId:   string,
-  outputs: string[],
-): ParsedError[] {
-  const all: ParsedError[] = outputs.flatMap((o) => analyzeOutput(runId, o));
-  return deduplicateErrors(all);
+export function analyzeMultipleOutputs(runId: string, outputs: string[]): ParsedError[] {
+  return outputs.flatMap((o) => analyzeOutput(runId, o));
 }
 
-export function buildDiagnosticsReport(
-  runId:  string,
-  errors: ParsedError[],
-): DiagnosticsReport {
-  const deduped   = deduplicateErrors(errors);
-  const severity  = highestSeverity(deduped);
-  const summary   = summarizeErrors(deduped);
+export function buildDiagnosticsReport(runId: string, errors: ParsedError[]): DiagnosticsReport {
+  const fatal    = errors.filter((e) => e.severity === 'fatal');
+  const hasError = errors.some((e) => e.severity === 'error' || e.severity === 'fatal');
+  const severity = fatal.length > 0 ? 'fatal' : hasError ? 'error' : 'warning';
 
   return {
     runId,
-    errors:     deduped,
-    rootCauses: [],
-    summary,
+    errors,
+    rootCauses:  [],
+    summary:     errors.length === 0 ? 'No errors' : `${errors.length} error(s) found`,
     severity,
     generatedAt: new Date(),
   };

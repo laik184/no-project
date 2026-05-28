@@ -1,54 +1,58 @@
-import { parseLines, extractNumber } from '../utils/parser-utils.ts';
+/**
+ * build/build-output-analyzer.ts
+ * Analyzes build output for warnings, errors, and summaries.
+ * Called by server/tools/verifier/build/build-output-parser.ts.
+ */
 
 export interface BuildOutputAnalysis {
-  hasErrors:        boolean;
-  hasWarnings:      boolean;
-  outputFiles:      string[];
-  bundleSizeBytes?: number;
-  buildTimeMs?:     number;
-  modules?:         number;
-  chunks?:          number;
+  hasErrors:    boolean;
+  hasWarnings:  boolean;
+  errorCount:   number;
+  warningCount: number;
+  errorLines:   string[];
+  warningLines: string[];
+  outputFiles:  string[];
+  buildTimeMs:  number | undefined;
+  summary:      string;
 }
 
-const OUTPUT_FILE_PATTERN = /(?:dist|build|\.next|out)\/[\w/.-]+\.(js|css|html)/g;
-const SIZE_PATTERN         = /(\d+(?:\.\d+)?)\s*(bytes?|kb|mb)/i;
-const BUILD_TIME_PATTERN   = /built in (\d+(?:\.\d+)?)\s*ms/i;
+const ERROR_RE    = /\berror\b|\bfailed\b|\bfailure\b/i;
+const WARNING_RE  = /\bwarn(ing)?\b/i;
+const OUTPUT_RE   = /(?:dist|build|out)\/.+\.(js|mjs|cjs|css|html)/i;
+const TIME_RE     = /built in\s+([\d.]+)\s*(ms|s)/i;
 
-export function analyzeBuildOutput(stdout: string, stderr: string): BuildOutputAnalysis {
-  const combined  = `${stdout}\n${stderr}`;
-  const lines     = parseLines(combined);
+export function analyzeBuildOutput(stdout: string, stderr = ''): BuildOutputAnalysis {
+  const combined = `${stdout}\n${stderr}`;
+  const lines    = combined.split('\n').map((l) => l.trim()).filter(Boolean);
 
-  const hasErrors   = /error|failed/i.test(stderr) || lines.some((l) => /\berror\b/i.test(l));
-  const hasWarnings = /warn/i.test(combined);
+  const errorLines   = lines.filter((l) => ERROR_RE.test(l) && !WARNING_RE.test(l));
+  const warningLines = lines.filter((l) => WARNING_RE.test(l) && !ERROR_RE.test(l));
+  const outputFiles  = lines.filter((l) => OUTPUT_RE.test(l)).slice(0, 20);
 
-  const outputFiles = Array.from(new Set(
-    Array.from(combined.matchAll(OUTPUT_FILE_PATTERN)).map((m) => m[0]),
-  ));
-
-  const sizeMatch = combined.match(SIZE_PATTERN);
-  let bundleSizeBytes: number | undefined;
-  if (sizeMatch) {
-    const value = parseFloat(sizeMatch[1]);
-    const unit  = sizeMatch[2].toLowerCase();
-    bundleSizeBytes = unit.startsWith('mb') ? value * 1_048_576
-      : unit.startsWith('kb') ? value * 1024
-      : value;
+  let buildTimeMs: number | undefined;
+  const timeMatch = TIME_RE.exec(combined);
+  if (timeMatch) {
+    buildTimeMs = parseFloat(timeMatch[1]) * (timeMatch[2] === 's' ? 1000 : 1);
   }
 
-  const timeMatch = combined.match(BUILD_TIME_PATTERN);
-  const buildTimeMs = timeMatch ? parseFloat(timeMatch[1]) : undefined;
+  const hasErrors   = errorLines.length > 0;
+  const hasWarnings = warningLines.length > 0;
 
-  const modules = extractNumber(combined, /(\d+) modules? transformed/);
-  const chunks  = extractNumber(combined, /(\d+) chunk/);
+  const summary = hasErrors
+    ? `Build failed with ${errorLines.length} error(s)`
+    : hasWarnings
+    ? `Build succeeded with ${warningLines.length} warning(s)`
+    : 'Build succeeded';
 
-  return { hasErrors, hasWarnings, outputFiles, bundleSizeBytes, buildTimeMs, modules, chunks };
-}
-
-export function formatBuildAnalysis(analysis: BuildOutputAnalysis): string {
-  const lines = [
-    `Status:  ${analysis.hasErrors ? 'FAILED' : analysis.hasWarnings ? 'WARNINGS' : 'OK'}`,
-  ];
-  if (analysis.buildTimeMs !== undefined) lines.push(`Time:    ${analysis.buildTimeMs}ms`);
-  if (analysis.outputFiles.length) lines.push(`Outputs: ${analysis.outputFiles.length} file(s)`);
-  return lines.join('\n');
+  return {
+    hasErrors,
+    hasWarnings,
+    errorCount:   errorLines.length,
+    warningCount: warningLines.length,
+    errorLines:   errorLines.slice(0, 20),
+    warningLines: warningLines.slice(0, 10),
+    outputFiles,
+    buildTimeMs,
+    summary,
+  };
 }

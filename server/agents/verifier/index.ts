@@ -1,55 +1,92 @@
-export {
-  initializeVerifier,
-  runVerification,
-  shutdownVerifier,
-} from './core/verifier-agent.ts';
+/**
+ * server/agents/verifier/index.ts
+ * Public exports for the Verifier orchestration agent.
+ */
 
+// ── Agent ─────────────────────────────────────────────────────────────────────
+export { VerifierAgent, verifierAgent } from './verifier-agent.ts';
+
+// ── Core types ────────────────────────────────────────────────────────────────
 export type {
   VerificationInput,
   VerificationResult,
   VerificationPhase,
   VerificationStatus,
   PhaseResult,
+  VerificationConfig,
   EndpointSpec,
-  VerificationSession,
 } from './types/verifier.types.ts';
 
 export type {
-  RuntimeCheckResult,
-  EndpointCheckResult,
-  CrashReport,
-  ServerHealth,
-} from './types/runtime.types.ts';
+  WorkflowKind,
+  WorkflowInput,
+  WorkflowResult,
+} from './types/workflow.types.ts';
 
 export type {
-  DiagnosticsReport,
+  ExecutionStep,
+  StepResult,
+  ExecutionSummary,
+} from './types/execution.types.ts';
+
+export type {
   ParsedError,
   RootCause,
-  FailureCategory,
-  ErrorSeverity,
+  DiagnosticsReport,
+  FailureSummary,
 } from './types/diagnostics.types.ts';
 
-export type {
-  ValidationReport,
-  OutputValidationResult,
-  DependencyCheckResult,
-} from './types/validation.types.ts';
+// ── Orchestrator (for advanced callers) ───────────────────────────────────────
+export {
+  VerificationOrchestrator,
+  verificationOrchestrator,
+} from './orchestration/verification-orchestrator.ts';
 
-export { verifierLogger }   from './telemetry/verifier-logger.ts';
-export { verifierMetrics }  from './telemetry/verifier-metrics.ts';
-export { healthMonitor }    from './monitoring/health-monitor.ts';
-export { verificationMonitor } from './monitoring/verification-monitor.ts';
+// ── Compat shims for orchestration/pipeline callers ───────────────────────────
 
-export { checkServerHealth, waitForServer } from './runtime/server-healthcheck.ts';
-export { checkEndpoint, checkAllEndpoints } from './runtime/endpoint-checker.ts';
-export { runTypecheck }  from './typecheck/typescript-checker.ts';
-export { runBuild }      from './build/build-runner.ts';
-export { runTests }      from './testing/test-runner.ts';
+/**
+ * No-op initializer — verifier is lazily initialized on first use.
+ * Provided for backwards compatibility with verification-phase.ts.
+ */
+export function initializeVerifier(): void {
+  // no-op: the verifier agent is lazily initialized on first call
+}
 
-export { buildVerificationReport, formatVerificationResult, summarizeResult }
-  from './reports/verification-report.ts';
-export { buildDebugReport, formatDebugReport } from './diagnostics/debug-report-builder.ts';
-export { detectRootCauses }   from './diagnostics/rootcause-detector.ts';
-export { parseStackTrace }    from './diagnostics/stacktrace-parser.ts';
-export { validateCoverage }   from './testing/coverage-validator.ts';
-export { validateDependencies } from './validation/dependency-validator.ts';
+/**
+ * Convenience wrapper — runs a verification and returns a simplified result.
+ * Provided for backwards compatibility with verification-phase.ts.
+ */
+export async function runVerification(input: {
+  runId:      string;
+  projectId:  string;
+  phases:     import('./types/verifier.types.ts').VerificationPhase[];
+  timeoutMs?: number;
+  sandboxRoot?: string;
+}): Promise<{
+  ok:         boolean;
+  phases:     number;
+  durationMs: number;
+  errors:     string[];
+}> {
+  const { verifierAgent } = await import('./verifier-agent.ts');
+  const result = await verifierAgent.verify({
+    runId:       input.runId,
+    projectId:   input.projectId,
+    phases:      input.phases,
+    timeoutMs:   input.timeoutMs,
+    sandboxRoot: input.sandboxRoot ?? process.env['AGENT_PROJECT_ROOT'] ?? '.sandbox',
+  });
+  return {
+    ok:         result.overallStatus === 'passed',
+    phases:     result.phases.length,
+    durationMs: result.durationMs,
+    errors:     result.phases.flatMap((p) => p.errors),
+  };
+}
+
+// ── Monitoring ────────────────────────────────────────────────────────────────
+export { healthMonitor } from './monitoring/health-monitor.ts';
+
+// ── Telemetry (if callers want structured access) ─────────────────────────────
+export { verifierLogger }  from './telemetry/verifier-logger.ts';
+export { verifierMetrics } from './telemetry/verifier-metrics.ts';

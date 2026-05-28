@@ -1,0 +1,254 @@
+You are a senior principal autonomous systems engineer and TypeScript platform architect.
+
+Your task is to implement a production-grade "server/agents/verifier/" agent for an autonomous AI coding system.
+
+IMPORTANT:
+This is NOT a tool layer.
+
+This is ONLY an AGENT orchestration layer.
+
+The verifier agent must:
+
+- coordinate verification flows
+- orchestrate validation execution
+- manage verification sessions
+- control retries/recovery
+- route verification workflows
+- analyze failures
+- manage verification state
+- coordinate tools through dispatcher ONLY
+
+The verifier agent MUST NOT:
+
+- directly run builds
+- directly execute terminal commands
+- directly execute Playwright/browser logic
+- directly execute TypeScript compiler
+- directly perform filesystem operations
+- directly validate runtime internally
+
+ALL actual execution MUST happen through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No direct execution logic inside agent
+4. No hidden tool implementations
+5. No fs.writeFile()
+6. No child_process.spawn()
+7. No Playwright execution
+8. No direct tsc execution
+9. No runtime execution logic
+
+==================================================
+FINAL RESPONSIBILITY
+
+The verifier agent should ONLY:
+
+- decide verification strategy
+- plan verification phases
+- coordinate verification workflows
+- manage retries
+- monitor verification lifecycle
+- aggregate verification results
+- track verification state/history
+- emit events
+- collect telemetry
+- orchestrate dispatcher calls
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/verifier/
+
+├── verifier-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── verifier-engine.ts
+│   ├── verifier-context.ts
+│   ├── verifier-session.ts
+│   └── verifier-state.ts
+│
+├── orchestration/
+│   ├── verification-orchestrator.ts
+│   ├── verification-pipeline.ts
+│   ├── task-router.ts
+│   └── execution-controller.ts
+│
+├── planning/
+│   ├── verification-planner.ts
+│   ├── build-plan.ts
+│   ├── runtime-plan.ts
+│   └── validation-plan.ts
+│
+├── execution/
+│   ├── verification-runner.ts
+│   ├── step-runner.ts
+│   ├── verification-loop.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── tool-coordinator.ts
+│   ├── dispatcher-client.ts
+│   ├── verification-routing.ts
+│   └── execution-dispatcher.ts
+│
+├── workflows/
+│   ├── build-workflow.ts
+│   ├── runtime-workflow.ts
+│   ├── validation-workflow.ts
+│   ├── diagnostics-workflow.ts
+│   └── recovery-workflow.ts
+│
+├── monitoring/
+│   ├── verification-monitor.ts
+│   ├── execution-monitor.ts
+│   ├── failure-monitor.ts
+│   └── health-monitor.ts
+│
+├── recovery/
+│   ├── rollback-manager.ts
+│   ├── recovery-engine.ts
+│   ├── retry-recovery.ts
+│   └── checkpoint-recovery.ts
+│
+├── validation/
+│   ├── verification-validator.ts
+│   ├── runtime-validator.ts
+│   ├── response-validator.ts
+│   └── integrity-validator.ts
+│
+├── diagnostics/
+│   ├── failure-analyzer.ts
+│   ├── error-classifier.ts
+│   ├── rootcause-detector.ts
+│   └── diagnostics-builder.ts
+│
+├── events/
+│   ├── verifier-events.ts
+│   ├── workflow-events.ts
+│   ├── execution-events.ts
+│   └── event-publisher.ts
+│
+├── telemetry/
+│   ├── verifier-logger.ts
+│   ├── verifier-metrics.ts
+│   ├── execution-trace.ts
+│   └── performance-tracker.ts
+│
+├── state/
+│   ├── verification-store.ts
+│   ├── workflow-store.ts
+│   ├── execution-history.ts
+│   └── snapshot-store.ts
+│
+├── types/
+│   ├── verifier.types.ts
+│   ├── workflow.types.ts
+│   ├── execution.types.ts
+│   └── diagnostics.types.ts
+│
+└── utils/
+├── verification-utils.ts
+├── diagnostics-utils.ts
+├── planning-utils.ts
+└── execution-utils.ts
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Use strict TypeScript
+2. No file larger than 250 lines
+3. High cohesion
+4. Low coupling
+5. Fail-closed validation
+6. No circular imports
+7. No duplicated state systems
+8. No duplicated retry systems
+9. No embedded tools
+10. No business logic leakage
+
+==================================================
+VERIFIER EXECUTION FLOW
+
+Verifier Agent
+↓
+Verification Planner
+↓
+Verification Pipeline
+↓
+Verification Runner
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tools Layer
+↓
+Result Aggregation
+↓
+Diagnostics + Recovery
+↓
+Final Verification Report
+
+==================================================
+IMPORTANT EXECUTION RULES
+
+The verifier agent must communicate with tools ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+
+Example:
+
+CORRECT:
+dispatcher.execute("run_build")
+
+WRONG:
+spawn("npm run build")
+
+==================================================
+DELIVERABLES
+
+Generate:
+
+1. Full production-grade TypeScript implementation
+2. Clean modular architecture
+3. Proper interfaces/types
+4. Event-driven orchestration
+5. Retry/recovery orchestration
+6. Verification workflow engine
+7. Dispatcher-based execution coordination
+8. Monitoring + telemetry integration
+9. Diagnostics aggregation system
+10. Strict validation boundaries
+
+==================================================
+FINAL GOAL
+
+The final verifier agent should behave like:
+
+- Replit verification runtime
+- Cursor validation orchestration
+- production-grade autonomous QA coordinator
+
+The verifier agent must become:
+
+- scalable
+- deterministic
+- observable
+- secure
+- modular
+- orchestration-only
+- fully dispatcher-driven
