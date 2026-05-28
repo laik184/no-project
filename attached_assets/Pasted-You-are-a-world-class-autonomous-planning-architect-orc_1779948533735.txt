@@ -1,0 +1,287 @@
+You are a world-class autonomous planning architect, orchestration systems engineer, and TypeScript workflow coordination specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/planner/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The planner agent must ONLY create and coordinate execution plans.
+
+NO actual execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct runtime execution
+5. No direct filesystem execution
+6. No direct terminal execution
+7. No direct browser execution
+8. No direct verification execution
+9. No direct AI generation execution
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- centralized dispatcher
+- downstream agents/tools
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- npm commands
+- direct runtime validation
+- direct API execution
+- direct tool implementations
+
+==================================================
+PLANNER AGENT RESPONSIBILITY
+
+The planner agent should ONLY:
+
+- analyze user goals
+- generate execution plans
+- build execution phases
+- detect dependencies
+- organize workflow order
+- coordinate planning lifecycle
+- validate planning integrity
+- monitor planning state
+- manage planning retries
+- collect telemetry
+- communicate with dispatcher
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/planner/
+
+├── planner-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── planner-context.ts
+│   ├── planner-session.ts
+│   └── planner-state.ts
+│
+├── execution/
+│   ├── planning-loop.ts
+│   ├── task-runner.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── agent-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── planning-routing.ts
+│
+├── planning/
+│   ├── task-planner.ts
+│   ├── phase-planner.ts
+│   ├── dependency-planner.ts
+│   └── execution-plan-builder.ts
+│
+├── validation/
+│   ├── planning-validator.ts
+│   └── dependency-validator.ts
+│
+├── monitoring/
+│   └── planning-monitor.ts
+│
+├── telemetry/
+│   ├── planner-logger.ts
+│   └── planner-metrics.ts
+│
+├── types/
+│   └── planner.types.ts
+│
+└── utils/
+└── planning-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+planning-loop.ts
+→ MAIN planning runtime loop
+→ controls planning lifecycle
+→ controls retries/refinement
+→ controls phase generation
+
+task-runner.ts
+→ executes planning steps
+→ coordinates planning flow
+
+agent-coordinator.ts
+→ coordinates downstream agents
+→ routes planning execution
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+task-planner.ts
+→ converts user goals → tasks
+
+phase-planner.ts
+→ creates execution phases
+
+dependency-planner.ts
+→ resolves dependency order
+
+execution-plan-builder.ts
+→ builds final execution graph
+
+==================================================
+PLANNING FLOW
+
+Planner Agent
+↓
+Planning Loop
+↓
+Task Planner
+↓
+Phase Planner
+↓
+Dependency Planner
+↓
+Execution Plan Builder
+↓
+Agent Coordinator
+↓
+Dispatcher Client
+↓
+Central Dispatcher
+↓
+Execution Plan Output
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"create_execution_plan",
+payload
+)
+
+WRONG:
+
+spawn("npm install")
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated planning systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+planning-validator.ts
+must validate:
+
+- invalid planning requests
+- malformed execution plans
+- missing runtime context
+
+dependency-validator.ts
+must validate:
+
+- dependency cycles
+- invalid dependency ordering
+- broken execution graph
+
+==================================================
+MONITORING REQUIREMENTS
+
+planning-monitor.ts
+must track:
+
+- planning failures
+- retry attempts
+- invalid plans
+- stuck planning loops
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+planner-logger.ts
+must log:
+
+- planning lifecycle
+- retries
+- failures
+- refinement attempts
+
+planner-metrics.ts
+must track:
+
+- plan generation count
+- planning success rate
+- retry metrics
+- planning duration
+
+==================================================
+FINAL GOAL
+
+The final planner agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level planning coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden execution
+- direct runtime logic
+- duplicated planning systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Planner Agent → orchestration only
+Dispatcher → execution gateway
+Agents → workflow coordination
+Tools → actual execution

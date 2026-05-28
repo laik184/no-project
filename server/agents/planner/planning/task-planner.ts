@@ -1,0 +1,111 @@
+/**
+ * server/agents/planner/planning/task-planner.ts
+ *
+ * Converts a user goal into a flat list of PlannedTasks.
+ * Orchestration only — delegates analysis to the planning engine.
+ * No direct execution, no tool calls, no spawn/exec.
+ */
+
+import type { PlannedTask } from '../types/planner.types.ts';
+import { makeTaskId, normaliseGoal } from '../utils/planning-utils.ts';
+import {
+  analyzeGoal,
+  detectDependencies,
+} from '../../../engine/planning/index.ts';
+import type { GoalComponent, TaskDependency } from '../../../engine/planning/index.ts';
+
+// ── Component → task mapping ──────────────────────────────────────────────────
+
+function componentToTask(
+  component: GoalComponent,
+  phaseIndex: number,
+  dependencies: string[],
+): PlannedTask {
+  const id = makeTaskId(component.type);
+  return {
+    id,
+    label:       `${component.type}: ${component.label}`,
+    description: `Execute ${component.type} work for: ${component.label}`,
+    phase:       phaseIndex,
+    priority:    component.weight >= 0.8 ? 'critical'
+               : component.weight >= 0.5 ? 'high'
+               : component.weight >= 0.3 ? 'normal'
+               : 'low',
+    dependencies,
+    toolName:   `execute_${component.type}_task`,
+    input: {
+      goal:      component.label,
+      type:      component.type,
+      phaseIndex,
+    },
+    timeoutMs:  60_000,
+    retryLimit: 2,
+    estimatedMs: Math.round(component.weight * 30_000),
+  };
+}
+
+// ── Dependency → ID map builder ───────────────────────────────────────────────
+
+function buildDependencyMap(
+  tasks: PlannedTask[],
+  rawDeps: TaskDependency[],
+): Map<string, string[]> {
+  const labelToId = new Map<string, string>();
+  for (const t of tasks) {
+    const label = t.label.split(': ')[1] ?? t.label;
+    labelToId.set(label.toLowerCase(), t.id);
+  }
+
+  const depMap = new Map<string, string[]>();
+  for (const dep of rawDeps) {
+    const fromId = labelToId.get(dep.from.toLowerCase());
+    const toId   = labelToId.get(dep.to.toLowerCase());
+    if (fromId && toId) {
+      const current = depMap.get(fromId) ?? [];
+      if (!current.includes(toId)) current.push(toId);
+      depMap.set(fromId, current);
+    }
+  }
+  return depMap;
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export async function buildTaskList(
+  goal:      string,
+  projectId: string,
+): Promise<PlannedTask[]> {
+  const normalised = normaliseGoal(goal);
+  const analysis   = analyzeGoal(normalised);
+  const rawDeps    = detectDependencies(analysis.components);
+
+  // First pass: create tasks without cross-dependencies
+  const tasks: PlannedTask[] = analysis.components.map((comp, i) =>
+    componentToTask(comp, i, []),
+  );
+
+  // Second pass: wire cross-dependencies
+  const depMap = buildDependencyMap(tasks, rawDeps);
+  for (const task of tasks) {
+    const deps = depMap.get(task.id);
+    if (deps) task.dependencies = deps;
+  }
+
+  // Always include a plan-finalise task at the end
+  tasks.push({
+    id:           makeTaskId('finalize'),
+    label:        'Finalize execution plan',
+    description:  `Validate and seal the execution plan for: ${normalised}`,
+    phase:        tasks.length,
+    priority:     'high',
+    dependencies: tasks.map((t) => t.id),
+    toolName:     'create_execution_plan',
+    input:        { goal: normalised, projectId, taskCount: tasks.length },
+    timeoutMs:    30_000,
+    retryLimit:   1,
+    estimatedMs:  2_000,
+  });
+
+  void projectId;
+  return tasks;
+}

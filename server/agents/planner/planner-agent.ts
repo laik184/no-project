@@ -1,92 +1,213 @@
-import type { PlannerInput, PlannerResult } from './types/planner.types.ts';
-import { runPlannerEngine } from './core/planner-engine.ts';
-import {
-  createSession,
-  startSession,
-  completeSession,
-  failSession,
-  removeSession,
-  listActiveSessions,
-} from './core/planning-session.ts';
-import {
-  registerPlannerEventHandlers,
-  unregisterPlannerEventHandlers,
-} from './events/event-handlers.ts';
-import {
-  emitPlanningStarted,
-  emitPlanningCompleted,
-  emitPlanningFailed,
-} from './events/planner-events.ts';
-import { safeValidatePlannerInput } from './utils/validators.ts';
-import { plannerLogger } from './telemetry/planner-logger.ts';
-import { elapsed } from '../../orchestration/utils/orchestration-helpers.ts';
+/**
+ * server/agents/planner/planner-agent.ts
+ *
+ * ENTRY POINT for the planner agent orchestration layer.
+ *
+ * Responsibilities:
+ *   - validate incoming planning requests
+ *   - build planning context
+ *   - open/close session lifecycle
+ *   - delegate to planning-loop
+ *   - return structured results
+ *
+ * Architecture: orchestration ONLY.
+ * No child_process. No spawn. No exec. No shell. No direct tool execution.
+ */
 
-let initialized = false;
+import type { PlanningRequest, PlanningResult } from './types/planner.types.ts';
+import { buildPlanningContext }                  from './core/planner-context.ts';
+import { plannerSession }                        from './core/planner-session.ts';
+import { plannerMetrics }                        from './telemetry/planner-metrics.ts';
+import { plannerLogger }                         from './telemetry/planner-logger.ts';
+import { planningMonitor }                       from './monitoring/planning-monitor.ts';
+import { validatePlanningRequest, validateRuntimeContext } from './validation/planning-validator.ts';
+import { runPlanningLoop }                       from './execution/planning-loop.ts';
+import { makeRunId }                             from './utils/planning-utils.ts';
+
+// ── Agent lifecycle ───────────────────────────────────────────────────────────
+
+let _initialized = false;
 
 export function initializePlanner(): void {
-  if (initialized) return;
-  registerPlannerEventHandlers();
-  initialized = true;
+  if (_initialized) return;
+  _initialized = true;
   console.log('[planner-agent] Initialized — event handlers registered');
 }
 
-export async function createExecutionPlan(raw: unknown): Promise<PlannerResult> {
-  if (!initialized) initializePlanner();
+export function shutdownPlanner(): void {
+  _initialized = false;
+  console.log('[planner-agent] Shut down');
+}
 
-  const validated = safeValidatePlannerInput(raw);
-  if (!validated.ok) {
-    return { ok: false, error: `Invalid input: ${validated.error}`, durationMs: 0 };
+// ── Orchestration-layer cycle API ─────────────────────────────────────────────
+
+export interface PlannerCycleResult {
+  success:      boolean;
+  planId?:      string;
+  failedPhase?: string;
+  error?:       string;
+}
+
+/**
+ * High-level cycle entry point called by the Orchestrator.
+ * Drives a full planning pass for a run goal.
+ */
+export async function runPlannerCycle(ctx: {
+  runId:     string;
+  projectId: string;
+  goal:      string;
+  metadata?: Record<string, unknown>;
+}): Promise<PlannerCycleResult> {
+  try {
+    const result = await plan({
+      runId:       ctx.runId,
+      projectId:   ctx.projectId,
+      sandboxRoot: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+      goal:        ctx.goal,
+      meta:        ctx.metadata ?? {},
+    });
+    return {
+      success:     result.success,
+      planId:      result.plan?.planId,
+      error:       result.errors[0],
+      failedPhase: result.success ? undefined : 'planning',
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, failedPhase: 'planning', error: message };
+  }
+}
+
+// ── Main entry ────────────────────────────────────────────────────────────────
+
+export async function plan(req: PlanningRequest): Promise<PlanningResult> {
+  const runId = req.runId ?? makeRunId();
+  const { projectId, sandboxRoot, goal, signal, meta = {} } = req;
+
+  plannerLogger.info(runId, 'Planning session requested', { projectId, goal: goal.slice(0, 80) });
+
+  // ── 1. Validate request ───────────────────────────────────────────────────
+  const requestValidation = validatePlanningRequest(req);
+  if (!requestValidation.valid) {
+    plannerLogger.error(runId, 'Request validation failed', {
+      errors: requestValidation.errors,
+    });
+    return failed(runId, 0, requestValidation.errors);
+  }
+  if (requestValidation.warnings.length > 0) {
+    plannerLogger.warn(runId, 'Request validation warnings', {
+      warnings: requestValidation.warnings,
+    });
   }
 
-  const input   = validated.data;
-  const session = createSession(input);
-  const { runId } = input;
+  // ── 2. Validate runtime context ───────────────────────────────────────────
+  const contextValidation = validateRuntimeContext(runId, projectId, sandboxRoot);
+  if (!contextValidation.valid) {
+    plannerLogger.error(runId, 'Context validation failed', {
+      errors: contextValidation.errors,
+    });
+    return failed(runId, 0, contextValidation.errors);
+  }
 
-  plannerLogger.info(runId, 'createExecutionPlan called', { sessionId: session.sessionId });
-  emitPlanningStarted(runId, input.goal);
-  startSession(session.sessionId);
+  // ── 3. Open session ───────────────────────────────────────────────────────
+  plannerSession.open({ runId, projectId, sandboxRoot, goal });
+  plannerSession.transition(runId, 'validating');
+  plannerMetrics.initRun(runId);
+  planningMonitor.initRun(runId);
 
-  const startedAt = new Date();
+  // ── 4. Build context ──────────────────────────────────────────────────────
+  const context = buildPlanningContext(runId, projectId, sandboxRoot, goal, meta, signal);
 
+  // ── 5. Run planning loop ──────────────────────────────────────────────────
+  const startedAt = Date.now();
+
+  const executionPlan = await runPlanningLoop(context);
+  const durationMs    = Date.now() - startedAt;
+
+  plannerMetrics.finalise(runId);
+
+  if (!executionPlan) {
+    const monitorErrors = planningMonitor
+      .listFailures(runId)
+      .map((f) => f.error)
+      .slice(0, 3);
+
+    const errors = monitorErrors.length > 0
+      ? monitorErrors
+      : ['Planning loop produced no execution plan'];
+
+    plannerSession.close(runId, false, durationMs);
+    plannerLogger.sessionEnd(runId, false, durationMs);
+    return failed(runId, durationMs, errors);
+  }
+
+  // ── 6. Close session ──────────────────────────────────────────────────────
+  plannerSession.close(runId, true, durationMs);
+  plannerLogger.sessionEnd(runId, true, durationMs);
+
+  return {
+    runId,
+    success:    true,
+    plan:       executionPlan,
+    durationMs,
+    errors:     [],
+  };
+}
+
+// ── createExecutionPlan — caller-friendly wrapper ─────────────────────────────
+
+export interface CreateExecutionPlanInput {
+  runId?:      string;
+  projectId:   string | number;
+  goal:        string;
+  timeoutMs?:  number;
+  metadata?:   Record<string, unknown>;
+}
+
+export interface CreateExecutionPlanResult {
+  ok:         boolean;
+  plan?:      import('./types/planner.types.ts').ExecutionPlan;
+  error?:     string;
+  durationMs: number;
+}
+
+/**
+ * High-level wrapper used by the orchestration and chat layers.
+ * Returns `{ ok, plan, error, durationMs }` — never throws.
+ */
+export async function createExecutionPlan(
+  input: CreateExecutionPlanInput,
+): Promise<CreateExecutionPlanResult> {
   try {
-    const plan       = await runPlannerEngine(input);
-    const durationMs = elapsed(startedAt);
-
-    completeSession(session.sessionId, plan);
-    emitPlanningCompleted(runId, plan, durationMs);
-
-    plannerLogger.info(runId, 'Execution plan created successfully', {
-      planId:    plan.planId,
-      appType:   plan.appType,
-      complexity:plan.complexity,
-      taskCount: plan.tasks.length,
-      durationMs,
+    const result = await plan({
+      runId:       input.runId,
+      projectId:   String(input.projectId),
+      sandboxRoot: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+      goal:        input.goal,
+      meta:        input.metadata ?? {},
     });
 
-    removeSession(session.sessionId);
-    return { ok: true, plan, durationMs };
+    if (result.success && result.plan) {
+      return { ok: true, plan: result.plan, durationMs: result.durationMs };
+    }
+
+    return {
+      ok:         false,
+      error:      result.errors[0] ?? 'Planning failed',
+      durationMs: result.durationMs,
+    };
   } catch (err) {
-    const durationMs = elapsed(startedAt);
-    const error      = err instanceof Error ? err.message : String(err);
-
-    failSession(session.sessionId, error);
-    emitPlanningFailed(runId, error, durationMs);
-
-    plannerLogger.error(runId, 'Execution plan creation failed', { error, durationMs });
-
-    removeSession(session.sessionId);
-    return { ok: false, error, durationMs };
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message, durationMs: 0 };
   }
 }
 
-export function shutdownPlanner(): void {
-  const active = listActiveSessions();
-  if (active.length > 0) {
-    console.warn(`[planner-agent] Shutting down with ${active.length} active session(s)`);
-  }
-  unregisterPlannerEventHandlers();
-  initialized = false;
-  console.log('[planner-agent] Shutdown complete');
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-export type { PlannerInput, PlannerResult, ExecutionPlan } from './types/planner.types.ts';
+function failed(
+  runId:      string,
+  durationMs: number,
+  errors:     string[],
+): PlanningResult {
+  return { runId, success: false, durationMs, errors };
+}

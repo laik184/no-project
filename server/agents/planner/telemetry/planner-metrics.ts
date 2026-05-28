@@ -1,40 +1,76 @@
-import {
-  incrementCounter,
-  recordDuration,
-  metricsCollector,
-} from '../../../orchestration/telemetry/metrics.ts';
+/**
+ * server/agents/planner/telemetry/planner-metrics.ts
+ *
+ * In-process metrics for the planner agent.
+ * Tracks: plan generation count, success rate, retry metrics, durations.
+ */
 
-const METRIC = {
-  PLANS_CREATED:   'plans.created',
-  PLANS_FAILED:    'plans.failed',
-  PLANNING_DURATION: 'planning.duration',
-  DEPENDENCY_ERRORS: 'dependency.errors',
-} as const;
+interface RunMetrics {
+  runId:           string;
+  plansGenerated:  number;
+  plansSucceeded:  number;
+  plansFailed:     number;
+  retries:         number;
+  refinements:     number;
+  totalDurationMs: number;
+  startedAt:       number;
+}
+
+const store = new Map<string, RunMetrics>();
 
 export const plannerMetrics = {
-  recordPlanStarted(runId: string): void {
-    metricsCollector.increment(runId, METRIC.PLANS_CREATED);
-    incrementCounter(METRIC.PLANS_CREATED);
+  initRun(runId: string): void {
+    store.set(runId, {
+      runId,
+      plansGenerated:  0,
+      plansSucceeded:  0,
+      plansFailed:     0,
+      retries:         0,
+      refinements:     0,
+      totalDurationMs: 0,
+      startedAt:       Date.now(),
+    });
   },
 
-  recordPlanCompleted(runId: string, durationMs: number): void {
-    metricsCollector.timing(runId, METRIC.PLANNING_DURATION, durationMs);
-    recordDuration(METRIC.PLANNING_DURATION, durationMs);
+  recordPlan(runId: string, success: boolean, durationMs: number): void {
+    const m = store.get(runId);
+    if (!m) return;
+    m.plansGenerated++;
+    if (success) m.plansSucceeded++; else m.plansFailed++;
+    m.totalDurationMs += durationMs;
   },
 
-  recordPlanFailed(runId: string, durationMs: number): void {
-    metricsCollector.increment(runId, METRIC.PLANS_FAILED);
-    metricsCollector.timing(runId, METRIC.PLANNING_DURATION, durationMs);
-    incrementCounter(METRIC.PLANS_FAILED);
-    recordDuration(METRIC.PLANNING_DURATION, durationMs);
+  recordRetry(runId: string): void {
+    const m = store.get(runId);
+    if (m) m.retries++;
   },
 
-  recordDependencyError(runId: string): void {
-    metricsCollector.increment(runId, METRIC.DEPENDENCY_ERRORS);
-    incrementCounter(METRIC.DEPENDENCY_ERRORS);
+  recordRefinement(runId: string): void {
+    const m = store.get(runId);
+    if (m) m.refinements++;
   },
 
-  getSnapshot(runId: string) {
-    return metricsCollector.getSnapshot(runId);
+  finalise(runId: string): RunMetrics | undefined {
+    const m = store.get(runId);
+    if (m) m.totalDurationMs = Date.now() - m.startedAt;
+    return m;
+  },
+
+  snapshot(runId: string): RunMetrics | undefined {
+    return store.get(runId);
+  },
+
+  successRate(runId: string): number {
+    const m = store.get(runId);
+    if (!m || m.plansGenerated === 0) return 1;
+    return m.plansSucceeded / m.plansGenerated;
+  },
+
+  clear(runId: string): void {
+    store.delete(runId);
+  },
+
+  allRunIds(): readonly string[] {
+    return Object.freeze([...store.keys()]);
   },
 };

@@ -47,10 +47,10 @@ function adaptPlannerOutput(rich: RichExecutionPlan): ExecutionPlan {
   return {
     planId:              rich.planId,
     runId:               rich.runId,
-    phases:              rich.phases.map((p) => p.type),
+    phases:              rich.phases.map((p) => p.label),
     tasks,
     estimatedDurationMs: tasks.length * 8_000,
-    createdAt:           rich.createdAt,
+    createdAt:           new Date(rich.createdAt),
     richPlan:            rich,
   };
 }
