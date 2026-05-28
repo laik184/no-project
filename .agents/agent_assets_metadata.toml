@@ -294,3 +294,9 @@ id = "QFb67Uw0YPMzW4J9X7v2-"
 uri = "file://EXECUTOR_INTELLIGENCE_CAPABILITY_FORENSIC_REPORT.md"
 type = "text"
 title = "Executor Intelligence + Capability Forensic Report"
+
+[[outputs]]
+id = "NYIyAEWHIZxqneBRoCE7G"
+uri = "file://IMPLEMENTATION_REPORT.md"
+type = "text"
+title = "Autonomous Execution Intelligence — Implementation Report"
