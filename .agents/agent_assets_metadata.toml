@@ -264,3 +264,15 @@ id = "2ofRScxkcygqdIp5a5AnQ"
 uri = "file://ARCHITECTURE_REPORT.md"
 type = "text"
 title = "Architecture Correction Report"
+
+[[outputs]]
+id = "Zrx7nEmjvbqiEbsJ865IN"
+uri = "file://server/agents/supervisor/ARCHITECTURE_AUDIT.md"
+type = "text"
+title = "Full Architecture Audit Report"
+
+[[outputs]]
+id = "xqLHChSirIFyHmCZZ3lR0"
+uri = "file://server/agents/supervisor/LIFECYCLE_FLOW.md"
+type = "text"
+title = "Lifecycle Flow — Current vs Ideal"
