@@ -51,6 +51,9 @@ import { browserAttachCrashListenerTool,
 import { browserGetActionLogTool }           from '../monitoring/action-logger.ts';
 import { browserGetMetricsTool }             from '../monitoring/browser-metrics.ts';
 
+// ── Orchestration entry-point ──────────────────────────────────────────────────
+import { orchestrateBrowseTool }             from '../navigation/orchestrate-browse.ts';
+
 // ── All tools in registration order ───────────────────────────────────────────
 
 const ALL_BROWSER_TOOLS = [
@@ -91,6 +94,8 @@ const ALL_BROWSER_TOOLS = [
   // Monitoring
   browserGetActionLogTool,
   browserGetMetricsTool,
+  // Orchestration entry-point — wires agent-coordinator → browser-agent
+  orchestrateBrowseTool,
 ] as const;
 
 let _registered = false;

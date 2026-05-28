@@ -10,11 +10,11 @@ import {
   dispatch,
   dispatchSequential,
   dispatchAll,
-}                               from '../../tools/registry/tool-dispatcher.ts';
+}                               from '../../../tools/registry/tool-dispatcher.ts';
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
-}                               from '../../tools/registry/tool-types.ts';
+}                               from '../../../tools/registry/tool-types.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };
 

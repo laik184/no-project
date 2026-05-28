@@ -22,6 +22,6 @@ export {
   pluralize,
   capitalize,
   truncate,
-} from '../../tools/shared/string-utils.ts';
+} from '../../../tools/shared/string-utils.ts';
 
 export * from './utils/coding-utils.ts';

@@ -5,7 +5,7 @@
  * Zero tool-layer imports — types only.
  */
 
-import type { VerificationPhase, VerificationStatus } from '../../tools/verifier/lib/verifier-types.ts';
+import type { VerificationPhase, VerificationStatus } from '../../../tools/verifier/lib/verifier-types.ts';
 
 export type { VerificationPhase, VerificationStatus };
 

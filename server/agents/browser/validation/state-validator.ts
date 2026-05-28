@@ -5,7 +5,7 @@
  * Detects: invalid session state, corrupted sessions, invalid transitions.
  */
 
-import { hasSession }         from '../../tools/browser/session/browser-context.ts';
+import { hasSession }         from '../../../tools/browser/session/browser-context.ts';
 import { getSession }         from '../core/browser-state.ts';
 import {
   getContext,

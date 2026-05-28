@@ -6,7 +6,7 @@
  * Orchestrates only — all work delegated to coordinator/executor layers.
  */
 
-import { launchBrowser, closeBrowser }  from '../../tools/browser/session/browser-lifecycle.ts';
+import { launchBrowser, closeBrowser }  from '../../../tools/browser/session/browser-lifecycle.ts';
 import { executeFlow }                  from './flow-executor.ts';
 import { routeBrowserGoal }             from '../coordination/browser-routing.ts';
 import { buildToolContext }             from '../coordination/dispatcher-client.ts';
