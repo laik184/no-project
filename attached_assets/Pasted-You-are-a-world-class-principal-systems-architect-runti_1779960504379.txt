@@ -1,0 +1,419 @@
+You are a world-class principal systems architect, runtime execution engineer, autonomous tooling expert, and TypeScript infrastructure specialist.
+
+Your mission is to DEEP SCAN and FULLY REPAIR ONLY:
+
+server/tools/
+
+This is NOT a feature task.
+
+This is a CRITICAL TOOL ARCHITECTURE STABILIZATION OPERATION.
+
+==================================================
+CRITICAL OBJECTIVE
+==================================================
+
+You must:
+
+1. Deeply inspect ALL files inside:
+   server/tools/
+
+2. Detect:
+   - hidden coupling
+   - execution duplication
+   - broken dispatcher flow
+   - missing registration flow
+   - invalid imports
+   - security gaps
+   - type safety violations
+   - shadow execution paths
+   - registry misuse
+   - tool ownership leaks
+   - missing bootstrapping
+   - dead metrics/audit systems
+
+3. Then FIX architecture safely.
+
+==================================================
+MANDATORY EXECUTION ORDER
+==================================================
+
+PHASE 1 → DEEP SCAN
+PHASE 2 → ARCHITECTURE ANALYSIS
+PHASE 3 → FIX PLAN
+PHASE 4 → SAFE REFACTOR
+PHASE 5 → VALIDATION
+PHASE 6 → FINAL REPORT
+
+DO NOT SKIP SCAN.
+
+DO NOT START REFACTORING IMMEDIATELY.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+ONLY TOUCH:
+
+server/tools/
+
+DO NOT MODIFY:
+- server/agents/
+- server/orchestration/
+- frontend
+- infrastructure outside tools
+
+==================================================
+DEEP SCAN REQUIREMENTS
+==================================================
+
+Scan ALL files recursively.
+
+Inspect:
+
+==================================================
+
+registry/
+dispatcher/
+contracts/
+context/
+filesystem/
+terminal/
+browser/
+verifier/
+codegen/
+validation/
+security/
+telemetry/
+monitoring/
+shared/
+types/
+utils/
+
+==================================================
+
+Detect:
+
+1. duplicate execution systems
+2. tool-to-agent imports
+3. dispatcher bypasses
+4. direct execution paths
+5. unsafe sandbox usage
+6. registry violations
+7. missing sealRegistry()
+8. dead metrics wiring
+9. dead audit wiring
+10. unsafe casts
+11. invalid retry systems
+12. duplicated context systems
+13. invalid tool ownership
+14. circular dependencies
+15. giant files
+16. hidden execution logic
+17. missing observability
+18. permission bypasses
+19. invalid tool registration
+20. missing boot initialization
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+==================================================
+
+FINAL ARCHITECTURE MUST BE:
+
+Dispatcher
+ ↓
+Resolver
+ ↓
+Registry
+ ↓
+Tool
+ ↓
+Execution
+
+==================================================
+
+ABSOLUTELY FORBIDDEN
+==================================================
+
+- Tool → Agent imports
+- direct tool execution outside dispatcher
+- multiple dispatchers
+- multiple registries
+- runtime tool injection
+- raw sandbox path construction
+- unsafe any casting
+- hidden retries
+- duplicate timeout systems
+
+==================================================
+MANDATORY FIXES
+==================================================
+
+==================================================
+1. SINGLE DISPATCHER
+==================================================
+
+There must be ONLY ONE execution path.
+
+KEEP:
+- tool-dispatcher.ts
+
+REMOVE:
+- shadow executors
+- duplicate execution pipelines
+
+==================================================
+2. CREATE tool-loader.ts
+==================================================
+
+If missing:
+
+CREATE:
+
+server/tools/registry/tool-loader.ts
+
+Responsibilities:
+- import all tools
+- register all tools
+- validate registrations
+- call sealRegistry()
+
+NOTHING ELSE.
+
+==================================================
+3. FIX REGISTRY RESPONSIBILITY
+==================================================
+
+tool-registry.ts MUST ONLY:
+- store tools
+- lookup tools
+- validate uniqueness
+- seal registry
+
+NO:
+- execution
+- imports
+- retries
+- metrics logic
+
+==================================================
+4. FIX DISPATCHER
+==================================================
+
+tool-dispatcher.ts MUST:
+- resolve tool
+- enforce permissions
+- enforce timeout
+- apply retries
+- record metrics
+- record audit
+- return ToolExecutionResult
+
+Dispatcher becomes:
+THE ONLY execution gateway.
+
+==================================================
+5. FIX TOOL OWNERSHIP
+==================================================
+
+ALL execution logic MUST live inside:
+server/tools/*
+
+NO tool logic outside tools layer.
+
+==================================================
+6. FIX SECURITY
+==================================================
+
+ALL tools MUST use:
+
+ctx.sandboxRoot
+
+NEVER:
+- input.projectId
+- raw path reconstruction
+
+==================================================
+7. FIX OBSERVABILITY
+==================================================
+
+Wire:
+- tool-metrics.ts
+- tool-security.ts
+
+Into:
+tool-dispatcher.ts
+
+Metrics MUST track:
+- duration
+- failures
+- retries
+- timeouts
+- invocation counts
+
+Audit MUST track:
+- tool execution
+- failures
+- permission denials
+- timeout violations
+
+==================================================
+8. FIX TYPE SAFETY
+==================================================
+
+REMOVE:
+- as any
+- as unknown as
+
+REPLACE WITH:
+- strict generics
+- inferred types
+- schema-safe contracts
+
+==================================================
+9. FIX REGISTRATION FLOW
+==================================================
+
+Boot flow MUST become:
+
+system boot
+ ↓
+tool-loader.ts
+ ↓
+registerTool()
+ ↓
+validate registry
+ ↓
+sealRegistry()
+ ↓
+system ready
+
+==================================================
+10. FIX COMMAND PARSING
+==================================================
+
+REMOVE:
+command.split(/\s+/)
+
+USE:
+production-grade shell parsing.
+
+==================================================
+MANDATORY OUTPUT
+==================================================
+
+Generate:
+
+==================================================
+
+1. DEEP SCAN REPORT
+
+Include:
+- all detected problems
+- dependency violations
+- shadow systems
+- unsafe execution paths
+
+==================================================
+
+2. FILE-BY-FILE REPAIR PLAN
+
+For EACH affected file:
+- current issue
+- fix strategy
+- migration safety
+- compatibility approach
+
+==================================================
+
+3. FINAL TOOL EXECUTION FLOW
+
+Show:
+
+Executor Agent
+ ↓
+dispatcher-client.ts
+ ↓
+tool-dispatcher.ts
+ ↓
+tool-resolver.ts
+ ↓
+tool-registry.ts
+ ↓
+Tool
+ ↓
+Metrics/Audit
+ ↓
+Result
+
+==================================================
+
+4. FINAL TARGET STRUCTURE
+
+Generate corrected:
+server/tools/
+
+architecture.
+
+==================================================
+
+5. SAFETY VALIDATION
+
+Verify:
+- no dispatcher bypass
+- no direct execution
+- no registry mutation after seal
+- no sandbox escape
+- no agent coupling
+
+==================================================
+STRICT RULES
+==================================================
+
+1. DO NOT break APIs
+2. DO NOT remove compatibility immediately
+3. Migrate incrementally
+4. Preserve runtime behavior
+5. No circular imports
+6. No giant files (>250 lines)
+7. High cohesion
+8. Low coupling
+9. Fail-closed security
+10. Production-grade architecture only
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+At the end:
+
+✅ ONE dispatcher exists
+✅ ONE registry exists
+✅ tool-loader.ts exists
+✅ ALL tools register centrally
+✅ registry sealed after boot
+✅ metrics work
+✅ audit works
+✅ sandbox secure
+✅ no dispatcher bypass
+✅ no Tool → Agent imports
+✅ centralized execution pipeline
+✅ production-grade tool architecture
+
+==================================================
+FINAL INSTRUCTION
+==================================================
+
+Be brutally strict.
+
+Think like:
+- Replit runtime team
+- Cursor execution architecture team
+- production infrastructure engineers
+
+Do NOT overengineer.
+
+Stabilize first.
+Centralize second.
+Simplify third.
+Optimize last.
