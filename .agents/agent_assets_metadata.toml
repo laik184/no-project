@@ -276,3 +276,9 @@ id = "xqLHChSirIFyHmCZZ3lR0"
 uri = "file://server/agents/supervisor/LIFECYCLE_FLOW.md"
 type = "text"
 title = "Lifecycle Flow — Current vs Ideal"
+
+[[outputs]]
+id = "W0iM6A6IiuP0yuacWmsfA"
+uri = "file://ARCHITECTURE_FORENSIC_REPORT.md"
+type = "text"
+title = "NURA-X — Full Forensic Architecture Report"
