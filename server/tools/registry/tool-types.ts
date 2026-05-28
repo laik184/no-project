@@ -69,7 +69,7 @@ export interface ToolExecutionContext {
 // ── Execution Result ──────────────────────────────────────────────────────────
 
 export type ToolExecutionResult<T = unknown> =
-  | { ok: true;  data: T;      durationMs: number }
+  | { ok: true;  data: T;      durationMs: number; error?: undefined }
   | { ok: false; error: string; code: ToolErrorCode; durationMs: number };
 
 export type ToolErrorCode =

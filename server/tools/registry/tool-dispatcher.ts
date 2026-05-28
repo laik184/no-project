@@ -18,6 +18,7 @@ import type {
   ToolExecutionContext,
   ToolExecutionResult,
   ToolDefinition,
+  ToolErrorCode,
   RetryPolicy,
 } from './tool-types.ts';
 import { resolveToolWithPermissions } from './tool-resolver.ts';
@@ -83,7 +84,9 @@ async function withRetry<T>(
 
 // ── Internal: error classification ───────────────────────────────────────────
 
-function classifyError(err: unknown, durationMs: number): ToolExecutionResult<never> {
+type ToolFailureResult = { ok: false; error: string; code: ToolErrorCode; durationMs: number };
+
+function classifyError(err: unknown, durationMs: number): ToolFailureResult {
   if (err instanceof ToolNotFoundError)   return { ok: false, error: err.message, code: 'NOT_FOUND',        durationMs };
   if (err instanceof ToolPermissionError) return { ok: false, error: err.message, code: 'PERMISSION_DENIED', durationMs };
   const msg  = err instanceof Error ? err.message : String(err);

@@ -7,6 +7,7 @@
  */
 
 import type { FilesystemRetryConfig } from '../types/filesystem.types.ts';
+export type { FilesystemRetryConfig };
 import { computeDelay, toErrorMessage } from '../utils/filesystem-utils.ts';
 
 // ── Default retry config ──────────────────────────────────────────────────────
