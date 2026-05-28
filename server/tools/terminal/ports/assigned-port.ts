@@ -1,4 +1,4 @@
-import { portRegistry } from '../../../agents/terminal/ports/port-registry.ts';
+import { portRegistry } from '../state/port-registry.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 
 export function getAssignedPort(runId: string): number | null {

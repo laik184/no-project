@@ -7,12 +7,12 @@ import { deleteFileFromSandbox }                    from '../../tools/filesystem
 import { searchText }                               from '../../tools/filesystem/lib/search/text-search.ts';
 import { readFolder }                               from '../../tools/filesystem/lib/folders/folder-reader.ts';
 import { withTimeout }                              from '../../orchestration/utils/execution-utils.ts';
-import { runCommand }                               from '../terminal/execution/command-runner.ts';
-import { npmInstall }                               from '../terminal/npm/npm-installer.ts';
-import { npmRunScript }                             from '../terminal/npm/npm-script-runner.ts';
-import { checkpointManager }                        from '../terminal/recovery/checkpoint-manager.ts';
-import { validateGeneratedOutput, validateCommandOutput } from '../terminal/validation/output-validator.ts';
-import { getWorkspaceRoot }                         from '../terminal/workspace/runtime-workspace.ts';
+import { runCommand }                               from '../../tools/terminal/execution/run-command.ts';
+import { npmInstallInCwd }                          from '../../tools/terminal/npm/npm-install.ts';
+import { npmRunScriptInCwd }                        from '../../tools/terminal/npm/npm-run-script.ts';
+import { checkpointManager }                        from './checkpoint-store.ts';
+import { validateGeneratedOutput, validateCommandOutput } from '../terminal/validation/execution-validator.ts';
+import { getSandboxRoot as getWorkspaceRoot }        from '../../tools/terminal/validation/sandbox-validator.ts';
 
 function inlineFile(relativePath: string, content: string) {
   return { relativePath, content };
@@ -156,24 +156,24 @@ async function dispatchStep(
     }
     case 'npm_install': {
       const args   = input.args ? (input.args as unknown as string[]) : [];
-      const result = await npmInstall(runId, projectId, args, { cwd });
+      const result = await npmInstallInCwd(cwd, args);
       const check  = validateCommandOutput(result.exitCode, result.stdout, result.stderr);
       return { success: check.valid, output: result.stdout.slice(0, 500), error: check.errors[0] };
     }
     case 'npm_run': {
       if (!input.command) return { success: false, error: 'npm_run requires command (script name)' };
-      const result = await npmRunScript(runId, projectId, input.command, { cwd, timeoutMs: step.timeoutMs });
+      const result = await npmRunScriptInCwd(cwd, input.command);
       const check  = validateCommandOutput(result.exitCode, result.stdout, result.stderr);
       return { success: check.valid, output: result.stdout.slice(0, 500), error: check.errors[0] };
     }
     case 'run_command': {
       if (!input.command) return { success: false, error: 'run_command requires command' };
-      const result = await runCommand({ command: input.command, cwd, timeoutMs: step.timeoutMs });
+      const result = await runCommand({ command: input.command, projectId, timeoutMs: step.timeoutMs });
       const check  = validateCommandOutput(result.exitCode, result.stdout, result.stderr);
       return { success: check.valid, output: result.stdout.slice(0, 500), error: check.errors[0] };
     }
     case 'run_tests': {
-      const result = await npmRunScript(runId, projectId, input.command ?? 'test', { cwd, timeoutMs: step.timeoutMs });
+      const result = await npmRunScriptInCwd(cwd, input.command ?? 'test');
       const out    = [result.stdout, result.stderr].filter(Boolean).join('\n');
       return result.exitCode === 0
         ? { success: true,  output: out.slice(0, 800) }

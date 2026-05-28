@@ -7,7 +7,7 @@ import { emitExecutionStarted, emitExecutionCompleted, emitExecutionFailed } fro
 import { executorLogger }                                          from './telemetry.ts';
 import { executorMetrics }                                         from './telemetry.ts';
 import { elapsedMs }                                               from './utils.ts';
-import { checkpointManager }                                       from '../terminal/recovery/checkpoint-manager.ts';
+import { checkpointManager }                                       from './checkpoint-store.ts';
 import { withTimeout }                                             from '../../orchestration/utils/execution-utils.ts';
 
 export async function runExecutorEngine(input: ExecutorInput): Promise<ExecutorResult> {

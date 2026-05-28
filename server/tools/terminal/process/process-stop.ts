@@ -1,4 +1,4 @@
-import { processManager } from '../../../agents/terminal/process/process-manager.ts';
+import { processManager } from '../state/process-manager.ts';
 import { forceKill }      from '../execution/force-kill.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 

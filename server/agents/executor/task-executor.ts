@@ -4,7 +4,7 @@ import { executionHistory }    from './history.ts';
 import { executorLogger }      from './telemetry.ts';
 import { elapsedMs }           from './utils.ts';
 import { emitStepStarted, emitStepCompleted } from './events.ts';
-import { runtimeMonitor }      from '../terminal/monitoring/runtime-monitor.ts';
+import { runtimeMonitor }      from '../terminal/monitoring/runtime-health-monitor.ts';
 import { runToolLoop }         from '../coderx/index.ts';
 
 const LLM_ELIGIBLE_CATEGORIES = new Set(['setup', 'schema', 'api', 'auth', 'ui', 'test', 'deploy']);

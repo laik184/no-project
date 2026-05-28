@@ -1,10 +1,8 @@
 /**
- * server/agents/terminal/ports/port-registry.ts
+ * server/tools/terminal/state/port-registry.ts
  *
  * In-process port allocation registry.
- * Consumed by server/tools/terminal/ports/*.ts tool wrappers.
- *
- * This is a STATE STORE only — no socket binding or port scanning here.
+ * State store only — no socket binding here.
  */
 
 export interface PortAllocation {
@@ -24,12 +22,7 @@ function trackRun(runId: string, port: number): void {
 
 export const portRegistry = {
   reserve(port: number, runId: string, projectId: string): PortAllocation {
-    const alloc: PortAllocation = {
-      port,
-      runId,
-      projectId,
-      reservedAt: new Date(),
-    };
+    const alloc: PortAllocation = { port, runId, projectId, reservedAt: new Date() };
     byPort.set(port, alloc);
     trackRun(runId, port);
     return alloc;
@@ -49,27 +42,15 @@ export const portRegistry = {
     byRun.delete(runId);
   },
 
-  isReserved(port: number): boolean {
-    return byPort.has(port);
-  },
+  isReserved(port: number): boolean { return byPort.has(port); },
 
-  getByPort(port: number): PortAllocation | undefined {
-    return byPort.get(port);
-  },
+  getByPort(port: number): PortAllocation | undefined { return byPort.get(port); },
 
   getByRun(runId: string): readonly PortAllocation[] {
     const ports = byRun.get(runId);
     if (!ports) return Object.freeze([]);
-    return Object.freeze(
-      [...ports].map((p) => byPort.get(p)).filter(Boolean) as PortAllocation[],
-    );
+    return Object.freeze([...ports].map((p) => byPort.get(p)).filter(Boolean) as PortAllocation[]);
   },
 
-  allReservedPorts(): readonly number[] {
-    return Object.freeze([...byPort.keys()]);
-  },
-
-  allRunIds(): readonly string[] {
-    return Object.freeze([...byRun.keys()]);
-  },
+  allReservedPorts(): readonly number[] { return Object.freeze([...byPort.keys()]); },
 };

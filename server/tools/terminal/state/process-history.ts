@@ -1,8 +1,7 @@
 /**
- * server/agents/terminal/process/process-history.ts
+ * server/tools/terminal/state/process-history.ts
  *
  * In-process execution history store for terminal process records.
- * Consumed by server/tools/terminal/process/process-history.ts and cleanup-run.ts.
  */
 
 import { randomUUID } from 'crypto';
@@ -31,21 +30,14 @@ export const processHistory = {
     startedAt:  Date,
   ): ProcessHistoryEntry {
     const entry: ProcessHistoryEntry = {
-      id:         randomUUID().replace(/-/g, '').slice(0, 12),
-      runId,
-      command,
-      pid,
-      exitCode,
-      durationMs,
-      startedAt,
-      endedAt:    new Date(),
+      id:        randomUUID().replace(/-/g, '').slice(0, 12),
+      runId, command, pid, exitCode, durationMs, startedAt,
+      endedAt: new Date(),
     };
-
     if (!store.has(runId)) store.set(runId, []);
     const list = store.get(runId)!;
     list.push(entry);
     if (list.length > MAX_ENTRIES_PER_RUN) list.shift();
-
     return entry;
   },
 
@@ -53,19 +45,11 @@ export const processHistory = {
     return Object.freeze(store.get(runId) ?? []);
   },
 
-  countForRun(runId: string): number {
-    return store.get(runId)?.length ?? 0;
-  },
-
   countFailures(runId: string): number {
     return (store.get(runId) ?? []).filter((e) => e.exitCode !== 0).length;
   },
 
-  clear(runId: string): void {
-    store.delete(runId);
-  },
+  clear(runId: string): void { store.delete(runId); },
 
-  allRunIds(): readonly string[] {
-    return Object.freeze([...store.keys()]);
-  },
+  allRunIds(): readonly string[] { return Object.freeze([...store.keys()]); },
 };

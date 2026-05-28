@@ -1,4 +1,4 @@
-import { processHistory } from '../../../agents/terminal/process/process-history.ts';
+import { processHistory } from '../state/process-history.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 
 export { processHistory };

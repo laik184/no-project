@@ -1,5 +1,5 @@
 import { releaseRunPorts } from '../ports/release-run-ports.ts';
-import { processHistory }  from '../../../agents/terminal/process/process-history.ts';
+import { processHistory }  from '../state/process-history.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 
 export function cleanupRun(runId: string): void {

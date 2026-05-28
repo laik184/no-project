@@ -14,14 +14,15 @@ export {
   type TerminalAgentResult,
 } from './terminal-agent.ts';
 
-// ── Executor-consumed wrappers ────────────────────────────────────────────────
-export { runCommand }                              from './execution/command-runner.ts';
-export { npmInstall, npmInstallOne }               from './npm/npm-installer.ts';
-export { npmRunScript }                            from './npm/npm-script-runner.ts';
-export { checkpointManager }                       from './recovery/checkpoint-manager.ts';
-export { validateGeneratedOutput, validateCommandOutput } from './validation/output-validator.ts';
-export { getWorkspaceRoot, isWithinWorkspace, resolveWorkspacePath } from './workspace/runtime-workspace.ts';
-export { runtimeMonitor }                          from './monitoring/runtime-monitor.ts';
+// ── Monitoring ────────────────────────────────────────────────────────────────
+export { runtimeMonitor, runtimeHealthMonitor } from './monitoring/runtime-health-monitor.ts';
+
+// ── Validation ────────────────────────────────────────────────────────────────
+export {
+  validateExecutionRequest,
+  validateGeneratedOutput,
+  validateCommandOutput,
+} from './validation/execution-validator.ts';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type {
