@@ -1,73 +1,53 @@
 /**
- * navigation.types.ts
- * URL navigation, page load, and user flow type definitions.
+ * server/agents/browser/types/navigation.types.ts
+ * Navigation, viewport, and flow execution types.
  */
 
-export type PageLoadStatus =
-  | 'loaded'
-  | 'blank'
-  | 'error'
-  | 'timeout'
-  | 'crashed'
-  | 'blocked';
-
-export interface NavigationResult {
-  ok:          boolean;
-  url:         string;
-  status:      PageLoadStatus;
-  httpStatus?: number;
-  durationMs:  number;
-  title?:      string;
-  error?:      string;
-}
+export type PageLoadStatus = 'loaded' | 'timeout' | 'failed' | 'blocked';
 
 export interface ViewportSize {
   width:  number;
   height: number;
-  label:  'mobile' | 'tablet' | 'desktop';
+  label?: string;
 }
 
-export type FlowAction =
-  | 'navigate'
-  | 'click'
-  | 'fill'
-  | 'select'
-  | 'wait'
-  | 'assert'
-  | 'screenshot';
+export interface NavigationResult {
+  url:         string;
+  status:      PageLoadStatus;
+  httpStatus?: number;
+  durationMs:  number;
+  error?:      string;
+}
 
 export interface FlowStep {
-  label:       string;
-  action:      FlowAction;
-  selector?:   string;
-  value?:      string;
-  url?:        string;
-  timeoutMs?:  number;
-  optional?:   boolean;
+  action:    string;
+  selector?: string;
+  value?:    string;
+  url?:      string;
+  label?:    string;
+  timeoutMs?: number;
 }
 
 export interface FlowStepResult {
-  label:      string;
-  action:     FlowAction;
-  success:    boolean;
+  step:      FlowStep;
+  ok:        boolean;
   durationMs: number;
-  error?:     string;
+  error?:    string;
 }
 
 export interface FlowResult {
-  ok:             boolean;
-  flowName:       string;
-  stepsTotal:     number;
-  stepsCompleted: number;
-  steps:          FlowStepResult[];
-  failedStep?:    string;
-  durationMs:     number;
-  error?:         string;
+  flowName:   string;
+  ok:         boolean;
+  steps:      FlowStepResult[];
+  durationMs: number;
+  error?:     string;
 }
 
 export interface ResponsiveTestResult {
   viewport:   ViewportSize;
+  url:        string;
   ok:         boolean;
-  durationMs: number;
+  screenshot?: string;
   error?:     string;
+  durationMs: number;
 }

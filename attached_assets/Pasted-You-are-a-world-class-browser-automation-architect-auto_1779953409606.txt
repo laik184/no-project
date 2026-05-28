@@ -1,0 +1,351 @@
+You are a world-class browser automation architect, autonomous UI runtime engineer, and TypeScript orchestration specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/browser/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The browser agent must ONLY coordinate browser automation workflows.
+
+NO actual browser execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct Playwright execution
+5. No direct browser launch
+6. No direct screenshot capture
+7. No direct DOM interaction
+8. No direct UI validation execution
+9. No direct network interception
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- chromium.launch()
+- page.goto()
+- page.click()
+- page.type()
+- page.screenshot()
+- browser.newPage()
+- direct Playwright APIs
+- direct browser automation
+- direct tool implementations
+
+==================================================
+BROWSER AGENT RESPONSIBILITY
+
+The browser agent should ONLY:
+
+- coordinate browser workflows
+- orchestrate browser execution lifecycle
+- manage browser sessions/state
+- coordinate navigation flow
+- coordinate interaction flow
+- coordinate screenshot workflows
+- manage responsive routing
+- validate browser runtime state
+- control retry/recovery flow
+- monitor browser execution
+- aggregate execution results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/browser/
+
+├── browser-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── browser-context.ts
+│   ├── browser-session.ts
+│   └── browser-state.ts
+│
+├── execution/
+│   ├── browser-loop.ts
+│   ├── step-runner.ts
+│   ├── flow-executor.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── tool-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── browser-routing.ts
+│
+├── navigation/
+│   ├── navigation-planner.ts
+│   ├── flow-planner.ts
+│   └── responsive-routing.ts
+│
+├── interaction/
+│   ├── interaction-coordinator.ts
+│   ├── state-coordinator.ts
+│   └── element-routing.ts
+│
+├── validation/
+│   ├── ui-validator.ts
+│   ├── state-validator.ts
+│   └── integrity-validator.ts
+│
+├── monitoring/
+│   ├── browser-monitor.ts
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── browser-logger.ts
+│   └── browser-metrics.ts
+│
+├── capture/
+│   ├── screenshot-flow.ts
+│   └── state-capture.ts
+│
+├── types/
+│   └── browser.types.ts
+│
+└── utils/
+└── browser-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+browser-loop.ts
+→ MAIN browser runtime loop
+→ controls browser lifecycle
+→ controls retries
+→ controls browser sequencing
+→ controls automation flow
+
+step-runner.ts
+→ executes one orchestration step
+→ coordinates browser flow
+
+flow-executor.ts
+→ manages browser workflow execution
+→ converts browser goals into execution steps
+
+tool-coordinator.ts
+→ maps browser tasks to tools
+→ coordinates dispatcher execution
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+navigation-planner.ts
+→ builds navigation strategy
+
+flow-planner.ts
+→ creates browser execution flow
+
+responsive-routing.ts
+→ manages responsive execution routing
+
+interaction-coordinator.ts
+→ coordinates browser interactions
+
+state-coordinator.ts
+→ coordinates runtime browser state
+
+element-routing.ts
+→ routes element interaction flow
+
+screenshot-flow.ts
+→ coordinates screenshot workflows
+
+state-capture.ts
+→ coordinates runtime state capture
+
+==================================================
+BROWSER EXECUTION FLOW
+
+Browser Agent
+↓
+Browser Loop
+↓
+Flow Executor
+↓
+Step Runner
+↓
+Navigation Planner
+↓
+Interaction Coordinator
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Browser Tools
+↓
+Execution Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"browser_navigate",
+payload
+)
+
+WRONG:
+
+await page.goto(url)
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated browser systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+ui-validator.ts
+must validate:
+
+- invalid UI states
+- missing UI elements
+- broken visual states
+
+state-validator.ts
+must validate:
+
+- invalid browser runtime state
+- corrupted session state
+- invalid lifecycle transitions
+
+integrity-validator.ts
+must validate:
+
+- corrupted execution flow
+- invalid automation transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+browser-monitor.ts
+must track:
+
+- active browser sessions
+- execution progress
+- stuck browser loops
+
+failure-monitor.ts
+must track:
+
+- failed browser operations
+- retry attempts
+- repeated failures
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+browser-logger.ts
+must log:
+
+- browser lifecycle
+- retries
+- failures
+- automation flow
+
+browser-metrics.ts
+must track:
+
+- execution count
+- success/failure rate
+- retry metrics
+- execution duration
+
+==================================================
+CAPTURE REQUIREMENTS
+
+screenshot-flow.ts
+must coordinate:
+
+- screenshot orchestration
+- capture flow lifecycle
+- screenshot sequencing
+
+state-capture.ts
+must coordinate:
+
+- browser state capture
+- modal/form state tracking
+- runtime UI state aggregation
+
+==================================================
+FINAL GOAL
+
+The final browser agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level browser automation coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden browser execution
+- direct Playwright usage
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Browser Agent → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution

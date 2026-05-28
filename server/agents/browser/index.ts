@@ -1,22 +1,56 @@
 /**
- * index.ts — Public export gateway for the Browser Agent.
- * Only re-exports the agent API and its types. No business logic.
+ * server/agents/browser/index.ts
  *
- * Implementation modules (capture, interaction, navigation, validation, monitoring)
- * live in server/tools/browser/ and are consumed internally by core/.
+ * Public API surface for the Browser Agent module.
+ * Import from here — not from internal sub-modules.
  */
 
-// ── Primary API ────────────────────────────────────────────────────────────
-export { runBrowserAgent }         from './core/browser-agent.ts';
-export type { BrowserAgentInput }  from './core/browser-agent.ts';
+// ── Main agent ────────────────────────────────────────────────────────────────
+export {
+  runBrowserAgent,
+  getBrowserAgentMetrics,
+  type BrowserAgentInput,
+  type BrowserAgentResult,
+}                               from './browser-agent.ts';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Core session (used by tools layer) ───────────────────────────────────────
+export {
+  launchBrowserSession,
+  closeBrowserSession,
+  openNewPage,
+  type LiveBrowserSession,
+}                               from './core/browser-session.ts';
+
+// ── State (used by browser routes) ───────────────────────────────────────────
+export {
+  listActiveSessions,
+  getSessionCount,
+}                               from './core/browser-state.ts';
+
+// ── Event bus bridge (called by main.ts) ──────────────────────────────────────
+export { initBrowserBusBridge } from './events/browser-bus-bridge.ts';
+
+// ── Monitoring ────────────────────────────────────────────────────────────────
+export { snapshotMonitor, getActiveCount }  from './monitoring/browser-monitor.ts';
+export { summarizeFailures, recordFailure } from './monitoring/failure-monitor.ts';
+
+// ── Telemetry ─────────────────────────────────────────────────────────────────
+export { getActionLog }    from './telemetry/browser-logger.ts';
+export { getAgentMetrics } from './telemetry/browser-metrics.ts';
+
+// ── Screenshot utils (used by browser routes) ─────────────────────────────────
+export {
+  getScreenshotDir,
+  listScreenshotsForRun,
+}                          from './utils/screenshot-utils.ts';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 export type {
   BrowserSession,
   BrowserSessionStatus,
   BrowserLaunchOptions,
   BrowserHealthStatus,
-}                                  from './types/browser.types.ts';
+}                          from './types/browser.types.ts';
 
 export type {
   NavigationResult,
@@ -26,7 +60,7 @@ export type {
   FlowResult,
   FlowStepResult,
   ResponsiveTestResult,
-}                                  from './types/navigation.types.ts';
+}                          from './types/navigation.types.ts';
 
 export type {
   UIValidationResult,
@@ -37,27 +71,11 @@ export type {
   CrashType,
   VisualDiffResult,
   PerformanceValidation,
-}                                  from './types/validation.types.ts';
+}                          from './types/validation.types.ts';
 
 export type {
   BrowserReport,
   ScreenshotMeta,
   ActionEntry,
   PerformanceSummary,
-}                                  from './types/reporting.types.ts';
-
-// ── Reporting ─────────────────────────────────────────────────────────────
-export { buildBrowserReport,
-         summarizeReport }         from './reporting/browser-report-builder.ts';
-export { formatValidationReport }  from './reporting/ui-validation-report.ts';
-export { formatPerformanceReport } from './reporting/performance-report.ts';
-
-// ── Events ────────────────────────────────────────────────────────────────
-export { browserBus }              from './events/browser-events.ts';
-export { navigationBus }           from './events/navigation-events.ts';
-export { interactionBus }          from './events/interaction-events.ts';
-
-// ── Telemetry ─────────────────────────────────────────────────────────────
-export { browserLogger }           from './telemetry/browser-logger.ts';
-export { browserMetrics }          from './telemetry/browser-metrics.ts';
-export { actionTrace }             from './telemetry/action-trace.ts';
+}                          from './types/reporting.types.ts';

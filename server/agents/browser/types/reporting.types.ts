@@ -1,61 +1,43 @@
 /**
- * reporting.types.ts
- * Report structures for browser runs, validation, and performance.
+ * server/agents/browser/types/reporting.types.ts
+ * Browser report and telemetry shapes.
  */
 
-import type { ConsoleError }    from './validation.types.ts';
-import type { FlowResult }       from './navigation.types.ts';
-
 export interface ScreenshotMeta {
-  id:         string;
   label:      string;
   path:       string;
-  timestamp:  number;
+  runId:      string;
+  sessionId:  string;
+  fullPage:   boolean;
+  capturedAt: string;
   sizeBytes?: number;
 }
 
 export interface ActionEntry {
-  action:     string;
-  target?:    string;
-  value?:     string;
-  success:    boolean;
+  action:    string;
+  tool:      string;
+  ok:        boolean;
   durationMs: number;
-  timestamp:  number;
-}
-
-export interface NavigationSummary {
-  loaded:       boolean;
-  httpStatus?:  number;
-  loadTimeMs?:  number;
-  title?:       string;
-}
-
-export interface ValidationSummary {
-  passed:        number;
-  failed:        number;
-  crashDetected: boolean;
-  consoleErrors: number;
+  ts:        string;
+  error?:    string;
 }
 
 export interface PerformanceSummary {
-  loadTimeMs?:             number;
-  renderTimeMs?:           number;
-  interactionLatencyMs?:   number;
+  ttfbMs:      number;
+  loadMs:      number;
+  domReadyMs:  number;
+  resourceCount: number;
 }
 
 export interface BrowserReport {
-  runId:         string;
-  sessionId:     string;
-  url:           string;
-  ok:            boolean;
-  navigation:    NavigationSummary;
-  validation:    ValidationSummary;
-  screenshots:   ScreenshotMeta[];
-  consoleErrors: ConsoleError[];
-  flows:         FlowResult[];
-  performance:   PerformanceSummary;
-  actions:       ActionEntry[];
-  durationMs:    number;
-  timestamp:     number;
-  error?:        string;
+  sessionId:   string;
+  runId:       string;
+  url:         string;
+  ok:          boolean;
+  screenshots: ScreenshotMeta[];
+  actions:     ActionEntry[];
+  performance?: PerformanceSummary;
+  errors:      string[];
+  durationMs:  number;
+  createdAt:   string;
 }

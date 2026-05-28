@@ -1,59 +1,96 @@
 /**
- * interaction-events.ts
- * Emit helpers for DOM interaction events via the browser local bus.
+ * server/agents/browser/events/interaction-events.ts
+ *
+ * Typed emit helpers for DOM interaction outcomes.
+ * Consumed by tools layer (dom-interactor.ts, element-finder.ts).
  */
 
-import { EventEmitter } from 'events';
+import { browserBus } from './browser-events.ts';
 
-export interface InteractionEventMap {
-  'interaction.click':       { runId: string; selector: string; success: boolean; durationMs: number; timestamp: Date };
-  'interaction.fill':        { runId: string; selector: string; success: boolean; durationMs: number; timestamp: Date };
-  'interaction.select':      { runId: string; selector: string; value: string; success: boolean; timestamp: Date };
-  'interaction.failed':      { runId: string; action: string; selector?: string; error: string; timestamp: Date };
-  'element.not.found':       { runId: string; selector: string; timeoutMs: number; timestamp: Date };
-}
-
-export type InteractionEventName = keyof InteractionEventMap;
-
-class TypedInteractionEmitter extends EventEmitter {
-  emit<K extends InteractionEventName>(event: K, payload: InteractionEventMap[K]): boolean {
-    return super.emit(event, payload);
-  }
-  on<K extends InteractionEventName>(event: K, listener: (p: InteractionEventMap[K]) => void): this {
-    return super.on(event, listener);
-  }
-  off<K extends InteractionEventName>(event: K, listener: (p: InteractionEventMap[K]) => void): this {
-    return super.off(event, listener);
-  }
-}
-
-export const interactionBus = new TypedInteractionEmitter();
-interactionBus.setMaxListeners(20);
+// ── Click ─────────────────────────────────────────────────────────────────────
 
 export function emitClickResult(
-  runId: string, selector: string, success: boolean, durationMs: number,
+  sessionId:  string,
+  runId:      string,
+  selector:   string,
+  success:    boolean,
+  durationMs: number,
 ): void {
-  interactionBus.emit('interaction.click', { runId, selector, success, durationMs, timestamp: new Date() });
+  browserBus.emit(success ? 'step.completed' : 'step.failed', {
+    sessionId,
+    runId,
+    label:     `click:${selector.slice(0, 60)}`,
+    error:     success ? undefined : `click failed on ${selector}`,
+    ts:        new Date().toISOString(),
+  });
 }
+
+// ── Fill ──────────────────────────────────────────────────────────────────────
 
 export function emitFillResult(
-  runId: string, selector: string, success: boolean, durationMs: number,
+  sessionId:  string,
+  runId:      string,
+  selector:   string,
+  success:    boolean,
+  durationMs: number,
 ): void {
-  interactionBus.emit('interaction.fill', { runId, selector, success, durationMs, timestamp: new Date() });
+  browserBus.emit(success ? 'step.completed' : 'step.failed', {
+    sessionId,
+    runId,
+    label:     `fill:${selector.slice(0, 60)}`,
+    error:     success ? undefined : `fill failed on ${selector}`,
+    ts:        new Date().toISOString(),
+  });
 }
+
+// ── Select ────────────────────────────────────────────────────────────────────
 
 export function emitSelectResult(
-  runId: string, selector: string, value: string, success: boolean,
+  sessionId:  string,
+  runId:      string,
+  selector:   string,
+  success:    boolean,
+  durationMs: number,
 ): void {
-  interactionBus.emit('interaction.select', { runId, selector, value, success, timestamp: new Date() });
+  browserBus.emit(success ? 'step.completed' : 'step.failed', {
+    sessionId,
+    runId,
+    label:     `select:${selector.slice(0, 60)}`,
+    error:     success ? undefined : `select failed on ${selector}`,
+    ts:        new Date().toISOString(),
+  });
 }
+
+// ── Interaction failed ────────────────────────────────────────────────────────
 
 export function emitInteractionFailed(
-  runId: string, action: string, error: string, selector?: string,
+  sessionId: string,
+  runId:     string,
+  action:    string,
+  selector:  string,
+  error:     string,
 ): void {
-  interactionBus.emit('interaction.failed', { runId, action, selector, error, timestamp: new Date() });
+  browserBus.emit('step.failed', {
+    sessionId,
+    runId,
+    label: `${action}:${selector.slice(0, 60)}`,
+    error,
+    ts:    new Date().toISOString(),
+  });
 }
 
-export function emitElementNotFound(runId: string, selector: string, timeoutMs: number): void {
-  interactionBus.emit('element.not.found', { runId, selector, timeoutMs, timestamp: new Date() });
+// ── Element not found ─────────────────────────────────────────────────────────
+
+export function emitElementNotFound(
+  sessionId: string,
+  runId:     string,
+  selector:  string,
+): void {
+  browserBus.emit('step.failed', {
+    sessionId,
+    runId,
+    label: `element-not-found:${selector.slice(0, 60)}`,
+    error: `Element not found: ${selector}`,
+    ts:    new Date().toISOString(),
+  });
 }

@@ -1,61 +1,71 @@
 /**
- * browser-bus-bridge.ts
- * Bridges the internal browserBus (Playwright agent events) into the
- * global infrastructure bus so they fan-out through the SSE pool as
- * "browser.session" events.
+ * server/agents/browser/events/browser-bus-bridge.ts
  *
- * Call initBrowserBusBridge() once at server startup.
+ * Bridges browser-local events into the infrastructure bus.
+ * Called once at startup by main.ts via initBrowserBusBridge().
+ * Converts BrowserLifecyclePayload → BrowserSessionEvent for the bus.
  */
 
-import { browserBus }  from './browser-events.ts';
-import { bus }         from '../../../infrastructure/events/bus.ts';
+import { bus }           from '../../../infrastructure/events/bus.ts';
+import { browserBus }    from './browser-events.ts';
+import type { BrowserLifecyclePayload } from './browser-events.ts';
 
-let initialized = false;
+// ── Mapping helpers ───────────────────────────────────────────────────────────
+
+function toBusType(
+  ev: string,
+): 'started' | 'closed' | 'crashed' | 'screenshot' | 'validation.passed' | 'validation.failed' {
+  if (ev === 'session.started')    return 'started';
+  if (ev === 'session.closed')     return 'closed';
+  if (ev === 'session.crashed')    return 'crashed';
+  if (ev === 'screenshot.captured') return 'screenshot';
+  if (ev === 'validation.passed')  return 'validation.passed';
+  if (ev === 'validation.failed')  return 'validation.failed';
+  return 'started';
+}
+
+function forward(
+  evType: string,
+  payload: BrowserLifecyclePayload,
+): void {
+  try {
+    bus.emit('browser.session', {
+      type:            toBusType(evType),
+      sessionId:       payload.sessionId,
+      runId:           payload.runId,
+      url:             payload.url,
+      label:           payload.label,
+      screenshotPath:  payload.screenshotPath,
+      error:           payload.error,
+      timestamp:       payload.ts,
+    });
+  } catch {
+    // Never let bridge errors propagate into the emitter
+  }
+}
+
+// ── Wire-up ───────────────────────────────────────────────────────────────────
+
+let _initialized = false;
 
 export function initBrowserBusBridge(): void {
-  if (initialized) return;
-  initialized = true;
+  if (_initialized) return;
+  _initialized = true;
 
-  browserBus.on('browser.started', ({ sessionId, runId, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'started', sessionId, runId,
-      timestamp: timestamp.toISOString(),
-    });
-  });
+  const bridged: Array<Parameters<typeof browserBus.on>[0]> = [
+    'session.started',
+    'session.closed',
+    'session.crashed',
+    'screenshot.captured',
+    'validation.passed',
+    'validation.failed',
+  ];
 
-  browserBus.on('browser.closed', ({ sessionId, runId, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'closed', sessionId, runId,
-      timestamp: timestamp.toISOString(),
+  for (const evType of bridged) {
+    browserBus.on(evType, (payload: BrowserLifecyclePayload) => {
+      forward(evType, payload);
     });
-  });
+  }
 
-  browserBus.on('browser.crashed', ({ sessionId, runId, error, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'crashed', sessionId, runId, error,
-      timestamp: timestamp.toISOString(),
-    });
-  });
-
-  browserBus.on('screenshot.captured', ({ sessionId, runId, label, path, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'screenshot', sessionId, runId, label,
-      screenshotPath: path,
-      timestamp: timestamp.toISOString(),
-    });
-  });
-
-  browserBus.on('ui.validation.passed', ({ sessionId, runId, url, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'validation.passed', sessionId, runId, url,
-      timestamp: timestamp.toISOString(),
-    });
-  });
-
-  browserBus.on('ui.validation.failed', ({ sessionId, runId, url, reason, timestamp }) => {
-    bus.emit('browser.session', {
-      type: 'validation.failed', sessionId, runId, url, error: reason,
-      timestamp: timestamp.toISOString(),
-    });
-  });
+  console.log('[browser-bus-bridge] Wired — 6 browser event types bridged to infrastructure bus.');
 }

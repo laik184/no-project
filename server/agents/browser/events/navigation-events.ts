@@ -1,60 +1,85 @@
 /**
- * navigation-events.ts
- * Emit helpers for navigation-lifecycle events via the browser local bus.
+ * server/agents/browser/events/navigation-events.ts
+ *
+ * Typed emit helpers for navigation and flow lifecycle events.
+ * Consumed by tools layer (page-navigator.ts, user-flow-runner.ts).
  */
 
-import { EventEmitter } from 'events';
+import { browserBus } from './browser-events.ts';
 
-export interface NavigationEventMap {
-  'navigation.started':    { runId: string; url: string; timestamp: Date };
-  'navigation.completed':  { runId: string; url: string; durationMs: number; ok: boolean; timestamp: Date };
-  'navigation.failed':     { runId: string; url: string; error: string; timestamp: Date };
-  'flow.started':          { runId: string; flowName: string; stepsTotal: number; timestamp: Date };
-  'flow.step.completed':   { runId: string; flowName: string; step: string; success: boolean; durationMs: number; timestamp: Date };
-  'flow.completed':        { runId: string; flowName: string; ok: boolean; durationMs: number; timestamp: Date };
-}
-
-export type NavigationEventName = keyof NavigationEventMap;
-
-class TypedNavigationEmitter extends EventEmitter {
-  emit<K extends NavigationEventName>(event: K, payload: NavigationEventMap[K]): boolean {
-    return super.emit(event, payload);
-  }
-  on<K extends NavigationEventName>(event: K, listener: (p: NavigationEventMap[K]) => void): this {
-    return super.on(event, listener);
-  }
-  off<K extends NavigationEventName>(event: K, listener: (p: NavigationEventMap[K]) => void): this {
-    return super.off(event, listener);
-  }
-}
-
-export const navigationBus = new TypedNavigationEmitter();
-navigationBus.setMaxListeners(20);
+// ── Navigation ────────────────────────────────────────────────────────────────
 
 export function emitNavigationStarted(runId: string, url: string): void {
-  navigationBus.emit('navigation.started', { runId, url, timestamp: new Date() });
+  browserBus.emit('navigation.started', {
+    sessionId: runId,
+    runId,
+    url,
+    ts: new Date().toISOString(),
+  });
 }
 
 export function emitNavigationCompleted(
-  runId: string, url: string, durationMs: number, ok: boolean,
+  runId:      string,
+  url:        string,
+  durationMs: number,
+  ok:         boolean,
 ): void {
-  navigationBus.emit('navigation.completed', { runId, url, durationMs, ok, timestamp: new Date() });
+  browserBus.emit(ok ? 'navigation.completed' : 'navigation.failed', {
+    sessionId: runId,
+    runId,
+    url,
+    ts: new Date().toISOString(),
+  });
 }
 
-export function emitNavigationFailed(runId: string, url: string, error: string): void {
-  navigationBus.emit('navigation.failed', { runId, url, error, timestamp: new Date() });
+export function emitNavigationFailed(
+  runId:  string,
+  url:    string,
+  error:  string,
+): void {
+  browserBus.emit('navigation.failed', {
+    sessionId: runId,
+    runId,
+    url,
+    error,
+    ts: new Date().toISOString(),
+  });
 }
 
-export function emitFlowStarted(runId: string, flowName: string, stepsTotal: number): void {
-  navigationBus.emit('flow.started', { runId, flowName, stepsTotal, timestamp: new Date() });
+// ── Flow lifecycle ────────────────────────────────────────────────────────────
+
+export function emitFlowStarted(runId: string, flowName: string): void {
+  browserBus.emit('step.completed', {
+    sessionId: runId,
+    runId,
+    label: `flow.started:${flowName}`,
+    ts:    new Date().toISOString(),
+  });
+}
+
+export function emitFlowCompleted(
+  runId:    string,
+  flowName: string,
+  ok:       boolean,
+): void {
+  browserBus.emit(ok ? 'flow.completed' : 'flow.failed', {
+    sessionId: runId,
+    runId,
+    label: flowName,
+    ts:    new Date().toISOString(),
+  });
 }
 
 export function emitFlowStepCompleted(
-  runId: string, flowName: string, step: string, success: boolean, durationMs: number,
+  runId:    string,
+  flowName: string,
+  stepIdx:  number,
+  ok:       boolean,
 ): void {
-  navigationBus.emit('flow.step.completed', { runId, flowName, step, success, durationMs, timestamp: new Date() });
-}
-
-export function emitFlowCompleted(runId: string, flowName: string, ok: boolean, durationMs: number): void {
-  navigationBus.emit('flow.completed', { runId, flowName, ok, durationMs, timestamp: new Date() });
+  browserBus.emit(ok ? 'step.completed' : 'step.failed', {
+    sessionId: runId,
+    runId,
+    label: `${flowName}[${stepIdx}]`,
+    ts:    new Date().toISOString(),
+  });
 }

@@ -1,67 +1,51 @@
 /**
- * validation.types.ts
- * UI validation, console errors, visual diff, and crash report types.
+ * server/agents/browser/types/validation.types.ts
+ * UI validation, console error, and performance types.
  */
 
-export type ValidationSeverity = 'error' | 'warning' | 'info';
+export type ConsoleErrorType = 'error' | 'warning' | 'info' | 'debug';
+export type CrashType        = 'runtime' | 'navigation' | 'resource' | 'unhandled';
+
+export interface ConsoleError {
+  type:    ConsoleErrorType;
+  message: string;
+  source?: string;
+  ts:      string;
+}
 
 export interface UICheck {
-  name:     string;
-  passed:   boolean;
-  severity: ValidationSeverity;
-  detail?:  string;
+  selector: string;
+  label:    string;
+  ok:       boolean;
+  reason?:  string;
 }
 
 export interface UIValidationResult {
-  ok:             boolean;
-  url:            string;
-  checks:         UICheck[];
-  consoleErrors:  ConsoleError[];
-  crashDetected:  boolean;
-  durationMs:     number;
+  ok:       boolean;
+  checks:   UICheck[];
+  errors:   ConsoleError[];
+  summary:  string;
+  durationMs: number;
 }
 
-export type ConsoleErrorType =
-  | 'error'
-  | 'warning'
-  | 'exception'
-  | 'network'
-  | 'hydration';
-
-export interface ConsoleError {
-  type:       ConsoleErrorType;
-  message:    string;
-  source?:    string;
-  url?:       string;
-  timestamp:  number;
+export interface CrashReport {
+  type:    CrashType;
+  message: string;
+  url?:    string;
+  ts:      string;
 }
 
 export interface VisualDiffResult {
-  hasChanges:      boolean;
-  baselineExists:  boolean;
-  threshold:       number;
-  diffScore?:      number;
-  detail?:         string;
-}
-
-export type CrashType =
-  | 'react-error'
-  | 'white-screen'
-  | 'uncaught-exception'
-  | 'page-crash';
-
-export interface CrashReport {
-  crashed:    boolean;
-  type?:      CrashType;
-  message?:   string;
-  url:        string;
-  timestamp:  number;
+  label:       string;
+  diffPercent: number;
+  passed:      boolean;
+  diffPath?:   string;
 }
 
 export interface PerformanceValidation {
-  ok:              boolean;
-  loadTimeMs:      number;
-  renderTimeMs?:   number;
-  thresholdMs:     number;
-  withinThreshold: boolean;
+  ok:           boolean;
+  ttfbMs:       number;
+  loadMs:       number;
+  thresholdMs:  number;
+  violations:   string[];
 }

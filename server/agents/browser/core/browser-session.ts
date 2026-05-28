@@ -1,101 +1,83 @@
 /**
- * browser-session.ts
- * ONLY responsible for browser lifecycle: launch, context creation, page management, close.
+ * server/agents/browser/core/browser-session.ts
+ *
+ * ONLY place in the agent layer that touches Playwright directly.
+ * Responsibility: launch, close, and page management for live sessions.
+ * All browser orchestration sits ABOVE this layer.
  */
 
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import type { BrowserLaunchOptions } from '../types/browser.types.ts';
-import {
-  createSession, transitionSession,
-  incrementPages, decrementPages, removeSession,
-}                                    from './browser-state.ts';
-import { emitBrowserStarted,
-         emitBrowserClosed,
-         emitBrowserCrashed }        from '../events/browser-events.ts';
-import { browserLogger }             from '../telemetry/browser-logger.ts';
+import { chromium, type Browser, type Page } from 'playwright';
+import type { BrowserLaunchOptions }          from '../types/browser.types.ts';
+import { generateSessionId }                  from '../utils/browser-utils.ts';
+import { recordSessionOpened, recordSessionClosed, recordSessionCrashed }
+  from './browser-state.ts';
+
+// ── Live session shape ────────────────────────────────────────────────────────
 
 export interface LiveBrowserSession {
-  sessionId: string;
-  browser:   Browser;
-  context:   BrowserContext;
-  page:      Page;
+  readonly sessionId: string;
+  readonly runId:     string;
+  readonly browser:   Browser;
+  readonly page:      Page;
+  readonly launchedAt: Date;
 }
 
-const LAUNCH_TIMEOUT_MS  = 20_000;
-const VIEWPORT           = { width: 1280, height: 800 };
+// ── Launch ────────────────────────────────────────────────────────────────────
 
 export async function launchBrowserSession(
-  runId:   string,
-  opts:    BrowserLaunchOptions = {},
-): Promise<LiveBrowserSession> {
-  const session = createSession(runId);
-  transitionSession(session.sessionId, 'launching');
-
-  browserLogger.info(runId, `Launching browser session`, { sessionId: session.sessionId });
-
-  try {
-    const browser = await chromium.launch({
-      headless:       opts.headless ?? true,
-      timeout:        opts.timeoutMs ?? LAUNCH_TIMEOUT_MS,
-      args:           [
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-      ],
-    });
-
-    const context = await browser.newContext({
-      viewport:          VIEWPORT,
-      ignoreHTTPSErrors: true,
-      javaScriptEnabled: true,
-      userAgent:         'BrowserAgent/1.0 (NuraX Verifier)',
-    });
-
-    const page = await context.newPage();
-    incrementPages(session.sessionId);
-    transitionSession(session.sessionId, 'ready');
-    emitBrowserStarted(session.sessionId, runId);
-    browserLogger.info(runId, `Browser session ready`, { sessionId: session.sessionId });
-
-    return { sessionId: session.sessionId, browser, context, page };
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    transitionSession(session.sessionId, 'crashed');
-    emitBrowserCrashed(session.sessionId, runId, error);
-    removeSession(session.sessionId);
-    browserLogger.error(runId, `Browser launch failed: ${error}`);
-    throw new Error(`[browser-session] Launch failed: ${error}`);
-  }
-}
-
-export async function openNewPage(
-  live:  LiveBrowserSession,
   runId: string,
-): Promise<Page> {
-  const page = await live.context.newPage();
-  incrementPages(live.sessionId);
-  browserLogger.debug(runId, `Opened new page`, { sessionId: live.sessionId });
-  return page;
+  opts:  BrowserLaunchOptions = {},
+): Promise<LiveBrowserSession> {
+  const sessionId  = generateSessionId();
+  const headless   = opts.headless   ?? true;
+  const timeoutMs  = opts.timeoutMs  ?? 30_000;
+
+  const browser = await chromium.launch({ headless });
+
+  const context = await browser.newContext({
+    viewport: opts.viewport ?? { width: 1280, height: 720 },
+  });
+  context.setDefaultTimeout(timeoutMs);
+
+  const page = await context.newPage();
+
+  // Wire crash detection to state store
+  browser.on('disconnected', () => {
+    recordSessionCrashed(sessionId, runId, 'Browser disconnected unexpectedly');
+  });
+
+  const live: LiveBrowserSession = {
+    sessionId,
+    runId,
+    browser,
+    page,
+    launchedAt: new Date(),
+  };
+
+  recordSessionOpened(live, opts.projectId);
+  return live;
 }
+
+// ── Close ─────────────────────────────────────────────────────────────────────
 
 export async function closeBrowserSession(
   live:  LiveBrowserSession,
   runId: string,
 ): Promise<void> {
   try {
-    decrementPages(live.sessionId);
-    transitionSession(live.sessionId, 'closing');
-    await live.context.close();
     await live.browser.close();
-    transitionSession(live.sessionId, 'closed');
-    emitBrowserClosed(live.sessionId, runId);
-    removeSession(live.sessionId);
-    browserLogger.info(runId, `Browser session closed`, { sessionId: live.sessionId });
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    browserLogger.error(runId, `Browser close error: ${error}`);
-    transitionSession(live.sessionId, 'crashed');
-    removeSession(live.sessionId);
+  } finally {
+    recordSessionClosed(live.sessionId, runId);
   }
+}
+
+// ── Additional pages ──────────────────────────────────────────────────────────
+
+export async function openNewPage(
+  live:  LiveBrowserSession,
+  _runId: string,
+): Promise<Page> {
+  const contexts = live.browser.contexts();
+  const ctx      = contexts[0] ?? await live.browser.newContext();
+  return ctx.newPage();
 }

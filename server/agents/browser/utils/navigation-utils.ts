@@ -1,52 +1,93 @@
 /**
- * navigation-utils.ts
- * URL validation and safe-navigation helpers.
+ * server/agents/browser/utils/navigation-utils.ts
+ *
+ * URL validation, normalisation, and allow-list helpers.
+ * Pure string utilities — no network or Playwright access.
  */
 
-const ALLOWED_PROTOCOLS  = new Set(['http:', 'https:']);
-const LOOPBACK_HOSTS     = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
+const BLANK_PAGES = new Set([
+  'about:blank',
+  'chrome://newtab/',
+  'about:newtab',
+  '',
+]);
 
-export function isAllowedUrl(rawUrl: string, allowedHosts: string[] = []): boolean {
+// ── URL validation ────────────────────────────────────────────────────────────
+
+/**
+ * Returns true if `url` is on one of the `allowedHosts`.
+ * If `allowedHosts` is empty, any HTTPS URL is permitted.
+ */
+export function isAllowedUrl(url: string, allowedHosts: string[] = []): boolean {
   let parsed: URL;
   try {
-    parsed = new URL(rawUrl);
+    parsed = new URL(url);
   } catch {
     return false;
   }
 
-  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return false;
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+  if (allowedHosts.length === 0) return true;
 
-  const host = parsed.hostname;
-  if (LOOPBACK_HOSTS.has(host))               return true;
-  if (allowedHosts.includes(host))            return true;
-
-  // Allow Replit dev-domain previews
-  if (host.endsWith('.replit.dev') || host.endsWith('.repl.co')) return true;
-
-  return false;
+  return allowedHosts.some(host => {
+    const normalHost = host.toLowerCase().replace(/^https?:\/\//, '');
+    return (
+      parsed.hostname === normalHost ||
+      parsed.hostname.endsWith(`.${normalHost}`)
+    );
+  });
 }
 
-export function normalizeUrl(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-  return `http://${trimmed}`;
+/**
+ * Returns true if the URL is a blank/new-tab page.
+ */
+export function isBlankPage(url: string): boolean {
+  return BLANK_PAGES.has(url.trim().toLowerCase());
 }
 
-export function buildLocalUrl(port: number, path = '/'): string {
-  const p = path.startsWith('/') ? path : `/${path}`;
-  return `http://localhost:${port}${p}`;
+// ── URL normalisation ─────────────────────────────────────────────────────────
+
+/**
+ * Ensures the URL has an explicit protocol; defaults to https://.
+ */
+export function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('//'))       return `https:${trimmed}`;
+  return `https://${trimmed}`;
 }
 
-export function extractHost(rawUrl: string): string | null {
+/**
+ * Strips hash and search params, returning the bare path URL.
+ */
+export function stripQueryAndHash(url: string): string {
   try {
-    return new URL(rawUrl).hostname;
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}${u.pathname}`;
   } catch {
-    return null;
+    return url;
   }
 }
 
-export function isBlankPage(title: string, bodyText: string): boolean {
-  const emptyTitle = !title || title.trim() === '' || title === 'about:blank';
-  const emptyBody  = bodyText.trim().length < 10;
-  return emptyTitle && emptyBody;
+/**
+ * Extracts the hostname from a URL; returns '' on parse failure.
+ */
+export function extractHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Returns true if two URLs point to the same origin (protocol + host + port).
+ */
+export function isSameOrigin(a: string, b: string): boolean {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
 }

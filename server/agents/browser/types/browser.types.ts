@@ -1,45 +1,37 @@
 /**
- * browser.types.ts
- * Core browser session and capability type definitions.
+ * server/agents/browser/types/browser.types.ts
+ * Core browser session and lifecycle types.
  */
 
 export type BrowserSessionStatus =
-  | 'idle'
   | 'launching'
-  | 'ready'
-  | 'closing'
+  | 'active'
+  | 'idle'
   | 'closed'
   | 'crashed';
-
-export interface BrowserLaunchOptions {
-  headless?: boolean;
-  timeoutMs?: number;
-  allowedHosts?: string[];
-  executablePath?: string;
-}
 
 export interface BrowserSession {
   sessionId:  string;
   runId:      string;
   projectId?: number;
   status:     BrowserSessionStatus;
+  pagesOpen:  number;
   launchedAt?: Date;
   closedAt?:   Date;
-  pagesOpen:   number;
+  url?:        string;
+  error?:      string;
 }
 
-export interface BrowserCapabilities {
-  screenshots:  boolean;
-  navigation:   boolean;
-  interaction:  boolean;
-  validation:   boolean;
+export interface BrowserLaunchOptions {
+  headless?:   boolean;
+  timeoutMs?:  number;
+  viewport?:   { width: number; height: number };
+  projectId?:  number;
 }
 
 export interface BrowserHealthStatus {
-  alive:       boolean;
-  sessionId:   string;
-  status:      BrowserSessionStatus;
-  pagesOpen:   number;
-  checkedAt:   number;
-  error?:      string;
+  alive:     boolean;
+  sessionId: string | null;
+  url?:      string;
+  reason?:   string;
 }

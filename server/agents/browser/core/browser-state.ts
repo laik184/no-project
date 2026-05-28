@@ -1,59 +1,84 @@
 /**
- * browser-state.ts
- * In-memory registry of active browser sessions — single source of truth for session state.
+ * server/agents/browser/core/browser-state.ts
+ *
+ * Module-level registry of all browser sessions (active + historical).
+ * Single source of truth for session lifecycle state.
+ * Consumed by browser routes API and monitoring layer.
  */
 
-import { randomUUID }              from 'crypto';
-import type { BrowserSession,
-              BrowserSessionStatus } from '../types/browser.types.ts';
+import type { BrowserSession }     from '../types/browser.types.ts';
+import type { LiveBrowserSession } from './browser-session.ts';
 
-const sessions = new Map<string, BrowserSession>();
+// ── Internal store ────────────────────────────────────────────────────────────
 
-export function createSession(runId: string, projectId?: number): BrowserSession {
-  const sessionId = `bsess-${randomUUID().slice(0, 8)}`;
-  const session: BrowserSession = {
-    sessionId,
-    runId,
+const _sessions = new Map<string, BrowserSession>();
+
+// ── Writes (called by browser-session.ts only) ────────────────────────────────
+
+export function recordSessionOpened(
+  live:      LiveBrowserSession,
+  projectId?: number,
+): void {
+  _sessions.set(live.sessionId, {
+    sessionId:  live.sessionId,
+    runId:      live.runId,
     projectId,
-    status:    'idle',
+    status:     'active',
+    pagesOpen:  1,
+    launchedAt: live.launchedAt,
+  });
+}
+
+export function recordSessionClosed(sessionId: string, _runId: string): void {
+  const s = _sessions.get(sessionId);
+  if (!s) return;
+  _sessions.set(sessionId, {
+    ...s,
+    status:    'closed',
     pagesOpen: 0,
-  };
-  sessions.set(sessionId, session);
-  return session;
+    closedAt:  new Date(),
+  });
 }
 
-export function transitionSession(sessionId: string, status: BrowserSessionStatus): void {
-  const session = sessions.get(sessionId);
-  if (!session) throw new Error(`[browser-state] Unknown session: ${sessionId}`);
-  session.status = status;
-  if (status === 'launching') session.launchedAt = new Date();
-  if (status === 'closed' || status === 'crashed') session.closedAt = new Date();
+export function recordSessionCrashed(
+  sessionId: string,
+  _runId:    string,
+  error:     string,
+): void {
+  const s = _sessions.get(sessionId);
+  if (!s) return;
+  _sessions.set(sessionId, {
+    ...s,
+    status:    'crashed',
+    pagesOpen: 0,
+    closedAt:  new Date(),
+    error,
+  });
 }
 
-export function incrementPages(sessionId: string): void {
-  const s = sessions.get(sessionId);
-  if (s) s.pagesOpen++;
+export function updateSessionUrl(sessionId: string, url: string): void {
+  const s = _sessions.get(sessionId);
+  if (s) _sessions.set(sessionId, { ...s, url });
 }
 
-export function decrementPages(sessionId: string): void {
-  const s = sessions.get(sessionId);
-  if (s) s.pagesOpen = Math.max(0, s.pagesOpen - 1);
+// ── Reads ─────────────────────────────────────────────────────────────────────
+
+export function listActiveSessions(): BrowserSession[] {
+  return [..._sessions.values()].filter(s => s.status === 'active');
+}
+
+export function getAllSessions(): BrowserSession[] {
+  return [..._sessions.values()];
 }
 
 export function getSession(sessionId: string): BrowserSession | undefined {
-  return sessions.get(sessionId);
-}
-
-export function listActiveSessions(): BrowserSession[] {
-  return Array.from(sessions.values()).filter(
-    (s) => s.status === 'ready' || s.status === 'launching',
-  );
-}
-
-export function removeSession(sessionId: string): void {
-  sessions.delete(sessionId);
+  return _sessions.get(sessionId);
 }
 
 export function getSessionCount(): number {
-  return sessions.size;
+  return _sessions.size;
+}
+
+export function getActiveSessionCount(): number {
+  return listActiveSessions().length;
 }

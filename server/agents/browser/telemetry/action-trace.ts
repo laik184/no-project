@@ -1,35 +1,50 @@
 /**
- * action-trace.ts
- * Per-run ordered action trace — records every browser action for reports.
+ * server/agents/browser/telemetry/action-trace.ts
+ *
+ * Per-run ordered action trace.
+ * Consumed by tools layer (action-logger.ts) and orchestration layer.
  */
 
-import type { ActionEntry } from '../types/reporting.types.ts';
+export interface TraceEntry {
+  action:     string;
+  target?:    string;
+  value?:     string;
+  success:    boolean;
+  durationMs: number;
+  ts:         string;
+}
 
-const traces = new Map<string, ActionEntry[]>();
+// ── Store ─────────────────────────────────────────────────────────────────────
 
-const MAX_ENTRIES_PER_RUN = 500;
+const _store   = new Map<string, TraceEntry[]>();
+const MAX_ROWS = 500;
+
+// ── Singleton ─────────────────────────────────────────────────────────────────
 
 export const actionTrace = {
-  record(runId: string, entry: Omit<ActionEntry, 'timestamp'>): void {
-    if (!traces.has(runId)) traces.set(runId, []);
-    const list = traces.get(runId)!;
-    if (list.length >= MAX_ENTRIES_PER_RUN) list.shift();
-    list.push({ ...entry, timestamp: Date.now() });
+  record(
+    runId:   string,
+    entry:   Omit<TraceEntry, 'ts'>,
+  ): void {
+    const list = _store.get(runId) ?? [];
+    if (list.length >= MAX_ROWS) list.shift();
+    list.push({ ...entry, ts: new Date().toISOString() });
+    _store.set(runId, list);
   },
 
-  getAll(runId: string): ActionEntry[] {
-    return traces.get(runId) ?? [];
+  getAll(runId: string): TraceEntry[] {
+    return _store.get(runId) ?? [];
   },
 
-  getFailures(runId: string): ActionEntry[] {
-    return (traces.get(runId) ?? []).filter((e) => !e.success);
+  getLast(runId: string, n = 10): TraceEntry[] {
+    return (_store.get(runId) ?? []).slice(-n);
+  },
+
+  clear(runId: string): void {
+    _store.delete(runId);
   },
 
   count(runId: string): number {
-    return (traces.get(runId) ?? []).length;
-  },
-
-  evict(runId: string): void {
-    traces.delete(runId);
+    return (_store.get(runId) ?? []).length;
   },
 };
