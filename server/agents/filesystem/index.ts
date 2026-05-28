@@ -1,13 +1,57 @@
-export { initializeFilesystemAgent, filesystemEngine } from './filesystem-agent.ts';
+/**
+ * server/agents/filesystem/index.ts
+ *
+ * Public barrel for the filesystem agent.
+ * Consumers import from here — never from internal sub-modules directly.
+ */
 
-export { workspaceManager }  from '../../tools/filesystem/lib/workspace/workspace-manager.ts';
-export { isolationManager }  from '../../tools/filesystem/lib/workspace/isolation-manager.ts';
-export { snapshotManager }   from '../../tools/filesystem/lib/workspace/snapshot-manager.ts';
-export { workspaceHistory }  from '../../tools/filesystem/lib/workspace/workspace-history.ts';
-export { permissionManager } from '../../tools/filesystem/lib/permissions.ts';
+// ── Agent entry point ─────────────────────────────────────────────────────────
+export {
+  initializeFilesystemAgent,
+  shutdownFilesystemAgent,
+  runFilesystemAgent,
+  getFilesystemAgentDiagnostics,
+  type FilesystemAgentInput,
+} from './filesystem-agent.ts';
 
-export type { WorkspaceInfo }    from '../../tools/filesystem/lib/workspace/workspace-manager.ts';
-export type { IsolationContext } from '../../tools/filesystem/lib/workspace/isolation-manager.ts';
-export type { HistoryEntry }     from '../../tools/filesystem/lib/workspace/workspace-history.ts';
-export type { OperationRequest, OperationResult } from './types/operation.types.ts';
-export type { FilesystemAgentState, OperationType, OperationRecord } from './types/filesystem.types.ts';
+// ── Types ─────────────────────────────────────────────────────────────────────
+export type {
+  FilesystemOperationKind,
+  FilesystemOperationStatus,
+  FilesystemSessionStatus,
+  FilesystemOperationRequest,
+  FilesystemOperationResult,
+  FilesystemAgentResult,
+  FilesystemExecutionContext,
+  FilesystemOperation,
+  FilesystemSession,
+  FilesystemRetryConfig,
+  FilesystemFailureRecord,
+  ReadOperationRequest,
+  ReadOperationResult,
+  WriteOperationRequest,
+  WriteOperationResult,
+  PatchOperationRequest,
+  PatchOperationResult,
+  PatchHunk,
+  DeleteOperationRequest,
+  DeleteOperationResult,
+  SearchOperationRequest,
+  SearchOperationResult,
+  SearchKind,
+  SearchMatch,
+} from './types/filesystem.types.ts';
+
+// ── Loop options (re-exported for callers that configure the loop) ─────────────
+export type { FilesystemLoopOptions } from './execution/filesystem-loop.ts';
+
+// ── Diagnostics ───────────────────────────────────────────────────────────────
+export { filesystemMetrics }  from './telemetry/filesystem-metrics.ts';
+export { filesystemLogger }   from './telemetry/filesystem-logger.ts';
+export { failureMonitor }     from './monitoring/failure-monitor.ts';
+
+// ── Context builder (for callers that manage context themselves) ───────────────
+export { buildContext, toToolContext, type FilesystemContextInput } from './core/filesystem-context.ts';
+
+// ── Retry config ──────────────────────────────────────────────────────────────
+export { DEFAULT_RETRY_CONFIG, isRetryable } from './execution/retry-manager.ts';

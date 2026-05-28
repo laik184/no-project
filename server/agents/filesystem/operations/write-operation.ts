@@ -1,24 +1,74 @@
-import { writeFile as fsWrite }  from '../../../tools/filesystem/lib/files/file-writer.ts';
-import { patchFile as fsPatch }  from '../../../tools/filesystem/lib/files/patch-file.ts';
-import { emitFileChanged }       from '../events/filesystem-events.ts';
-import type { OperationRequest, OperationResult } from '../types/operation.types.ts';
+/**
+ * server/agents/filesystem/operations/write-operation.ts
+ *
+ * Orchestrates write workflows.
+ * ONLY coordinates — all execution goes through dispatcher-client → central dispatcher.
+ */
 
-export const writeOperation = {
-  async writeFile(req: OperationRequest, sandboxRoot: string): Promise<OperationResult> {
-    if (!req.content) {
-      return { id: req.id, type: req.type, success: false, error: 'content is required', durationMs: 0 };
-    }
-    const result = await fsWrite({ sandboxRoot, path: req.path, content: req.content });
-    emitFileChanged({ runId: req.runId, projectId: req.projectId, path: req.path, changeType: result.skipped ? 'updated' : 'created' });
-    return { id: req.id, type: req.type, success: true, output: req.path, durationMs: 0 };
-  },
+import type {
+  WriteOperationRequest,
+  WriteOperationResult,
+  FilesystemExecutionContext,
+} from '../types/filesystem.types.ts';
+import { execute }          from '../coordination/dispatcher-client.ts';
+import { coordinateWrite }  from '../coordination/tool-coordinator.ts';
+import { assertPath }       from '../validation/path-validator.ts';
+import { toToolContext }    from '../core/filesystem-context.ts';
+import { toErrorMessage }   from '../utils/filesystem-utils.ts';
 
-  async patchFile(req: OperationRequest, sandboxRoot: string): Promise<OperationResult> {
-    if (req.oldString === undefined || req.newString === undefined) {
-      return { id: req.id, type: req.type, success: false, error: 'oldString and newString are required', durationMs: 0 };
-    }
-    const result = await fsPatch({ sandboxRoot, path: req.path, oldString: req.oldString, newString: req.newString });
-    emitFileChanged({ runId: req.runId, projectId: req.projectId, path: req.path, changeType: 'updated' });
-    return { id: req.id, type: req.type, success: true, output: `Replaced ${result.occurrences} occurrence(s)`, durationMs: 0 };
-  },
-};
+// ── Internal: parse dispatcher output ────────────────────────────────────────
+
+interface RawWriteOutput {
+  written?: boolean;
+  path?:    string;
+}
+
+function parseWriteOutput(data: unknown, path: string): WriteOperationResult {
+  const raw = (data ?? {}) as RawWriteOutput;
+  return {
+    kind:    'write',
+    path,
+    written: typeof raw.written === 'boolean' ? raw.written : true,
+  };
+}
+
+// ── Orchestrator ──────────────────────────────────────────────────────────────
+
+/**
+ * Orchestrate a write operation (create, overwrite, append, or write-if-absent).
+ * Validates the path, selects the correct tool, dispatches through the gateway.
+ */
+export async function orchestrateWrite(
+  request: WriteOperationRequest,
+  context: FilesystemExecutionContext,
+): Promise<WriteOperationResult> {
+  assertPath(request.path, context.sandboxRoot);
+
+  const { toolName, toolInput } = coordinateWrite(request, context.sandboxRoot);
+  const toolCtx                 = toToolContext(context);
+
+  const result = await execute<RawWriteOutput>(toolName, toolInput, toolCtx);
+
+  if (!result.ok) {
+    throw new Error(
+      `[write-operation] Tool "${toolName}" failed for path "${request.path}": ${result.error}`,
+    );
+  }
+
+  return parseWriteOutput(result.data, request.path);
+}
+
+/**
+ * Safe variant — returns a result envelope instead of throwing.
+ */
+export async function safeOrchestrateWrite(
+  request: WriteOperationRequest,
+  context: FilesystemExecutionContext,
+): Promise<{ ok: true; result: WriteOperationResult } | { ok: false; error: string }> {
+  try {
+    const result = await orchestrateWrite(request, context);
+    return { ok: true, result };
+  } catch (err) {
+    return { ok: false, error: toErrorMessage(err) };
+  }
+}

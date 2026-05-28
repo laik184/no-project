@@ -1,33 +1,100 @@
-import type { OperationType } from '../types/filesystem.types.ts';
+/**
+ * server/agents/filesystem/telemetry/filesystem-metrics.ts
+ *
+ * In-process metrics for the filesystem agent.
+ * Tracks operation counts, success/failure rates, retry metrics, and duration.
+ */
 
-interface RunMetrics {
+import type { FilesystemOperationKind } from '../types/filesystem.types.ts';
+
+// ── Internal counters ─────────────────────────────────────────────────────────
+
+interface KindCounters {
   total:   number;
   success: number;
   failed:  number;
-  byType:  Partial<Record<OperationType, number>>;
+  retries: number;
+  totalDurationMs: number;
 }
 
-const store = new Map<string, RunMetrics>();
+const counters = new Map<FilesystemOperationKind, KindCounters>();
+let globalStarted  = 0;
+let globalFinished = 0;
+let globalFailed   = 0;
+let globalRetries  = 0;
+
+function getOrCreate(kind: FilesystemOperationKind): KindCounters {
+  let c = counters.get(kind);
+  if (!c) {
+    c = { total: 0, success: 0, failed: 0, retries: 0, totalDurationMs: 0 };
+    counters.set(kind, c);
+  }
+  return c;
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
 
 export const filesystemMetrics = {
-  recordStart(runId: string, type: OperationType): void {
-    if (!store.has(runId)) store.set(runId, { total: 0, success: 0, failed: 0, byType: {} });
-    const m = store.get(runId)!;
-    m.total++;
-    m.byType[type] = (m.byType[type] ?? 0) + 1;
+  recordStarted(kind: FilesystemOperationKind): void {
+    getOrCreate(kind).total++;
+    globalStarted++;
   },
 
-  recordEnd(runId: string, _type: OperationType, success: boolean): void {
-    const m = store.get(runId);
-    if (!m) return;
-    if (success) m.success++; else m.failed++;
+  recordCompleted(kind: FilesystemOperationKind, durationMs: number): void {
+    const c = getOrCreate(kind);
+    c.success++;
+    c.totalDurationMs += durationMs;
+    globalFinished++;
   },
 
-  get(runId: string): RunMetrics | undefined {
-    return store.get(runId);
+  recordFailed(kind: FilesystemOperationKind, durationMs: number): void {
+    const c = getOrCreate(kind);
+    c.failed++;
+    c.totalDurationMs += durationMs;
+    globalFailed++;
   },
 
-  clear(runId: string): void {
-    store.delete(runId);
+  recordRetry(kind: FilesystemOperationKind): void {
+    getOrCreate(kind).retries++;
+    globalRetries++;
+  },
+
+  snapshot(): {
+    global: { started: number; finished: number; failed: number; retries: number };
+    byKind: Record<string, KindCounters>;
+  } {
+    const byKind: Record<string, KindCounters> = {};
+    for (const [kind, c] of counters) {
+      byKind[kind] = { ...c };
+    }
+    return {
+      global: {
+        started:  globalStarted,
+        finished: globalFinished,
+        failed:   globalFailed,
+        retries:  globalRetries,
+      },
+      byKind,
+    };
+  },
+
+  avgDurationMs(kind: FilesystemOperationKind): number {
+    const c = counters.get(kind);
+    if (!c || c.success === 0) return 0;
+    return Math.round(c.totalDurationMs / c.success);
+  },
+
+  successRate(kind: FilesystemOperationKind): number {
+    const c = counters.get(kind);
+    if (!c || c.total === 0) return 0;
+    return Math.round((c.success / c.total) * 100);
+  },
+
+  reset(): void {
+    counters.clear();
+    globalStarted  = 0;
+    globalFinished = 0;
+    globalFailed   = 0;
+    globalRetries  = 0;
   },
 };

@@ -1,32 +1,69 @@
-import type { FilesystemAgentState } from '../types/filesystem.types.ts';
-import { workspaceManager }          from '../../../tools/filesystem/lib/workspace/workspace-manager.ts';
-import { isolationManager }          from '../../../tools/filesystem/lib/workspace/isolation-manager.ts';
+/**
+ * server/agents/filesystem/core/filesystem-context.ts
+ *
+ * Builds and validates the FilesystemExecutionContext for each agent run.
+ * No filesystem access — context is a plain data structure.
+ */
 
-export interface FilesystemContext {
-  state:       FilesystemAgentState;
+import type { FilesystemExecutionContext } from '../types/filesystem.types.ts';
+import { generateSessionId }               from '../utils/filesystem-utils.ts';
+
+// ── Context input ─────────────────────────────────────────────────────────────
+
+export interface FilesystemContextInput {
+  runId:        string;
+  projectId:    string;
+  sandboxRoot:  string;
+  sessionId?:   string;
+  signal?:      AbortSignal;
+}
+
+// ── Validation error ──────────────────────────────────────────────────────────
+
+export class FilesystemContextError extends Error {
+  constructor(message: string) {
+    super(`[filesystem-context] ${message}`);
+    this.name = 'FilesystemContextError';
+  }
+}
+
+// ── Builder ───────────────────────────────────────────────────────────────────
+
+export function buildContext(input: FilesystemContextInput): FilesystemExecutionContext {
+  if (!input.runId?.trim()) {
+    throw new FilesystemContextError('runId is required and must be a non-empty string.');
+  }
+  if (!input.projectId?.trim()) {
+    throw new FilesystemContextError('projectId is required and must be a non-empty string.');
+  }
+  if (!input.sandboxRoot?.trim()) {
+    throw new FilesystemContextError('sandboxRoot is required and must be a non-empty string.');
+  }
+
+  return Object.freeze({
+    runId:       input.runId.trim(),
+    projectId:   input.projectId.trim(),
+    sandboxRoot: input.sandboxRoot.trim(),
+    sessionId:   input.sessionId ?? generateSessionId(),
+    signal:      input.signal,
+  });
+}
+
+// ── Context → ToolExecutionContext adapter ────────────────────────────────────
+// The central dispatcher expects a ToolExecutionContext — this maps cleanly.
+
+export function toToolContext(ctx: FilesystemExecutionContext): {
+  runId:       string;
+  projectId:   string;
   sandboxRoot: string;
-}
-
-export async function createFilesystemContext(
-  runId: string,
-  projectId: string,
-): Promise<FilesystemContext> {
-  const sandboxRoot = await workspaceManager.init(projectId, runId);
-  isolationManager.create(projectId, runId, sandboxRoot);
-
-  const state: FilesystemAgentState = {
-    runId,
-    projectId,
-    sandboxRoot,
-    opsCompleted: 0,
-    opsFailed:    0,
-    startedAt:    new Date(),
+  signal?:     AbortSignal;
+  meta:        Record<string, unknown>;
+} {
+  return {
+    runId:       ctx.runId,
+    projectId:   ctx.projectId,
+    sandboxRoot: ctx.sandboxRoot,
+    signal:      ctx.signal,
+    meta:        { sessionId: ctx.sessionId, agent: 'filesystem' },
   };
-
-  return { state, sandboxRoot };
-}
-
-export function releaseFilesystemContext(runId: string, projectId: string): void {
-  const ctx = isolationManager.get(projectId, runId);
-  if (ctx) isolationManager.release(ctx.contextId);
 }

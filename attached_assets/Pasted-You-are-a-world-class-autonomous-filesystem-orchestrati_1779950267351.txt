@@ -1,0 +1,300 @@
+You are a world-class autonomous filesystem orchestration architect, runtime coordination engineer, and TypeScript infrastructure specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/filesystem/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The filesystem agent must ONLY coordinate filesystem workflows.
+
+NO actual filesystem execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct filesystem execution
+5. No fs.readFile()
+6. No fs.writeFile()
+7. No fs.rm()
+8. No fs.mkdir()
+9. No direct path mutation
+10. No direct patch application
+11. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- fs.readFile
+- fs.writeFile
+- fs.promises
+- rmSync
+- mkdirSync
+- path mutation
+- direct search logic
+- direct patch logic
+- direct delete logic
+
+==================================================
+FILESYSTEM AGENT RESPONSIBILITY
+
+The filesystem agent should ONLY:
+
+- coordinate filesystem workflows
+- orchestrate file operations
+- manage filesystem lifecycle
+- manage operation sessions/state
+- control retry/recovery flow
+- validate filesystem requests
+- monitor filesystem operations
+- route filesystem tasks
+- aggregate operation results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/filesystem/
+
+├── filesystem-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── filesystem-context.ts
+│   ├── filesystem-session.ts
+│   └── filesystem-state.ts
+│
+├── execution/
+│   ├── filesystem-loop.ts
+│   ├── step-runner.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── tool-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── filesystem-routing.ts
+│
+├── operations/
+│   ├── read-operation.ts
+│   ├── write-operation.ts
+│   ├── patch-operation.ts
+│   ├── delete-operation.ts
+│   └── search-operation.ts
+│
+├── validation/
+│   ├── operation-validator.ts
+│   ├── path-validator.ts
+│   └── integrity-validator.ts
+│
+├── monitoring/
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── filesystem-logger.ts
+│   └── filesystem-metrics.ts
+│
+├── types/
+│   └── filesystem.types.ts
+│
+└── utils/
+└── filesystem-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+filesystem-loop.ts
+→ MAIN filesystem runtime loop
+→ controls operation lifecycle
+→ controls retries
+→ controls operation sequencing
+
+step-runner.ts
+→ executes one filesystem step
+→ coordinates operation flow
+
+tool-coordinator.ts
+→ maps operations to tools
+→ coordinates dispatcher execution
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+read-operation.ts
+→ orchestrates read workflows
+
+write-operation.ts
+→ orchestrates write workflows
+
+patch-operation.ts
+→ orchestrates patch workflows
+
+delete-operation.ts
+→ orchestrates delete workflows
+
+search-operation.ts
+→ orchestrates search workflows
+
+==================================================
+FILESYSTEM EXECUTION FLOW
+
+Filesystem Agent
+↓
+Filesystem Loop
+↓
+Step Runner
+↓
+Operation Layer
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Filesystem Tools
+↓
+Operation Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"write_file",
+payload
+)
+
+WRONG:
+
+await fs.writeFile()
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated operation systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+operation-validator.ts
+must validate:
+
+- malformed operation requests
+- invalid operation state
+- missing runtime context
+
+path-validator.ts
+must validate:
+
+- path traversal
+- invalid sandbox access
+- blocked paths
+
+integrity-validator.ts
+must validate:
+
+- corrupted operation flow
+- invalid execution transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+failure-monitor.ts
+must track:
+
+- failed operations
+- retry attempts
+- repeated failures
+- stuck operation loops
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+filesystem-logger.ts
+must log:
+
+- operation lifecycle
+- retries
+- failures
+- recovery attempts
+
+filesystem-metrics.ts
+must track:
+
+- operation count
+- success/failure rate
+- retry metrics
+- operation duration
+
+==================================================
+FINAL GOAL
+
+The final filesystem agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level filesystem coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden filesystem execution
+- direct runtime logic
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Filesystem Agent → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution
