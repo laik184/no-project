@@ -1,0 +1,358 @@
+You are a world-class autonomous coding architect, AI execution systems engineer, and TypeScript orchestration specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/coderx/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The coderx agent must ONLY coordinate AI coding workflows.
+
+NO actual execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct filesystem execution
+5. No direct terminal execution
+6. No direct browser execution
+7. No direct verification execution
+8. No direct runtime execution
+9. No direct shell execution
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- npm commands
+- direct API execution
+- direct shell execution
+- direct tool implementations
+- direct runtime mutation
+
+==================================================
+CODERX AGENT RESPONSIBILITY
+
+The coderx agent should ONLY:
+
+- coordinate AI coding workflows
+- orchestrate code generation lifecycle
+- analyze coding tasks
+- build implementation plans
+- manage reasoning flow
+- coordinate execution steps
+- manage coding sessions/state
+- control retry/recovery flow
+- validate coding requests
+- monitor coding runtime
+- aggregate execution results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/coderx/
+
+├── coderx-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── coderx-context.ts
+│   ├── coderx-session.ts
+│   └── coderx-state.ts
+│
+├── execution/
+│   ├── coding-loop.ts
+│   ├── step-runner.ts
+│   ├── task-executor.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── tool-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── coding-routing.ts
+│
+├── planning/
+│   ├── code-planner.ts
+│   ├── implementation-planner.ts
+│   └── execution-plan-builder.ts
+│
+├── reasoning/
+│   ├── task-analyzer.ts
+│   ├── dependency-analyzer.ts
+│   └── decision-engine.ts
+│
+├── validation/
+│   ├── coding-validator.ts
+│   ├── response-validator.ts
+│   └── integrity-validator.ts
+│
+├── monitoring/
+│   ├── execution-monitor.ts
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── coderx-logger.ts
+│   └── coderx-metrics.ts
+│
+├── memory/
+│   ├── working-memory.ts
+│   └── execution-history.ts
+│
+├── types/
+│   └── coderx.types.ts
+│
+└── utils/
+└── coding-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+coding-loop.ts
+→ MAIN coding runtime loop
+→ controls coding lifecycle
+→ controls retries
+→ controls execution sequencing
+→ controls reasoning flow
+
+step-runner.ts
+→ executes one orchestration step
+→ coordinates coding flow
+
+task-executor.ts
+→ manages coding task orchestration
+→ converts coding goals into execution steps
+
+tool-coordinator.ts
+→ maps coding tasks to tools
+→ coordinates dispatcher execution
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+code-planner.ts
+→ converts user requests into coding plans
+
+implementation-planner.ts
+→ creates implementation strategy
+
+execution-plan-builder.ts
+→ builds execution graph/order
+
+task-analyzer.ts
+→ analyzes coding intent/tasks
+
+dependency-analyzer.ts
+→ analyzes dependency relationships
+
+decision-engine.ts
+→ controls reasoning decisions
+
+working-memory.ts
+→ maintains runtime working memory
+
+execution-history.ts
+→ stores execution history
+
+==================================================
+CODING FLOW
+
+CoderX Agent
+↓
+Coding Loop
+↓
+Task Analyzer
+↓
+Code Planner
+↓
+Implementation Planner
+↓
+Execution Plan Builder
+↓
+Task Executor
+↓
+Step Runner
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Execution Tools
+↓
+Execution Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"generate_code",
+payload
+)
+
+WRONG:
+
+await fs.writeFile()
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated execution systems
+6. No duplicated reasoning systems
+7. No duplicated retry systems
+8. No giant files (>250 lines)
+9. High cohesion
+10. Low coupling
+11. Single responsibility per file
+12. Event-driven orchestration
+13. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+coding-validator.ts
+must validate:
+
+- malformed coding requests
+- invalid coding state
+- missing runtime context
+
+response-validator.ts
+must validate:
+
+- malformed LLM responses
+- invalid structured output
+- unsafe responses
+
+integrity-validator.ts
+must validate:
+
+- corrupted execution flow
+- invalid reasoning transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+execution-monitor.ts
+must track:
+
+- active coding state
+- execution progress
+- stuck coding loops
+
+failure-monitor.ts
+must track:
+
+- failed executions
+- retry attempts
+- repeated failures
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+coderx-logger.ts
+must log:
+
+- coding lifecycle
+- retries
+- failures
+- reasoning decisions
+
+coderx-metrics.ts
+must track:
+
+- execution count
+- coding success rate
+- retry metrics
+- execution duration
+
+==================================================
+MEMORY REQUIREMENTS
+
+working-memory.ts
+must manage:
+
+- active reasoning context
+- temporary execution memory
+- runtime task state
+
+execution-history.ts
+must manage:
+
+- previous execution history
+- retry history
+- execution snapshots
+
+==================================================
+FINAL GOAL
+
+The final coderx agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level AI coding coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden execution
+- direct runtime logic
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+CoderX Agent → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution
