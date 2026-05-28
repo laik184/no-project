@@ -258,3 +258,9 @@ id = "et1nHboP90uddQNLVRcPp"
 uri = "file://REPORT.md"
 type = "text"
 title = "Nura-X Deployer — Code Analysis Report"
+
+[[outputs]]
+id = "2ofRScxkcygqdIp5a5AnQ"
+uri = "file://ARCHITECTURE_REPORT.md"
+type = "text"
+title = "Architecture Correction Report"
