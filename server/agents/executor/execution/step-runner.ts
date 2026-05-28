@@ -2,8 +2,8 @@
  * server/agents/executor/execution/step-runner.ts
  *
  * Executes one execution step end-to-end:
- *   validate → transition → dispatch via routing → record result.
- * No direct tool execution — all routing goes through execution-routing.ts.
+ *   validate → transition → dispatch via dispatcher-client → record result.
+ * No direct tool execution — all dispatch goes through dispatcher-client.ts.
  */
 
 import type {
@@ -12,7 +12,8 @@ import type {
   ExecutorExecutionContext,
   ExecutorRetryConfig,
 } from '../types/executor.types.ts';
-import { routeTask }              from '../coordination/execution-routing.ts';
+import { execute }                from '../coordination/dispatcher-client.ts';
+import { toToolContext }          from '../core/executor-context.ts';
 import { withRetry, DEFAULT_RETRY_CONFIG } from './retry-manager.ts';
 import { assertTransition }       from '../validation/integrity-validator.ts';
 import { failureMonitor }         from '../monitoring/failure-monitor.ts';
@@ -59,7 +60,7 @@ export async function runStep(
 
   const retryResult = await withRetry(
     async () => {
-      const result = await routeTask(task, context);
+      const result = await execute(rs.step.toolName, rs.step.toolInput, toToolContext(context));
       if (!result.ok) {
         throw new Error(result.error ?? `Tool "${rs.step.toolName}" returned failure`);
       }
