@@ -20,9 +20,10 @@ interface EnvCheck {
 const CHECKS: EnvCheck[] = [
   {
     key:      "OPENROUTER_API_KEY",
-    severity: "critical",
-    howToFix: "Go to Replit Secrets and add OPENROUTER_API_KEY=sk-or-v1-... "
-            + "(get a key at https://openrouter.ai)",
+    severity: "warn",
+    howToFix: "Add OPENROUTER_API_KEY in Replit Secrets, or use the Replit AI Integrations "
+            + "(AI_INTEGRATIONS_OPENROUTER_API_KEY is set automatically when the OpenRouter "
+            + "integration is active).",
   },
   {
     key:      "REDIS_URL",

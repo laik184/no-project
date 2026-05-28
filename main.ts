@@ -66,11 +66,11 @@ const PORT = Number(process.env.PORT) || 3001;
 // ── Startup: warn loudly if critical env vars are missing ──────────────
 const MISSING_VARS: string[] = [];
 const hasOpenRouterKey = !!(process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY);
-if (!hasOpenRouterKey) MISSING_VARS.push('OPENROUTER_API_KEY (or AI_INTEGRATIONS_OPENROUTER_API_KEY)');
+if (!hasOpenRouterKey) MISSING_VARS.push('OPENROUTER_API_KEY (or AI_INTEGRATIONS_OPENROUTER_API_KEY via Replit AI Integration)');
 if (!process.env.DATABASE_URL) MISSING_VARS.push('DATABASE_URL');
 if (MISSING_VARS.length > 0) {
-  console.warn(`[nura-x] ⚠  Missing required environment variables: ${MISSING_VARS.join(', ')}`);
-  console.warn('[nura-x] ⚠  Agent runs will fail until OPENROUTER_API_KEY is set in Secrets.');
+  console.warn(`[nura-x] ⚠  Missing environment variables: ${MISSING_VARS.join(', ')}`);
+  console.warn('[nura-x] ⚠  Agent runs will fail until an OpenRouter key is available. Use Replit AI Integrations (no key required) or set OPENROUTER_API_KEY in Secrets.');
 }
 
 app.use(express.json({ limit: '10mb' }));

@@ -10,7 +10,8 @@
     "build": "vite build",
     "test": "node --import tsx/esm --test server/agents/dependencies/tests/*.test.ts",
     "test:watch": "node --import tsx/esm --test --watch server/agents/dependencies/tests/*.test.ts",
-    "governance": "node scripts/governance-check.mjs"
+    "governance": "node scripts/governance-check.mjs",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
