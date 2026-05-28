@@ -252,3 +252,9 @@ id = "nqQKvi_KoEjDxT78hVW0n"
 uri = "file://TOOLS_ARCHITECTURE_REPAIR_REPORT.md"
 type = "text"
 title = "Architecture Repair Report — server/tools/"
+
+[[outputs]]
+id = "et1nHboP90uddQNLVRcPp"
+uri = "file://REPORT.md"
+type = "text"
+title = "Nura-X Deployer — Code Analysis Report"
