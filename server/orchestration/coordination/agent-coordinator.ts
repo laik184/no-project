@@ -1,101 +1,195 @@
 /**
  * server/orchestration/coordination/agent-coordinator.ts
  *
- * Coordinates downstream agents by routing execution flow through
- * the dispatcher-client. Manages agent lifecycle at orchestration scope.
- * Orchestration-only — no direct tool calls, no filesystem access.
- */
+ * THE single orchestration authority over all agents.
+ * Directly imports and invokes every agent — no tool-layer intermediary.
+ *
+ * Clean architecture enforced here:
+ *
+ *   orchestration-loop.ts
+ *     → agent-coordinator.ts        ← YOU ARE HERE
+ *       → <agent>-agent.ts
+ *         → <agent>-loop.ts
+ *           → dispatcher-client.ts
+ *             → tool-dispatcher.ts
+ *               → <tool>
+ *
+ * FORBIDDEN at this 
 
-import { routeCommand } from './dispatcher-client.ts';
-import type { ToolExecutionResult, ToolExecutionContext } from './dispatcher-client.ts';
+import { runBrowserAgent }        from '../../agents/browser/browser-agent.ts';
+import { runExecutorAgent }       from '../../agents/executor/executor-agent.ts';
+import { runFilesystemAgent }     from '../../agents/filesystem/filesystem-agent.ts';
+import { runPlannerCycle }        from '../../agents/planner/planner-agent.ts';
+import { runSupervisorCycle }     from '../../agents/supervisor/supervisor-agent.ts';
+import { executeTerminalSession } from '../../agents/terminal/terminal-agent.ts';
+import { runVerification }        from '../../agents/verifier/verifier-agent.ts';
+
 import type { AgentType, Phase, PhaseResult } from '../types/orchestration.types.ts';
-import { now } from '../utils/orchestration-utils.ts';
+import type { ToolExecutionContext }           from './dispatcher-client.ts';
 
-// ── Agent → tool name mapping ─────────────────────────────────────────────────
-
-const AGENT_TOOL_MAP: Record<AgentType, string> = {
-  planner:    'orchestrate_plan',
-  executor:   'orchestrate_execute',
-  verifier:   'orchestrate_verify',
-  browser:    'orchestrate_browse',
-  filesystem: 'orchestrate_fs',
-  terminal:   'orchestrate_terminal',
-  supervisor: 'orchestrate_supervise',
-};
-
-function toolNameForAgent(agentType: AgentType): string {
-  return AGENT_TOOL_MAP[agentType] ?? `orchestrate_${agentType}`;
-}
-
-// ── Phase dispatch ────────────────────────────────────────────────────────────
+// ── Phase dispatch — direct agent invocation ──────────────────────────────────
 
 /**
- * Dispatches a single phase to its designated agent via the dispatcher.
- * Returns a PhaseResult — never throws.
+ * Dispatches a single phase directly to its designated agent.
+ *
+ * No tool-layer round-trip. The agent owns its own loop → dispatcher → tool path.
+ * Returns a PhaseResult envelope — never throws.
  */
 export async function dispatchPhaseToAgent(
   phase:   Phase,
   context: ToolExecutionContext,
   attempt: number,
 ): Promise<PhaseResult> {
-  const start    = Date.now();
-  const toolName = toolNameForAgent(phase.agentType);
+  const start = Date.now();
 
-  const result: ToolExecutionResult<unknown> = await routeCommand(
-    toolName,
-    { ...phase.input, phaseId: phase.phaseId, phaseName: phase.name },
-    context,
-  );
+  const runId     = (phase.input.runId     as string | undefined) ?? context.runId     ?? 'unknown';
+  const projectId = (phase.input.projectId as string | undefined) ?? context.projectId ?? 'unknown';
 
-  const durationMs = Date.now() - start;
-
-  if (result.ok) {
+  try {
+    const output = await invokeAgent(phase.agentType, phase.input, runId, projectId, context);
     return {
       phaseId:   phase.phaseId,
       agentType: phase.agentType,
       ok:        true,
-      output:    result.data,
-      durationMs,
-      attempts:  attempt,
+      output,
+      durationMs: Date.now() - start,
+      attempts:   attempt,
+    };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    return {
+      phaseId:   phase.phaseId,
+      agentType: phase.agentType,
+      ok:        false,
+      error,
+      durationMs: Date.now() - start,
+      attempts:   attempt,
     };
   }
+}
 
-  return {
-    phaseId:   phase.phaseId,
-    agentType: phase.agentType,
-    ok:        false,
-    error:     result.error,
-    durationMs,
-    attempts:  attempt,
-  };
+// ── Direct agent invocation ───────────────────────────────────────────────────
+
+async function invokeAgent(
+  agentType: AgentType,
+  input:     Record<string, unknown>,
+  runId:     string,
+  projectId: string,
+  context:   ToolExecutionContext,
+): Promise<unknown> {
+  const sandboxRoot =
+    (input.sandboxRoot as string | undefined) ??
+    process.env.AGENT_PROJECT_ROOT ??
+    '.sandbox';
+
+  switch (agentType) {
+
+    case 'browser':
+      return runBrowserAgent({
+        url:               (input.url              as string)           ?? '',
+        runId,
+        projectId,
+        allowedHosts:       input.allowedHosts      as string[]  | undefined,
+        flows:              input.flows              as any       | undefined,
+        testResponsive:     input.testResponsive     as boolean   | undefined,
+        captureScreenshot:  input.captureScreenshot  as boolean   | undefined,
+        validateUI:         input.validateUI         as boolean   | undefined,
+        timeoutMs:          input.timeoutMs          as number    | undefined,
+      });
+
+    case 'executor':
+      return runExecutorAgent({
+        runId,
+        projectId,
+        sandboxRoot,
+        plan:    input.plan    as any,
+        options: input.options as any,
+      });
+
+    case 'planner':
+      return runPlannerCycle({
+        runId,
+        projectId,
+        goal:     (input.goal as string) ?? '',
+        metadata:  input.metadata as Record<string, unknown> | undefined,
+      });
+
+    case 'filesystem':
+      return runFilesystemAgent({
+        context: {
+          runId,
+          projectId,
+          sandboxRoot,
+          ...(input.context as object | undefined ?? {}),
+        } as any,
+        operations: (input.operations as any[]) ?? [],
+        options:     input.options as any,
+      });
+
+    case 'terminal':
+      return executeTerminalSession({
+        runId,
+        projectId,
+        sandboxRoot,
+        steps:   (input.steps as any[]) ?? [],
+        signal:   context.signal,
+        meta:     input.meta as Record<string, unknown> | undefined,
+      });
+
+    case 'supervisor':
+      return runSupervisorCycle({
+        runId,
+        projectId,
+        goal:     (input.goal as string) ?? '',
+        metadata:  input.metadata as Record<string, unknown> | undefined,
+      });
+
+    case 'verifier':
+      return runVerification({
+        runId,
+        projectId,
+        sandboxRoot,
+        phases:    input.phases   as any,
+        port:      input.port     as number | undefined,
+        timeoutMs: input.timeoutMs as number | undefined,
+      });
+
+    default: {
+      const unreachable: never = agentType;
+      throw new Error(`[agent-coordinator] Unknown agentType: "${unreachable}"`);
+    }
+  }
 }
 
 // ── Readiness probe ───────────────────────────────────────────────────────────
 
 /**
- * Checks if an agent type is reachable by sending a lightweight ping
- * through the dispatcher. Returns true if the agent responds OK.
+ * All agents are in-process modules — no network probe needed.
+ * Returns true immediately for any valid AgentType.
  */
 export async function probeAgent(
   agentType: AgentType,
-  context:   ToolExecutionContext,
+  _context:  ToolExecutionContext,
 ): Promise<boolean> {
-  const toolName = toolNameForAgent(agentType);
-  const result   = await routeCommand(
-    toolName,
-    { probe: true, timestamp: now().toISOString() },
-    context,
-    { timeoutMs: 5_000 },
-  );
-  return result.ok;
+  return isValidAgentType(agentType);
 }
 
 // ── Agent type helpers ────────────────────────────────────────────────────────
 
+const AGENT_TYPES: readonly AgentType[] = [
+  'planner',
+  'executor',
+  'verifier',
+  'browser',
+  'filesystem',
+  'terminal',
+  'supervisor',
+] as const;
+
 export function isValidAgentType(value: string): value is AgentType {
-  return Object.keys(AGENT_TOOL_MAP).includes(value);
+  return (AGENT_TYPES as readonly string[]).includes(value);
 }
 
 export function allAgentTypes(): AgentType[] {
-  return Object.keys(AGENT_TOOL_MAP) as AgentType[];
+  return [...AGENT_TYPES];
 }
