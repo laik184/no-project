@@ -1,9 +1,11 @@
 /**
  * server/agents/coderx/execution/step-runner.ts
  *
- * Executes one coding step through coordination → dispatcher.
+ * Executes one coding step through dispatcher-client → tool-dispatcher → tool.
  * Controls the retry loop for a single step.
- * No direct tool execution — all dispatch goes through coding-routing.ts.
+ *
+ * Execution chain: step-runner → dispatcher-client → tool-dispatcher → registry → tool
+ * No intermediate routing layers. No direct tool execution.
  */
 
 import type {
@@ -14,8 +16,11 @@ import type {
   CodingTaskOutput,
   CodingTaskKind,
 } from '../types/coderx.types.ts';
-import { routeCodingTask }       from '../coordination/coding-routing.ts';
-import { canRetry, waitForRetry } from './retry-manager.ts';
+import { executeTool }                 from '../coordination/dispatcher-client.ts';
+import { coordinateCodingTask }        from '../coordination/tool-coordinator.ts';
+import { assertRoutedCodingStep }      from '../validation/coding-validator.ts';
+import { toToolContext }               from '../core/coderx-context.ts';
+import { canRetry, waitForRetry }      from './retry-manager.ts';
 import {
   registerStep, markRunning, markCompleted,
   markFailed, markRetrying,
@@ -41,9 +46,15 @@ export async function runStep(
     executionMonitor.markStepActive(context.runId, step.stepId);
     coderxLogger.stepStarted(context.runId, step.stepId, step.toolName);
 
-    const start  = Date.now();
-    const result = await routeCodingTask(task, context);
-    const dur    = Date.now() - start;
+    const start = Date.now();
+
+    // ── Route task → tool name + input, then dispatch directly ────────────────
+    const routed  = coordinateCodingTask(task);
+    assertRoutedCodingStep(routed);
+    const toolCtx = toToolContext(context);
+    const result  = await executeTool(routed.toolName, routed.toolInput, toolCtx);
+
+    const dur = Date.now() - start;
 
     executionMonitor.clearActiveStep(context.runId);
 
@@ -58,8 +69,7 @@ export async function runStep(
       return { taskId: task.taskId, kind: task.kind, ok: true, output: result.data, attempts: attempt + 1 };
     }
 
-    // ── Failure path ────────────────────────────────────────────────────────
-    if (result.ok) continue; // type guard — unreachable but satisfies discriminated union
+    // ── Failure path ──────────────────────────────────────────────────────────
     const error = result.error;
     coderxLogger.stepFailed(context.runId, step.stepId, error, attempt);
     coderxMetrics.recordStepFailure(context.runId);

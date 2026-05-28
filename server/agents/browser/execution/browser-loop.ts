@@ -4,12 +4,19 @@
  * MAIN browser runtime loop.
  * Controls: session lifecycle, routing, execution, retry, teardown.
  * Orchestrates only — all work delegated to coordinator/executor layers.
+ *
+ * Session lifecycle (launch/close) routes through dispatcher-client → tool-dispatcher.
+ * No direct imports from server/tools/browser/ are allowed here.
  */
 
-import { launchBrowser, closeBrowser }  from '../../../tools/browser/session/browser-lifecycle.ts';
+import {
+  launchSession,
+  closeSession,
+  buildToolContext,
+  type LaunchSessionResult,
+}                                       from '../coordination/dispatcher-client.ts';
 import { executeFlow }                  from './flow-executor.ts';
 import { routeBrowserGoal }             from '../coordination/browser-routing.ts';
-import { buildToolContext }             from '../coordination/dispatcher-client.ts';
 import {
   createContext,
   setStatus,
@@ -46,13 +53,10 @@ export async function runBrowserLoop(
   // 2. Route goal → strategy
   const decision = routeBrowserGoal(goal);
 
-  // 3. Launch browser session
+  // 3. Launch browser session via dispatcher-client → tool-dispatcher
   setStatus(runId, 'executing');
-  const launch = await launchBrowser(runId, {
-    headless:   true,
-    timeoutMs:  goal.timeoutMs ?? 30_000,
-    projectId:  projectId ? Number(projectId) : undefined,
-  });
+  const launchCtx = buildToolContext(runId, projectId);
+  const launch    = await launchSession(launchCtx, true, goal.timeoutMs ?? 30_000);
 
   if (!launch.ok) {
     const error = launch.error ?? 'Failed to launch browser';
@@ -60,16 +64,18 @@ export async function runBrowserLoop(
     return { ok: false, sessionId: '', steps: [], durationMs: Date.now() - start, error };
   }
 
-  logSessionStart(runId, launch.sessionId, goal.url);
+  const sessionId = (launch.data as LaunchSessionResult).sessionId;
+
+  logSessionStart(runId, sessionId, goal.url);
   browserBus.emit('session.started', {
-    sessionId: launch.sessionId,
+    sessionId,
     runId,
     url: goal.url,
     ts:  new Date().toISOString(),
   });
 
-  // 4. Build tool context
-  const ctx = buildToolContext(runId, projectId, { sessionId: launch.sessionId });
+  // 4. Build tool context with session metadata
+  const ctx = buildToolContext(runId, projectId, { sessionId });
 
   // 5. Execute goal
   let execResult: FlowExecutionResult;
@@ -84,17 +90,19 @@ export async function runBrowserLoop(
     };
   }
 
-  // 6. Close session
-  await closeBrowser(runId);
+  // 6. Close session via dispatcher-client → tool-dispatcher
+  const closeCtx = buildToolContext(runId, projectId);
+  await closeSession(closeCtx);
+
   const durationMs = Date.now() - start;
 
   // 7. Finalize
   finalizeContext(runId, execResult.ok, execResult.error);
-  logSessionEnd(runId, launch.sessionId, execResult.ok, durationMs);
+  logSessionEnd(runId, sessionId, execResult.ok, durationMs);
   recordRunMetric(runId, execResult.ok, durationMs, execResult.steps.length);
 
   browserBus.emit(execResult.ok ? 'session.closed' : 'session.crashed', {
-    sessionId: launch.sessionId,
+    sessionId,
     runId,
     url:   goal.url,
     error: execResult.error,
@@ -103,7 +111,7 @@ export async function runBrowserLoop(
 
   return {
     ok:         execResult.ok,
-    sessionId:  launch.sessionId,
+    sessionId,
     steps:      execResult.steps,
     durationMs,
     error:      execResult.error,

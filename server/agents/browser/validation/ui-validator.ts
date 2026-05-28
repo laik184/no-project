@@ -7,7 +7,7 @@
  */
 
 import {
-  dispatchBrowserTool,
+  executeTool,
   type ToolExecutionContext,
 }               from '../coordination/dispatcher-client.ts';
 import { TOOL } from '../coordination/tool-coordinator.ts';
@@ -32,14 +32,14 @@ export interface UICheckResult {
 // ── Validation coordinators ───────────────────────────────────────────────────
 
 async function checkBlankScreen(ctx: ToolExecutionContext): Promise<UICheckResult> {
-  const r = await dispatchBrowserTool(TOOL.DETECT_BLANK, {}, ctx);
+  const r = await executeTool(TOOL.DETECT_BLANK, {}, ctx);
   const data = (r.ok ? r.data : {}) as Record<string, unknown>;
   const isBlank = data?.blank === true;
   return { check: 'blank-screen', ok: !isBlank, detail: isBlank ? 'Blank screen detected' : undefined };
 }
 
 async function checkConsolErrors(ctx: ToolExecutionContext): Promise<{ count: number; result: UICheckResult }> {
-  const r    = await dispatchBrowserTool(TOOL.GET_ERRORS, {}, ctx);
+  const r    = await executeTool(TOOL.GET_ERRORS, {}, ctx);
   const data = (r.ok ? r.data : {}) as Record<string, unknown>;
   const errors = Array.isArray(data?.errors) ? data.errors.length : 0;
   return {
@@ -49,14 +49,14 @@ async function checkConsolErrors(ctx: ToolExecutionContext): Promise<{ count: nu
 }
 
 async function checkHydrationErrors(ctx: ToolExecutionContext): Promise<UICheckResult> {
-  const r    = await dispatchBrowserTool(TOOL.DETECT_BLANK, {}, ctx);
+  const r    = await executeTool(TOOL.DETECT_BLANK, {}, ctx);
   const data = (r.ok ? r.data : {}) as Record<string, unknown>;
   const hasErr = data?.hydrationErrors === true;
   return { check: 'hydration', ok: !hasErr, detail: hasErr ? 'Hydration errors detected' : undefined };
 }
 
 async function runUIValidation(ctx: ToolExecutionContext): Promise<{ ok: boolean; detail?: string }> {
-  const r    = await dispatchBrowserTool(TOOL.VALIDATE_UI, {}, ctx);
+  const r    = await executeTool(TOOL.VALIDATE_UI, {}, ctx);
   const data = (r.ok ? r.data : {}) as UIValidationResult | undefined;
   return { ok: data?.ok ?? r.ok, detail: data?.summary };
 }

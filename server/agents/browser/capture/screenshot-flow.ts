@@ -7,7 +7,7 @@
  */
 
 import {
-  dispatchBrowserTool,
+  executeTool,
   type ToolExecutionContext,
 }                          from '../coordination/dispatcher-client.ts';
 import { TOOL }            from '../coordination/tool-coordinator.ts';
@@ -44,7 +44,7 @@ export async function captureScreenshot(
   const start = Date.now();
   const label = sanitizeLabel(request.label);
 
-  const r = await dispatchBrowserTool(TOOL.SCREENSHOT, {
+  const r = await executeTool(TOOL.SCREENSHOT, {
     label,
     fullPage:  request.fullPage  ?? true,
     timeoutMs: request.timeoutMs ?? 10_000,
@@ -99,7 +99,7 @@ export async function captureElement(
   ctx:      ToolExecutionContext,
 ): Promise<CaptureResult> {
   const start = Date.now();
-  const r = await dispatchBrowserTool(TOOL.ELEM_SS, { selector, label }, ctx);
+  const r = await executeTool(TOOL.ELEM_SS, { selector, label }, ctx);
   const durationMs = Date.now() - start;
   if (!r.ok) return { ok: false, durationMs, error: r.error };
   return { ok: true, meta: r.data as ScreenshotMeta, durationMs };

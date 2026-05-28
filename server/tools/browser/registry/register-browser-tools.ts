@@ -9,7 +9,8 @@
 import { registerTool } from '../../../tools/registry/tool-registry.ts';
 
 // ── Session lifecycle ──────────────────────────────────────────────────────────
-import { browserHealthTool }            from '../monitoring/browser-health-monitor.ts';
+import { browserLaunchTool, browserCloseTool } from '../session/browser-session-tools.ts';
+import { browserHealthTool }                   from '../monitoring/browser-health-monitor.ts';
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 import { browserNavigateTool }          from '../navigation/navigate-to-url.ts';
@@ -54,6 +55,9 @@ import { browserGetMetricsTool }             from '../monitoring/browser-metrics
 // ── All tools in registration order ───────────────────────────────────────────
 
 const ALL_BROWSER_TOOLS = [
+  // Session lifecycle
+  browserLaunchTool,
+  browserCloseTool,
   // Health
   browserHealthTool,
   // Navigation

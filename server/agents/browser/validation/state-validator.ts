@@ -3,9 +3,10 @@
  *
  * Validates browser runtime state and session lifecycle transitions.
  * Detects: invalid session state, corrupted sessions, invalid transitions.
+ *
+ * Uses agent-layer state only — no direct imports from server/tools/browser/.
  */
 
-import { hasSession }         from '../../../tools/browser/session/browser-context.ts';
 import { getSession }         from '../core/browser-state.ts';
 import {
   getContext,
@@ -53,12 +54,7 @@ export function validateSessionState(
 ): StateValidationResult {
   const checks: StateCheck[] = [];
 
-  // Check session exists in tool layer
-  const toolHasSession = hasSession(runId);
-  checks.push({ name: 'tool-session-active', ok: toolHasSession,
-    reason: toolHasSession ? undefined : 'No active tool-layer session for runId' });
-
-  // Check session in state store
+  // Check session in agent state store
   const stateSession = getSession(sessionId);
   checks.push({ name: 'state-record-exists', ok: !!stateSession,
     reason: stateSession ? undefined : 'Session not found in state store' });
@@ -68,6 +64,11 @@ export function validateSessionState(
     checks.push({ name: 'session-status-active', ok: sessionOk,
       reason: sessionOk ? undefined : `Session status is "${stateSession.status}"` });
   }
+
+  // Check agent context is present for this run
+  const ctx = getContext(runId);
+  checks.push({ name: 'agent-context-exists', ok: !!ctx,
+    reason: ctx ? undefined : 'No agent context found for runId' });
 
   const allOk = checks.every(c => c.ok);
   return {

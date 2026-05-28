@@ -6,7 +6,7 @@
  */
 
 import {
-  dispatchBrowserTool,
+  executeTool,
   type ToolExecutionContext,
   type ToolExecutionResult,
 }                       from '../coordination/dispatcher-client.ts';
@@ -42,7 +42,7 @@ export async function coordinateClick(
   target: ClickTarget,
   ctx:    ToolExecutionContext,
 ): Promise<InteractionResult> {
-  const r = await dispatchBrowserTool(TOOL.CLICK, target as Record<string, unknown>, ctx);
+  const r = await executeTool(TOOL.CLICK, target as unknown as Record<string, unknown>, ctx);
   return toInteractionResult(TOOL.CLICK, r);
 }
 
@@ -50,7 +50,7 @@ export async function coordinateFill(
   target: FillTarget,
   ctx:    ToolExecutionContext,
 ): Promise<InteractionResult> {
-  const r = await dispatchBrowserTool(TOOL.FILL, target as Record<string, unknown>, ctx);
+  const r = await executeTool(TOOL.FILL, target as unknown as Record<string, unknown>, ctx);
   return toInteractionResult(TOOL.FILL, r);
 }
 
@@ -58,7 +58,7 @@ export async function coordinateSelect(
   target: SelectTarget,
   ctx:    ToolExecutionContext,
 ): Promise<InteractionResult> {
-  const r = await dispatchBrowserTool(TOOL.SELECT, target as Record<string, unknown>, ctx);
+  const r = await executeTool(TOOL.SELECT, target as unknown as Record<string, unknown>, ctx);
   return toInteractionResult(TOOL.SELECT, r);
 }
 
@@ -67,7 +67,7 @@ export async function coordinateWaitForElement(
   ctx:       ToolExecutionContext,
   timeoutMs?: number,
 ): Promise<InteractionResult> {
-  const r = await dispatchBrowserTool(
+  const r = await executeTool(
     TOOL.WAIT_ELEMENT,
     { selector, timeoutMs } as Record<string, unknown>,
     ctx,
@@ -80,7 +80,7 @@ export async function coordinateWaitForVisible(
   ctx:       ToolExecutionContext,
   timeoutMs?: number,
 ): Promise<InteractionResult> {
-  const r = await dispatchBrowserTool(
+  const r = await executeTool(
     TOOL.WAIT_VISIBLE,
     { selector, timeoutMs } as Record<string, unknown>,
     ctx,

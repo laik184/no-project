@@ -17,7 +17,7 @@ export type { ToolExecutionResult, ToolExecutionContext };
  * Execute a single tool through the central dispatcher.
  * Never throws — always returns ToolExecutionResult.
  */
-export async function execute<TOutput = unknown>(
+export async function executeTool<TOutput = unknown>(
   toolName: string,
   input:    Record<string, unknown>,
   context:  ToolExecutionContext,

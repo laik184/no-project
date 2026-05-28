@@ -6,7 +6,7 @@
  */
 
 import {
-  dispatchBrowserTool,
+  executeTool,
   type ToolExecutionContext,
   type ToolExecutionResult,
 }               from '../coordination/dispatcher-client.ts';
@@ -33,7 +33,7 @@ export async function checkElementPresent(
   selector: string,
   ctx:      ToolExecutionContext,
 ): Promise<boolean> {
-  const r = await dispatchBrowserTool(TOOL.IS_PRESENT, { selector }, ctx);
+  const r = await executeTool(TOOL.IS_PRESENT, { selector }, ctx);
   if (!r.ok) return false;
   const data = r.data as Record<string, unknown>;
   return data?.present === true;
@@ -43,7 +43,7 @@ export async function checkElementVisible(
   selector: string,
   ctx:      ToolExecutionContext,
 ): Promise<boolean> {
-  const r = await dispatchBrowserTool(TOOL.IS_VISIBLE, { selector }, ctx);
+  const r = await executeTool(TOOL.IS_VISIBLE, { selector }, ctx);
   if (!r.ok) return false;
   const data = r.data as Record<string, unknown>;
   return data?.visible === true;
@@ -53,7 +53,7 @@ export async function countElements(
   selector: string,
   ctx:      ToolExecutionContext,
 ): Promise<number> {
-  const r = await dispatchBrowserTool(TOOL.COUNT, { selector }, ctx);
+  const r = await executeTool(TOOL.COUNT, { selector }, ctx);
   if (!r.ok) return 0;
   const data = r.data as Record<string, unknown>;
   return typeof data?.count === 'number' ? data.count : 0;
@@ -62,13 +62,13 @@ export async function countElements(
 export async function captureUIState(
   ctx: ToolExecutionContext,
 ): Promise<ToolExecutionResult<unknown>> {
-  return dispatchBrowserTool(TOOL.CAPTURE_UI, {}, ctx);
+  return executeTool(TOOL.CAPTURE_UI, {}, ctx);
 }
 
 export async function getConsoleErrors(
   ctx: ToolExecutionContext,
 ): Promise<ToolExecutionResult<unknown>> {
-  return dispatchBrowserTool(TOOL.GET_ERRORS, {}, ctx);
+  return executeTool(TOOL.GET_ERRORS, {}, ctx);
 }
 
 // ── Composite state snapshot ──────────────────────────────────────────────────

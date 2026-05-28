@@ -2,14 +2,19 @@
  * server/agents/verifier/types/verifier.types.ts
  *
  * All shared types for the verifier agent orchestration layer.
- * Zero tool-layer imports — types only.
+ * Zero tool-layer imports — all types are defined locally here.
  */
 
-import type { VerificationPhase, VerificationStatus } from '../../../tools/verifier/lib/verifier-types.ts';
+// ── Verification lifecycle (inlined from tool contracts — no tool-layer import) ──
 
-export type { VerificationPhase, VerificationStatus };
+export type VerificationStatus =
+  | 'pending' | 'running' | 'passed' | 'failed' | 'skipped' | 'aborted';
 
-// ── Verification phases (steps the loop drives) ───────────────────────────────
+export type VerificationPhase =
+  | 'build' | 'typecheck' | 'tests' | 'runtime' | 'endpoints'
+  | 'dependencies' | 'validation' | 'recovery' | 'diagnostics';
+
+// ── Verification step types ────────────────────────────────────────────────────
 
 export type VerificationStepType =
   | 'run_build'
@@ -67,12 +72,12 @@ export interface RetryPolicy {
 // ── Agent input / output ──────────────────────────────────────────────────────
 
 export interface VerifierInput {
-  runId:       string;
-  projectId:   string;
-  phases?:     VerificationPhase[];
+  runId:        string;
+  projectId:    string;
+  phases?:      VerificationPhase[];
   sandboxRoot?: string;
-  port?:       number;
-  timeoutMs?:  number;
+  port?:        number;
+  timeoutMs?:   number;
 }
 
 export interface VerifierOutput {

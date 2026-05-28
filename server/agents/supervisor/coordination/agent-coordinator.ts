@@ -7,7 +7,7 @@
  */
 
 import {
-  dispatchTool,
+  executeTool,
   type SupervisorDispatchOptions,
 } from './dispatcher-client.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
@@ -29,13 +29,13 @@ export const AGENT_ROUTE_TOOLS = {
 // ── Generic agent dispatch ─────────────────────────────────────────────────────
 
 export async function coordinateAgent<TOutput = unknown>(
-  domain:   AgentDomain,
+  _domain:  AgentDomain,
   toolName: string,
   input:    Record<string, unknown>,
   context:  ToolExecutionContext,
   opts?:    SupervisorDispatchOptions,
 ): Promise<ToolExecutionResult<TOutput>> {
-  return dispatchTool<TOutput>(toolName, input, context, domain, opts);
+  return executeTool<TOutput>(toolName, input, context, opts);
 }
 
 // ── Domain-specific coordinators ──────────────────────────────────────────────

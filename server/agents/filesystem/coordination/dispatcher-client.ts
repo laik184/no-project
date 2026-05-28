@@ -12,17 +12,13 @@ import { dispatch, dispatchSequential, dispatchAll } from '../../../tools/regist
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
 import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
 
-// ── Re-export types needed by callers ─────────────────────────────────────────
-
 export type { ToolExecutionResult, ToolExecutionContext };
-
-// ── Single tool execution ─────────────────────────────────────────────────────
 
 /**
  * Execute a single tool by name through the central dispatcher.
  * Never throws — always returns ToolExecutionResult.
  */
-export async function execute<TOutput = unknown>(
+export async function executeTool<TOutput = unknown>(
   toolName:  string,
   input:     Record<string, unknown>,
   context:   ToolExecutionContext,
@@ -30,8 +26,6 @@ export async function execute<TOutput = unknown>(
 ): Promise<ToolExecutionResult<TOutput>> {
   return dispatch<Record<string, unknown>, TOutput>(toolName, input, context, opts);
 }
-
-// ── Sequential execution (stop on first failure) ──────────────────────────────
 
 /**
  * Execute a series of tools in sequence.
@@ -55,8 +49,6 @@ export async function executeSequential<TOutput = unknown>(
   );
 }
 
-// ── Parallel execution (independent sibling calls) ────────────────────────────
-
 /**
  * Execute multiple tools in parallel.
  * Individual failures do not abort sibling calls.
@@ -78,3 +70,10 @@ export async function executeAll<TOutput = unknown>(
     })),
   );
 }
+
+/**
+ * @deprecated Use executeTool() directly.
+ * Backward-compatibility alias for existing operation orchestrators.
+ * Will be removed once all callers are migrated.
+ */
+export const execute = executeTool;

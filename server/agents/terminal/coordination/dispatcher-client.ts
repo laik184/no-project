@@ -4,6 +4,9 @@
  * THE ONLY gateway from the terminal agent to the tool execution layer.
  * Every tool invocation MUST go through this module.
  * No child_process, no spawn, no exec, no shell calls anywhere in agents/terminal.
+ *
+ * Telemetry (metrics, logging, failure recording) is owned by the STEP-RUNNER,
+ * not this gateway. This module is a pure pass-through to tool-dispatcher.
  */
 
 import {
@@ -11,19 +14,15 @@ import {
   type DispatchOptions,
 } from '../../../tools/registry/tool-dispatcher.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
-import { terminalLogger }  from '../telemetry/terminal-logger.ts';
-import { terminalMetrics } from '../telemetry/terminal-metrics.ts';
-import { failureMonitor }  from '../monitoring/failure-monitor.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };
 
 export interface TerminalDispatchOptions {
   timeoutMs?: number;
-  attempt?:   number;
   label?:     string;
 }
 
-// ── Type-safe failure extraction ──────────────────────────────────────────────
+// ── Type-safe result helpers ──────────────────────────────────────────────────
 
 type FailResult = { ok: false; error: string; code: string; durationMs: number };
 
@@ -40,44 +39,24 @@ export function resultOk<T>(r: ToolExecutionResult<T>): T {
 
 /**
  * Dispatch a single terminal tool. Returns a typed ToolExecutionResult.
- * Never throws — all errors are captured in the result.
+ * Never throws — all errors are captured in the result envelope.
+ * Telemetry (logging/metrics) belongs in the step-runner — NOT here.
  */
-export async function dispatchTool<TOutput = unknown>(
+export async function executeTool<TOutput = unknown>(
   toolName: string,
   input:    Record<string, unknown>,
   context:  ToolExecutionContext,
   opts:     TerminalDispatchOptions = {},
 ): Promise<ToolExecutionResult<TOutput>> {
-  const start   = Date.now();
-  const attempt = opts.attempt ?? 1;
-  const label   = opts.label ?? toolName;
-
-  terminalLogger.step(context.runId, label, 'dispatch', { toolName, attempt });
-
   const dispatchOpts: DispatchOptions = {};
   if (opts.timeoutMs) dispatchOpts.timeoutMs = opts.timeoutMs;
-
-  const result = await dispatch<Record<string, unknown>, TOutput>(toolName, input, context, dispatchOpts);
-  const durationMs = Date.now() - start;
-  const isOk = result.ok;
-
-  terminalMetrics.recordStep(context.runId, isOk, durationMs);
-
-  if (isOk) {
-    terminalLogger.step(context.runId, label, 'complete', { durationMs });
-  } else {
-    const errStr = resultError(result);
-    terminalLogger.step(context.runId, label, 'fail', { error: errStr, durationMs });
-    failureMonitor.recordFailure(context.runId, label, toolName, errStr, attempt);
-  }
-
-  return result;
+  return dispatch<Record<string, unknown>, TOutput>(toolName, input, context, dispatchOpts);
 }
 
 /**
  * Dispatch multiple tools in parallel. Individual failures do not abort siblings.
  */
-export async function dispatchParallel<TOutput = unknown>(
+export async function executeAll<TOutput = unknown>(
   calls: Array<{
     toolName: string;
     input:    Record<string, unknown>;
@@ -85,13 +64,13 @@ export async function dispatchParallel<TOutput = unknown>(
     opts?:    TerminalDispatchOptions;
   }>,
 ): Promise<Array<ToolExecutionResult<TOutput>>> {
-  return Promise.all(calls.map((c) => dispatchTool<TOutput>(c.toolName, c.input, c.context, c.opts)));
+  return Promise.all(calls.map((c) => executeTool<TOutput>(c.toolName, c.input, c.context, c.opts)));
 }
 
 /**
  * Dispatch tools sequentially, stopping on first failure.
  */
-export async function dispatchSequential<TOutput = unknown>(
+export async function executeSequential<TOutput = unknown>(
   calls: Array<{
     toolName: string;
     input:    Record<string, unknown>;
@@ -101,7 +80,7 @@ export async function dispatchSequential<TOutput = unknown>(
 ): Promise<Array<ToolExecutionResult<TOutput>>> {
   const results: Array<ToolExecutionResult<TOutput>> = [];
   for (const call of calls) {
-    const result = await dispatchTool<TOutput>(call.toolName, call.input, call.context, call.opts);
+    const result = await executeTool<TOutput>(call.toolName, call.input, call.context, call.opts);
     results.push(result);
     if (!result.ok) break;
   }

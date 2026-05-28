@@ -7,7 +7,7 @@
  */
 
 import {
-  dispatchBrowserTool,
+  executeTool,
   buildToolContext,
   type ToolExecutionContext,
   type ToolExecutionResult,
@@ -51,7 +51,7 @@ export async function coordinateNavigate(
   ctx:       ToolExecutionContext,
   opts:      { allowedHosts?: string[]; timeoutMs?: number } = {},
 ): Promise<ToolExecutionResult<unknown>> {
-  return dispatchBrowserTool(TOOL.NAVIGATE, { url, ...opts }, ctx);
+  return executeTool(TOOL.NAVIGATE, { url, ...opts }, ctx);
 }
 
 export async function coordinateScreenshot(
@@ -59,13 +59,13 @@ export async function coordinateScreenshot(
   ctx:     ToolExecutionContext,
   opts:    { fullPage?: boolean; timeoutMs?: number } = {},
 ): Promise<ToolExecutionResult<unknown>> {
-  return dispatchBrowserTool(TOOL.SCREENSHOT, { label, ...opts }, ctx);
+  return executeTool(TOOL.SCREENSHOT, { label, ...opts }, ctx);
 }
 
 export async function coordinateValidateUI(
   ctx: ToolExecutionContext,
 ): Promise<ToolExecutionResult<unknown>> {
-  return dispatchBrowserTool(TOOL.VALIDATE_UI, {}, ctx);
+  return executeTool(TOOL.VALIDATE_UI, {}, ctx);
 }
 
 export async function coordinateFlowStep(
@@ -83,7 +83,7 @@ export async function coordinateFlowStep(
     screenshot: TOOL.SCREENSHOT,
   };
   const tool = toolMap[action.toLowerCase()] ?? TOOL.CAPTURE_UI;
-  return dispatchBrowserTool(tool, input, ctx);
+  return executeTool(tool, input, ctx);
 }
 
 export async function coordinateHealth(
@@ -91,5 +91,5 @@ export async function coordinateHealth(
   projectId: string,
 ): Promise<ToolExecutionResult<unknown>> {
   const ctx = buildToolContext(runId, projectId);
-  return dispatchBrowserTool(TOOL.HEALTH, {}, ctx);
+  return executeTool(TOOL.HEALTH, {}, ctx);
 }

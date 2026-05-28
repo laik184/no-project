@@ -12,7 +12,7 @@ import {
   snapshotElementStates,
 }                             from '../interaction/state-coordinator.ts';
 import {
-  dispatchBrowserTool,
+  executeTool,
   type ToolExecutionContext,
 }                             from '../coordination/dispatcher-client.ts';
 import { TOOL }               from '../coordination/tool-coordinator.ts';
@@ -40,7 +40,7 @@ export async function captureRuntimeState(
   const [uiResult, consoleResult, perfResult] = await Promise.all([
     captureUIState(ctx),
     opts.captureConsole !== false ? getConsoleErrors(ctx) : Promise.resolve(null),
-    opts.capturePerf     ? dispatchBrowserTool(TOOL.PERF, {}, ctx) : Promise.resolve(null),
+    opts.capturePerf     ? executeTool(TOOL.PERF, {}, ctx) : Promise.resolve(null),
   ]);
 
   const elementStates = opts.selectors?.length

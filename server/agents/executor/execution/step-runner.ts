@@ -12,14 +12,14 @@ import type {
   ExecutorExecutionContext,
   ExecutorRetryConfig,
 } from '../types/executor.types.ts';
-import { execute }                from '../coordination/dispatcher-client.ts';
-import { toToolContext }          from '../core/executor-context.ts';
+import { executeTool }               from '../coordination/dispatcher-client.ts';
+import { toToolContext }             from '../core/executor-context.ts';
 import { withRetry, DEFAULT_RETRY_CONFIG } from './retry-manager.ts';
-import { assertTransition }       from '../validation/integrity-validator.ts';
-import { failureMonitor }         from '../monitoring/failure-monitor.ts';
-import { executionMonitor }       from '../monitoring/execution-monitor.ts';
-import { executorLogger }         from '../telemetry/executor-logger.ts';
-import { executorMetrics }        from '../telemetry/executor-metrics.ts';
+import { assertTransition }          from '../validation/integrity-validator.ts';
+import { failureMonitor }            from '../monitoring/failure-monitor.ts';
+import { executionMonitor }          from '../monitoring/execution-monitor.ts';
+import { executorLogger }            from '../telemetry/executor-logger.ts';
+import { executorMetrics }           from '../telemetry/executor-metrics.ts';
 import { elapsedMs, toErrorMessage } from '../utils/execution-utils.ts';
 import {
   markRunning,
@@ -60,7 +60,7 @@ export async function runStep(
 
   const retryResult = await withRetry(
     async () => {
-      const result = await execute(rs.step.toolName, rs.step.toolInput, toToolContext(context));
+      const result = await executeTool(rs.step.toolName, rs.step.toolInput, toToolContext(context));
       if (!result.ok) {
         throw new Error(result.error ?? `Tool "${rs.step.toolName}" returned failure`);
       }

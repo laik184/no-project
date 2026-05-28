@@ -8,8 +8,8 @@
 
 import type { CoordinatorTask, PlanningTaskOutcome } from '../types/planner.types.ts';
 import type { PlanningContext }                       from '../core/planner-context.ts';
-import { dispatchTool }                               from './dispatcher-client.ts';
-import { plannerLogger }                              from '../telemetry/planner-logger.ts';
+import { executeTool }                               from './dispatcher-client.ts';
+import { plannerLogger }                             from '../telemetry/planner-logger.ts';
 
 // ── Route a single coordinator task ──────────────────────────────────────────
 
@@ -25,7 +25,7 @@ export async function routePlanningTask(
     label: task.label, attempt,
   });
 
-  const result = await dispatchTool(
+  const result = await executeTool(
     task.toolName,
     task.input,
     toolCtx,

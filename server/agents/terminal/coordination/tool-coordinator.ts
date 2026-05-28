@@ -6,7 +6,7 @@
  * ALL calls go through dispatcher-client — no direct execution here.
  */
 
-import { dispatchTool, type TerminalDispatchOptions } from './dispatcher-client.ts';
+import { executeTool, type TerminalDispatchOptions } from './dispatcher-client.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
 
 // ── Terminal tool name constants ──────────────────────────────────────────────
@@ -44,7 +44,7 @@ export async function runTool<TOutput = unknown>(
   context:  ToolExecutionContext,
   opts?:    TerminalDispatchOptions,
 ): Promise<ToolExecutionResult<TOutput>> {
-  return dispatchTool<TOutput>(toolName, input, context, opts);
+  return executeTool<TOutput>(toolName, input, context, opts);
 }
 
 // ── Command coordination ──────────────────────────────────────────────────────

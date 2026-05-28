@@ -1,21 +1,23 @@
 /**
  * server/agents/coderx/coordination/coding-routing.ts
  *
- * Routes coding steps through the tool-coordinator then dispatches
- * through dispatcher-client. Pure control-flow — no business logic.
+ * @deprecated This module is no longer in the runtime execution path.
+ *
+ * The step-runner now calls dispatcher-client directly:
+ *   step-runner → dispatcher-client → tool-dispatcher → tool
+ *
+ * This file is kept for reference only and will be removed in a future cleanup.
+ * Do NOT add new callers. Do NOT use in any execution path.
  */
 
 import type { CodingTask, CoderXExecutionContext } from '../types/coderx.types.ts';
 import { coordinateCodingTask }                    from './tool-coordinator.ts';
-import { execute }                                 from './dispatcher-client.ts';
+import { executeTool }                             from './dispatcher-client.ts';
 import { toToolContext }                           from '../core/coderx-context.ts';
 import { assertRoutedCodingStep }                  from '../validation/coding-validator.ts';
 import type { ToolExecutionResult }                from './dispatcher-client.ts';
 
-/**
- * Route a coding task through coordination → validation → dispatcher.
- * Returns the raw ToolExecutionResult — callers decide how to interpret it.
- */
+/** @deprecated Use step-runner → dispatcher-client directly. */
 export async function routeCodingTask(
   task:    CodingTask,
   context: CoderXExecutionContext,
@@ -24,5 +26,5 @@ export async function routeCodingTask(
   assertRoutedCodingStep(routed);
 
   const toolCtx = toToolContext(context);
-  return execute(routed.toolName, routed.toolInput, toolCtx);
+  return executeTool(routed.toolName, routed.toolInput, toolCtx);
 }
