@@ -1,65 +1,59 @@
 /**
  * server/agents/terminal/telemetry/terminal-logger.ts
  *
- * Structured logger for the terminal agent lifecycle.
- * Logs execution events, retries, failures, and recovery attempts.
+ * Structured logger for the terminal agent.
+ * Logs execution lifecycle, retries, failures, and recovery.
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
-export interface LogEntry {
-  ts:      string;
-  level:   LogLevel;
-  runId:   string;
-  message: string;
-  meta?:   Record<string, unknown>;
+interface LogEntry {
+  ts:        string;
+  level:     LogLevel;
+  runId:     string;
+  msg:       string;
+  meta?:     Record<string, unknown>;
 }
 
-const LOG_BUFFER_SIZE = 200;
-const buffer: LogEntry[] = [];
-
-function emit(level: LogLevel, runId: string, message: string, meta?: Record<string, unknown>): void {
-  const entry: LogEntry = {
-    ts:    new Date().toISOString(),
-    level,
-    runId,
-    message,
-    meta,
-  };
-
-  buffer.push(entry);
-  if (buffer.length > LOG_BUFFER_SIZE) buffer.shift();
-
-  const prefix = `[terminal-agent][${runId.slice(0, 8)}]`;
-  if (level === 'error') {
-    console.error(`${prefix} ${message}`, meta ?? '');
-  } else if (level === 'warn') {
-    console.warn(`${prefix} ${message}`, meta ?? '');
-  } else {
-    console.log(`${prefix} ${message}`, meta ?? '');
-  }
+function emit(level: LogLevel, runId: string, msg: string, meta?: Record<string, unknown>): void {
+  const entry: LogEntry = { ts: new Date().toISOString(), level, runId, msg, meta };
+  const line = `[terminal-agent][${level.toUpperCase()}][${runId.slice(0, 8)}] ${msg}`;
+  if (level === 'error') console.error(line, meta ?? '');
+  else if (level === 'warn') console.warn(line, meta ?? '');
+  else console.log(line, meta ?? '');
+  void entry;
 }
 
 export const terminalLogger = {
-  debug(runId: string, message: string, meta?: Record<string, unknown>): void {
-    emit('debug', runId, message, meta);
+  info(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('info', runId, msg, meta);
   },
-  info(runId: string, message: string, meta?: Record<string, unknown>): void {
-    emit('info', runId, message, meta);
+
+  warn(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('warn', runId, msg, meta);
   },
-  warn(runId: string, message: string, meta?: Record<string, unknown>): void {
-    emit('warn', runId, message, meta);
+
+  error(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('error', runId, msg, meta);
   },
-  error(runId: string, message: string, meta?: Record<string, unknown>): void {
-    emit('error', runId, message, meta);
+
+  debug(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    if (process.env.NODE_ENV === 'development') emit('debug', runId, msg, meta);
   },
-  recent(runId?: string, limit = 50): readonly LogEntry[] {
-    const entries = runId ? buffer.filter((e) => e.runId === runId) : buffer;
-    return Object.freeze(entries.slice(-limit));
+
+  step(runId: string, stepId: string, phase: string, meta?: Record<string, unknown>): void {
+    emit('info', runId, `step[${stepId}] → ${phase}`, meta);
   },
-  clearRun(runId: string): void {
-    const keep = buffer.filter((e) => e.runId !== runId);
-    buffer.length = 0;
-    buffer.push(...keep);
+
+  retry(runId: string, stepId: string, attempt: number, reason: string): void {
+    emit('warn', runId, `retry step[${stepId}] attempt=${attempt} reason="${reason}"`);
+  },
+
+  sessionStart(runId: string, projectId: string, totalSteps: number): void {
+    emit('info', runId, `session started`, { projectId, totalSteps });
+  },
+
+  sessionEnd(runId: string, success: boolean, durationMs: number): void {
+    emit(success ? 'info' : 'error', runId, `session ended success=${success}`, { durationMs });
   },
 };

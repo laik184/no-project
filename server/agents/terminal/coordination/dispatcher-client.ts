@@ -1,94 +1,120 @@
 /**
  * server/agents/terminal/coordination/dispatcher-client.ts
  *
- * THE only gateway from the terminal agent to the tool execution layer.
- * All tool invocations MUST flow through this client.
- * No direct shell execution, no child_process, no execa.
+ * THE ONLY gateway from the terminal agent to the tool execution layer.
+ * Every tool invocation MUST go through this module.
+ * No child_process, no spawn, no exec, no shell calls anywhere in agents/terminal.
  */
 
-import { dispatch }               from '../../../tools/registry/tool-dispatcher.ts';
+import {
+  dispatch,
+  type DispatchOptions,
+} from '../../../tools/registry/tool-dispatcher.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
-import type { DispatchRequest, DispatchResponse } from '../types/terminal.types.ts';
-import { terminalLogger }         from '../telemetry/terminal-logger.ts';
-import { terminalMetrics }        from '../telemetry/terminal-metrics.ts';
+import { terminalLogger }  from '../telemetry/terminal-logger.ts';
+import { terminalMetrics } from '../telemetry/terminal-metrics.ts';
+import { failureMonitor }  from '../monitoring/failure-monitor.ts';
 
-const SYSTEM_RUN_ID     = 'system';
-const SYSTEM_PROJECT_ID = 'system';
-const SYSTEM_SANDBOX    = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
+export type { ToolExecutionContext, ToolExecutionResult };
 
-/** Build a ToolExecutionContext from a dispatch request. */
-function buildContext(req: DispatchRequest): ToolExecutionContext {
-  return {
-    runId:       req.runId,
-    projectId:   req.projectId,
-    sandboxRoot: req.sandboxRoot,
-    meta:        {},
-  };
+export interface TerminalDispatchOptions {
+  timeoutMs?: number;
+  attempt?:   number;
+  label?:     string;
 }
 
-/** Build a system-level context when no session context is available. */
-function buildSystemContext(sandboxRoot?: string): ToolExecutionContext {
-  return {
-    runId:       SYSTEM_RUN_ID,
-    projectId:   SYSTEM_PROJECT_ID,
-    sandboxRoot: sandboxRoot ?? SYSTEM_SANDBOX,
-    meta:        {},
-  };
+// ── Type-safe failure extraction ──────────────────────────────────────────────
+
+type FailResult = { ok: false; error: string; code: string; durationMs: number };
+
+export function resultError<T>(r: ToolExecutionResult<T>): string {
+  return (r as unknown as FailResult).error ?? 'Unknown error';
 }
+
+export function resultOk<T>(r: ToolExecutionResult<T>): T {
+  if (!r.ok) throw new Error(`Expected ok result but got error: ${resultError(r)}`);
+  return (r as { ok: true; data: T }).data;
+}
+
+// ── Core dispatch ─────────────────────────────────────────────────────────────
 
 /**
- * Execute a tool by name through the centralized dispatcher.
- * Returns a typed DispatchResponse — never throws.
+ * Dispatch a single terminal tool. Returns a typed ToolExecutionResult.
+ * Never throws — all errors are captured in the result.
  */
-export async function executeViaDispatcher<T = unknown>(
-  req: DispatchRequest,
-): Promise<DispatchResponse<T>> {
+export async function dispatchTool<TOutput = unknown>(
+  toolName: string,
+  input:    Record<string, unknown>,
+  context:  ToolExecutionContext,
+  opts:     TerminalDispatchOptions = {},
+): Promise<ToolExecutionResult<TOutput>> {
   const start   = Date.now();
-  const context = buildContext(req);
+  const attempt = opts.attempt ?? 1;
+  const label   = opts.label ?? toolName;
 
-  terminalLogger.debug(req.runId, `dispatch → ${req.toolName}`, { input: req.input });
+  terminalLogger.step(context.runId, label, 'dispatch', { toolName, attempt });
 
-  const result: ToolExecutionResult<T> = await dispatch<Record<string, unknown>, T>(
-    req.toolName,
-    req.input,
-    context,
-    req.timeoutMs ? { timeoutMs: req.timeoutMs } : {},
-  );
+  const dispatchOpts: DispatchOptions = {};
+  if (opts.timeoutMs) dispatchOpts.timeoutMs = opts.timeoutMs;
 
+  const result = await dispatch<Record<string, unknown>, TOutput>(toolName, input, context, dispatchOpts);
   const durationMs = Date.now() - start;
-  terminalMetrics.recordStep(req.runId, result.ok, durationMs);
+  const isOk = result.ok;
 
-  if (result.ok) {
-    terminalLogger.debug(req.runId, `dispatch ✓ ${req.toolName}`, { durationMs });
-    return { ok: true, data: result.data, durationMs };
+  terminalMetrics.recordStep(context.runId, isOk, durationMs);
+
+  if (isOk) {
+    terminalLogger.step(context.runId, label, 'complete', { durationMs });
+  } else {
+    const errStr = resultError(result);
+    terminalLogger.step(context.runId, label, 'fail', { error: errStr, durationMs });
+    failureMonitor.recordFailure(context.runId, label, toolName, errStr, attempt);
   }
 
-  terminalLogger.warn(req.runId, `dispatch ✗ ${req.toolName}: ${result.error}`, { code: result.code, durationMs });
-  return { ok: false, error: result.error, code: result.code, durationMs };
+  return result;
 }
 
 /**
- * Execute a tool using a system-level context (no session).
- * Used by agent wrappers that don't have a full session context.
+ * Dispatch multiple tools in parallel. Individual failures do not abort siblings.
  */
-export async function executeSystem<T = unknown>(
-  toolName:    string,
-  input:       Record<string, unknown>,
-  sandboxRoot?: string,
-  timeoutMs?:  number,
-): Promise<DispatchResponse<T>> {
-  const start   = Date.now();
-  const context = buildSystemContext(sandboxRoot);
+export async function dispatchParallel<TOutput = unknown>(
+  calls: Array<{
+    toolName: string;
+    input:    Record<string, unknown>;
+    context:  ToolExecutionContext;
+    opts?:    TerminalDispatchOptions;
+  }>,
+): Promise<Array<ToolExecutionResult<TOutput>>> {
+  return Promise.all(calls.map((c) => dispatchTool<TOutput>(c.toolName, c.input, c.context, c.opts)));
+}
 
-  const result: ToolExecutionResult<T> = await dispatch<Record<string, unknown>, T>(
-    toolName,
-    input,
-    context,
-    timeoutMs ? { timeoutMs } : {},
-  );
+/**
+ * Dispatch tools sequentially, stopping on first failure.
+ */
+export async function dispatchSequential<TOutput = unknown>(
+  calls: Array<{
+    toolName: string;
+    input:    Record<string, unknown>;
+    context:  ToolExecutionContext;
+    opts?:    TerminalDispatchOptions;
+  }>,
+): Promise<Array<ToolExecutionResult<TOutput>>> {
+  const results: Array<ToolExecutionResult<TOutput>> = [];
+  for (const call of calls) {
+    const result = await dispatchTool<TOutput>(call.toolName, call.input, call.context, call.opts);
+    results.push(result);
+    if (!result.ok) break;
+  }
+  return results;
+}
 
-  const durationMs = Date.now() - start;
-
-  if (result.ok) return { ok: true, data: result.data, durationMs };
-  return { ok: false, error: result.error, code: result.code, durationMs };
+/** Build a ToolExecutionContext for a terminal agent run. */
+export function buildContext(
+  runId:       string,
+  projectId:   string,
+  sandboxRoot: string,
+  meta:        Record<string, unknown> = {},
+  signal?:     AbortSignal,
+): ToolExecutionContext {
+  return Object.freeze({ runId, projectId, sandboxRoot, meta, signal });
 }

@@ -1,8 +1,9 @@
 /**
  * server/agents/terminal/index.ts
  *
- * Public surface of the terminal agent module.
- * Only export what consumers outside this module need.
+ * Public surface of the terminal agent orchestration module.
+ * Exports only what consumers outside this module need.
+ * All execution flows through the dispatcher — never imported directly.
  */
 
 // ── Agent entry point ─────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ export {
 // ── Monitoring ────────────────────────────────────────────────────────────────
 export { runtimeMonitor, runtimeHealthMonitor } from './monitoring/runtime-health-monitor.ts';
 
-// ── Validation ────────────────────────────────────────────────────────────────
+// ── Validation helpers ────────────────────────────────────────────────────────
 export {
   validateExecutionRequest,
   validateGeneratedOutput,
@@ -34,4 +35,8 @@ export type {
   ValidationResult,
   SessionStatus,
   TerminalSessionMeta,
+  TerminalPhase,
+  RetryPolicy,
+  RecoveryAction,
+  StepType,
 } from './types/terminal.types.ts';

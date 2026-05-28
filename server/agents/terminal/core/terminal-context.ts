@@ -1,33 +1,32 @@
 /**
  * server/agents/terminal/core/terminal-context.ts
  *
- * Builds and provides the immutable execution context for a terminal session.
- * The context is passed down through the execution layer.
+ * Immutable execution context passed through the terminal agent pipeline.
+ * Wraps ToolExecutionContext for agent-layer consumption.
  */
 
-import path from 'path';
-import type { TerminalSession } from './terminal-session.ts';
-
-const SANDBOX_ROOT = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
+import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
 
 export interface TerminalExecutionContext {
   readonly runId:       string;
   readonly projectId:   string;
-  readonly sessionId:   string;
   readonly sandboxRoot: string;
-  readonly startedAt:   number;
+  readonly signal?:     AbortSignal;
+  readonly toolCtx:     ToolExecutionContext;
+  readonly meta:        Readonly<Record<string, unknown>>;
 }
 
-export function buildContext(session: TerminalSession): TerminalExecutionContext {
-  return Object.freeze({
-    runId:       session.runId,
-    projectId:   session.projectId,
-    sessionId:   session.sessionId,
-    sandboxRoot: session.sandboxRoot,
-    startedAt:   Date.now(),
-  });
-}
-
-export function deriveSandboxRoot(projectId: string): string {
-  return path.resolve(path.join(SANDBOX_ROOT, projectId));
+/**
+ * Build an immutable TerminalExecutionContext from primitive inputs.
+ * The nested toolCtx is what gets passed to the dispatcher.
+ */
+export function buildTerminalContext(
+  runId:       string,
+  projectId:   string,
+  sandboxRoot: string,
+  meta:        Record<string, unknown> = {},
+  signal?:     AbortSignal,
+): TerminalExecutionContext {
+  const toolCtx: ToolExecutionContext = Object.freeze({ runId, projectId, sandboxRoot, meta, signal });
+  return Object.freeze({ runId, projectId, sandboxRoot, signal, toolCtx, meta: Object.freeze(meta) });
 }

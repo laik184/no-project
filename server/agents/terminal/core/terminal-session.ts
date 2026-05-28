@@ -1,48 +1,72 @@
 /**
  * server/agents/terminal/core/terminal-session.ts
  *
- * Manages the lifecycle of a single terminal agent session.
- * Creates, updates, and releases session state.
+ * Session lifecycle manager for the terminal agent.
+ * Wraps terminal-state with session-level bookkeeping.
+ * Pure orchestration — no tool calls, no direct execution.
  */
 
-import { randomUUID }    from 'crypto';
-import { terminalState } from './terminal-state.ts';
-import { terminalMetrics } from '../telemetry/terminal-metrics.ts';
+import type { TerminalSessionMeta, SessionStatus, TerminalPhase } from '../types/terminal.types.ts';
+import { terminalState }   from './terminal-state.ts';
 import { terminalLogger }  from '../telemetry/terminal-logger.ts';
-import { runtimeMonitor }  from '../monitoring/runtime-monitor.ts';
+import { terminalMetrics } from '../telemetry/terminal-metrics.ts';
+import { runtimeMonitor }  from '../monitoring/runtime-health-monitor.ts';
 import { failureMonitor }  from '../monitoring/failure-monitor.ts';
-import type { TerminalSessionMeta } from '../types/terminal.types.ts';
 
-export interface TerminalSession {
-  readonly sessionId:  string;
-  readonly runId:      string;
-  readonly projectId:  string;
-  readonly sandboxRoot: string;
-  readonly meta:       TerminalSessionMeta;
+export interface SessionConfig {
+  runId:       string;
+  projectId:   string;
+  sandboxRoot: string;
+  totalSteps:  number;
 }
 
-export function createSession(
-  runId:       string,
-  projectId:   string,
-  sandboxRoot: string,
-  taskCount:   number,
-): TerminalSession {
-  const sessionId = randomUUID();
+export const terminalSession = {
+  open(config: SessionConfig): TerminalSessionMeta {
+    const { runId, projectId, sandboxRoot, totalSteps } = config;
+    const stateData = terminalState.init(runId, projectId, totalSteps);
+    terminalMetrics.initRun(runId);
+    runtimeMonitor.init(runId, totalSteps);
+    failureMonitor.initRun(runId);
+    terminalLogger.sessionStart(runId, projectId, totalSteps);
+    return buildMeta(stateData.runId, stateData.projectId, sandboxRoot, stateData.status, stateData.phase, stateData.totalSteps, stateData.completedSteps, stateData.failedSteps, new Date(stateData.startedAt));
+  },
 
-  const meta = terminalState.init(runId, projectId, sessionId, taskCount);
-  terminalMetrics.initRun(runId);
-  runtimeMonitor.init(runId, taskCount);
-  terminalState.setStatus(runId, 'running');
+  transition(runId: string, phase: TerminalPhase): void {
+    terminalState.setPhase(runId, phase);
+    terminalLogger.debug(runId, `phase → ${phase}`);
+  },
 
-  terminalLogger.info(runId, `Session created`, { sessionId, projectId, taskCount });
+  setStatus(runId: string, status: SessionStatus): void {
+    terminalState.setStatus(runId, status);
+  },
 
-  return Object.freeze({ sessionId, runId, projectId, sandboxRoot, meta });
-}
+  snapshot(runId: string, sandboxRoot: string): TerminalSessionMeta | undefined {
+    const s = terminalState.get(runId);
+    if (!s) return undefined;
+    return buildMeta(s.runId, s.projectId, sandboxRoot, s.status, s.phase, s.totalSteps, s.completedSteps, s.failedSteps, new Date(s.startedAt));
+  },
 
-export function releaseSession(session: TerminalSession): void {
-  terminalState.setStatus(session.runId, 'completed');
-  runtimeMonitor.clear(session.runId);
-  failureMonitor.clearRun(session.runId);
-  terminalLogger.info(session.runId, `Session released`, { sessionId: session.sessionId });
-  terminalState.clear(session.runId);
+  close(runId: string, success: boolean, durationMs: number): void {
+    const status: SessionStatus = success ? 'completed' : 'failed';
+    terminalState.setStatus(runId, status);
+    terminalState.setPhase(runId, success ? 'completing' : 'failed');
+    terminalMetrics.finalise(runId);
+    runtimeMonitor.clear(runId);
+    failureMonitor.clearRun(runId);
+    terminalLogger.sessionEnd(runId, success, durationMs);
+  },
+
+  release(runId: string): void {
+    terminalState.clear(runId);
+    terminalMetrics.clear(runId);
+  },
+};
+
+function buildMeta(
+  runId: string, projectId: string, sandboxRoot: string,
+  status: SessionStatus, phase: TerminalPhase,
+  totalSteps: number, completedSteps: number, failedSteps: number,
+  startedAt: Date,
+): TerminalSessionMeta {
+  return { runId, projectId, sandboxRoot, startedAt, status, phase, totalSteps, completedSteps, failedSteps };
 }

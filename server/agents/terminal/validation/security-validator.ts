@@ -1,79 +1,96 @@
 /**
  * server/agents/terminal/validation/security-validator.ts
  *
- * Validates execution policy, sandbox boundaries, and permission scope.
- * Enforces fail-closed security: any violation rejects the request.
+ * Enforces sandbox boundaries, permission scopes, and execution policy.
+ * Pure logic — no tool calls, no direct execution.
  */
 
-import path from 'path';
+import { resolve, normalize } from 'path';
 import type { ValidationResult } from '../types/terminal.types.ts';
 
-const SANDBOX_ROOT = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
+// ── Sandbox boundary ──────────────────────────────────────────────────────────
 
-/** Allowed outbound hosts for agent HTTP traffic. */
-const ALLOWED_HOSTS: ReadonlySet<string> = new Set(
-  (process.env.AGENT_HTTP_ALLOWED_HOSTS ?? 'openrouter.ai,api.openai.com')
-    .split(',')
-    .map((h) => h.trim())
-    .filter(Boolean),
-);
-
-export function validateSandboxPath(projectId: string, targetPath: string): ValidationResult {
-  const errors: string[] = [];
-
-  const sandboxRoot = path.resolve(path.join(SANDBOX_ROOT, projectId));
-  const resolved    = path.resolve(targetPath);
-
-  if (!resolved.startsWith(sandboxRoot)) {
-    errors.push(
-      `Path escape detected: "${targetPath}" is outside sandbox "${sandboxRoot}"`,
-    );
-  }
-
-  return { valid: errors.length === 0, errors, warnings: [] };
-}
-
-export function validatePermissionScope(
-  requestedPermissions: readonly string[],
-  allowedPermissions:   readonly string[],
+export function validateSandboxPath(
+  requestedPath: string,
+  sandboxRoot:   string,
 ): ValidationResult {
   const errors: string[] = [];
-  const allowed = new Set(allowedPermissions);
 
-  for (const perm of requestedPermissions) {
-    if (!allowed.has(perm)) {
-      errors.push(`Permission not granted: "${perm}"`);
+  if (!requestedPath || typeof requestedPath !== 'string') {
+    errors.push('Path must be a non-empty string');
+    return { valid: false, errors, warnings: [] };
+  }
+
+  const resolved = resolve(sandboxRoot, normalize(requestedPath));
+
+  if (!resolved.startsWith(normalize(sandboxRoot))) {
+    errors.push(`Path traversal detected: "${requestedPath}" escapes sandbox root "${sandboxRoot}"`);
+    return { valid: false, errors, warnings: [] };
+  }
+
+  const FORBIDDEN_SEGMENTS = ['/etc/passwd', '/etc/shadow', '/.ssh/', '/proc/', '/sys/', '/dev/'];
+  for (const seg of FORBIDDEN_SEGMENTS) {
+    if (resolved.includes(seg)) {
+      errors.push(`Access to system path denied: ${seg}`);
     }
   }
 
   return { valid: errors.length === 0, errors, warnings: [] };
 }
 
-export function validateOutboundHost(url: string): ValidationResult {
+// ── Permission scope ──────────────────────────────────────────────────────────
+
+export type Permission = 'read' | 'write' | 'execute' | 'network' | 'spawn';
+
+const ALLOWED_PERMISSIONS: ReadonlySet<Permission> = new Set(['read', 'write', 'execute']);
+const RESTRICTED_PERMISSIONS: ReadonlySet<Permission> = new Set(['network', 'spawn']);
+
+export function validatePermission(permission: Permission): ValidationResult {
+  if (ALLOWED_PERMISSIONS.has(permission)) {
+    return { valid: true, errors: [], warnings: [] };
+  }
+  if (RESTRICTED_PERMISSIONS.has(permission)) {
+    return {
+      valid:    false,
+      errors:   [`Permission "${permission}" is restricted in this execution environment`],
+      warnings: [],
+    };
+  }
+  return {
+    valid:    false,
+    errors:   [`Unknown permission: "${permission}"`],
+    warnings: [],
+  };
+}
+
+// ── Execution policy ──────────────────────────────────────────────────────────
+
+const BLOCKED_EXECUTABLES = new Set([
+  'bash', 'sh', 'zsh', 'fish', 'csh', 'tcsh',
+  'python', 'python3', 'ruby', 'perl', 'php',
+]);
+
+export function validateExecutionPolicy(
+  executable: string,
+  sandboxRoot: string,
+): ValidationResult {
   const errors:   string[] = [];
   const warnings: string[] = [];
 
-  try {
-    const parsed = new URL(url);
-    if (!ALLOWED_HOSTS.has(parsed.hostname)) {
-      warnings.push(
-        `Outbound request to unlisted host: "${parsed.hostname}" — verify AGENT_HTTP_ALLOWED_HOSTS`,
-      );
-    }
-  } catch {
-    errors.push(`Invalid URL: "${url}"`);
+  const exe = executable.split(/\s+/)[0]?.replace(/^.*\//, '');
+  if (!exe) {
+    errors.push('No executable found in command');
+    return { valid: false, errors, warnings };
+  }
+
+  if (BLOCKED_EXECUTABLES.has(exe)) {
+    warnings.push(`Executing raw shell "${exe}" — consider using a higher-level tool call`);
+  }
+
+  const pathCheck = validateSandboxPath(executable.split(/\s+/)[0] ?? '.', sandboxRoot);
+  if (!pathCheck.valid && executable.startsWith('/')) {
+    errors.push(...pathCheck.errors);
   }
 
   return { valid: errors.length === 0, errors, warnings };
-}
-
-export function validateExecutionPolicy(command: string): ValidationResult {
-  const errors: string[] = [];
-
-  const lc = command.toLowerCase();
-  if (lc.includes('rm -rf') && !lc.includes('.sandbox')) {
-    errors.push('Destructive rm outside sandbox boundary');
-  }
-
-  return { valid: errors.length === 0, errors, warnings: [] };
 }

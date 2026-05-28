@@ -1,0 +1,281 @@
+You are a world-class runtime systems engineer, autonomous infrastructure architect, and TypeScript orchestration specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/terminal/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is NOT a tool layer.
+
+This is ONLY an AGENT orchestration layer.
+
+The terminal agent must behave like:
+
+- Replit runtime orchestrator
+- Cursor execution coordinator
+- production-grade terminal orchestration runtime
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No embedded tool implementations
+4. No direct terminal execution
+5. No direct process management
+6. No direct shell execution
+7. No child_process.spawn()
+8. No exec()
+9. No execa()
+10. No shelljs()
+11. No direct npm execution
+12. No direct filesystem execution
+
+ALL execution MUST happen through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+TERMINAL AGENT RESPONSIBILITY
+
+The terminal agent should ONLY:
+
+- coordinate runtime workflows
+- orchestrate execution steps
+- manage execution lifecycle
+- manage execution sessions/state
+- control retry/recovery flow
+- validate execution requests
+- route execution tasks
+- monitor runtime health
+- aggregate runtime results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/terminal/
+
+├── terminal-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── terminal-context.ts
+│   ├── terminal-session.ts
+│   └── terminal-state.ts
+│
+├── execution/
+│   ├── execution-loop.ts
+│   ├── step-runner.ts
+│   ├── terminal-runner.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── dispatcher-client.ts
+│   ├── tool-coordinator.ts
+│   └── execution-routing.ts
+│
+├── validation/
+│   ├── execution-validator.ts
+│   ├── command-validator.ts
+│   └── security-validator.ts
+│
+├── monitoring/
+│   ├── failure-monitor.ts
+│   └── runtime-health-monitor.ts
+│
+├── telemetry/
+│   ├── terminal-logger.ts
+│   └── terminal-metrics.ts
+│
+├── types/
+│   └── terminal.types.ts
+│
+└── utils/
+└── execution-utils.ts
+
+==================================================
+MOST IMPORTANT FILES
+
+execution-loop.ts
+→ SYSTEM HEART
+→ controls execution loop
+→ chooses next step
+→ controls retries
+→ controls execution state
+
+dispatcher-client.ts
+→ ONLY gateway to tools
+→ communicates with centralized dispatcher
+
+tool-coordinator.ts
+→ maps tasks to tools
+→ coordinates tool execution flow
+
+step-runner.ts
+→ executes one step at a time
+→ converts execution step → tool call
+
+==================================================
+EXECUTION FLOW
+
+Terminal Agent
+↓
+Execution Loop
+↓
+Step Runner
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Tools Layer
+↓
+Execution Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"run_command",
+payload
+)
+
+WRONG:
+
+spawn("npm run dev")
+
+==================================================
+TERMINAL AGENT DESIGN
+
+The architecture must be:
+
+- modular
+- scalable
+- deterministic
+- event-driven
+- dispatcher-driven
+- observable
+- fail-closed secure
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated execution systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Strong typing everywhere
+
+==================================================
+VALIDATION REQUIREMENTS
+
+execution-validator.ts
+must validate:
+
+- execution requests
+- invalid states
+- missing runtime context
+
+command-validator.ts
+must validate:
+
+- blocked commands
+- dangerous patterns
+- malformed input
+
+security-validator.ts
+must validate:
+
+- sandbox boundaries
+- permission scope
+- execution policy
+
+==================================================
+MONITORING REQUIREMENTS
+
+failure-monitor.ts
+must track:
+
+- failed executions
+- retry counts
+- crash patterns
+
+runtime-health-monitor.ts
+must track:
+
+- active sessions
+- execution state
+- stuck execution loops
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+terminal-logger.ts
+must log:
+
+- execution lifecycle
+- retries
+- failures
+- recovery attempts
+
+terminal-metrics.ts
+must track:
+
+- execution count
+- success/failure rate
+- retry metrics
+- execution duration
+
+==================================================
+FINAL GOAL
+
+The final terminal agent must become:
+
+- orchestration-only
+- fully centralized
+- dispatcher-driven
+- production-grade
+- Replit-level runtime coordinator
+- scalable autonomous execution engine
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden tool implementations
+- runtime leakage
+- direct shell execution
+- duplicated orchestration
+- fake abstractions
+- overengineering
+
+Enforce this architecture:
+
+Agents → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution

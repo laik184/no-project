@@ -2,65 +2,55 @@
  * server/agents/terminal/telemetry/terminal-metrics.ts
  *
  * In-process metrics for the terminal agent.
- * Tracks execution count, success/failure rate, retries, and duration.
+ * Tracks: execution count, success/failure rate, retry metrics, durations.
  */
 
-export interface RunMetrics {
-  runId:          string;
-  totalSteps:     number;
-  successSteps:   number;
-  failedSteps:    number;
-  retryCount:     number;
-  totalDurationMs: number;
-  startedAt:      number;
+interface RunMetrics {
+  runId:        string;
+  stepsTotal:   number;
+  stepsOk:      number;
+  stepsFailed:  number;
+  retries:      number;
+  durationMs:   number;
+  startedAt:    number;
 }
 
 const store = new Map<string, RunMetrics>();
 
-function ensureRun(runId: string): RunMetrics {
-  if (!store.has(runId)) {
-    store.set(runId, {
-      runId,
-      totalSteps:     0,
-      successSteps:   0,
-      failedSteps:    0,
-      retryCount:     0,
-      totalDurationMs: 0,
-      startedAt:      Date.now(),
-    });
-  }
-  return store.get(runId)!;
-}
-
 export const terminalMetrics = {
   initRun(runId: string): void {
-    ensureRun(runId);
+    store.set(runId, {
+      runId, stepsTotal: 0, stepsOk: 0, stepsFailed: 0,
+      retries: 0, durationMs: 0, startedAt: Date.now(),
+    });
   },
 
-  recordStep(runId: string, success: boolean, durationMs: number, retries = 0): void {
-    const m = ensureRun(runId);
-    m.totalSteps++;
-    m.totalDurationMs += durationMs;
-    m.retryCount      += retries;
-    if (success) m.successSteps++;
-    else         m.failedSteps++;
+  recordStep(runId: string, success: boolean, durationMs: number): void {
+    const m = store.get(runId);
+    if (!m) return;
+    m.stepsTotal++;
+    if (success) m.stepsOk++; else m.stepsFailed++;
+    m.durationMs += durationMs;
   },
 
-  getSnapshot(runId: string): RunMetrics | undefined {
-    return store.get(runId);
+  recordRetry(runId: string): void {
+    const m = store.get(runId);
+    if (m) m.retries++;
   },
+
+  finalise(runId: string): RunMetrics | undefined {
+    const m = store.get(runId);
+    if (m) m.durationMs = Date.now() - m.startedAt;
+    return m;
+  },
+
+  snapshot(runId: string): RunMetrics | undefined { return store.get(runId); },
+
+  clear(runId: string): void { store.delete(runId); },
 
   successRate(runId: string): number {
     const m = store.get(runId);
-    if (!m || m.totalSteps === 0) return 1;
-    return m.successSteps / m.totalSteps;
-  },
-
-  clearRun(runId: string): void {
-    store.delete(runId);
-  },
-
-  allRunIds(): readonly string[] {
-    return Object.freeze([...store.keys()]);
+    if (!m || m.stepsTotal === 0) return 1;
+    return m.stepsOk / m.stepsTotal;
   },
 };

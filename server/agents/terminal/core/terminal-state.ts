@@ -1,59 +1,82 @@
 /**
  * server/agents/terminal/core/terminal-state.ts
  *
- * In-process state store for terminal agent sessions.
- * Tracks status, step progress, and lifecycle for each run.
+ * Per-run execution state machine.
+ * Pure in-process state store — no tool calls, no direct execution.
  */
 
-import type { SessionStatus, TerminalSessionMeta } from '../types/terminal.types.ts';
+import type { SessionStatus, TerminalPhase, StepOutcome } from '../types/terminal.types.ts';
 
-const store = new Map<string, TerminalSessionMeta>();
+export interface ExecutionStateData {
+  runId:          string;
+  projectId:      string;
+  status:         SessionStatus;
+  phase:          TerminalPhase;
+  totalSteps:     number;
+  completedSteps: number;
+  failedSteps:    number;
+  outcomes:       StepOutcome[];
+  startedAt:      number;
+  updatedAt:      number;
+}
+
+const store = new Map<string, ExecutionStateData>();
 
 export const terminalState = {
-  init(runId: string, projectId: string, sessionId: string, taskCount: number): TerminalSessionMeta {
-    const meta: TerminalSessionMeta = {
-      sessionId,
-      runId,
-      projectId,
+  init(runId: string, projectId: string, totalSteps: number): ExecutionStateData {
+    const data: ExecutionStateData = {
+      runId, projectId,
+      status:         'pending',
+      phase:          'idle',
+      totalSteps,
+      completedSteps: 0,
+      failedSteps:    0,
+      outcomes:       [],
       startedAt:      Date.now(),
-      taskCount,
-      completedCount: 0,
-      failedCount:    0,
-      status:         'idle',
+      updatedAt:      Date.now(),
     };
-    store.set(runId, meta);
-    return meta;
+    store.set(runId, data);
+    return data;
   },
 
-  get(runId: string): TerminalSessionMeta | undefined {
-    return store.get(runId);
+  get(runId: string): ExecutionStateData | undefined { return store.get(runId); },
+
+  setPhase(runId: string, phase: TerminalPhase): void {
+    const s = store.get(runId);
+    if (s) { s.phase = phase; s.updatedAt = Date.now(); }
   },
 
   setStatus(runId: string, status: SessionStatus): void {
-    const m = store.get(runId);
-    if (m) m.status = status;
+    const s = store.get(runId);
+    if (s) { s.status = status; s.updatedAt = Date.now(); }
   },
 
-  recordCompleted(runId: string): void {
-    const m = store.get(runId);
-    if (m) m.completedCount++;
+  recordOutcome(runId: string, outcome: StepOutcome): void {
+    const s = store.get(runId);
+    if (!s) return;
+    s.outcomes.push(outcome);
+    s.completedSteps++;
+    if (!outcome.success) s.failedSteps++;
+    s.updatedAt = Date.now();
   },
 
-  recordFailed(runId: string): void {
-    const m = store.get(runId);
-    if (m) m.failedCount++;
+  isComplete(runId: string): boolean {
+    const s = store.get(runId);
+    return !!s && s.completedSteps >= s.totalSteps;
   },
 
-  isActive(runId: string): boolean {
-    const m = store.get(runId);
-    return m?.status === 'running' || m?.status === 'paused';
+  isFailed(runId: string): boolean {
+    const s = store.get(runId);
+    return s?.status === 'failed';
   },
 
-  clear(runId: string): void {
-    store.delete(runId);
+  failureRate(runId: string): number {
+    const s = store.get(runId);
+    if (!s || s.completedSteps === 0) return 0;
+    return s.failedSteps / s.completedSteps;
   },
 
-  allRunIds(): readonly string[] {
-    return Object.freeze([...store.keys()]);
-  },
+  clear(runId: string): void { store.delete(runId); },
+
+  allRunIds(): readonly string[] { return Object.freeze([...store.keys()]); },
 };

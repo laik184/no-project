@@ -1,59 +1,59 @@
 /**
  * server/agents/terminal/utils/execution-utils.ts
  *
- * Pure utility helpers for the terminal agent layer.
- * No side effects, no external dependencies.
+ * Pure utility functions for the terminal agent orchestration layer.
+ * No side effects, no tool calls, no direct execution.
  */
 
 import { randomUUID } from 'crypto';
+import type { RecoveryAction, StepOutcome } from '../types/terminal.types.ts';
 
-/** Generate a short unique ID for steps / checkpoints. */
-export function generateId(prefix = 'term'): string {
-  return `${prefix}-${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+/** Generate a short correlation ID. */
+export function makeRunId(): string {
+  return randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
-/** Elapsed time in ms since a given start timestamp. */
-export function elapsedMs(start: number): number {
-  return Date.now() - start;
+/** Milliseconds elapsed since a Date. */
+export function elapsedMs(since: Date): number {
+  return Date.now() - since.getTime();
 }
 
-/** Clamp a number between min and max. */
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+/** Exponential backoff delay in ms. */
+export function backoffMs(attempt: number, baseMs = 500, maxMs = 8_000): number {
+  return Math.min(baseMs * Math.pow(2, attempt - 1), maxMs);
 }
 
-/** Compute retry delay with optional backoff. */
-export function retryDelay(
-  attempt:  number,
-  baseMs:   number,
-  backoff:  'none' | 'linear' | 'exponential',
-): number {
-  if (backoff === 'exponential') return baseMs * Math.pow(2, attempt - 1);
-  if (backoff === 'linear')      return baseMs * attempt;
-  return 0;
-}
-
-/** Sleep for a given number of milliseconds. */
+/** Sleep for n milliseconds. */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Classify an error string into a recovery action. */
-export function classifyError(error: string): 'retry' | 'skip' | 'abort' {
-  if (/timeout|ETIMEDOUT/i.test(error))  return 'skip';
-  if (/not found|ENOENT/i.test(error))   return 'skip';
-  if (/permission|EACCES/i.test(error))  return 'abort';
-  return 'abort';
+/** Decide recovery action from an error message. */
+export function decideRecovery(error: string): RecoveryAction {
+  if (/timeout|ETIMEDOUT|ESRCH/i.test(error))     return 'skip';
+  if (/not found|ENOENT|MODULE_NOT_FOUND/i.test(error)) return 'skip';
+  if (/permission|EACCES|EPERM/i.test(error))     return 'abort';
+  return 'retry';
 }
 
-/** Truncate a string to a max length, appending ellipsis if needed. */
-export function truncate(s: string, maxLen = 500): string {
-  if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen) + '…';
+/** Compute failure rate from outcomes. */
+export function failureRate(outcomes: readonly StepOutcome[]): number {
+  if (outcomes.length === 0) return 0;
+  return outcomes.filter((o) => !o.success).length / outcomes.length;
 }
 
-/** Safely extract a string error message from an unknown throw. */
-export function toErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
+/** Clamp a number between min and max. */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/** Truncate a string to maxLen, adding '…' if cut. */
+export function truncate(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen - 1) + '…';
+}
+
+/** Build a safe label string (no newlines, max 120 chars). */
+export function safeLabel(label: string): string {
+  return truncate(label.replace(/[\r\n]+/g, ' '), 120);
 }

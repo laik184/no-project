@@ -1,23 +1,23 @@
 /**
  * server/agents/terminal/monitoring/runtime-health-monitor.ts
  *
- * Unified runtime monitor + periodic health sweep.
- *
- * Exports `runtimeMonitor` — consumed by executor (context.ts, task-executor.ts).
- * Also exports `runtimeHealthMonitor` — periodic stuck-session detector.
+ * Tracks active sessions, execution state, and stuck execution loops.
+ * Exports:
+ *   runtimeMonitor       — session-level health tracking (used by executor context)
+ *   runtimeHealthMonitor — periodic stuck-session sweep
  */
 
 import { failureMonitor }  from './failure-monitor.ts';
 import { terminalLogger }  from '../telemetry/terminal-logger.ts';
 
-// ── Per-session state ─────────────────────────────────────────────────────────
+// ── Per-session record ────────────────────────────────────────────────────────
 
 interface SessionRecord {
   runId:        string;
   taskCount:    number;
   stepCount:    number;
   failureCount: number;
-  lastChecked:  number;
+  lastActivity: number;
 }
 
 export interface RuntimeHealth {
@@ -35,60 +35,49 @@ const MIN_STEPS_FOR_HEALTH   = 3;
 const sessions  = new Map<string, SessionRecord>();
 const snapshots = new Map<string, RuntimeHealth>();
 
-// ── runtimeMonitor — consumed by executor ─────────────────────────────────────
+// ── runtimeMonitor ────────────────────────────────────────────────────────────
 
 export const runtimeMonitor = {
-  /** Register a new run. Called from createExecutionContext. */
   init(runId: string, taskCount: number): void {
-    sessions.set(runId, { runId, taskCount, stepCount: 0, failureCount: 0, lastChecked: Date.now() });
+    sessions.set(runId, { runId, taskCount, stepCount: 0, failureCount: 0, lastActivity: Date.now() });
   },
 
-  /** Record a completed step result. Called from task-executor. */
   recordStep(runId: string, success: boolean): void {
     const s = sessions.get(runId);
     if (!s) return;
     s.stepCount++;
     if (!success) s.failureCount++;
-    s.lastChecked = Date.now();
+    s.lastActivity = Date.now();
     snapshots.set(runId, {
       runId, taskCount: s.taskCount, stepCount: s.stepCount,
-      failureCount: s.failureCount, isHealthy: this.isHealthy(runId), checkedAt: Date.now(),
+      failureCount: s.failureCount,
+      isHealthy: runtimeMonitor.isHealthy(runId),
+      checkedAt: Date.now(),
     });
   },
 
-  /** Returns false when failure rate exceeds threshold with enough data points. */
   isHealthy(runId: string): boolean {
     const s = sessions.get(runId);
     if (!s || s.stepCount < MIN_STEPS_FOR_HEALTH) return true;
     return (s.failureCount / s.stepCount) <= FAILURE_RATE_THRESHOLD;
   },
 
-  /** Async health probe — optionally checks port liveness. */
-  async check(runId: string, port?: number): Promise<RuntimeHealth> {
+  async check(runId: string): Promise<RuntimeHealth> {
     const s = sessions.get(runId);
-    let portAlive = false;
-    if (port) {
-      try {
-        const { isPortInUse } = await import('../../../tools/terminal/ports/find-free-port.ts');
-        portAlive = await isPortInUse(port);
-      } catch { portAlive = false; }
-    }
     const health: RuntimeHealth = {
       runId,
       taskCount:    s?.taskCount    ?? 0,
       stepCount:    s?.stepCount    ?? 0,
       failureCount: s?.failureCount ?? 0,
-      isHealthy:    port ? portAlive : this.isHealthy(runId),
+      isHealthy:    runtimeMonitor.isHealthy(runId),
       checkedAt:    Date.now(),
     };
     snapshots.set(runId, health);
     return health;
   },
 
-  /** Last computed health snapshot. */
   last(runId: string): RuntimeHealth | undefined { return snapshots.get(runId); },
 
-  /** Release all state for a run. Called from releaseExecutionContext. */
   clear(runId: string): void { sessions.delete(runId); snapshots.delete(runId); },
 
   allRunIds(): readonly string[] { return Object.freeze([...sessions.keys()]); },
@@ -113,7 +102,7 @@ function detectStuck(): StuckSession[] {
     if (idleMs < STUCK_THRESHOLD_MS) continue;
     const failureRate = h.stepCount > 0 ? h.failureCount / h.stepCount : 0;
     stuck.push({ runId, idleMs, failureRate });
-    terminalLogger.warn(runId, `[health-monitor] Stuck session`, { idleMs, failureRate: failureRate.toFixed(2) });
+    terminalLogger.warn(runId, '[health-monitor] Stuck session detected', { idleMs, failureRate: failureRate.toFixed(2) });
   }
   return stuck;
 }
@@ -124,7 +113,7 @@ export const runtimeHealthMonitor = {
     sweepTimer = setInterval(() => {
       const stuck = detectStuck();
       if (stuck.length > 0)
-        console.warn(`[terminal-health-monitor] ${stuck.length} stuck session(s):`, stuck.map((s) => s.runId).join(', '));
+        console.warn(`[terminal-health-monitor] ${stuck.length} stuck session(s)`, stuck.map((s) => s.runId).join(', '));
     }, SWEEP_INTERVAL_MS);
     if (sweepTimer && typeof sweepTimer === 'object' && 'unref' in sweepTimer)
       (sweepTimer as NodeJS.Timeout).unref();

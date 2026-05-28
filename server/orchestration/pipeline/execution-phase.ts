@@ -8,7 +8,7 @@ import { runToolLoop } from '../../agents/coderx/index.ts';
 import { initializeExecutor, executeTask as runExecutorTask } from '../../agents/executor/executor-agent.ts';
 import { workspaceManager } from '../../tools/filesystem/lib/workspace/workspace-manager.ts';
 import { getFolderStructure } from '../../tools/filesystem/lib/folders/folder-structure.ts';
-import { runCommand } from '../../agents/terminal/index.ts';
+import { shellExecute } from '../../tools/terminal/execution/shell-execute.ts';
 
 export interface ExecutionProgress {
   total: number;
@@ -112,7 +112,7 @@ export async function runExecutionPhase(ctx: OrchestrationContext, plan: Executi
   if (wsInfo) {
     runLogger.log(ctx.runId, 'info', `[execution-phase] Workspace ready: ${wsInfo.root}`);
     // ── Terminal: verify workspace via shell ──────────────────────────────────
-    runCommand({ command: `ls "${wsInfo.root}"`, cwd: wsInfo.root, timeoutMs: 5_000 })
+    shellExecute(`ls "${wsInfo.root}"`, wsInfo.root, 5_000)
       .then((r) => runLogger.log(ctx.runId, 'info', `[execution-phase] Terminal verify — exit=${r.exitCode} files=${r.stdout.trim().split('\n').filter(Boolean).length}`))
       .catch((err) => runLogger.log(ctx.runId, 'warn', `[execution-phase] Terminal verify warn: ${err instanceof Error ? err.message : String(err)}`));
   }
