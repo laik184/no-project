@@ -1,0 +1,305 @@
+You are a world-class autonomous execution architect, runtime systems engineer, and TypeScript orchestration specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/executor/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The executor agent must ONLY coordinate and orchestrate execution workflows.
+
+NO actual execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct runtime execution
+5. No direct filesystem execution
+6. No direct terminal execution
+7. No direct browser execution
+8. No direct verification execution
+9. No direct AI generation execution
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- npm commands
+- direct API execution
+- direct shell execution
+- direct tool implementations
+
+==================================================
+EXECUTOR AGENT RESPONSIBILITY
+
+The executor agent should ONLY:
+
+- coordinate execution workflows
+- orchestrate execution steps
+- manage execution lifecycle
+- manage runtime sessions/state
+- select appropriate tools
+- control retry/recovery flow
+- validate execution requests
+- monitor execution runtime
+- aggregate execution results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/executor/
+
+├── executor-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── executor-context.ts
+│   ├── executor-session.ts
+│   └── executor-state.ts
+│
+├── execution/
+│   ├── execution-loop.ts
+│   ├── step-runner.ts
+│   ├── task-executor.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── tool-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── execution-routing.ts
+│
+├── planning/
+│   ├── execution-planner.ts
+│   ├── tool-selection.ts
+│   └── execution-plan-builder.ts
+│
+├── validation/
+│   ├── execution-validator.ts
+│   ├── tool-validator.ts
+│   └── integrity-validator.ts
+│
+├── monitoring/
+│   ├── execution-monitor.ts
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── executor-logger.ts
+│   └── executor-metrics.ts
+│
+├── types/
+│   └── executor.types.ts
+│
+└── utils/
+└── execution-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+execution-loop.ts
+→ MAIN execution runtime loop
+→ controls execution lifecycle
+→ controls retries
+→ controls execution sequencing
+→ chooses next execution step
+
+step-runner.ts
+→ executes one orchestration step
+→ coordinates execution flow
+
+task-executor.ts
+→ manages task-level orchestration
+→ converts tasks into execution steps
+
+tool-coordinator.ts
+→ maps execution tasks to tools
+→ coordinates dispatcher execution
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+execution-planner.ts
+→ builds execution strategy
+
+tool-selection.ts
+→ selects proper tools for tasks
+
+execution-plan-builder.ts
+→ creates execution graph/order
+
+==================================================
+EXECUTION FLOW
+
+Executor Agent
+↓
+Execution Loop
+↓
+Task Executor
+↓
+Step Runner
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Execution Tools
+↓
+Execution Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"run_terminal_command",
+payload
+)
+
+WRONG:
+
+spawn("npm run dev")
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated execution systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+execution-validator.ts
+must validate:
+
+- malformed execution requests
+- invalid execution state
+- missing runtime context
+
+tool-validator.ts
+must validate:
+
+- invalid tool requests
+- blocked tools
+- malformed payloads
+
+integrity-validator.ts
+must validate:
+
+- corrupted execution flow
+- invalid execution transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+execution-monitor.ts
+must track:
+
+- active execution state
+- execution progress
+- stuck execution loops
+
+failure-monitor.ts
+must track:
+
+- failed executions
+- retry attempts
+- repeated failures
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+executor-logger.ts
+must log:
+
+- execution lifecycle
+- retries
+- failures
+- recovery attempts
+
+executor-metrics.ts
+must track:
+
+- execution count
+- success/failure rate
+- retry metrics
+- execution duration
+
+==================================================
+FINAL GOAL
+
+The final executor agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level execution coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden execution
+- direct runtime logic
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Executor Agent → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution
