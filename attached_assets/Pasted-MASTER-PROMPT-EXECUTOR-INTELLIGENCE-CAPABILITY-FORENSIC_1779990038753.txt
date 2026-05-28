@@ -1,0 +1,562 @@
+MASTER PROMPT — EXECUTOR INTELLIGENCE + CAPABILITY FORENSIC AUDIT
+
+You are a principal AI systems architect, autonomous runtime engineer, and execution intelligence auditor.
+
+Your task is to perform a COMPLETE DEEP SCAN + CAPABILITY FORENSIC AUDIT of the agent intelligence system.
+
+IMPORTANT:
+This is NOT a coding/refactor task initially.
+
+DO NOT modify files first.
+
+Your FIRST responsibility is to:
+
+- deeply inspect the runtime
+- inspect execution intelligence
+- inspect agent capabilities
+- inspect reasoning systems
+- inspect memory systems
+- inspect recovery systems
+- inspect validation systems
+- inspect observability systems
+- detect missing capabilities
+- detect incomplete intelligence layers
+- detect fake/stub systems
+- detect missing runtime behavior
+
+This is a:
+
+FULL AUTONOMOUS EXECUTION CAPABILITY AUDIT
+
+---
+
+SCAN TARGETS
+
+Deep scan ALL files and subfolders inside:
+
+server/agents/executor/
+server/agents/planner/
+server/agents/browser/
+server/agents/verifier/
+server/agents/filesystem/
+server/agents/terminal/
+
+server/orchestration/
+server/tools/
+
+---
+
+PRIMARY OBJECTIVE
+
+Determine:
+
+1. Which intelligence systems EXIST
+2. Which systems are PARTIALLY implemented
+3. Which systems are MISSING
+4. Which systems are STUBS
+5. Which systems are FAKE wrappers
+6. Which systems have REAL runtime behavior
+7. Which systems are properly connected
+8. Which systems are disconnected
+9. Which systems own execution
+10. Which systems own memory
+11. Which systems own retries
+12. Which systems own validation
+13. Which systems own telemetry
+14. Which systems own planning
+15. Which systems own recovery
+
+---
+
+PHASE 1 — EXECUTION INTELLIGENCE SCAN
+
+Deep scan:
+
+server/agents/executor/
+
+Analyze ALL:
+
+- execution loops
+- step runners
+- retry managers
+- validators
+- monitors
+- telemetry
+- memory
+- reasoning
+- planners
+- recovery systems
+
+---
+
+VERIFY WHETHER THESE FILES EXIST
+
+execution-loop.ts
+step-runner.ts
+decision-engine.ts
+task-analyzer.ts
+retry-manager.ts
+failure-monitor.ts
+working-memory.ts
+execution-history.ts
+integrity-validator.ts
+response-validator.ts
+executor-metrics.ts
+executor-logger.ts
+
+---
+
+FOR EACH FILE DETERMINE
+
+Check| Required
+file exists| ✅
+actually used| ✅
+imported| ✅
+runtime connected| ✅
+contains real logic| ✅
+contains stubs only| detect
+owns capability| determine
+dead/unreachable| detect
+
+---
+
+PHASE 2 — EXECUTION LOOP CAPABILITY AUDIT
+
+Deep scan:
+
+server/agents/executor/execution/execution-loop.ts
+
+Determine whether it supports:
+
+Capability| Status
+execution lifecycle| ?
+retry orchestration| ?
+validation loops| ?
+failure recovery| ?
+workflow continuation| ?
+execution cancellation| ?
+state transitions| ?
+escalation| ?
+timeout handling| ?
+
+---
+
+VERIFY WHETHER LOOP STATES EXIST
+
+IDLE
+PLANNING
+EXECUTING
+VALIDATING
+RETRYING
+RECOVERING
+FAILED
+COMPLETED
+ESCALATED
+
+---
+
+PHASE 3 — STEP RUNNER INTELLIGENCE AUDIT
+
+Deep scan:
+
+server/agents/executor/execution/step-runner.ts
+
+Determine whether it supports:
+
+Capability| Status
+tool selection| ?
+retry decision| ?
+validation after execution| ?
+context updates| ?
+failure classification| ?
+fallback tool selection| ?
+execution repair| ?
+escalation logic| ?
+
+---
+
+VERIFY WHETHER STEP RUNNER CAN:
+
+tool failed
+ ↓
+retry?
+ ↓
+repair?
+ ↓
+switch tool?
+ ↓
+rollback?
+ ↓
+escalate?
+
+---
+
+PHASE 4 — MEMORY SYSTEM AUDIT
+
+Deep scan:
+
+server/agents/executor/memory/
+
+Verify existence and runtime usage of:
+
+working-memory.ts
+execution-history.ts
+failure-memory.ts
+context-window-manager.ts
+
+---
+
+VERIFY WHETHER MEMORY STORES:
+
+Memory Type| Status
+current task| ?
+modified files| ?
+retry counts| ?
+failed steps| ?
+validation results| ?
+tool outputs| ?
+browser state| ?
+execution history| ?
+
+---
+
+DETECT
+
+- fake memory wrappers
+- disconnected memory
+- memory not updated
+- memory not read
+- dead memory systems
+
+---
+
+PHASE 5 — FAILURE RECOVERY AUDIT
+
+Deep scan:
+
+server/agents/executor/execution/retry-manager.ts
+server/agents/executor/monitoring/failure-monitor.ts
+
+Determine whether system supports:
+
+Capability| Status
+retry classification| ?
+transient vs fatal| ?
+rollback| ?
+repair loops| ?
+compile recovery| ?
+browser recovery| ?
+infinite loop detection| ?
+retry explosion prevention| ?
+
+---
+
+VERIFY WHETHER SYSTEM UNDERSTANDS:
+
+timeout → retry useful
+syntax error → retry useless
+
+---
+
+PHASE 6 — VALIDATION SYSTEM AUDIT
+
+Deep scan:
+
+server/agents/executor/validation/
+
+Verify:
+
+integrity-validator.ts
+response-validator.ts
+
+---
+
+DETERMINE WHETHER VALIDATORS CHECK:
+
+Validation| Status
+imports valid| ?
+type integrity| ?
+circular dependencies| ?
+broken exports| ?
+patch integrity| ?
+task completion| ?
+workflow consistency| ?
+
+---
+
+PHASE 7 — PLANNER INTELLIGENCE AUDIT
+
+Deep scan:
+
+server/agents/planner/
+
+Determine whether planner supports:
+
+Capability| Status
+task graph generation| ?
+dependency analysis| ?
+execution phases| ?
+risk analysis| ?
+agent selection| ?
+parallel planning| ?
+workflow optimization| ?
+
+---
+
+VERIFY WHETHER THESE FILES EXIST
+
+workflow-planner.ts
+dependency-analyzer.ts
+risk-estimator.ts
+phase-builder.ts
+
+---
+
+DETERMINE WHETHER PLANNER CREATES:
+
+Goal
+ ↓
+Task Graph
+ ↓
+Dependency Graph
+ ↓
+Execution Phases
+ ↓
+Agent Assignment
+
+OR only linear tasks.
+
+---
+
+PHASE 8 — OBSERVABILITY AUDIT
+
+Deep scan:
+
+server/agents/executor/telemetry/
+
+Verify whether system tracks:
+
+Metric| Status
+step latency| ?
+retry count| ?
+workflow duration| ?
+tool failures| ?
+validation failures| ?
+recovery count| ?
+
+---
+
+VERIFY WHETHER EXECUTION TIMELINE EXISTS
+
+Example:
+
+[12:01] planning started
+[12:02] tool selected
+[12:03] patch failed
+[12:04] retry triggered
+[12:05] validation passed
+
+---
+
+PHASE 9 — RUNTIME CONNECTIVITY AUDIT
+
+Determine whether systems are ACTUALLY connected.
+
+Detect:
+
+- orphaned intelligence files
+- unused validators
+- unused retry managers
+- disconnected memory systems
+- fake monitors
+- telemetry not wired
+- planners not used
+- dead reasoning engines
+
+---
+
+BUILD COMPLETE RUNTIME GRAPH
+
+Show ACTUAL intelligence flow:
+
+task
+ ↓
+planning
+ ↓
+execution
+ ↓
+validation
+ ↓
+retry
+ ↓
+repair
+ ↓
+memory update
+ ↓
+telemetry
+ ↓
+completion
+
+---
+
+PHASE 10 — MISSING CAPABILITY ANALYSIS
+
+Determine which capabilities are COMPLETELY missing.
+
+Generate:
+
+Capability| Missing?| Severity| Needed Files
+
+INCLUDING:
+
+- rollback system
+- recovery engine
+- execution state machine
+- browser recovery
+- context repair
+- workflow repair
+- dependency graphing
+- risk estimation
+- execution memory
+- repair loops
+
+---
+
+REQUIRED REPORTS
+
+Generate ALL reports below.
+
+---
+
+REPORT 1 — FILE EXISTENCE MATRIX
+
+For EACH required file:
+
+| File | Exists | Used | Connected | Real Logic | Verdict |
+
+---
+
+REPORT 2 — EXECUTION INTELLIGENCE REPORT
+
+Score:
+
+- executor intelligence
+- reasoning depth
+- recovery capability
+- retry intelligence
+- validation depth
+- workflow intelligence
+- state management
+
+0 → 10
+
+---
+
+REPORT 3 — MEMORY SYSTEM REPORT
+
+Analyze:
+
+- memory ownership
+- memory persistence
+- memory updates
+- disconnected memory
+- fake memory wrappers
+
+---
+
+REPORT 4 — FAILURE RECOVERY REPORT
+
+Analyze:
+
+- retry quality
+- recovery depth
+- rollback support
+- infinite loop prevention
+- retry governance
+
+---
+
+REPORT 5 — PLANNER INTELLIGENCE REPORT
+
+Analyze:
+
+- graph planning
+- dependency reasoning
+- risk estimation
+- execution optimization
+- agent assignment intelligence
+
+---
+
+REPORT 6 — OBSERVABILITY REPORT
+
+Analyze:
+
+- metrics
+- execution traces
+- workflow visibility
+- debugging visibility
+- runtime introspection
+
+---
+
+REPORT 7 — MISSING CAPABILITIES REPORT
+
+List ALL missing systems.
+
+For EACH missing capability include:
+
+| Missing Capability | Severity | Recommended Files | Runtime Impact |
+
+---
+
+REPORT 8 — FINAL AUTONOMY SCORECARD
+
+Score:
+
+- autonomy
+- reasoning
+- recovery
+- memory
+- validation
+- observability
+- planning
+- execution intelligence
+- runtime resilience
+- workflow stability
+
+0 → 10
+
+---
+
+FINAL OBJECTIVE
+
+Determine whether this runtime is:
+
+Level| Verdict
+scripted execution system| ?
+workflow runtime| ?
+semi-autonomous agent| ?
+autonomous execution engine| ?
+self-healing runtime| ?
+
+---
+
+HARD RULES
+
+DO NOT:
+
+- refactor immediately
+- invent fake systems
+- assume capabilities exist
+- trust file names only
+
+You MUST verify:
+
+- runtime usage
+- imports
+- execution paths
+- actual logic
+- actual behavior
+
+This is a COMPLETE AUTONOMOUS EXECUTION FORENSIC AUDIT.

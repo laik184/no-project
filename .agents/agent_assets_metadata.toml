@@ -288,3 +288,9 @@ id = "CgfivSSF6PIKhdRc2Qbps"
 uri = "file://GOVERNANCE_ENFORCEMENT_REPORT.md"
 type = "text"
 title = "Governance Enforcement Report"
+
+[[outputs]]
+id = "QFb67Uw0YPMzW4J9X7v2-"
+uri = "file://EXECUTOR_INTELLIGENCE_CAPABILITY_FORENSIC_REPORT.md"
+type = "text"
+title = "Executor Intelligence + Capability Forensic Report"
