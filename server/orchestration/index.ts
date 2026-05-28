@@ -1,73 +1,98 @@
-import { Router, type Request, type Response } from 'express';
-import { orchestrator } from './core/orchestrator.ts';
-import { runLogger } from './telemetry/run-logger.ts';
-import { validateStartRun } from './utils/validators.ts';
-import { metricsCollector } from './telemetry/metrics.ts';
-import { performanceMonitor } from './telemetry/performance-monitor.ts';
+/**
+ * server/orchestration/index.ts
+ *
+ * Public surface of the orchestration layer.
+ * Exports the primary orchestrate() entry point, router, and diagnostics.
+ * All internal details stay encapsulated within the orchestration/ subtree.
+ */
 
-let initialized = false;
+import { Router, type Request, type Response } from 'express';
+import {
+  orchestrate,
+  initOrchestrator,
+  shutdownOrchestrator,
+  getOrchestratorDiagnostics,
+  cleanupOrchestrationRun,
+} from './orchestrator.ts';
+import { allSnapshots, getStuckOrchestrations, activeCount } from './monitoring/orchestration-monitor.ts';
+import { globalSummary }    from './telemetry/orchestration-metrics.ts';
+import { newOrchestrationId } from './utils/orchestration-utils.ts';
+
+export type { OrchestrationRequest, OrchestrationResult } from './types/orchestration.types.ts';
+export { orchestrate, initOrchestrator, shutdownOrchestrator };
+
+// ── Initialization ────────────────────────────────────────────────────────────
 
 export function initOrchestration(): void {
-  if (initialized) return;
-  initialized = true;
-
-  try {
-    orchestrator.init();
-  } catch (err) {
-    console.warn('[orchestration] orchestrator.init failed:', err instanceof Error ? err.message : err);
-  }
-
-  performanceMonitor.start({ intervalMs: 30_000, memoryThresholdMb: 768 });
+  initOrchestrator();
   console.log('[orchestration] Orchestration layer initialized');
 }
+
+// ── Express router ────────────────────────────────────────────────────────────
 
 export function createOrchestrationRouter(): Router {
   const router = Router();
 
-  router.post('/runs', async (req: Request, res: Response) => {
-    try {
-      const input = validateStartRun(req.body);
-      const result = await orchestrator.startRun(input);
-      res.status(result.success ? 200 : 500).json({ ok: result.success, ...result });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      res.status(400).json({ ok: false, error: msg });
+  // POST /api/orchestration/run — submit an orchestration request
+  router.post('/run', async (req: Request, res: Response) => {
+    const {
+      runId, projectId, sandboxRoot, goal, context, options,
+    } = req.body as {
+      runId?:       string;
+      projectId?:   string;
+      sandboxRoot?: string;
+      goal?:        string;
+      context?:     Record<string, unknown>;
+      options?:     Record<string, unknown>;
+    };
+
+    if (!runId || !projectId || !sandboxRoot || !goal) {
+      return res.status(400).json({
+        ok:    false,
+        error: 'Missing required fields: runId, projectId, sandboxRoot, goal',
+      });
     }
+
+    const result = await orchestrate({
+      orchestrationId: newOrchestrationId(),
+      runId,
+      projectId,
+      sandboxRoot,
+      goal,
+      context,
+      options: options as never,
+    });
+
+    return res.status(result.ok ? 200 : 500).json(result);
   });
 
-  router.get('/runs/:runId', (req: Request, res: Response) => {
-    const { runId } = req.params;
-    const status = orchestrator.getRunStatus(runId);
-    if (!status.run) {
-      return res.status(404).json({ ok: false, error: 'Run not found' });
-    }
-    res.json({ ok: true, runId, ...status });
-  });
-
-  router.get('/runs/:runId/logs', (req: Request, res: Response) => {
-    const { runId } = req.params;
-    const level = req.query.level as string | undefined;
-    const count = Number(req.query.count) || 100;
-    const logs = level
-      ? runLogger.getLogs(runId, level as any)
-      : runLogger.getRecentLogs(runId, count);
-    res.json({ ok: true, runId, count: logs.length, logs });
-  });
-
-  router.get('/runs/:runId/metrics', (req: Request, res: Response) => {
-    const { runId } = req.params;
-    const snapshot = metricsCollector.getSnapshot(runId);
-    res.json({ ok: true, runId, ...snapshot });
-  });
-
+  // GET /api/orchestration/active — all active orchestration snapshots
   router.get('/active', (_req: Request, res: Response) => {
-    const activeRuns = orchestrator.getActiveRuns();
-    res.json({ ok: true, count: activeRuns.length, runs: activeRuns });
+    res.json({ ok: true, snapshots: allSnapshots(), count: activeCount() });
   });
 
-  router.get('/health', (_req: Request, res: Response) => {
-    const perf = performanceMonitor.summarize();
-    res.json({ ok: true, ...perf });
+  // GET /api/orchestration/stuck — detect stuck orchestration loops
+  router.get('/stuck', (_req: Request, res: Response) => {
+    const stuck = getStuckOrchestrations();
+    res.json({ ok: true, stuck, count: stuck.length });
+  });
+
+  // GET /api/orchestration/metrics — global metrics summary
+  router.get('/metrics', (_req: Request, res: Response) => {
+    res.json({ ok: true, metrics: globalSummary() });
+  });
+
+  // GET /api/orchestration/diagnostics/:runId — per-run diagnostics
+  router.get('/diagnostics/:runId', (req: Request, res: Response) => {
+    const { runId } = req.params;
+    res.json({ ok: true, runId, diagnostics: getOrchestratorDiagnostics(runId) });
+  });
+
+  // DELETE /api/orchestration/cleanup/:runId — evict run metrics
+  router.delete('/cleanup/:runId', (req: Request, res: Response) => {
+    const { runId } = req.params;
+    cleanupOrchestrationRun(runId);
+    res.json({ ok: true, runId, message: 'Run metrics evicted' });
   });
 
   return router;

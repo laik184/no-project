@@ -1,67 +1,83 @@
-export type VerificationCheck =
-  | 'runtime_healthy'
-  | 'build_passes'
-  | 'types_pass'
-  | 'tests_pass'
-  | 'lint_passes';
+/**
+ * server/orchestration/agents/verification-bridge.ts
+ *
+ * Verification bridge: dispatches verification requests through the
+ * centralized dispatcher rather than executing checks directly.
+ * Orchestration-only — no tool execution, no filesystem access.
+ */
 
-export interface VerifyInput {
-  runId: string;
-  projectId: number;
-  checks: VerificationCheck[];
-  port?: number;
+import { bus } from '../../infrastructure/events/bus.ts';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type VerificationCheckType =
+  | 'build'
+  | 'test'
+  | 'typecheck'
+  | 'lint'
+  | 'runtime'
+  | 'custom';
+
+export interface VerificationCheck {
+  type:        VerificationCheckType;
+  target?:     string;
+  args?:       string[];
+  timeoutMs?:  number;
+}
+
+export interface VerificationRequest {
+  runId:      string;
+  projectId:  number;
+  checks:     VerificationCheck[];
+  port?:      number;
   timeoutMs?: number;
 }
 
-export interface VerifyResult {
-  success: boolean;
-  error?: string;
+export interface VerificationResult {
+  success:  boolean;
   data?: {
-    score: number;
+    score:   number;
     summary: string;
-    checks: Record<string, boolean>;
+    checks:  Array<{ type: string; passed: boolean; output?: string }>;
   };
+  error?: string;
 }
 
+// ── Bridge ────────────────────────────────────────────────────────────────────
+
 class VerificationBridge {
-  async verify(input: VerifyInput): Promise<VerifyResult> {
-    const { checks, timeoutMs = 30_000 } = input;
-    const results: Record<string, boolean> = {};
+  async verify(req: VerificationRequest): Promise<VerificationResult> {
+    const { runId, projectId, checks, port, timeoutMs = 30_000 } = req;
 
-    for (const check of checks) {
-      try {
-        results[check] = await this.runCheck(check, timeoutMs);
-      } catch {
-        results[check] = false;
-      }
-    }
+    bus.emit('agent.event', {
+      runId,
+      message: `[verification-bridge] Dispatching ${checks.length} check(s) for run ${runId}`,
+    } as never);
 
-    const passed = Object.values(results).filter(Boolean).length;
-    const total  = checks.length;
-    const success = passed === total;
+    // Orchestration-only: emit event for downstream verifier tools to handle.
+    // Actual verification is performed by the tool layer, not here.
+    return new Promise<VerificationResult>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`[verification-bridge] Timeout after ${timeoutMs}ms for run=${runId}`));
+      }, timeoutMs);
 
-    return {
-      success,
-      data: {
-        score:   total > 0 ? Math.round((passed / total) * 100) : 100,
-        summary: success ? `All ${total} checks passed` : `${total - passed}/${total} checks failed`,
-        checks:  results,
-      },
-    };
-  }
-
-  private async runCheck(check: VerificationCheck, _timeoutMs: number): Promise<boolean> {
-    switch (check) {
-      case 'runtime_healthy':
-        return true;
-      case 'build_passes':
-      case 'types_pass':
-      case 'tests_pass':
-      case 'lint_passes':
-        return true;
-      default:
-        return false;
-    }
+      // Emit verification request — a registered tool handler resolves this.
+      bus.emit('dag.verify.requested', {
+        runId,
+        projectId,
+        checks,
+        port,
+        timeoutMs,
+        resolve: (result: VerificationResult) => {
+          clearTimeout(timer);
+          resolve(result);
+        },
+        reject: (err: Error) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      } as never);
+    });
   }
 }
 

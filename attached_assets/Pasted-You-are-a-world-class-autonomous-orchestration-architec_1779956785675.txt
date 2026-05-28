@@ -1,0 +1,365 @@
+You are a world-class autonomous orchestration architect, runtime coordination engineer, and TypeScript systems specialist.
+
+Your task is to implement a production-grade:
+
+server/orchestration/
+
+runtime orchestration system for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The orchestration layer must ONLY coordinate agents, workflows, and execution lifecycle.
+
+NO actual execution logic is allowed inside this layer.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Orchestration coordinates only
+2. Agents orchestrate workflows
+3. Tools execute actual work
+4. No hidden tool implementations
+5. No direct filesystem execution
+6. No direct terminal execution
+7. No direct browser execution
+8. No direct verification execution
+9. No direct runtime execution
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- centralized dispatcher
+- downstream agents/tools
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- npm commands
+- direct API execution
+- direct shell execution
+- direct tool implementations
+- direct runtime mutation
+
+==================================================
+ORCHESTRATION RESPONSIBILITY
+
+The orchestration layer should ONLY:
+
+- coordinate agents
+- orchestrate workflows
+- manage execution lifecycle
+- route tasks/phases
+- coordinate execution order
+- manage retries/escalation
+- validate orchestration state
+- monitor orchestration runtime
+- aggregate execution results
+- collect telemetry
+- emit orchestration events
+- communicate with centralized dispatcher
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/orchestration/
+
+├── orchestrator.ts
+├── index.ts
+│
+├── core/
+│   ├── orchestration-context.ts
+│   ├── orchestration-session.ts
+│   └── orchestration-state.ts
+│
+├── execution/
+│   ├── orchestration-loop.ts
+│   ├── workflow-runner.ts
+│   ├── phase-runner.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── agent-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── orchestration-routing.ts
+│
+├── planning/
+│   ├── workflow-planner.ts
+│   ├── phase-planner.ts
+│   └── execution-plan-builder.ts
+│
+├── routing/
+│   ├── agent-routing.ts
+│   ├── task-routing.ts
+│   └── workflow-routing.ts
+│
+├── lifecycle/
+│   ├── lifecycle-manager.ts
+│   ├── escalation-manager.ts
+│   └── recovery-coordinator.ts
+│
+├── validation/
+│   ├── orchestration-validator.ts
+│   ├── workflow-validator.ts
+│   └── integrity-validator.ts
+│
+├── monitoring/
+│   ├── orchestration-monitor.ts
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── orchestration-logger.ts
+│   └── orchestration-metrics.ts
+│
+├── events/
+│   ├── orchestration-events.ts
+│   └── event-publisher.ts
+│
+├── types/
+│   └── orchestration.types.ts
+│
+└── utils/
+└── orchestration-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+orchestration-loop.ts
+→ MAIN orchestration runtime loop
+→ controls orchestration lifecycle
+→ controls retries/escalation
+→ controls workflow sequencing
+→ controls agent coordination
+
+workflow-runner.ts
+→ orchestrates workflow execution
+→ coordinates workflow phases
+
+phase-runner.ts
+→ executes orchestration phases
+→ coordinates phase lifecycle
+
+retry-manager.ts
+→ controls orchestration retries
+→ manages retry strategy
+
+agent-coordinator.ts
+→ coordinates downstream agents
+→ routes execution flow
+→ manages agent lifecycle
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+workflow-planner.ts
+→ builds workflow structure
+
+phase-planner.ts
+→ creates execution phases
+
+execution-plan-builder.ts
+→ builds execution graph/order
+
+agent-routing.ts
+→ routes agents dynamically
+
+task-routing.ts
+→ routes task ownership
+
+workflow-routing.ts
+→ routes workflow execution
+
+lifecycle-manager.ts
+→ controls orchestration lifecycle
+
+escalation-manager.ts
+→ manages escalations/recovery
+
+recovery-coordinator.ts
+→ coordinates recovery flow
+
+==================================================
+ORCHESTRATION FLOW
+
+Orchestrator
+↓
+Orchestration Loop
+↓
+Workflow Runner
+↓
+Phase Runner
+↓
+Agent Coordinator
+↓
+Dispatcher Client
+↓
+Central Dispatcher
+↓
+Agents
+↓
+Tools
+↓
+Execution Result
+↓
+Retry / Continue / Escalate / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"route_workflow",
+payload
+)
+
+WRONG:
+
+spawn("npm run build")
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated orchestration systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+orchestration-validator.ts
+must validate:
+
+- malformed orchestration requests
+- invalid orchestration state
+- missing runtime context
+
+workflow-validator.ts
+must validate:
+
+- invalid workflow structure
+- broken phase order
+- malformed execution plans
+
+integrity-validator.ts
+must validate:
+
+- corrupted orchestration flow
+- invalid lifecycle transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+orchestration-monitor.ts
+must track:
+
+- active orchestration state
+- workflow progress
+- stuck orchestration loops
+
+failure-monitor.ts
+must track:
+
+- orchestration failures
+- retry attempts
+- repeated failures
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+orchestration-logger.ts
+must log:
+
+- orchestration lifecycle
+- retries
+- failures
+- escalations
+
+orchestration-metrics.ts
+must track:
+
+- orchestration count
+- orchestration success rate
+- retry metrics
+- execution duration
+
+==================================================
+EVENT REQUIREMENTS
+
+orchestration-events.ts
+must define:
+
+- workflow.started
+- workflow.completed
+- workflow.failed
+- phase.started
+- phase.completed
+- escalation.triggered
+
+event-publisher.ts
+must coordinate:
+
+- runtime event publishing
+- orchestration lifecycle events
+- telemetry event propagation
+
+==================================================
+FINAL GOAL
+
+The final orchestration system must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level orchestration runtime
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden execution
+- direct runtime logic
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Orchestrator → workflow coordination
+Agents → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution

@@ -1,36 +1,73 @@
-export interface OrchestrationContextData {
-  runId: string;
-  projectId: string;
-  goal: string;
-  metadata: Record<string, unknown>;
-  createdAt: Date;
+/**
+ * server/orchestration/core/orchestration-context.ts
+ *
+ * Builds and manages the immutable orchestration context passed throughout
+ * the orchestration lifecycle. No side effects, no tool execution.
+ */
+
+import type { OrchestrationContext, OrchestrationRequest } from '../types/orchestration.types.ts';
+import { newSessionId, now } from '../utils/orchestration-utils.ts';
+
+// ── Builder ───────────────────────────────────────────────────────────────────
+
+export function buildOrchestrationContext(
+  req:    OrchestrationRequest,
+  signal?: AbortSignal,
+): OrchestrationContext {
+  return Object.freeze({
+    orchestrationId: req.orchestrationId,
+    runId:           req.runId,
+    projectId:       req.projectId,
+    sandboxRoot:     req.sandboxRoot,
+    sessionId:       newSessionId(),
+    startedAt:       now(),
+    signal,
+  });
 }
 
-const contexts = new Map<string, OrchestrationContextData>();
+// ── Tool execution context bridge ─────────────────────────────────────────────
+// Converts an OrchestrationContext into the shape expected by the tool dispatcher.
 
-export function createContext(runId: string, projectId: string, goal: string, metadata: Record<string, unknown> = {}): OrchestrationContextData {
-  const ctx: OrchestrationContextData = { runId, projectId, goal, metadata, createdAt: new Date() };
-  contexts.set(runId, ctx);
-  return ctx;
+export function toToolContext(
+  ctx:  OrchestrationContext,
+  meta: Record<string, unknown> = {},
+): {
+  runId:       string;
+  projectId:   string;
+  sandboxRoot: string;
+  signal?:     AbortSignal;
+  meta:        Record<string, unknown>;
+} {
+  return {
+    runId:       ctx.runId,
+    projectId:   ctx.projectId,
+    sandboxRoot: ctx.sandboxRoot,
+    signal:      ctx.signal,
+    meta:        { orchestrationId: ctx.orchestrationId, sessionId: ctx.sessionId, ...meta },
+  };
 }
 
-export function getContext(runId: string): OrchestrationContextData | undefined {
-  return contexts.get(runId);
+// ── Per-run context store ─────────────────────────────────────────────────────
+
+const _contextStore = new Map<string, OrchestrationContext>();
+
+export function storeContext(runId: string, ctx: OrchestrationContext): void {
+  _contextStore.set(runId, ctx);
 }
 
-export function updateContextMeta(runId: string, key: string, value: unknown): void {
-  const ctx = contexts.get(runId);
-  if (ctx) ctx.metadata[key] = value;
+export function getContext(runId: string): OrchestrationContext | undefined {
+  return _contextStore.get(runId);
 }
 
 export function clearContext(runId: string): void {
-  contexts.delete(runId);
+  _contextStore.delete(runId);
 }
 
-export function hasContext(runId: string): boolean {
-  return contexts.has(runId);
-}
+// ── Context validation guard ──────────────────────────────────────────────────
 
-export function getAllContextIds(): string[] {
-  return Array.from(contexts.keys());
+export function assertContext(ctx: OrchestrationContext | null | undefined): asserts ctx is OrchestrationContext {
+  if (!ctx) throw new Error('[orchestration-context] Context is null or undefined');
+  if (!ctx.orchestrationId) throw new Error('[orchestration-context] orchestrationId is missing');
+  if (!ctx.runId)           throw new Error('[orchestration-context] runId is missing');
+  if (!ctx.sessionId)       throw new Error('[orchestration-context] sessionId is missing');
 }

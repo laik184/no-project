@@ -1,34 +1,25 @@
-export interface Checkpoint {
-  runId: string;
-  phase: string;
-  snapshot: Record<string, unknown>;
-  createdAt: Date;
+/**
+ * server/orchestration/core/orchestration-replay.ts
+ *
+ * Orchestration replay: stores per-run checkpoints for replay consumers
+ * and provides cleanup helpers for the memory lifecycle manager.
+ * Orchestration-only — no tool execution, no filesystem access.
+ */
+
+// ── Per-run checkpoint store ───────────────────────────────────────────────────
+
+const _store = new Map<string, unknown[]>();
+
+export function storeCheckpoint(runId: string, checkpoint: unknown): void {
+  const list = _store.get(runId) ?? [];
+  list.push(checkpoint);
+  _store.set(runId, list);
 }
 
-const checkpoints = new Map<string, Checkpoint[]>();
-
-export function saveCheckpoint(runId: string, phase: string, snapshot: Record<string, unknown>): void {
-  if (!checkpoints.has(runId)) checkpoints.set(runId, []);
-  checkpoints.get(runId)!.push({ runId, phase, snapshot, createdAt: new Date() });
-}
-
-export function getCheckpoints(runId: string): Checkpoint[] {
-  return checkpoints.get(runId) ?? [];
-}
-
-export function getLatestCheckpoint(runId: string): Checkpoint | undefined {
-  const list = checkpoints.get(runId);
-  return list?.at(-1);
+export function getCheckpoints(runId: string): unknown[] {
+  return _store.get(runId) ?? [];
 }
 
 export function clearCheckpoints(runId: string): void {
-  checkpoints.delete(runId);
-}
-
-export function hasCheckpoint(runId: string, phase: string): boolean {
-  return (checkpoints.get(runId) ?? []).some((c) => c.phase === phase);
-}
-
-export function replayFromCheckpoint(runId: string, phase: string): Checkpoint | undefined {
-  return (checkpoints.get(runId) ?? []).find((c) => c.phase === phase);
+  _store.delete(runId);
 }

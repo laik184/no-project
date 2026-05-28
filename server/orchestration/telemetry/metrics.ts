@@ -1,132 +1,96 @@
-interface MetricEntry {
-  name: string;
-  value: number;
-  unit: string;
-  timestamp: Date;
+/**
+ * server/orchestration/telemetry/metrics.ts
+ *
+ * Lightweight in-process metrics surface: counters, spans, durations.
+ * In production this can be wired to an OTLP exporter; here it logs to console
+ * and accumulates in-memory for observability endpoints.
+ * Orchestration-only — no tool execution, no filesystem access.
+ */
+
+// ── In-memory accumulator (singleton, reset on process restart) ────────────────
+
+const _counters  = new Map<string, number>();
+const _durations = new Map<string, number[]>();
+const _spans     = new Map<string, { start: number; events: string[] }>();
+
+// ── Counter ───────────────────────────────────────────────────────────────────
+
+export function incrementCounter(
+  name:   string,
+  labels: Record<string, string> = {},
+  by = 1,
+): void {
+  const key = buildKey(name, labels);
+  _counters.set(key, (_counters.get(key) ?? 0) + by);
 }
 
-interface MetricSummary {
-  count: number;
-  total: number;
-  min: number;
-  max: number;
-  avg: number;
-  unit: string;
+export function getCounter(name: string, labels: Record<string, string> = {}): number {
+  return _counters.get(buildKey(name, labels)) ?? 0;
 }
 
-const counters = new Map<string, Map<string, number>>();
-const timings = new Map<string, Map<string, number[]>>();
-const rawEntries = new Map<string, MetricEntry[]>();
+// ── Duration / histogram ──────────────────────────────────────────────────────
 
-function runCounters(runId: string): Map<string, number> {
-  if (!counters.has(runId)) counters.set(runId, new Map());
-  return counters.get(runId)!;
+export function recordDuration(
+  name:     string,
+  ms:       number,
+  labels:   Record<string, string> = {},
+): void {
+  const key  = buildKey(name, labels);
+  const list = _durations.get(key) ?? [];
+  list.push(ms);
+  _durations.set(key, list);
 }
 
-function runTimings(runId: string): Map<string, number[]> {
-  if (!timings.has(runId)) timings.set(runId, new Map());
-  return timings.get(runId)!;
+// ── Span tracing ──────────────────────────────────────────────────────────────
+
+export function recordSpanStart(spanId: string): void {
+  _spans.set(spanId, { start: Date.now(), events: [] });
 }
 
-function runEntries(runId: string): MetricEntry[] {
-  if (!rawEntries.has(runId)) rawEntries.set(runId, []);
-  return rawEntries.get(runId)!;
+export function addSpanEvent(spanId: string, event: string): void {
+  _spans.get(spanId)?.events.push(event);
 }
 
-export const metricsCollector = {
-  increment(runId: string, metric: string, by = 1): void {
-    const m = runCounters(runId);
-    m.set(metric, (m.get(metric) ?? 0) + by);
-  },
-
-  timing(runId: string, metric: string, ms: number): void {
-    const m = runTimings(runId);
-    if (!m.has(metric)) m.set(metric, []);
-    m.get(metric)!.push(ms);
-  },
-
-  record(runId: string, metric: string, value: number, unit = 'ms'): void {
-    runEntries(runId).push({ name: metric, value, unit, timestamp: new Date() });
-  },
-
-  getCounter(runId: string, metric: string): number {
-    return runCounters(runId).get(metric) ?? 0;
-  },
-
-  getTimingSummary(runId: string, metric: string): MetricSummary | null {
-    const values = runTimings(runId).get(metric);
-    if (!values || values.length === 0) return null;
-    const total = values.reduce((a, b) => a + b, 0);
-    return {
-      count: values.length,
-      total,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      avg: total / values.length,
-      unit: 'ms',
-    };
-  },
-
-  getAllCounters(runId: string): Record<string, number> {
-    return Object.fromEntries(runCounters(runId).entries());
-  },
-
-  getSnapshot(runId: string): {
-    counters: Record<string, number>;
-    timings: Record<string, MetricSummary | null>;
-  } {
-    const c = Object.fromEntries(runCounters(runId).entries());
-    const t: Record<string, MetricSummary | null> = {};
-    for (const key of runTimings(runId).keys()) {
-      t[key] = metricsCollector.getTimingSummary(runId, key);
-    }
-    return { counters: c, timings: t };
-  },
-
-  clearRun(runId: string): void {
-    counters.delete(runId);
-    timings.delete(runId);
-    rawEntries.delete(runId);
-  },
-};
-
-// Global (non-run-specific) counters — used by cross-system modules (quantum, engine, etc.)
-const globalCounters = new Map<string, number>();
-const globalDurations = new Map<string, number[]>();
-
-export function incrementCounter(metric: string, labelsOrBy: Record<string, unknown> | number = 1): void {
-  const by = typeof labelsOrBy === 'number' ? labelsOrBy : 1;
-  globalCounters.set(metric, (globalCounters.get(metric) ?? 0) + by);
+export function recordSpanEnd(spanId: string): number | undefined {
+  const span = _spans.get(spanId);
+  if (!span) return undefined;
+  const durationMs = Date.now() - span.start;
+  _spans.delete(spanId);
+  return durationMs;
 }
 
-export function recordDuration(metric: string, ms: number): void {
-  if (!globalDurations.has(metric)) globalDurations.set(metric, []);
-  globalDurations.get(metric)!.push(ms);
-}
+// ── metricsCollector facade (per-run) ─────────────────────────────────────────
 
-export function getGlobalCounters(): Record<string, number> {
-  return Object.fromEntries(globalCounters.entries());
-}
+class MetricsCollector {
+  timing(runId: string, name: string, ms: number): void {
+    recordDuration(`${name}`, ms, { runId });
+  }
 
-// Span-based trace stubs — used by quantum aggregation modules
-const spans = new Map<string, { metric: string; start: number }>();
-let _spanSeq = 0;
-
-export function recordSpanStart(runId: string, metric: string, _meta?: Record<string, unknown>): string {
-  const spanId = `${runId}:${metric}:${++_spanSeq}`;
-  spans.set(spanId, { metric, start: Date.now() });
-  return spanId;
-}
-
-export function recordSpanEnd(spanId: string, _status = 'ok'): void {
-  const span = spans.get(spanId);
-  if (span) {
-    recordDuration(span.metric, Date.now() - span.start);
-    spans.delete(spanId);
+  increment(runId: string, name: string, count = 1): void {
+    incrementCounter(name, { runId }, count);
   }
 }
 
-export function addSpanEvent(spanId: string, _event: string, _meta?: Record<string, unknown>): void {
-  // Lightweight no-op — span events are informational only
-  void spanId;
+export const metricsCollector = new MetricsCollector();
+
+// ── Snapshot ──────────────────────────────────────────────────────────────────
+
+export function metricsSnapshot(): {
+  counters:  Record<string, number>;
+  durations: Record<string, number[]>;
+} {
+  return {
+    counters:  Object.fromEntries(_counters),
+    durations: Object.fromEntries(_durations),
+  };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function buildKey(name: string, labels: Record<string, string>): string {
+  const parts = Object.entries(labels)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join(',');
+  return parts ? `${name}{${parts}}` : name;
 }

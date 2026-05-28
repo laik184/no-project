@@ -1,40 +1,47 @@
+/**
+ * server/orchestration/execution/execution-result-registry.ts
+ *
+ * Stores per-run execution statistics for observability and post-run analysis.
+ * Orchestration-only — no tool execution, no filesystem access.
+ */
+
+// ── Stats shape ───────────────────────────────────────────────────────────────
+
 export interface ExecutionStats {
-  runId: string;
-  projectId: number;
-  goal: string;
-  success: boolean;
-  totalSteps: number;
-  stopReason: string;
-  summary: string;
+  runId:               string;
+  projectId:           number;
+  goal:                string;
+  success:             boolean;
+  totalSteps:          number;
+  stopReason?:         string;
+  summary?:            string;
   verificationRetries: number;
-  totalToolCalls: number;
-  unknownToolCalls: number;
-  failedToolCalls: number;
-  messages: unknown[];
-  error?: string;
+  totalToolCalls:      number;
+  unknownToolCalls:    number;
+  failedToolCalls:     number;
+  messages?:           unknown[];
+  error?:              string | Error | unknown;
+  recordedAt:          number;
 }
 
-const registry = new Map<string, ExecutionStats>();
+// ── Registry ──────────────────────────────────────────────────────────────────
 
-export function storeExecutionStats(stats: ExecutionStats): void {
-  registry.set(stats.runId, stats);
+const _registry = new Map<string, ExecutionStats>();
+
+export function storeExecutionStats(
+  stats: Omit<ExecutionStats, 'recordedAt'>,
+): void {
+  _registry.set(stats.runId, { ...stats, recordedAt: Date.now() });
 }
 
 export function getExecutionStats(runId: string): ExecutionStats | undefined {
-  return registry.get(runId);
+  return _registry.get(runId);
 }
 
-export function getRecentRuns(limit = 20): ExecutionStats[] {
-  const all = Array.from(registry.values());
-  return all.slice(-limit);
+export function clearExecutionStats(runId: string): void {
+  _registry.delete(runId);
 }
 
-export function getSuccessRate(): number {
-  const all = Array.from(registry.values());
-  if (all.length === 0) return 0;
-  return all.filter((s) => s.success).length / all.length;
-}
-
-export function clearRun(runId: string): void {
-  registry.delete(runId);
+export function allStats(): ExecutionStats[] {
+  return Array.from(_registry.values());
 }

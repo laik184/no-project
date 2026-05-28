@@ -1,129 +1,57 @@
-import { EventEmitter } from 'events';
-import type { OrchestrationStatus, OrchestrationPhase } from '../events/event-types.ts';
-import { runLogger } from '../telemetry/run-logger.ts';
-import { elapsed, formatDuration } from '../utils/orchestration-helpers.ts';
+/**
+ * server/orchestration/core/run-manager.ts
+ *
+ * Central per-run state registry used by orchestration and cleanup consumers.
+ * Orchestration-only — no tool execution, no filesystem access.
+ */
+
+// ── Per-run metadata ──────────────────────────────────────────────────────────
 
 export interface RunRecord {
-  runId: string;
-  status: OrchestrationStatus;
-  phase: OrchestrationPhase | null;
-  startedAt: Date | null;
-  endedAt: Date | null;
-  durationMs: number | null;
-  error: string | null;
-  phaseHistory: Array<{ phase: OrchestrationPhase; enteredAt: Date }>;
-  metadata: Record<string, unknown>;
+  runId:     string;
+  projectId: number;
+  startedAt: number;
+  status:    'active' | 'complete' | 'failed' | 'cancelled';
 }
 
-const VALID_TRANSITIONS: Record<OrchestrationStatus, OrchestrationStatus[]> = {
-  pending:   ['running', 'cancelled'],
-  running:   ['completed', 'failed', 'cancelled'],
-  completed: [],
-  failed:    [],
-  cancelled: [],
-};
+// ── Manager ───────────────────────────────────────────────────────────────────
 
-const TERMINAL: Set<OrchestrationStatus> = new Set(['completed', 'failed', 'cancelled']);
+class RunManager {
+  private _runs = new Map<string, RunRecord>();
 
-class RunManager extends EventEmitter {
-  private runs = new Map<string, RunRecord>();
-
-  create(runId: string, metadata: Record<string, unknown> = {}): RunRecord {
-    const run: RunRecord = {
+  register(runId: string, projectId: number): void {
+    this._runs.set(runId, {
       runId,
-      status: 'pending',
-      phase: null,
-      startedAt: null,
-      endedAt: null,
-      durationMs: null,
-      error: null,
-      phaseHistory: [],
-      metadata,
-    };
-    this.runs.set(runId, run);
-    this.emit('run.created', { ...run });
-    return { ...run };
-  }
-
-  transition(runId: string, status: OrchestrationStatus): RunRecord {
-    const run = this.runs.get(runId);
-    if (!run) throw new Error(`[run-manager] Unknown run: ${runId}`);
-
-    const allowed = VALID_TRANSITIONS[run.status];
-    if (!allowed.includes(status)) {
-      throw new Error(`[run-manager] Invalid transition ${run.status} → ${status} for run ${runId}`);
-    }
-
-    run.status = status;
-
-    if (status === 'running') {
-      run.startedAt ??= new Date();
-    }
-
-    if (TERMINAL.has(status)) {
-      run.endedAt = new Date();
-      run.durationMs = run.startedAt ? elapsed(run.startedAt) : null;
-      const dur = run.durationMs !== null ? formatDuration(run.durationMs) : '?';
-      runLogger.log(runId, status === 'completed' ? 'info' : 'warn', `[run-manager] Run ${status} in ${dur}`);
-    }
-
-    this.emit('run.transition', { runId, status });
-    return { ...run };
-  }
-
-  setPhase(runId: string, phase: OrchestrationPhase): void {
-    const run = this.runs.get(runId);
-    if (!run) throw new Error(`[run-manager] Unknown run: ${runId}`);
-    run.phase = phase;
-    run.phaseHistory.push({ phase, enteredAt: new Date() });
-    this.emit('run.phase', { runId, phase });
-  }
-
-  setError(runId: string, error: string): void {
-    const run = this.runs.get(runId);
-    if (run) run.error = error;
-  }
-
-  setMeta(runId: string, key: string, value: unknown): void {
-    const run = this.runs.get(runId);
-    if (run) run.metadata[key] = value;
+      projectId,
+      startedAt: Date.now(),
+      status:    'active',
+    });
   }
 
   get(runId: string): RunRecord | undefined {
-    const r = this.runs.get(runId);
-    return r ? { ...r } : undefined;
+    return this._runs.get(runId);
   }
 
-  snapshot(runId: string): RunRecord {
-    const r = this.runs.get(runId);
-    if (!r) throw new Error(`[run-manager] No record for run: ${runId}`);
-    return JSON.parse(JSON.stringify(r)) as RunRecord;
-  }
-
-  isTerminal(runId: string): boolean {
-    const r = this.runs.get(runId);
-    return r ? TERMINAL.has(r.status) : false;
-  }
-
-  isRunning(runId: string): boolean {
-    return this.runs.get(runId)?.status === 'running';
-  }
-
-  statusOf(runId: string): OrchestrationStatus {
-    return this.runs.get(runId)?.status ?? 'pending';
-  }
-
-  getActiveRuns(): string[] {
-    return Array.from(this.runs.entries())
-      .filter(([, r]) => !TERMINAL.has(r.status))
-      .map(([id]) => id);
+  setStatus(runId: string, status: RunRecord['status']): void {
+    const rec = this._runs.get(runId);
+    if (rec) rec.status = status;
   }
 
   clear(runId: string): void {
-    this.runs.delete(runId);
-    runLogger.log(runId, 'info', '[run-manager] Run record cleared');
+    this._runs.delete(runId);
+  }
+
+  activeRunIds(): string[] {
+    const ids: string[] = [];
+    for (const [id, rec] of this._runs) {
+      if (rec.status === 'active') ids.push(id);
+    }
+    return ids;
+  }
+
+  size(): number {
+    return this._runs.size;
   }
 }
 
 export const runManager = new RunManager();
-runManager.setMaxListeners(50);
