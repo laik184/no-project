@@ -82,3 +82,84 @@ export function assertRuntimeStep(rs: RuntimeStep): void {
   const r = validateRuntimeStep(rs);
   if (!r.ok) throw new IntegrityValidationError(r.reason!);
 }
+
+// ── Recovery / rollback / escalation transition validation ────────────────────
+
+export type RecoveryTransitionKind = 'recovery' | 'rollback' | 'escalation' | 'workflow';
+
+export interface RecoveryIntegrityResult {
+  ok:      boolean;
+  reason?: string;
+  kind:    RecoveryTransitionKind;
+}
+
+/**
+ * Validate that a recovery transition is semantically safe.
+ * Recovery is only valid when a step is in a failed or retrying state.
+ */
+export function validateRecoveryTransition(
+  stepId:     string,
+  stepStatus: ExecutionStepStatus,
+  kind:       RecoveryTransitionKind,
+): RecoveryIntegrityResult {
+  if (kind === 'recovery') {
+    if (!['failed', 'retrying'].includes(stepStatus)) {
+      return {
+        ok:     false,
+        reason: `Recovery invalid for step ${stepId} in status "${stepStatus}" — requires failed|retrying`,
+        kind,
+      };
+    }
+  }
+
+  if (kind === 'rollback') {
+    if (stepStatus === 'completed') {
+      return {
+        ok:     false,
+        reason: `Rollback invalid for step ${stepId} — step is already completed`,
+        kind,
+      };
+    }
+  }
+
+  if (kind === 'escalation') {
+    if (stepStatus === 'completed' || stepStatus === 'skipped') {
+      return {
+        ok:     false,
+        reason: `Escalation invalid for step ${stepId} in terminal status "${stepStatus}"`,
+        kind,
+      };
+    }
+  }
+
+  return { ok: true, kind };
+}
+
+/**
+ * Validate workflow integrity: all required steps must be present
+ * and in a consistent state before the workflow can be marked complete.
+ */
+export function validateWorkflowIntegrity(steps: RuntimeStep[]): IntegrityResult {
+  if (steps.length === 0) return { ok: false, reason: 'Workflow has no steps' };
+
+  const running  = steps.filter((s) => s.status === 'running');
+  const retrying = steps.filter((s) => s.status === 'retrying');
+
+  if (running.length > 0 || retrying.length > 0) {
+    return {
+      ok:     false,
+      reason: `Workflow integrity check failed: ${running.length} running, ${retrying.length} retrying step(s) still active`,
+    };
+  }
+
+  const failedRequired = steps.filter((s) => s.status === 'failed');
+  if (failedRequired.length > 0) {
+    const ids = failedRequired.map((s) => s.step.stepId).join(', ');
+    return {
+      ok:     false,
+      reason: `Workflow has ${failedRequired.length} failed step(s): ${ids}`,
+    };
+  }
+
+  return { ok: true };
+}
