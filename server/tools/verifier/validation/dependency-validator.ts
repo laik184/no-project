@@ -1,10 +1,8 @@
-import {
-  validateDependencies,
-} from '../../../agents/verifier/validation/dependency-validator.ts';
-import type { DependencyCheckResult } from '../shared/verifier-types.ts';
-import type { ToolDefinition }         from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail }        from '../shared/verifier-result.ts';
-import path                            from 'path';
+import { validateDependencies }          from '../lib/dependency-validator.ts';
+import type { DependencyCheckResult }    from '../shared/verifier-types.ts';
+import type { ToolDefinition }           from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }          from '../shared/verifier-result.ts';
+import { resolve }                       from 'path';
 
 export { validateDependencies };
 
@@ -14,8 +12,7 @@ export async function checkAllDependencies(
   projectId: string,
   _packages?: string[],
 ): Promise<DependencyCheckResult[]> {
-  const sandboxRoot = path.resolve(SANDBOX_ROOT, projectId);
-  return validateDependencies(sandboxRoot);
+  return validateDependencies(resolve(SANDBOX_ROOT, projectId));
 }
 
 export const dependencyValidatorTool: ToolDefinition = {
@@ -32,13 +29,10 @@ export const dependencyValidatorTool: ToolDefinition = {
   handler:     async (input: Record<string, unknown>) => {
     const start   = Date.now();
     const results = await checkAllDependencies(input.projectId as string);
-    const failed  = results.filter(r => !r.valid);
+    const failed  = results.filter((r) => !r.valid);
     const ms      = Date.now() - start;
     return failed.length === 0
       ? toToolOk({ results, allValid: true, count: results.length }, ms)
-      : toToolFail(
-          `Missing: ${failed.map(r => r.packageName).join(', ')}`,
-          ms,
-        );
+      : toToolFail(`Missing: ${failed.map((r) => r.packageName).join(', ')}`, ms);
   },
 };

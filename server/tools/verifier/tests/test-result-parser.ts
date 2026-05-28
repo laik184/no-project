@@ -2,7 +2,7 @@ import {
   parseTestOutput,
   isTestRunPassed,
   type ParsedTestResults,
-} from '../../../agents/verifier/testing/test-result-parser.ts';
+} from '../lib/test-result-parser.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 import { toToolOk }            from '../shared/verifier-result.ts';
 

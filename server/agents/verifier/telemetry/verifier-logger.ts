@@ -1,62 +1,46 @@
 /**
- * telemetry/verifier-logger.ts
- * Structured logger for the verifier orchestration agent.
- * Wraps the shared runLogger.
+ * server/agents/verifier/telemetry/verifier-logger.ts
+ * Structured logging for the verifier agent orchestration layer.
  */
 
-import { runLogger } from '../../../orchestration/telemetry/run-logger.ts';
-
-const PREFIX = '[verifier]';
+import type { VerificationPhase } from '../types/verifier.types.ts';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-function log(
-  runId:   string,
-  level:   LogLevel,
-  message: string,
-  meta?:   Record<string, unknown>,
-): void {
-  runLogger.log(runId, level, `${PREFIX} ${message}`, meta);
+function log(level: LogLevel, runId: string, msg: string, meta?: Record<string, unknown>): void {
+  const prefix = `[verifier-agent:${runId.slice(-8)}]`;
+  const line   = meta ? `${prefix} ${msg} ${JSON.stringify(meta)}` : `${prefix} ${msg}`;
+  if (level === 'error') console.error(line);
+  else if (level === 'warn') console.warn(line);
+  else console.log(line);
 }
 
 export const verifierLogger = {
-  debug(runId: string, message: string, meta?: Record<string, unknown>): void {
-    log(runId, 'debug', message, meta);
+  info(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    log('info', runId, msg, meta);
   },
-  info(runId: string, message: string, meta?: Record<string, unknown>): void {
-    log(runId, 'info', message, meta);
+
+  warn(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    log('warn', runId, msg, meta);
   },
-  warn(runId: string, message: string, meta?: Record<string, unknown>): void {
-    log(runId, 'warn', message, meta);
+
+  error(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    log('error', runId, msg, meta);
   },
-  error(runId: string, message: string, meta?: Record<string, unknown>): void {
-    log(runId, 'error', message, meta);
+
+  phase(runId: string, phase: VerificationPhase, status: 'start' | 'pass' | 'fail' | 'skip', meta?: Record<string, unknown>): void {
+    log('info', runId, `Phase ${phase} → ${status}`, meta);
   },
-  phase(
-    runId:  string,
-    phase:  string,
-    event:  'start' | 'end' | 'fail' | 'skip',
-    meta?:  Record<string, unknown>,
-  ): void {
-    const level: LogLevel = event === 'fail' ? 'error' : 'info';
-    log(runId, level, `phase [${phase}] ${event}`, meta);
+
+  step(runId: string, stepId: string, status: 'start' | 'complete' | 'fail' | 'retry', meta?: Record<string, unknown>): void {
+    log('info', runId, `Step [${stepId}] → ${status}`, meta);
   },
-  workflow(
-    runId:    string,
-    workflow: string,
-    event:    'start' | 'end' | 'fail',
-    meta?:    Record<string, unknown>,
-  ): void {
-    const level: LogLevel = event === 'fail' ? 'error' : 'info';
-    log(runId, level, `workflow [${workflow}] ${event}`, meta);
+
+  retry(runId: string, stepId: string, attempt: number, error: string): void {
+    log('warn', runId, `Retry step [${stepId}] attempt=${attempt}`, { error });
   },
-  step(
-    runId:    string,
-    toolName: string,
-    event:    'dispatch' | 'complete' | 'fail' | 'retry',
-    meta?:    Record<string, unknown>,
-  ): void {
-    const level: LogLevel = event === 'fail' ? 'error' : 'debug';
-    log(runId, level, `step [${toolName}] ${event}`, meta);
+
+  lifecycle(runId: string, event: string, meta?: Record<string, unknown>): void {
+    log('info', runId, `Lifecycle: ${event}`, meta);
   },
 };

@@ -1,52 +1,47 @@
 /**
- * diagnostics/failure-analyzer.ts
- * Orchestrates failure analysis by dispatching diagnostic tools.
+ * server/agents/verifier/diagnostics/failure-analyzer.ts
+ * Analyzes patterns in verification failures to surface actionable insights.
  */
 
-import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
-import type { PhaseResult } from '../types/verifier.types.ts';
-import type { ParsedError } from '../types/diagnostics.types.ts';
-import { analyzeErrors, detectRootCause, buildDiagnosticsReport } from '../coordination/tool-coordinator.ts';
-import { resultError } from '../coordination/dispatcher-client.ts';
-import { classifyAll } from './error-classifier.ts';
-import { buildFailureSummary } from '../utils/diagnostics-utils.ts';
-import { verifierLogger } from '../telemetry/verifier-logger.ts';
+import type { VerificationStepResult } from '../types/verifier.types.ts';
+import { failureMonitor }               from '../monitoring/failure-monitor.ts';
 
 export interface FailureAnalysis {
-  classified:  ReturnType<typeof classifyAll>;
-  summary:     ReturnType<typeof buildFailureSummary>;
-  toolReport?: unknown;
-  rawErrors:   string[];
+  runId:            string;
+  totalFailures:    number;
+  criticalPhases:   string[];
+  repeatFailures:   Array<{ stepId: string; count: number }>;
+  hasCrashLoop:     boolean;
+  recommendation:   string;
 }
 
-export async function analyzePhaseFailures(
-  context:      ToolExecutionContext,
-  failedPhases: PhaseResult[],
-  rawLogs = '',
-): Promise<FailureAnalysis> {
-  const rawErrors  = failedPhases.flatMap((p) => p.errors);
-  const classified = classifyAll(rawErrors);
-  const parsed: ParsedError[] = classified.map((c) => ({
-    message: c.message, severity: c.severity, category: c.category, raw: c.message,
-  }));
-  const summary = buildFailureSummary(parsed);
+export function analyzeFailures(runId: string, results: VerificationStepResult[]): FailureAnalysis {
+  const failed        = results.filter((r) => !r.success);
+  const criticalPhases = [...new Set(failed.map((r) => r.phase))];
+  const hasCrashLoop  = failureMonitor.isCrashLooping(runId);
+  const retryCount    = failureMonitor.retryCount(runId);
 
-  let toolReport: unknown;
-
-  if (rawErrors.length > 0) {
-    const analyzeResult = await analyzeErrors(context, rawLogs || rawErrors.join('\n'));
-    if (analyzeResult.ok) {
-      const rootResult = await detectRootCause(context, rawErrors);
-      if (rootResult.ok) {
-        const reportResult = await buildDiagnosticsReport(context, rawErrors, rawLogs);
-        if (reportResult.ok) {
-          toolReport = (reportResult as { ok: true; data: unknown; durationMs: number }).data;
-        }
-      }
-    } else {
-      verifierLogger.warn(context.runId, 'Error analysis tool failed', { error: resultError(analyzeResult) });
-    }
+  const stepCounts    = new Map<string, number>();
+  for (const r of failed) {
+    stepCounts.set(r.stepId, (stepCounts.get(r.stepId) ?? 0) + 1);
   }
+  const repeatFailures = [...stepCounts.entries()]
+    .filter(([, c]) => c > 1)
+    .map(([stepId, count]) => ({ stepId, count }))
+    .sort((a, b) => b.count - a.count);
 
-  return { classified, summary, toolReport, rawErrors };
+  let recommendation = 'Review error output for each failed phase.';
+  if (hasCrashLoop)              recommendation = 'Crash loop detected — check for infinite retry or misconfigured tooling.';
+  else if (criticalPhases.includes('typecheck')) recommendation = 'Fix TypeScript errors first — they cascade to build failures.';
+  else if (criticalPhases.includes('build'))     recommendation = 'Fix build errors before running tests or runtime checks.';
+  else if (criticalPhases.includes('runtime'))   recommendation = 'Server health check failed — verify port config and startup command.';
+
+  return {
+    runId,
+    totalFailures:   failed.length,
+    criticalPhases,
+    repeatFailures,
+    hasCrashLoop,
+    recommendation,
+  };
 }

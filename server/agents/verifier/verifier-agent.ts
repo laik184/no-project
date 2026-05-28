@@ -1,88 +1,123 @@
 /**
- * verifier-agent.ts
- * Public-facing agent class for the Verifier orchestration agent.
+ * server/agents/verifier/verifier-agent.ts
  *
- * Contract:
- * - Accepts a VerificationInput
- * - Delegates ALL execution to verificationOrchestrator
- * - Zero direct fs, child_process, Playwright, or tsc calls
- * - Reports results back as VerificationResult
+ * ENTRY POINT for the verifier agent orchestration layer.
+ *
+ * Responsibilities:
+ *   - validate incoming VerifierInput
+ *   - build verifier execution context
+ *   - build verification steps from requested phases
+ *   - delegate to verification-runner
+ *   - return structured VerifierOutput
+ *
+ * Architecture: orchestration ONLY.
+ * No spawn. No exec. No shell. No fetch. No direct tool execution.
  */
 
-import type { VerificationInput, VerificationResult } from './types/verifier.types.ts';
-import { verificationOrchestrator } from './orchestration/verification-orchestrator.ts';
-import { verifierLogger }           from './telemetry/verifier-logger.ts';
-import { healthMonitor }            from './monitoring/health-monitor.ts';
-import { PHASE_ORDER }              from './utils/planning-utils.ts';
-import type { VerificationPhase }   from './types/verifier.types.ts';
+import type { VerifierInput, VerifierOutput, VerificationPhase } from './types/verifier.types.ts';
+import { buildVerifierContext }         from './core/verifier-context.ts';
+import { runVerifier }                  from './execution/verification-runner.ts';
+import { validateVerifierInput }        from './validation/verification-validator.ts';
+import { verifierLogger }               from './telemetry/verifier-logger.ts';
+import { verifierMetrics }              from './telemetry/verifier-metrics.ts';
+import { verifierHealthMonitor }        from './monitoring/health-monitor.ts';
+import { makeRunId, defaultSteps }      from './utils/verification-utils.ts';
 
-export type { VerificationInput, VerificationResult };
-export type { VerificationPhase };
+// ── Agent lifecycle ───────────────────────────────────────────────────────────
 
-export class VerifierAgent {
-  /** Run a full verification pass for a project. */
-  async verify(input: VerificationInput): Promise<VerificationResult> {
-    verifierLogger.info(input.runId, 'VerifierAgent.verify called', {
-      projectId:   input.projectId,
-      phases:      input.phases,
-      sandboxRoot: input.sandboxRoot,
-    });
+let _initialised = false;
 
-    return verificationOrchestrator.run(input);
-  }
-
-  /**
-   * Run a quick sanity-check verification (typecheck + build only).
-   * Useful after code generation before a full run.
-   */
-  async quickVerify(
-    runId:       string,
-    projectId:   string,
-    sandboxRoot: string,
-  ): Promise<VerificationResult> {
-    const input: VerificationInput = {
-      runId,
-      projectId,
-      sandboxRoot,
-      phases:     ['typecheck', 'build'],
-      timeoutMs:  180_000,
-    };
-    return this.verify(input);
-  }
-
-  /**
-   * Run a full verification pass with all phases.
-   */
-  async fullVerify(
-    runId:       string,
-    projectId:   string,
-    sandboxRoot: string,
-    port?:       number,
-  ): Promise<VerificationResult> {
-    const input: VerificationInput = {
-      runId,
-      projectId,
-      sandboxRoot,
-      phases:    [...PHASE_ORDER] as VerificationPhase[],
-      timeoutMs: 600_000,
-      port,
-    };
-    return this.verify(input);
-  }
-
-  /** Report whether the verifier subsystem is healthy. */
-  async healthCheck(): Promise<{ healthy: boolean; status: string }> {
-    const snapshot = healthMonitor.snapshot();
-    return {
-      healthy: snapshot.state === 'healthy',
-      status:  `${snapshot.state} — active: ${snapshot.activeRuns}, successRate: ${(snapshot.successRate * 100).toFixed(0)}%`,
-    };
-  }
-
-  /** Cleanup resources after a run (call after consuming the result). */
-  async cleanup(runId: string): Promise<void> {
-    await verificationOrchestrator.cleanup(runId);
-  }
+export function initializeVerifier(): void {
+  if (_initialised) return;
+  _initialised = true;
+  console.log('[verifier-agent] Initialized — orchestration layer ready');
 }
 
-export const verifierAgent = new VerifierAgent();
+export function shutdownVerifier(): void {
+  _initialised = false;
+  console.log('[verifier-agent] Shut down');
+}
+
+// ── Default phases ────────────────────────────────────────────────────────────
+
+const DEFAULT_PHASES: VerificationPhase[] = ['typecheck', 'build', 'runtime'];
+
+// ── Main entry ────────────────────────────────────────────────────────────────
+
+export async function runVerification(req: VerifierInput): Promise<VerifierOutput> {
+  const runId     = req.runId ?? makeRunId();
+  const projectId = String(req.projectId);
+  const phases    = (req.phases && req.phases.length > 0) ? req.phases : DEFAULT_PHASES;
+  const timeoutMs = req.timeoutMs ?? 120_000;
+
+  verifierLogger.lifecycle(runId, 'verification-requested', { projectId, phases });
+  verifierMetrics.startRun(runId);
+
+  // ── 1. Validate request ───────────────────────────────────────────────────
+  const validation = validateVerifierInput({ ...req, runId, phases });
+  if (!validation.valid) {
+    verifierLogger.error(runId, 'Request validation failed', { errors: validation.errors });
+    return failedOutput(runId, phases, 0, validation.errors);
+  }
+  if (validation.warnings.length > 0) {
+    verifierLogger.warn(runId, 'Request validation warnings', { warnings: validation.warnings });
+  }
+
+  // ── 2. Check agent health ─────────────────────────────────────────────────
+  if (!verifierHealthMonitor.isHealthy()) {
+    verifierLogger.warn(runId, 'Verifier runtime degraded', {
+      active: verifierHealthMonitor.activeCount(),
+    });
+  }
+
+  // ── 3. Build execution context ────────────────────────────────────────────
+  const context = buildVerifierContext(
+    runId,
+    projectId,
+    phases,
+    req.sandboxRoot,
+    req.port,
+    timeoutMs,
+  );
+
+  // ── 4. Build verification steps ───────────────────────────────────────────
+  const steps = defaultSteps(runId, projectId, phases);
+
+  if (steps.length === 0) {
+    verifierLogger.warn(runId, 'No verification steps generated', { phases });
+    return failedOutput(runId, phases, 0, ['No verification steps could be generated for phases: ' + phases.join(', ')]);
+  }
+
+  // ── 5. Delegate to verification runner ────────────────────────────────────
+  const startedAt = Date.now();
+  const result    = await runVerifier(steps, context);
+  const durationMs = Date.now() - startedAt;
+
+  const errors = result.outcomes
+    .filter((o) => !o.success && o.error)
+    .map((o) => o.error as string);
+
+  verifierLogger.lifecycle(runId, 'verification-complete', {
+    ok: result.success, durationMs, steps: result.outcomes.length,
+  });
+
+  return {
+    ok:         result.success,
+    runId,
+    phases,
+    steps:      result.outcomes,
+    durationMs,
+    errors,
+  };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function failedOutput(
+  runId:      string,
+  phases:     VerificationPhase[],
+  durationMs: number,
+  errors:     string[],
+): VerifierOutput {
+  return { ok: false, runId, phases, steps: [], durationMs, errors };
+}

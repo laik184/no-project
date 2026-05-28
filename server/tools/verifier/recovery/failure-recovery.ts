@@ -3,12 +3,12 @@ import {
   clearRecoveryState,
   type RecoveryAction,
   type RecoveryDecision,
-} from '../../../agents/verifier/recovery/failure-recovery.ts';
-import type { VerificationPhase }                       from '../shared/verifier-types.ts';
-import type { ToolDefinition }                          from '../../registry/tool-types.ts';
-import { toToolOk }                                     from '../shared/verifier-result.ts';
+} from '../lib/failure-recovery.ts';
+import type { VerificationPhase } from '../shared/verifier-types.ts';
+import type { ToolDefinition }    from '../../registry/tool-types.ts';
+import { toToolOk }               from '../shared/verifier-result.ts';
 
-export { type RecoveryAction, type RecoveryDecision };
+export type { RecoveryAction, RecoveryDecision };
 
 export const verifierFailureRecovery = {
   handle(runId: string, phase: VerificationPhase, error: string): RecoveryDecision {

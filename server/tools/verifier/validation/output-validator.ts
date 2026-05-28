@@ -1,18 +1,11 @@
-import {
-  validateBuildOutput,
-  validateCommandOutput,
-} from '../../../agents/verifier/validation/output-validator.ts';
-import type { OutputValidationResult } from '../shared/verifier-types.ts';
-import type { ToolDefinition }         from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail }        from '../shared/verifier-result.ts';
+import { validateBuildOutput, validateCommandOutput } from '../lib/output-validator.ts';
+import type { OutputValidationResult }                from '../shared/verifier-types.ts';
+import type { ToolDefinition }                        from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }                       from '../shared/verifier-result.ts';
 
 export { validateBuildOutput, validateCommandOutput };
 
-export function validateOutput(
-  stdout:   string,
-  stderr:   string,
-  exitCode: number,
-): OutputValidationResult {
+export function validateOutput(stdout: string, stderr: string, exitCode: number): OutputValidationResult {
   return validateCommandOutput(stdout, stderr, exitCode);
 }
 

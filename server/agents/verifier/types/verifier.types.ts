@@ -1,89 +1,93 @@
 /**
- * types/verifier.types.ts
- * Core types for the Verifier orchestration agent.
- * No imports from execution layers — foundation only.
+ * server/agents/verifier/types/verifier.types.ts
+ *
+ * All shared types for the verifier agent orchestration layer.
+ * Zero tool-layer imports — types only.
  */
 
-export type VerificationStatus =
-  | 'pending'
-  | 'running'
-  | 'passed'
-  | 'failed'
-  | 'skipped'
-  | 'cancelled';
+import type { VerificationPhase, VerificationStatus } from '../../tools/verifier/lib/verifier-types.ts';
 
-export type VerificationPhase =
-  | 'dependencies'
-  | 'typecheck'
-  | 'build'
-  | 'runtime'
-  | 'endpoints'
-  | 'tests'
-  | 'validation';
+export type { VerificationPhase, VerificationStatus };
 
-export interface EndpointSpec {
-  path:           string;
-  method:         'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  expectedStatus: number;
-  body?:          unknown;
-  headers?:       Record<string, string>;
+// ── Verification phases (steps the loop drives) ───────────────────────────────
+
+export type VerificationStepType =
+  | 'run_build'
+  | 'run_typecheck'
+  | 'run_tests'
+  | 'check_server_health'
+  | 'validate_endpoints'
+  | 'validate_runtime'
+  | 'validate_dependencies'
+  | 'validate_execution'
+  | 'validate_output'
+  | 'analyze_errors'
+  | 'detect_root_causes'
+  | 'build_diagnostics_report'
+  | 'verifier_failure_recovery'
+  | 'checkpoint';
+
+export interface VerificationStep {
+  id:          string;
+  type:        VerificationStepType;
+  phase:       VerificationPhase;
+  label:       string;
+  input:       Record<string, unknown>;
+  timeoutMs:   number;
+  retryLimit:  number;
+  critical:    boolean;
 }
 
-export interface VerificationInput {
+export interface VerificationStepResult {
+  stepId:     string;
+  phase:      VerificationPhase;
+  success:    boolean;
+  durationMs: number;
+  output?:    unknown;
+  error?:     string;
+  attempt:    number;
+}
+
+// ── Session lifecycle ──────────────────────────────────────────────────────────
+
+export type VerifierLifecycleState =
+  | 'idle' | 'validating' | 'executing' | 'retrying'
+  | 'recovering' | 'completing' | 'failed' | 'aborted';
+
+// ── Retry / recovery ──────────────────────────────────────────────────────────
+
+export type RecoveryAction = 'retry' | 'skip' | 'abort';
+
+export interface RetryPolicy {
+  maxAttempts: number;
+  delayMs:     number;
+  backoff:     'none' | 'linear' | 'exponential';
+}
+
+// ── Agent input / output ──────────────────────────────────────────────────────
+
+export interface VerifierInput {
   runId:       string;
   projectId:   string;
-  sandboxRoot: string;
-  phases:      VerificationPhase[];
-  timeoutMs?:  number;
-  endpoints?:  EndpointSpec[];
+  phases?:     VerificationPhase[];
+  sandboxRoot?: string;
   port?:       number;
-  abortSignal?: AbortSignal;
+  timeoutMs?:  number;
 }
 
-export interface PhaseResult {
-  phase:      VerificationPhase;
-  status:     VerificationStatus;
+export interface VerifierOutput {
+  ok:         boolean;
+  runId:      string;
+  phases:     VerificationPhase[];
+  steps:      VerificationStepResult[];
   durationMs: number;
   errors:     string[];
-  warnings:   string[];
-  output?:    string;
-  metadata?:  Record<string, unknown>;
 }
 
-export interface VerificationResult {
-  runId:         string;
-  projectId:     string;
-  overallStatus: VerificationStatus;
-  phases:        PhaseResult[];
-  startedAt:     Date;
-  completedAt:   Date;
-  durationMs:    number;
-  errorCount:    number;
-  warningCount:  number;
-}
+// ── Validation ────────────────────────────────────────────────────────────────
 
-export interface VerificationConfig {
-  maxRetries:     number;
-  retryDelayMs:   number;
-  phaseTimeoutMs: number;
-  stopOnFailure:  boolean;
-  parallelPhases: boolean;
-}
-
-export const DEFAULT_VERIFICATION_CONFIG: VerificationConfig = {
-  maxRetries:     2,
-  retryDelayMs:   1000,
-  phaseTimeoutMs: 120_000,
-  stopOnFailure:  true,
-  parallelPhases: false,
-};
-
-export interface VerificationSession {
-  sessionId:  string;
-  runId:      string;
-  projectId:  string;
-  phases:     VerificationPhase[];
-  startedAt:  Date;
-  status:     VerificationStatus;
-  config:     VerificationConfig;
+export interface VerifierValidationResult {
+  valid:    boolean;
+  errors:   string[];
+  warnings: string[];
 }

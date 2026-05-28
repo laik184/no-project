@@ -1,67 +1,58 @@
 /**
- * monitoring/failure-monitor.ts
- * Monitors and classifies verification failures for alerting.
+ * server/agents/verifier/monitoring/failure-monitor.ts
+ * Tracks failures, retries, and crash-loop detection.
  */
 
-import type { VerificationPhase } from '../types/verifier.types.ts';
-import { verifierLogger }  from '../telemetry/verifier-logger.ts';
-import { verifierMetrics } from '../telemetry/verifier-metrics.ts';
-
-export type AlertLevel = 'info' | 'warning' | 'critical';
-
-export interface FailureAlert {
+interface FailureRecord {
   runId:     string;
-  level:     AlertLevel;
-  phase?:    VerificationPhase;
-  message:   string;
-  errors:    string[];
-  timestamp: Date;
+  stepId:    string;
+  tool:      string;
+  error:     string;
+  attempt:   number;
+  timestamp: number;
 }
 
-const alerts = new Map<string, FailureAlert[]>();
+const CRASH_LOOP_THRESHOLD = 5;
+const CRASH_LOOP_WINDOW_MS = 60_000;
 
-function getAlerts(runId: string): FailureAlert[] {
-  if (!alerts.has(runId)) alerts.set(runId, []);
-  return alerts.get(runId)!;
-}
+const failures = new Map<string, FailureRecord[]>();
+const retries  = new Map<string, number>();
 
 export const failureMonitor = {
-  reportFailure(
-    runId:   string,
-    errors:  string[],
-    phase?:  VerificationPhase,
-  ): FailureAlert {
-    const level: AlertLevel = errors.length > 5 ? 'critical' : errors.length > 2 ? 'warning' : 'info';
-    const message = phase
-      ? `Phase "${phase}" failed with ${errors.length} error(s)`
-      : `Verification failed with ${errors.length} error(s)`;
-
-    const alert: FailureAlert = { runId, level, phase, message, errors, timestamp: new Date() };
-    getAlerts(runId).push(alert);
-    verifierMetrics.increment(runId, `failures.${level}`);
-
-    if (level === 'critical') {
-      verifierLogger.error(runId, `[failure-monitor] CRITICAL: ${message}`, { errors: errors.slice(0, 3) });
-    } else if (level === 'warning') {
-      verifierLogger.warn(runId, `[failure-monitor] WARNING: ${message}`);
-    }
-
-    return alert;
+  recordFailure(runId: string, stepId: string, tool: string, error: string, attempt: number): void {
+    const key     = runId;
+    const records = failures.get(key) ?? [];
+    records.push({ runId, stepId, tool, error, attempt, timestamp: Date.now() });
+    if (records.length > 100) records.splice(0, 50);
+    failures.set(key, records);
   },
 
-  hasCritical(runId: string): boolean {
-    return getAlerts(runId).some((a) => a.level === 'critical');
+  recordRetry(runId: string): void {
+    retries.set(runId, (retries.get(runId) ?? 0) + 1);
   },
 
-  getAll(runId: string): FailureAlert[] {
-    return [...getAlerts(runId)];
+  isCrashLooping(runId: string): boolean {
+    const records = failures.get(runId) ?? [];
+    const now     = Date.now();
+    const recent  = records.filter((r) => now - r.timestamp < CRASH_LOOP_WINDOW_MS);
+    return recent.length >= CRASH_LOOP_THRESHOLD;
   },
 
-  getCritical(runId: string): FailureAlert[] {
-    return getAlerts(runId).filter((a) => a.level === 'critical');
+  retryCount(runId: string): number {
+    return retries.get(runId) ?? 0;
+  },
+
+  failureCount(runId: string): number {
+    return (failures.get(runId) ?? []).length;
+  },
+
+  recentFailures(runId: string, windowMs = CRASH_LOOP_WINDOW_MS): FailureRecord[] {
+    const now = Date.now();
+    return (failures.get(runId) ?? []).filter((r) => now - r.timestamp < windowMs);
   },
 
   clear(runId: string): void {
-    alerts.delete(runId);
+    failures.delete(runId);
+    retries.delete(runId);
   },
 };

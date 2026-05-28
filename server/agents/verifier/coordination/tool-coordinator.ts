@@ -1,50 +1,35 @@
 /**
- * coordination/tool-coordinator.ts
+ * server/agents/verifier/coordination/tool-coordinator.ts
  *
  * Maps high-level verification tasks to specific tool dispatches.
- * Knows which tools to call for each verification concern.
  * ALL calls go through dispatcher-client — no direct execution here.
  */
 
 import { dispatchTool, type VerifierDispatchOptions } from './dispatcher-client.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../tools/registry/tool-types.ts';
 
-// ── Tool name constants ────────────────────────────────────────────────────────
+// ── Verifier tool name constants ──────────────────────────────────────────────
 
 export const VERIFIER_TOOLS = {
-  BUILD:              'run_build',
-  PARSE_BUILD:        'parse_build_output',
-  BUILD_ERRORS:       'build_error_classifier',
-  RUN_TESTS:          'run_tests',
-  PARSE_TESTS:        'test_result_parser',
-  CLASSIFY_FAILURES:  'test_failure_classifier',
-  COVERAGE:           'coverage_validator',
-  RUN_TYPECHECK:      'run_typecheck',
-  PARSE_TYPECHECK:    'typescript_parser',
-  CLASSIFY_TS_ERRORS: 'type_error_classifier',
-  VALIDATE_TYPECHECK: 'typecheck_validator',
-  SERVER_HEALTH:      'check_server_health',
-  ENDPOINT_VALIDATE:  'endpoint_validator',
-  PARSE_RUNTIME_LOGS: 'runtime_log_parser',
-  CRASH_DETECT:       'crash_detector',
-  RUNTIME_VALIDATE:   'runtime_validator',
-  FAILURE_RECOVERY:   'failure_recovery',
-  ROLLBACK_VALIDATE:  'rollback_validator',
-  CHECKPOINT_VALIDATE:'checkpoint_validator',
-  SCHEMA_VALIDATE:    'schema_validator',
-  OUTPUT_VALIDATE:    'output_validator',
-  EXEC_VALIDATE:      'execution_validator',
-  DEP_VALIDATE:       'dependency_validator',
-  VERIFY_VALIDATE:    'verification_validator',
-  ERROR_ANALYZE:      'error_analyzer',
-  PARSE_STACKTRACE:   'stacktrace_parser',
-  DETECT_ROOTCAUSE:   'rootcause_detector',
-  BUILD_DIAGNOSTICS:  'diagnostics_report',
+  RUN_BUILD:           'run_build',
+  RUN_TYPECHECK:       'run_typecheck',
+  RUN_TESTS:           'run_tests',
+  CHECK_SERVER_HEALTH: 'check_server_health',
+  VALIDATE_ENDPOINTS:  'validate_endpoints',
+  VALIDATE_RUNTIME:    'validate_runtime',
+  VALIDATE_DEPS:       'validate_dependencies',
+  VALIDATE_EXECUTION:  'validate_execution',
+  VALIDATE_OUTPUT:     'validate_output',
+  ANALYZE_ERRORS:      'analyze_errors',
+  DETECT_ROOT_CAUSES:  'detect_root_causes',
+  DIAGNOSTICS_REPORT:  'build_diagnostics_report',
+  FAILURE_RECOVERY:    'verifier_failure_recovery',
+  PARSE_STACKTRACE:    'parse_stacktrace',
 } as const;
 
 type ToolName = typeof VERIFIER_TOOLS[keyof typeof VERIFIER_TOOLS];
 
-// ── Generic coordinator call ───────────────────────────────────────────────────
+// ── Generic coordinator ───────────────────────────────────────────────────────
 
 export async function runTool<TOutput = unknown>(
   toolName: ToolName,
@@ -55,95 +40,62 @@ export async function runTool<TOutput = unknown>(
   return dispatchTool<TOutput>(toolName, input, context, opts);
 }
 
-// ── Build coordination ─────────────────────────────────────────────────────────
+// ── Build coordination ────────────────────────────────────────────────────────
 
-export async function runBuild(
-  context: ToolExecutionContext,
-  opts?:   VerifierDispatchOptions,
+export async function coordinateBuild(
+  runId: string, projectId: string, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.BUILD, { projectId: context.projectId, sandboxRoot: context.sandboxRoot }, context, { phase: 'build', ...opts });
+  return runTool(VERIFIER_TOOLS.RUN_BUILD, { runId, projectId }, context, { timeoutMs: 120_000, label: 'run_build', ...opts });
 }
 
-export async function validateDependencies(
-  context: ToolExecutionContext,
-  opts?:   VerifierDispatchOptions,
+// ── TypeCheck coordination ────────────────────────────────────────────────────
+
+export async function coordinateTypecheck(
+  runId: string, projectId: string, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.DEP_VALIDATE, { sandboxRoot: context.sandboxRoot }, context, { phase: 'dependencies', ...opts });
+  return runTool(VERIFIER_TOOLS.RUN_TYPECHECK, { runId, projectId }, context, { timeoutMs: 60_000, label: 'run_typecheck', ...opts });
 }
 
-// ── Typecheck coordination ─────────────────────────────────────────────────────
+// ── Tests coordination ────────────────────────────────────────────────────────
 
-export async function runTypecheck(
-  context: ToolExecutionContext,
-  opts?:   VerifierDispatchOptions,
+export async function coordinateTests(
+  runId: string, projectId: string, context: ToolExecutionContext, script = 'test', opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.RUN_TYPECHECK, { projectId: context.projectId, sandboxRoot: context.sandboxRoot }, context, { phase: 'typecheck', ...opts });
+  return runTool(VERIFIER_TOOLS.RUN_TESTS, { runId, projectId, script }, context, { timeoutMs: 120_000, label: 'run_tests', ...opts });
 }
 
-// ── Runtime coordination ───────────────────────────────────────────────────────
+// ── Runtime coordination ──────────────────────────────────────────────────────
 
-export async function checkServerHealth(
-  context: ToolExecutionContext,
-  port:    number,
-  opts?:   VerifierDispatchOptions,
+export async function coordinateServerHealth(
+  runId: string, port: number | undefined, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.SERVER_HEALTH, { port, projectId: context.projectId }, context, { phase: 'runtime', ...opts });
+  return runTool(VERIFIER_TOOLS.CHECK_SERVER_HEALTH, { runId, port }, context, { timeoutMs: 15_000, label: 'check_server_health', ...opts });
 }
 
-export async function validateEndpoint(
-  context:        ToolExecutionContext,
-  path:           string,
-  method:         string,
-  expectedStatus: number,
-  port:           number,
-  opts?:          VerifierDispatchOptions,
+export async function coordinateRuntimeValidation(
+  runId: string, port: number | undefined, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.ENDPOINT_VALIDATE, { path, method, expectedStatus, port }, context, { phase: 'endpoints', ...opts });
+  return runTool(VERIFIER_TOOLS.VALIDATE_RUNTIME, { runId, port }, context, { timeoutMs: 60_000, label: 'validate_runtime', ...opts });
 }
 
-// ── Tests coordination ─────────────────────────────────────────────────────────
+// ── Dependency coordination ───────────────────────────────────────────────────
 
-export async function runTests(
-  context: ToolExecutionContext,
-  script?: string,
-  opts?:   VerifierDispatchOptions,
+export async function coordinateDependencies(
+  runId: string, projectId: string, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.RUN_TESTS, { projectId: context.projectId, sandboxRoot: context.sandboxRoot, script: script ?? 'test' }, context, { phase: 'tests', ...opts });
+  return runTool(VERIFIER_TOOLS.VALIDATE_DEPS, { runId, projectId }, context, { timeoutMs: 10_000, label: 'validate_dependencies', ...opts });
 }
 
-// ── Diagnostics coordination ───────────────────────────────────────────────────
+// ── Diagnostics coordination ──────────────────────────────────────────────────
 
-export async function analyzeErrors(
-  context: ToolExecutionContext,
-  output:  string,
-  opts?:   VerifierDispatchOptions,
+export async function coordinateErrorAnalysis(
+  runId: string, output: string, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.ERROR_ANALYZE, { output, runId: context.runId }, context, opts);
+  return runTool(VERIFIER_TOOLS.ANALYZE_ERRORS, { runId, output }, context, { timeoutMs: 5_000, label: 'analyze_errors', ...opts });
 }
 
-export async function detectRootCause(
-  context: ToolExecutionContext,
-  errors:  string[],
-  opts?:   VerifierDispatchOptions,
+export async function coordinateRecovery(
+  runId: string, phase: string, error: string, context: ToolExecutionContext, opts?: VerifierDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.DETECT_ROOTCAUSE, { errors, runId: context.runId }, context, opts);
-}
-
-export async function buildDiagnosticsReport(
-  context: ToolExecutionContext,
-  errors:  string[],
-  rawLogs: string,
-  opts?:   VerifierDispatchOptions,
-): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.BUILD_DIAGNOSTICS, { errors, rawLogs, runId: context.runId }, context, opts);
-}
-
-// ── Recovery coordination ──────────────────────────────────────────────────────
-
-export async function runFailureRecovery(
-  context: ToolExecutionContext,
-  errors:  string[],
-  opts?:   VerifierDispatchOptions,
-): Promise<ToolExecutionResult> {
-  return runTool(VERIFIER_TOOLS.FAILURE_RECOVERY, { errors, projectId: context.projectId }, context, opts);
+  return runTool(VERIFIER_TOOLS.FAILURE_RECOVERY, { runId, phase, error }, context, { timeoutMs: 2_000, label: 'verifier_failure_recovery', ...opts });
 }

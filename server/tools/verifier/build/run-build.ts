@@ -1,15 +1,11 @@
-import { runBuild as _runBuild } from '../../../agents/verifier/build/build-runner.ts';
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail }  from '../shared/verifier-result.ts';
-import { verifierMetrics }       from '../monitoring/verification-metrics.ts';
+import { runBuild as _runBuild, type BuildRunResult } from '../lib/build-runner.ts';
+import type { ToolDefinition, ToolExecutionContext }   from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }                        from '../shared/verifier-result.ts';
+import { verifierMetrics }                             from '../monitoring/verification-metrics.ts';
 
-export { type BuildRunResult } from '../../../agents/verifier/build/build-runner.ts';
+export type { BuildRunResult };
 
-export async function runBuild(
-  runId:     string,
-  projectId: string,
-  script     = 'build',
-) {
+export async function runBuild(runId: string, projectId: string, script = 'build'): Promise<BuildRunResult> {
   return _runBuild(runId, projectId, script);
 }
 
@@ -37,7 +33,7 @@ export const runBuildTool: ToolDefinition = {
       verifierMetrics.recordBuild(ctx.runId, ms, result.passed);
       return result.passed
         ? toToolOk(result, ms)
-        : toToolFail(result.errors.map(e => e.message).join('; ') || 'Build failed', ms);
+        : toToolFail(result.errors.map((e) => e.message).join('; ') || 'Build failed', ms);
     } catch (err) {
       return toToolFail(String(err), Date.now() - start);
     }

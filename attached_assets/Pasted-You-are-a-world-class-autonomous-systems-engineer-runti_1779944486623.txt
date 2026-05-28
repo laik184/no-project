@@ -1,0 +1,323 @@
+You are a world-class autonomous systems engineer, runtime verification architect, and TypeScript orchestration specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/verifier/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The verifier agent must ONLY orchestrate verification workflows.
+
+NO actual execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct runtime execution
+5. No direct terminal execution
+6. No direct filesystem execution
+7. No direct Playwright/browser execution
+8. No direct TypeScript compiler execution
+9. No direct build execution
+10. No direct API testing logic
+
+ALL actual execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- tool-coordinator.ts
+- centralized tool dispatcher
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- tsc execution
+- npm run build
+- direct HTTP runtime checks
+
+==================================================
+VERIFIER AGENT RESPONSIBILITY
+
+The verifier agent should ONLY:
+
+- coordinate verification workflows
+- orchestrate verification execution
+- manage verification lifecycle
+- manage verification sessions/state
+- control retry/recovery flow
+- validate verification requests
+- monitor verification runtime
+- analyze verification failures
+- aggregate verification results
+- collect telemetry
+- communicate with centralized tools
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/verifier/
+
+├── verifier-agent.ts
+│    → main verifier entry
+│
+├── index.ts
+│    → public exports
+│
+├── core/
+│   ├── verifier-context.ts
+│   │    → runtime verification context
+│   │
+│   ├── verifier-session.ts
+│   │    → active verification session
+│   │
+│   └── verifier-state.ts
+│        → verification lifecycle state
+│
+├── execution/
+│   ├── verification-loop.ts
+│   │    → MAIN verification runtime loop
+│   │
+│   ├── step-runner.ts
+│   │    → verification step execution
+│   │
+│   ├── verification-runner.ts
+│   │    → verification orchestration runtime
+│   │
+│   └── retry-manager.ts
+│        → retry failed verification
+│
+├── coordination/
+│   ├── dispatcher-client.ts
+│   │    → ONLY gateway to tools
+│   │
+│   ├── tool-coordinator.ts
+│   │    → choose verification tool
+│   │
+│   └── verification-routing.ts
+│        → route verification workflows
+│
+├── validation/
+│   ├── verification-validator.ts
+│   │    → validate verification requests
+│   │
+│   ├── runtime-validator.ts
+│   │    → validate runtime state
+│   │
+│   └── integrity-validator.ts
+│        → validate execution integrity
+│
+├── monitoring/
+│   ├── failure-monitor.ts
+│   │    → monitor failures/retries
+│   │
+│   └── health-monitor.ts
+│        → verification runtime health
+│
+├── diagnostics/
+│   ├── failure-analyzer.ts
+│   │    → analyze failures
+│   │
+│   └── rootcause-detector.ts
+│        → detect root cause
+│
+├── telemetry/
+│   ├── verifier-logger.ts
+│   │    → logs
+│   │
+│   └── verifier-metrics.ts
+│        → metrics/telemetry
+│
+├── types/
+│   └── verifier.types.ts
+│        → all verifier types
+│
+└── utils/
+└── verification-utils.ts
+→ helper utilities
+
+==================================================
+MOST IMPORTANT FILES
+
+verification-loop.ts
+→ SYSTEM HEART
+→ controls verification loop
+→ controls retries
+→ controls verification state
+→ controls next verification step
+
+dispatcher-client.ts
+→ ONLY gateway to centralized tools
+→ communicates with dispatcher
+
+tool-coordinator.ts
+→ maps verification tasks to tools
+→ coordinates tool execution
+
+step-runner.ts
+→ executes one verification step
+→ converts verification step → tool call
+
+==================================================
+VERIFICATION FLOW
+
+Verifier Agent
+↓
+Verification Loop
+↓
+Step Runner
+↓
+Tool Coordinator
+↓
+Dispatcher Client
+↓
+Central Tool Dispatcher
+↓
+Tool Registry
+↓
+Verification Tools
+↓
+Verification Result
+↓
+Retry / Continue / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"run_build_verification",
+payload
+)
+
+WRONG:
+
+spawn("npm run build")
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated execution systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+verification-validator.ts
+must validate:
+
+- verification requests
+- invalid verification states
+- missing execution context
+
+runtime-validator.ts
+must validate:
+
+- runtime lifecycle state
+- verification runtime integrity
+
+integrity-validator.ts
+must validate:
+
+- corrupted verification flow
+- invalid execution transitions
+
+==================================================
+MONITORING REQUIREMENTS
+
+failure-monitor.ts
+must track:
+
+- failed verifications
+- retry attempts
+- repeated failure patterns
+
+health-monitor.ts
+must track:
+
+- active verification sessions
+- stuck verification loops
+- unhealthy runtime states
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+verifier-logger.ts
+must log:
+
+- verification lifecycle
+- retries
+- failures
+- recovery attempts
+
+verifier-metrics.ts
+must track:
+
+- verification count
+- success/failure rate
+- retry metrics
+- verification duration
+
+==================================================
+FINAL GOAL
+
+The final verifier agent must become:
+
+- orchestration-only
+- fully centralized
+- dispatcher-driven
+- production-grade
+- deterministic
+- scalable
+- observable
+- modular
+- Replit/Cursor-level verification coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden tool implementations
+- runtime leakage
+- direct execution
+- duplicated orchestration systems
+- fake abstractions
+- overengineering
+
+Enforce this architecture:
+
+Agents → orchestration only
+Dispatcher → execution gateway
+Registry → tool discovery
+Tools → actual execution

@@ -1,55 +1,50 @@
 /**
- * validation/runtime-validator.ts
- * Validates runtime preconditions before phase execution.
- * Pure orchestration checks — no tool calls.
+ * server/agents/verifier/validation/runtime-validator.ts
+ * Validates runtime lifecycle state before/during verification.
  */
 
-import type { VerificationInput } from '../types/verifier.types.ts';
+import type { VerifierValidationResult } from '../types/verifier.types.ts';
+import { verifierState }                  from '../core/verifier-state.ts';
+import { verifierSession }                from '../core/verifier-session.ts';
 
-export interface RuntimeValidation {
-  ready:    boolean;
-  errors:   string[];
-  warnings: string[];
-}
-
-const MIN_PORT = 1024;
-const MAX_PORT = 65535;
-
-export function validateRuntimePreconditions(input: VerificationInput): RuntimeValidation {
+export function validateRuntimeState(runId: string): VerifierValidationResult {
   const errors:   string[] = [];
   const warnings: string[] = [];
 
-  const needsRuntime = input.phases.some((p) => p === 'runtime' || p === 'endpoints');
+  const session = verifierSession.get(runId);
+  if (!session) {
+    errors.push(`No active session found for runId: ${runId}`);
+    return { valid: false, errors, warnings };
+  }
 
-  if (needsRuntime) {
-    const port = input.port ?? 3001;
-    if (port < MIN_PORT || port > MAX_PORT) {
-      errors.push(`Invalid port: ${port}. Must be between ${MIN_PORT} and ${MAX_PORT}`);
+  if (session.state === 'failed' || session.state === 'aborted') {
+    errors.push(`Session is in terminal state: ${session.state}`);
+  }
+
+  const state = verifierState.get(runId);
+  if (state) {
+    const failRate = verifierState.failureRate(runId);
+    if (failRate > 0.75) {
+      warnings.push(`High failure rate: ${(failRate * 100).toFixed(0)}% — verification may be unreliable`);
     }
   }
 
-  if (input.phases.includes('endpoints')) {
-    if (!input.endpoints?.length) {
-      warnings.push('Endpoint phase requested but no endpoints defined');
-    } else {
-      for (const ep of input.endpoints) {
-        if (!ep.path?.startsWith('/')) {
-          errors.push(`Endpoint path must start with "/": ${ep.path}`);
-        }
-        if (ep.expectedStatus < 100 || ep.expectedStatus > 599) {
-          errors.push(`Invalid expected status: ${ep.expectedStatus}`);
-        }
-      }
-    }
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+export function validateRuntimeIntegrity(runId: string): VerifierValidationResult {
+  const errors:   string[] = [];
+  const warnings: string[] = [];
+
+  const state = verifierState.get(runId);
+  if (!state) {
+    warnings.push(`No state found for runId: ${runId} — may be a new run`);
+    return { valid: true, errors, warnings };
   }
 
-  return { ready: errors.length === 0, errors, warnings };
-}
+  if (state.completedSteps > state.totalSteps) {
+    errors.push('State integrity error: completedSteps exceeds totalSteps');
+  }
 
-export function validateSandboxPath(sandboxRoot: string): boolean {
-  return typeof sandboxRoot === 'string' && sandboxRoot.trim().length > 0 && sandboxRoot.startsWith('/');
-}
-
-export function validateRunId(runId: string): boolean {
-  return typeof runId === 'string' && runId.trim().length >= 4;
+  return { valid: errors.length === 0, errors, warnings };
 }

@@ -1,68 +1,52 @@
 /**
- * monitoring/health-monitor.ts
- * System-level health tracking for the verifier agent.
+ * server/agents/verifier/monitoring/health-monitor.ts
+ * Runtime health tracking for the verifier agent.
  */
 
-import type { VerificationStatus } from '../types/verifier.types.ts';
-import { verificationStore } from '../state/verification-store.ts';
-import { failureMonitor }    from './failure-monitor.ts';
+import type { VerificationPhase } from '../types/verifier.types.ts';
 
-export type SystemHealth = 'healthy' | 'degraded' | 'unhealthy';
-export type HealthStatus = SystemHealth;
-
-export interface HealthSnapshot {
-  state:        SystemHealth;
-  activeRuns:   number;
-  successRate:  number;
-  criticalRuns: number;
-  timestamp:    Date;
+interface HealthEntry {
+  runId:      string;
+  phase:      VerificationPhase | 'idle';
+  healthy:    boolean;
+  lastCheck:  number;
 }
 
-const runStatuses = new Map<string, VerificationStatus>();
+const MAX_ACTIVE_RUNS    = 20;
+const STUCK_THRESHOLD_MS = 5 * 60_000;
 
-export const healthMonitor = {
-  trackRun(runId: string, status: VerificationStatus): void {
-    runStatuses.set(runId, status);
-    if (runStatuses.size > 100) {
-      const oldest = runStatuses.keys().next().value;
-      if (oldest) runStatuses.delete(oldest);
-    }
+const entries = new Map<string, HealthEntry>();
+const runStartTimes = new Map<string, number>();
+
+export type HealthState = 'healthy' | 'degraded' | 'unhealthy';
+
+export const verifierHealthMonitor = {
+  onRunStart(runId: string): void {
+    runStartTimes.set(runId, Date.now());
+    entries.set(runId, { runId, phase: 'idle', healthy: true, lastCheck: Date.now() });
   },
 
-  snapshot(): HealthSnapshot {
-    const active    = verificationStore.listActive();
-    const statuses  = Array.from(runStatuses.values());
-    const passed    = statuses.filter((s) => s === 'passed').length;
-    const successRate = statuses.length > 0 ? passed / statuses.length : 1;
-
-    const criticalRuns = Array.from(runStatuses.keys())
-      .filter((id) => failureMonitor.hasCritical(id)).length;
-
-    const state: SystemHealth =
-      criticalRuns > 2 ? 'unhealthy'
-      : successRate < 0.5 ? 'degraded'
-      : 'healthy';
-
-    return { state, activeRuns: active.length, successRate, criticalRuns, timestamp: new Date() };
+  onPhaseChange(runId: string, phase: VerificationPhase | 'idle'): void {
+    const e = entries.get(runId);
+    if (e) { e.phase = phase; e.lastCheck = Date.now(); }
   },
 
-  isHealthy(): boolean {
-    return this.snapshot().state === 'healthy';
+  onRunComplete(runId: string, passed: boolean): void {
+    const e = entries.get(runId);
+    if (e) { e.healthy = passed; e.phase = 'idle'; }
+    runStartTimes.delete(runId);
   },
 
-  clearRun(runId: string): void {
-    runStatuses.delete(runId);
+  getState(): HealthState {
+    const active = [...runStartTimes.values()];
+    if (active.length > MAX_ACTIVE_RUNS) return 'unhealthy';
+    const now    = Date.now();
+    const stuck  = active.filter((t) => now - t > STUCK_THRESHOLD_MS);
+    if (stuck.length > 0) return 'degraded';
+    return 'healthy';
   },
 
-  registerRun(runId: string): void {
-    runStatuses.set(runId, 'running');
-  },
+  isHealthy(): boolean { return this.getState() !== 'unhealthy'; },
 
-  completeRun(runId: string, status: VerificationStatus): void {
-    runStatuses.set(runId, status);
-  },
-
-  getRuns(): string[] {
-    return Array.from(runStatuses.keys());
-  },
+  activeCount(): number { return runStartTimes.size; },
 };

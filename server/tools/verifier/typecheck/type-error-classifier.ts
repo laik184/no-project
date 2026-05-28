@@ -1,18 +1,16 @@
-import { classifyError } from '../../../agents/verifier/diagnostics/failure-classifier.ts';
-import type { ParsedError } from '../shared/verifier-types.ts';
+import { classifyError }    from '../lib/failure-classifier.ts';
+import type { ParsedError }  from '../shared/verifier-types.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 import { toToolOk }            from '../shared/verifier-result.ts';
 
 export { classifyError };
 
-export function classifyTypeErrors(
-  errors: ParsedError[],
-): Record<string, ParsedError[]> {
+export function classifyTypeErrors(errors: ParsedError[]): Record<string, ParsedError[]> {
   const byCode: Record<string, ParsedError[]> = {};
   for (const err of errors) {
     const key = err.code ?? 'unknown';
     if (!byCode[key]) byCode[key] = [];
-    byCode[key].push(err);
+    byCode[key]!.push(err);
   }
   return byCode;
 }

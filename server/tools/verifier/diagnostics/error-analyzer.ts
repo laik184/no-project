@@ -2,10 +2,10 @@ import {
   analyzeOutput,
   analyzeMultipleOutputs,
   buildDiagnosticsReport,
-} from '../../../agents/verifier/diagnostics/error-analyzer.ts';
-import type { ParsedError, DiagnosticsReport } from '../shared/verifier-types.ts';
-import type { ToolDefinition }                  from '../../registry/tool-types.ts';
-import { toToolOk }                             from '../shared/verifier-result.ts';
+} from '../lib/error-analyzer.ts';
+import type { ToolDefinition } from '../../registry/tool-types.ts';
+import { toToolOk }            from '../shared/verifier-result.ts';
+import type { ParsedError }    from '../shared/verifier-types.ts';
 
 export { analyzeOutput, analyzeMultipleOutputs, buildDiagnosticsReport };
 

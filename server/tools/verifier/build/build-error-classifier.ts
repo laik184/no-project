@@ -1,13 +1,13 @@
-import { parseBuildErrors } from '../../../agents/verifier/build/build-error-parser.ts';
-import type { ParsedError }  from '../shared/verifier-types.ts';
+import { parseBuildErrors }   from '../lib/build-error-parser.ts';
+import type { ParsedError }    from '../shared/verifier-types.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
-import { toToolOk }          from '../shared/verifier-result.ts';
+import { toToolOk }            from '../shared/verifier-result.ts';
 
 export { parseBuildErrors };
 
 export function classifyBuildErrors(output: string): { errors: ParsedError[]; count: number; hasFatal: boolean } {
   const errors   = parseBuildErrors(output);
-  const hasFatal = errors.some(e => e.severity === 'fatal' || e.severity === 'error');
+  const hasFatal = errors.some((e) => e.severity === 'fatal' || e.severity === 'error');
   return { errors, count: errors.length, hasFatal };
 }
 

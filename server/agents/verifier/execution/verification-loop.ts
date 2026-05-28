@@ -1,66 +1,97 @@
 /**
- * execution/verification-loop.ts
- * The core phase iteration loop — drives the verification state machine.
+ * server/agents/verifier/execution/verification-loop.ts
+ *
+ * THE HEART of the verifier agent.
+ *
+ * Controls the verification loop:
+ *   - selects the next step to execute
+ *   - dispatches via step-runner → routing → coordinator → dispatcher → tools
+ *   - manages health checks and crash-loop detection
+ *   - drives the session to completion or controlled failure
+ *
+ * Architecture: orchestration ONLY. No spawn, exec, shell, fetch, or direct tool calls.
  */
 
-import type { VerificationPhase, PhaseResult } from '../types/verifier.types.ts';
-import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
-import type { VerificationPlan } from '../planning/verification-planner.ts';
-import { runPhase } from './verification-runner.ts';
-import { skippedPhaseResult } from '../utils/verification-utils.ts';
-import { orderedPhases, shouldSkipPhase } from '../utils/planning-utils.ts';
-import { eventPublisher } from '../events/event-publisher.ts';
-import { verifierLogger } from '../telemetry/verifier-logger.ts';
-import { performanceTracker } from '../telemetry/performance-tracker.ts';
-import { verificationStore } from '../state/verification-store.ts';
+import type { VerificationStep, VerificationStepResult } from '../types/verifier.types.ts';
+import type { VerifierExecutionContext }                   from '../core/verifier-context.ts';
+import { verifierState }                                  from '../core/verifier-state.ts';
+import { verifierSession }                                from '../core/verifier-session.ts';
+import { verifierHealthMonitor }                          from '../monitoring/health-monitor.ts';
+import { failureMonitor }                                 from '../monitoring/failure-monitor.ts';
+import { verifierLogger }                                 from '../telemetry/verifier-logger.ts';
+import { runVerificationStep }                            from './step-runner.ts';
 
-export interface LoopResult {
-  phases:   PhaseResult[];
-  aborted:  boolean;
-  reason?:  string;
-}
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const MAX_CONSECUTIVE_FAILURES    = 4;
+const HEALTH_FAILURE_RATE_ABORT   = 0.8;
+
+// ── Verification loop ─────────────────────────────────────────────────────────
 
 export async function runVerificationLoop(
-  plan:    VerificationPlan,
-  context: ToolExecutionContext,
-): Promise<LoopResult> {
-  const phases      = orderedPhases(plan.phases);
-  const results:    PhaseResult[] = [];
-  let aborted       = false;
-  let abortReason: string | undefined;
+  steps:   readonly VerificationStep[],
+  context: VerifierExecutionContext,
+): Promise<VerificationStepResult[]> {
+  const { runId } = context;
+  const outcomes: VerificationStepResult[] = [];
+  let consecutiveFailures = 0;
 
-  for (const phase of phases) {
-    const completed = results.map((r) => ({ phase: r.phase, status: r.status }));
+  verifierLogger.info(runId, `Verification loop starting — ${steps.length} step(s)`);
+  verifierSession.transition(runId, 'executing');
+  verifierHealthMonitor.onRunStart(runId);
 
-    if (shouldSkipPhase(phase, completed, plan.stopOnFailure)) {
-      verifierLogger.phase(context.runId, phase, 'skip', { reason: 'previous phase failed' });
-      eventPublisher.phaseSkipped(context.runId, phase);
-      results.push(skippedPhaseResult(phase));
-      continue;
+  for (const step of steps) {
+    // ── Abort guard: consecutive failure limit ─────────────────────────────
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      verifierLogger.error(runId, `Aborting: ${consecutiveFailures} consecutive failures`);
+      verifierSession.transition(runId, 'failed');
+      verifierState.setStatus(runId, 'failed');
+      break;
     }
 
-    performanceTracker.startPhase(context.runId, phase);
-    eventPublisher.phaseStarted(context.runId, phase);
+    // ── Abort guard: failure rate threshold ───────────────────────────────
+    const failRate = verifierState.failureRate(runId);
+    if (failRate >= HEALTH_FAILURE_RATE_ABORT && outcomes.length > 2) {
+      verifierLogger.error(runId, `Aborting: failure rate ${(failRate * 100).toFixed(0)}% exceeds threshold`);
+      verifierSession.transition(runId, 'failed');
+      verifierState.setStatus(runId, 'failed');
+      break;
+    }
 
-    const phaseSteps = plan.steps.filter((s) => s.phase === phase);
-    const phaseResult = await runPhase(phase, phaseSteps, context);
-    const durationMs = performanceTracker.endPhase(context.runId, phase);
+    // ── Abort guard: crash-loop detection ─────────────────────────────────
+    if (failureMonitor.isCrashLooping(runId)) {
+      verifierLogger.error(runId, 'Crash loop detected — aborting verification');
+      verifierSession.transition(runId, 'failed');
+      verifierState.setStatus(runId, 'failed');
+      break;
+    }
 
-    const result: PhaseResult = { ...phaseResult, durationMs };
-    results.push(result);
-    verificationStore.addPhaseResult(context.runId, result);
+    // ── Execute this step ─────────────────────────────────────────────────
+    verifierSession.setPhase(runId, step.phase);
+    verifierHealthMonitor.onPhaseChange(runId, step.phase);
 
-    if (result.status === 'failed') {
-      eventPublisher.phaseFailed(context.runId, phase, result.errors, durationMs);
-      if (plan.stopOnFailure) {
-        aborted     = true;
-        abortReason = `Phase "${phase}" failed`;
+    const outcome = await runVerificationStep(step, context.toolCtx);
+    outcomes.push(outcome);
+    verifierState.recordResult(runId, outcome);
+
+    if (outcome.success) {
+      consecutiveFailures = 0;
+      verifierLogger.phase(runId, step.phase, 'pass', { durationMs: outcome.durationMs, attempt: outcome.attempt });
+    } else {
+      consecutiveFailures++;
+      verifierLogger.phase(runId, step.phase, step.critical ? 'fail' : 'skip', { error: outcome.error, consecutiveFailures });
+
+      // Critical failures abort the pipeline; non-critical continue
+      if (step.critical) {
+        verifierSession.transition(runId, 'failed');
+        verifierState.setStatus(runId, 'failed');
         break;
       }
-    } else {
-      eventPublisher.phaseCompleted(context.runId, phase, durationMs);
     }
   }
 
-  return { phases: results, aborted, reason: abortReason };
+  verifierSession.transition(runId, 'completing');
+  verifierHealthMonitor.onRunComplete(runId, consecutiveFailures === 0);
+  verifierLogger.info(runId, `Verification loop complete — ${outcomes.length} step(s) run`);
+  return outcomes;
 }

@@ -1,14 +1,14 @@
-import { analyzeOutput }   from '../../../agents/verifier/diagnostics/error-analyzer.ts';
-import type { ParsedError } from '../shared/verifier-types.ts';
+import { analyzeOutput }    from '../lib/error-analyzer.ts';
+import type { ParsedError }  from '../shared/verifier-types.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 import { toToolOk }            from '../shared/verifier-result.ts';
 
 export interface RuntimeLogAnalysis {
-  errors:      ParsedError[];
-  hasErrors:   boolean;
-  hasCrash:    boolean;
-  crashLines:  string[];
-  readyLines:  string[];
+  errors:     ParsedError[];
+  hasErrors:  boolean;
+  hasCrash:   boolean;
+  crashLines: string[];
+  readyLines: string[];
 }
 
 const CRASH_PATTERNS = [
@@ -27,11 +27,11 @@ const READY_PATTERNS = [
 ];
 
 export function parseRuntimeLogs(logs: string): RuntimeLogAnalysis {
-  const lines     = logs.split('\n').filter(Boolean);
-  const errors    = analyzeOutput('runtime', logs);
-  const hasCrash  = CRASH_PATTERNS.some(p => p.test(logs));
-  const crashLines = lines.filter(l => CRASH_PATTERNS.some(p => p.test(l)));
-  const readyLines = lines.filter(l => READY_PATTERNS.some(p => p.test(l)));
+  const lines      = logs.split('\n').filter(Boolean);
+  const errors     = analyzeOutput('runtime', logs);
+  const hasCrash   = CRASH_PATTERNS.some((p) => p.test(logs));
+  const crashLines = lines.filter((l) => CRASH_PATTERNS.some((p) => p.test(l)));
+  const readyLines = lines.filter((l) => READY_PATTERNS.some((p) => p.test(l)));
   return { errors, hasErrors: errors.length > 0, hasCrash, crashLines, readyLines };
 }
 

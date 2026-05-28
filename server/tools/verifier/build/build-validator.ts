@@ -1,11 +1,10 @@
-import { validateBuildResult } from '../../../agents/verifier/build/build-validator.ts';
+import { validateBuildResult }         from '../lib/build-validator.ts';
 import type { OutputValidationResult } from '../shared/verifier-types.ts';
 
 export { validateBuildResult };
 
 export function isBuildClean(stdout: string, stderr: string, exitCode: number): boolean {
-  const result = validateBuildResult(stdout, stderr, exitCode);
-  return result.valid;
+  return validateBuildResult(stdout, stderr, exitCode).valid;
 }
 
 export function buildValidationSummary(result: OutputValidationResult): string {

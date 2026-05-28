@@ -1,10 +1,7 @@
-import {
-  validateSchema,
-  type SchemaField,
-} from '../../../agents/verifier/validation/schema-validator.ts';
-import type { SchemaValidationResult } from '../shared/verifier-types.ts';
-import type { ToolDefinition }         from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail }        from '../shared/verifier-result.ts';
+import { validateSchema, type SchemaField } from '../lib/schema-validator.ts';
+import type { SchemaValidationResult }      from '../shared/verifier-types.ts';
+import type { ToolDefinition }              from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }             from '../shared/verifier-result.ts';
 
 export { validateSchema, type SchemaField };
 
@@ -21,7 +18,7 @@ export const schemaValidatorTool: ToolDefinition = {
   category:    'verifier',
   description: 'Validate data against a field schema',
   inputSchema: {
-    data:   { type: 'object', description: 'Data to validate', required: true },
+    data:   { type: 'object', description: 'Data to validate',  required: true },
     fields: { type: 'array',  description: 'SchemaField array', required: true },
   },
   permissions: [],
@@ -31,6 +28,8 @@ export const schemaValidatorTool: ToolDefinition = {
     const start  = Date.now();
     const result = validateSchema(input.data, input.fields as SchemaField[]);
     const ms     = Date.now() - start;
-    return result.valid ? toToolOk(result, ms) : toToolFail(result.errors.join('; '), ms, 'VALIDATION_ERROR');
+    return result.valid
+      ? toToolOk(result, ms)
+      : toToolFail(result.errors.join('; '), ms, 'VALIDATION_ERROR');
   },
 };

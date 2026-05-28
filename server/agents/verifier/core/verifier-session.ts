@@ -1,62 +1,65 @@
 /**
- * core/verifier-session.ts
- * Manages the lifecycle of a single verification session.
+ * server/agents/verifier/core/verifier-session.ts
+ * Active session lifecycle manager for the verifier agent.
  */
 
-import type { VerificationInput, VerificationStatus, PhaseResult } from '../types/verifier.types.ts';
-import { verificationStore } from '../state/verification-store.ts';
-import { workflowStore }     from '../state/workflow-store.ts';
-import { executionHistory }  from '../state/execution-history.ts';
-import { performanceTracker } from '../telemetry/performance-tracker.ts';
-import { executionTrace }    from '../telemetry/execution-trace.ts';
-import { verifierMetrics }   from '../telemetry/verifier-metrics.ts';
-import { failureMonitor }    from '../monitoring/failure-monitor.ts';
-import { healthMonitor }     from '../monitoring/health-monitor.ts';
-import { clearRetries }      from '../recovery/retry-recovery.ts';
+import type { VerificationPhase, VerifierLifecycleState } from '../types/verifier.types.ts';
 
-export interface VerificationSession {
+export interface VerifierSessionData {
   runId:      string;
   projectId:  string;
-  status:     VerificationStatus;
-  startedAt:  Date;
-  phases:     PhaseResult[];
+  state:      VerifierLifecycleState;
+  phase:      VerificationPhase | 'idle';
+  startedAt:  number;
+  updatedAt:  number;
 }
 
-export function openSession(input: VerificationInput): VerificationSession {
-  const record = verificationStore.create(input);
-  verificationStore.setStatus(input.runId, 'running');
-  healthMonitor.trackRun(input.runId, 'running');
+const sessions = new Map<string, VerifierSessionData>();
 
-  return {
-    runId:     input.runId,
-    projectId: input.projectId,
-    status:    'running',
-    startedAt: record.startedAt,
-    phases:    [],
-  };
-}
+export const verifierSession = {
+  create(runId: string, projectId: string): VerifierSessionData {
+    const data: VerifierSessionData = {
+      runId, projectId,
+      state:     'idle',
+      phase:     'idle',
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    sessions.set(runId, data);
+    return data;
+  },
 
-export function closeSession(runId: string, status: VerificationStatus): void {
-  verificationStore.setStatus(runId, status);
-  healthMonitor.trackRun(runId, status);
-}
+  get(runId: string): VerifierSessionData | undefined {
+    return sessions.get(runId);
+  },
 
-export function cleanupSession(runId: string): void {
-  performanceTracker.clear(runId);
-  executionTrace.clear(runId);
-  verifierMetrics.clear(runId);
-  failureMonitor.clear(runId);
-  healthMonitor.clearRun(runId);
-  workflowStore.clearRun(runId);
-  executionHistory.clear(runId);
-  clearRetries(runId);
-}
+  transition(runId: string, state: VerifierLifecycleState): void {
+    const s = sessions.get(runId);
+    if (s) { s.state = state; s.updatedAt = Date.now(); }
+  },
 
-export function getSessionStatus(runId: string): VerificationStatus | undefined {
-  return verificationStore.get(runId)?.status;
-}
+  setPhase(runId: string, phase: VerificationPhase | 'idle'): void {
+    const s = sessions.get(runId);
+    if (s) { s.phase = phase; s.updatedAt = Date.now(); }
+  },
 
-export function isSessionActive(runId: string): boolean {
-  const status = getSessionStatus(runId);
-  return status === 'running' || status === 'pending';
-}
+  complete(runId: string, success: boolean): void {
+    const s = sessions.get(runId);
+    if (s) {
+      s.state     = success ? 'completing' : 'failed';
+      s.phase     = 'idle';
+      s.updatedAt = Date.now();
+    }
+  },
+
+  clear(runId: string): void {
+    sessions.delete(runId);
+  },
+
+  activeSessions(): string[] {
+    return [...sessions.keys()].filter((k) => {
+      const s = sessions.get(k);
+      return s && s.state !== 'completing' && s.state !== 'failed' && s.state !== 'aborted';
+    });
+  },
+};

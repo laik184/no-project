@@ -2,7 +2,7 @@ import {
   parseTscOutput,
   extractErrorCount,
   rawToParseError,
-} from '../../../agents/verifier/typecheck/type-error-parser.ts';
+} from '../lib/type-error-parser.ts';
 import type { ParsedError } from '../shared/verifier-types.ts';
 import type { ToolDefinition } from '../../registry/tool-types.ts';
 import { toToolOk }            from '../shared/verifier-result.ts';

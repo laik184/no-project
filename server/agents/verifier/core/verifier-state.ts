@@ -1,85 +1,76 @@
 /**
- * core/verifier-state.ts
- * Tracks real-time state of an active verification run.
+ * server/agents/verifier/core/verifier-state.ts
+ * Per-run state machine — tracks outcomes, failures, and progress.
  */
 
-import type { VerificationStatus, VerificationPhase, PhaseResult } from '../types/verifier.types.ts';
+import type { VerificationPhase, VerificationStatus, VerificationStepResult } from '../types/verifier.types.ts';
 
-export interface VerifierRunState {
+export interface VerifierStateData {
   runId:          string;
-  projectId:      string;
   status:         VerificationStatus;
-  currentPhase:   VerificationPhase | null;
-  completedPhases: PhaseResult[];
-  startedAt:      Date;
-  updatedAt:      Date;
-  aborted:        boolean;
-  abortReason?:   string;
+  totalSteps:     number;
+  completedSteps: number;
+  failedSteps:    number;
+  results:        VerificationStepResult[];
+  startedAt:      number;
+  updatedAt:      number;
 }
 
-const stateMap = new Map<string, VerifierRunState>();
+const store = new Map<string, VerifierStateData>();
 
 export const verifierState = {
-  init(runId: string, projectId: string): VerifierRunState {
-    const state: VerifierRunState = {
+  init(runId: string, totalSteps: number): VerifierStateData {
+    const data: VerifierStateData = {
       runId,
-      projectId,
-      status:          'running',
-      currentPhase:    null,
-      completedPhases: [],
-      startedAt:       new Date(),
-      updatedAt:       new Date(),
-      aborted:         false,
+      status:         'pending',
+      totalSteps,
+      completedSteps: 0,
+      failedSteps:    0,
+      results:        [],
+      startedAt:      Date.now(),
+      updatedAt:      Date.now(),
     };
-    stateMap.set(runId, state);
-    return state;
+    store.set(runId, data);
+    return data;
   },
 
-  get(runId: string): VerifierRunState | undefined {
-    return stateMap.get(runId);
-  },
-
-  require(runId: string): VerifierRunState {
-    const s = stateMap.get(runId);
-    if (!s) throw new Error(`[verifier-state] No state for run: ${runId}`);
-    return s;
-  },
-
-  setPhase(runId: string, phase: VerificationPhase | null): void {
-    const s = stateMap.get(runId);
-    if (s) { s.currentPhase = phase; s.updatedAt = new Date(); }
-  },
-
-  addPhase(runId: string, result: PhaseResult): void {
-    const s = stateMap.get(runId);
-    if (s) {
-      s.completedPhases.push(result);
-      s.currentPhase = null;
-      s.updatedAt    = new Date();
-    }
+  get(runId: string): VerifierStateData | undefined {
+    return store.get(runId);
   },
 
   setStatus(runId: string, status: VerificationStatus): void {
-    const s = stateMap.get(runId);
-    if (s) { s.status = status; s.updatedAt = new Date(); }
+    const s = store.get(runId);
+    if (s) { s.status = status; s.updatedAt = Date.now(); }
   },
 
-  abort(runId: string, reason: string): void {
-    const s = stateMap.get(runId);
-    if (s) { s.aborted = true; s.abortReason = reason; s.status = 'failed'; s.updatedAt = new Date(); }
+  recordResult(runId: string, result: VerificationStepResult): void {
+    const s = store.get(runId);
+    if (!s) return;
+    s.results.push(result);
+    s.completedSteps++;
+    if (!result.success) s.failedSteps++;
+    s.updatedAt = Date.now();
   },
 
-  isAborted(runId: string): boolean {
-    return stateMap.get(runId)?.aborted ?? false;
+  failureRate(runId: string): number {
+    const s = store.get(runId);
+    if (!s || s.completedSteps === 0) return 0;
+    return s.failedSteps / s.completedSteps;
   },
 
-  clear(runId: string): void {
-    stateMap.delete(runId);
+  errors(runId: string): string[] {
+    const s = store.get(runId);
+    return s?.results.filter((r) => !r.success && r.error).map((r) => r.error!) ?? [];
   },
 
-  listActive(): string[] {
-    return Array.from(stateMap.entries())
-      .filter(([, s]) => s.status === 'running')
-      .map(([id]) => id);
+  phases(runId: string): VerificationPhase[] {
+    const s = store.get(runId);
+    const seen = new Set<VerificationPhase>();
+    for (const r of s?.results ?? []) seen.add(r.phase);
+    return [...seen];
   },
+
+  clear(runId: string): void { store.delete(runId); },
+
+  allRunIds(): readonly string[] { return Object.freeze([...store.keys()]); },
 };

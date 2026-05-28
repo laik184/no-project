@@ -1,91 +1,103 @@
 /**
- * execution/retry-manager.ts
- * Manages retry scheduling for failed step dispatches.
- * Orchestration only — no direct execution.
+ * server/agents/verifier/execution/retry-manager.ts
+ * Retry orchestration for the verifier agent. No direct execution.
  */
 
-import type { RetryConfig } from '../types/execution.types.ts';
-import { delay } from '../utils/execution-utils.ts';
+import type { RetryPolicy, RecoveryAction } from '../types/verifier.types.ts';
+import { verifierLogger }  from '../telemetry/verifier-logger.ts';
 import { verifierMetrics } from '../telemetry/verifier-metrics.ts';
-import { eventPublisher } from '../events/event-publisher.ts';
-import type { VerificationPhase } from '../types/verifier.types.ts';
+import { failureMonitor }  from '../monitoring/failure-monitor.ts';
+import { sleep, backoffMs, isRetryableError } from '../utils/verification-utils.ts';
+
+export const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 3,
+  delayMs:     1_000,
+  backoff:     'exponential',
+};
+
+export const NO_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 1,
+  delayMs:     0,
+  backoff:     'none',
+};
 
 export interface RetryContext {
-  runId:    string;
-  toolName: string;
-  phase:    VerificationPhase;
+  runId:  string;
+  stepId: string;
+  policy: RetryPolicy;
 }
 
-export interface RetryDecision {
-  shouldRetry: boolean;
-  attempt:     number;
-  delayMs:     number;
-  reason?:     string;
+export interface RetryResult<T> {
+  value?:     T;
+  success:    boolean;
+  attempts:   number;
+  lastError?: string;
+  action:     RecoveryAction | 'ok';
 }
 
-export function shouldRetry(
-  attempt:      number,
-  error:        string,
-  retryConfig:  RetryConfig,
-): RetryDecision {
-  if (attempt >= retryConfig.maxAttempts) {
-    return { shouldRetry: false, attempt, delayMs: 0, reason: 'max attempts reached' };
+export async function withRetry<T>(
+  fn:        () => Promise<T>,
+  ctx:       RetryContext,
+  isSuccess: (result: T) => boolean = () => true,
+): Promise<RetryResult<T>> {
+  const { runId, stepId, policy } = ctx;
+  let lastError = '';
+  let attempts  = 0;
+
+  for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+    attempts = attempt;
+    try {
+      const result = await fn();
+      if (isSuccess(result)) {
+        return { value: result, success: true, attempts, action: 'ok' };
+      }
+      lastError = 'Step result marked as failure';
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+
+    if (!isRetryableError(lastError)) {
+      verifierLogger.warn(runId, `Step ${stepId}: non-retryable error — aborting`, { error: lastError });
+      failureMonitor.recordFailure(runId, stepId, 'retry', lastError, attempt);
+      return { success: false, attempts, lastError, action: 'abort' };
+    }
+
+    if (attempt < policy.maxAttempts) {
+      const delay = computeDelay(policy, attempt);
+      verifierLogger.retry(runId, stepId, attempt, lastError);
+      verifierMetrics.recordRetry(runId);
+      failureMonitor.recordRetry(runId);
+      await sleep(delay);
+    }
   }
 
-  if (isNonRetryableError(error)) {
-    return { shouldRetry: false, attempt, delayMs: 0, reason: 'non-retryable error' };
-  }
-
-  const delayMs = computeDelay(attempt, retryConfig);
-  return { shouldRetry: true, attempt: attempt + 1, delayMs };
+  failureMonitor.recordFailure(runId, stepId, 'retry', lastError, attempts);
+  return { success: false, attempts, lastError, action: 'abort' };
 }
 
-function computeDelay(attempt: number, config: RetryConfig): number {
-  switch (config.backoff) {
-    case 'exponential': return config.delayMs * Math.pow(2, attempt - 1);
-    case 'linear':      return config.delayMs * attempt;
+function computeDelay(policy: RetryPolicy, attempt: number): number {
+  switch (policy.backoff) {
+    case 'exponential': return backoffMs(attempt, policy.delayMs);
+    case 'linear':      return policy.delayMs * attempt;
     default:            return 0;
   }
 }
 
-function isNonRetryableError(error: string): boolean {
-  const nonRetryable = [
-    'PERMISSION_DENIED',
-    'NOT_FOUND',
-    'syntax error',
-    'cannot find module',
-  ];
-  return nonRetryable.some((e) => error.toLowerCase().includes(e.toLowerCase()));
-}
-
-export async function waitForRetry(
-  ctx:     RetryContext,
-  attempt: number,
-  delayMs: number,
-): Promise<void> {
-  verifierMetrics.recordRetry(ctx.runId, ctx.toolName);
-  eventPublisher.retryScheduled(ctx.runId, ctx.toolName, attempt, delayMs);
-  if (delayMs > 0) await delay(delayMs);
-}
-
-export async function withRetry<T>(
-  fn:      (attempt: number) => Promise<T>,
-  ctx:     RetryContext,
-  config:  RetryConfig,
-  isOk:    (result: T) => boolean,
-  getError:(result: T) => string,
-): Promise<{ result: T; attempts: number }> {
-  let attempt = 1;
-
-  while (true) {
-    const result = await fn(attempt);
-
-    if (isOk(result)) return { result, attempts: attempt };
-
-    const decision = shouldRetry(attempt, getError(result), config);
-    if (!decision.shouldRetry) return { result, attempts: attempt };
-
-    await waitForRetry(ctx, decision.attempt, decision.delayMs);
-    attempt = decision.attempt;
+export function policyForStepType(stepType: string): RetryPolicy {
+  switch (stepType) {
+    case 'run_build':
+    case 'run_typecheck':
+      return { maxAttempts: 1, delayMs: 0, backoff: 'none' };
+    case 'run_tests':
+      return { maxAttempts: 1, delayMs: 0, backoff: 'none' };
+    case 'check_server_health':
+    case 'validate_runtime':
+      return { maxAttempts: 3, delayMs: 2_000, backoff: 'linear' };
+    case 'validate_dependencies':
+      return { maxAttempts: 1, delayMs: 0, backoff: 'none' };
+    case 'checkpoint':
+      return NO_RETRY_POLICY;
+    default:
+      return DEFAULT_RETRY_POLICY;
   }
 }

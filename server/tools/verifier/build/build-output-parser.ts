@@ -1,17 +1,16 @@
-import { analyzeBuildOutput }                  from '../../../agents/verifier/build/build-output-analyzer.ts';
-import type { BuildOutputAnalysis }             from '../../../agents/verifier/build/build-output-analyzer.ts';
-import type { ToolDefinition }                  from '../../registry/tool-types.ts';
-import { toToolOk }                             from '../shared/verifier-result.ts';
+import { analyzeBuildOutput, type BuildOutputAnalysis } from '../lib/build-output-analyzer.ts';
+import type { ToolDefinition }                          from '../../registry/tool-types.ts';
+import { toToolOk }                                     from '../shared/verifier-result.ts';
 
 export { analyzeBuildOutput };
 export type { BuildOutputAnalysis };
 
 export function summarizeBuildOutput(analysis: BuildOutputAnalysis): string {
   const parts: string[] = [];
-  if (analysis.hasErrors)   parts.push('errors detected');
-  if (analysis.hasWarnings) parts.push('warnings detected');
-  if (analysis.outputFiles.length) parts.push(`${analysis.outputFiles.length} output file(s)`);
-  if (analysis.buildTimeMs) parts.push(`built in ${analysis.buildTimeMs}ms`);
+  if (analysis.hasErrors)           parts.push('errors detected');
+  if (analysis.hasWarnings)         parts.push('warnings detected');
+  if (analysis.outputFiles.length)  parts.push(`${analysis.outputFiles.length} output file(s)`);
+  if (analysis.buildTimeMs)         parts.push(`built in ${analysis.buildTimeMs}ms`);
   return parts.length > 0 ? parts.join(', ') : 'Build output parsed';
 }
 

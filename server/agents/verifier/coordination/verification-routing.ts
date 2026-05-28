@@ -1,86 +1,80 @@
 /**
- * coordination/verification-routing.ts
- * Routes verification phases to their canonical workflow and tool sequences.
+ * server/agents/verifier/coordination/verification-routing.ts
+ *
+ * Routes VerificationStep.type → the correct coordinator function.
+ * Pure orchestration — maps step type → coordinator call → result.
  */
 
-import type { VerificationPhase } from '../types/verifier.types.ts';
-import type { WorkflowKind } from '../types/workflow.types.ts';
-import { VERIFIER_TOOLS } from './tool-coordinator.ts';
+import type { VerificationStep, VerificationStepResult } from '../types/verifier.types.ts';
+import type { ToolExecutionContext }                       from '../../../tools/registry/tool-types.ts';
+import {
+  coordinateBuild,
+  coordinateTypecheck,
+  coordinateTests,
+  coordinateServerHealth,
+  coordinateRuntimeValidation,
+  coordinateDependencies,
+  coordinateErrorAnalysis,
+  coordinateRecovery,
+} from './tool-coordinator.ts';
+import { resultError } from './dispatcher-client.ts';
 
-export type ToolName = typeof VERIFIER_TOOLS[keyof typeof VERIFIER_TOOLS];
+export async function routeVerificationStep(
+  step:    VerificationStep,
+  context: ToolExecutionContext,
+): Promise<Omit<VerificationStepResult, 'stepId' | 'durationMs' | 'attempt'>> {
+  const { type, input, phase } = step;
 
-export interface PhaseRoute {
-  phase:        VerificationPhase;
-  workflow:     WorkflowKind;
-  tools:        ToolName[];
-  required:     boolean;
-  parallelable: boolean;
+  switch (type) {
+    case 'run_build': {
+      const r = await coordinateBuild(String(input.runId ?? context.runId), String(input.projectId ?? context.projectId), context, { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'run_typecheck': {
+      const r = await coordinateTypecheck(String(input.runId ?? context.runId), String(input.projectId ?? context.projectId), context, { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'run_tests': {
+      const r = await coordinateTests(String(input.runId ?? context.runId), String(input.projectId ?? context.projectId), context, (input.script as string) ?? 'test', { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'check_server_health': {
+      const r = await coordinateServerHealth(String(input.runId ?? context.runId), input.port as number | undefined, context, { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'validate_runtime': {
+      const r = await coordinateRuntimeValidation(String(input.runId ?? context.runId), input.port as number | undefined, context, { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'validate_dependencies': {
+      const r = await coordinateDependencies(String(input.runId ?? context.runId), String(input.projectId ?? context.projectId), context, { timeoutMs: step.timeoutMs });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'analyze_errors': {
+      const r = await coordinateErrorAnalysis(String(input.runId ?? context.runId), String(input.output ?? ''), context);
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'verifier_failure_recovery': {
+      const r = await coordinateRecovery(String(input.runId ?? context.runId), String(input.phase ?? phase), String(input.error ?? ''), context);
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'checkpoint':
+      return ok(phase, { checkpointAt: Date.now() });
+    case 'validate_output':
+    case 'validate_execution':
+    case 'detect_root_causes':
+    case 'build_diagnostics_report':
+    case 'validate_endpoints':
+      return ok(phase, { message: `${type} delegated`, step: step.id });
+    default:
+      return fail(phase, `Unknown verification step type: ${type}`);
+  }
 }
 
-export const PHASE_ROUTES: Record<VerificationPhase, PhaseRoute> = {
-  dependencies: {
-    phase:        'dependencies',
-    workflow:     'validation',
-    tools:        [VERIFIER_TOOLS.DEP_VALIDATE],
-    required:     true,
-    parallelable: false,
-  },
-  typecheck: {
-    phase:        'typecheck',
-    workflow:     'build',
-    tools:        [VERIFIER_TOOLS.RUN_TYPECHECK, VERIFIER_TOOLS.PARSE_TYPECHECK, VERIFIER_TOOLS.CLASSIFY_TS_ERRORS],
-    required:     true,
-    parallelable: false,
-  },
-  build: {
-    phase:        'build',
-    workflow:     'build',
-    tools:        [VERIFIER_TOOLS.BUILD, VERIFIER_TOOLS.PARSE_BUILD, VERIFIER_TOOLS.BUILD_ERRORS],
-    required:     true,
-    parallelable: false,
-  },
-  runtime: {
-    phase:        'runtime',
-    workflow:     'runtime',
-    tools:        [VERIFIER_TOOLS.SERVER_HEALTH, VERIFIER_TOOLS.RUNTIME_VALIDATE, VERIFIER_TOOLS.CRASH_DETECT],
-    required:     true,
-    parallelable: false,
-  },
-  endpoints: {
-    phase:        'endpoints',
-    workflow:     'runtime',
-    tools:        [VERIFIER_TOOLS.ENDPOINT_VALIDATE],
-    required:     false,
-    parallelable: true,
-  },
-  tests: {
-    phase:        'tests',
-    workflow:     'validation',
-    tools:        [VERIFIER_TOOLS.RUN_TESTS, VERIFIER_TOOLS.PARSE_TESTS, VERIFIER_TOOLS.CLASSIFY_FAILURES],
-    required:     false,
-    parallelable: false,
-  },
-  validation: {
-    phase:        'validation',
-    workflow:     'validation',
-    tools:        [VERIFIER_TOOLS.OUTPUT_VALIDATE, VERIFIER_TOOLS.VERIFY_VALIDATE],
-    required:     false,
-    parallelable: true,
-  },
-};
-
-export function routePhase(phase: VerificationPhase): PhaseRoute {
-  return PHASE_ROUTES[phase];
+function ok(phase: VerificationStep['phase'], output: unknown): Omit<VerificationStepResult, 'stepId' | 'durationMs' | 'attempt'> {
+  return { phase, success: true, output };
 }
 
-export function workflowForPhase(phase: VerificationPhase): WorkflowKind {
-  return PHASE_ROUTES[phase].workflow;
-}
-
-export function toolsForPhase(phase: VerificationPhase): ToolName[] {
-  return PHASE_ROUTES[phase].tools;
-}
-
-export function isRequiredPhase(phase: VerificationPhase): boolean {
-  return PHASE_ROUTES[phase].required;
+function fail(phase: VerificationStep['phase'], error: string): Omit<VerificationStepResult, 'stepId' | 'durationMs' | 'attempt'> {
+  return { phase, success: false, error };
 }

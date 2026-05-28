@@ -1,11 +1,11 @@
-import { runTypecheck as _runTypecheck } from '../../../agents/verifier/typecheck/typescript-checker.ts';
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail } from '../shared/verifier-result.ts';
-import { verifierMetrics }      from '../monitoring/verification-metrics.ts';
+import { runTypecheck as _runTypecheck, type TypecheckResult } from '../lib/typescript-checker.ts';
+import type { ToolDefinition, ToolExecutionContext }            from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }                                 from '../shared/verifier-result.ts';
+import { verifierMetrics }                                      from '../monitoring/verification-metrics.ts';
 
-export { type TypecheckResult } from '../../../agents/verifier/typecheck/typescript-checker.ts';
+export type { TypecheckResult };
 
-export async function runTypecheck(runId: string, projectId: string) {
+export async function runTypecheck(runId: string, projectId: string): Promise<TypecheckResult> {
   return _runTypecheck(runId, projectId);
 }
 

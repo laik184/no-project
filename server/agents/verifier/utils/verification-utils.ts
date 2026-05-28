@@ -1,62 +1,75 @@
 /**
- * utils/verification-utils.ts
- * Pure utility functions for verification orchestration.
+ * server/agents/verifier/utils/verification-utils.ts
+ * Helper utilities for the verifier agent orchestration layer.
  */
 
-import type { VerificationPhase, VerificationStatus, PhaseResult } from '../types/verifier.types.ts';
+import type { VerificationStep, VerificationStepType, VerificationPhase } from '../types/verifier.types.ts';
 
-export function phasesPassed(results: PhaseResult[]): boolean {
-  return results.every((r) => r.status === 'passed' || r.status === 'skipped');
+let _counter = 0;
+
+export function makeRunId(): string {
+  return `vrf-${Date.now()}-${(++_counter).toString(36)}`;
 }
 
-export function countErrors(results: PhaseResult[]): number {
-  return results.reduce((n, r) => n + r.errors.length, 0);
+export function makeStepId(phase: VerificationPhase, type: VerificationStepType): string {
+  return `${phase}:${type}:${Date.now().toString(36)}`;
 }
 
-export function countWarnings(results: PhaseResult[]): number {
-  return results.reduce((n, r) => n + r.warnings.length, 0);
+export function elapsedMs(start: Date): number {
+  return Date.now() - start.getTime();
 }
 
-export function failedPhases(results: PhaseResult[]): VerificationPhase[] {
-  return results.filter((r) => r.status === 'failed').map((r) => r.phase);
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function pickStatus(results: PhaseResult[]): VerificationStatus {
-  if (results.some((r) => r.status === 'failed'))   return 'failed';
-  if (results.some((r) => r.status === 'running'))  return 'running';
-  if (results.some((r) => r.status === 'skipped'))  return 'passed';
-  if (results.every((r) => r.status === 'passed'))  return 'passed';
-  return 'pending';
+export function backoffMs(attempt: number, base: number): number {
+  return Math.min(base * Math.pow(2, attempt - 1), 30_000);
 }
 
-export function buildPhaseResult(
-  phase:      VerificationPhase,
-  passed:     boolean,
-  durationMs: number,
-  errors:     string[] = [],
-  warnings:   string[] = [],
-  output?:    string,
-  metadata?:  Record<string, unknown>,
-): PhaseResult {
-  return { phase, status: passed ? 'passed' : 'failed', durationMs, errors, warnings, output, metadata };
+export function defaultSteps(
+  runId:     string,
+  projectId: string,
+  phases:    VerificationPhase[],
+): VerificationStep[] {
+  const steps: VerificationStep[] = [];
+
+  const push = (
+    phase:     VerificationPhase,
+    type:      VerificationStepType,
+    label:     string,
+    input:     Record<string, unknown>,
+    critical   = true,
+    timeoutMs  = 120_000,
+    retryLimit = 2,
+  ) => steps.push({ id: makeStepId(phase, type), type, phase, label, input, timeoutMs, retryLimit, critical });
+
+  if (phases.includes('dependencies')) {
+    push('dependencies', 'validate_dependencies', 'Validate dependencies', { runId, projectId }, true, 10_000, 1);
+  }
+  if (phases.includes('typecheck')) {
+    push('typecheck', 'run_typecheck', 'Run TypeScript type-check', { runId, projectId }, true, 60_000, 1);
+  }
+  if (phases.includes('build')) {
+    push('build', 'run_build', 'Run build', { runId, projectId }, true, 120_000, 1);
+  }
+  if (phases.includes('tests')) {
+    push('tests', 'run_tests', 'Run tests', { runId, projectId }, false, 120_000, 1);
+  }
+  if (phases.includes('runtime')) {
+    push('runtime', 'check_server_health', 'Check server health', { runId }, true, 15_000, 2);
+  }
+  if (phases.includes('endpoints')) {
+    push('endpoints', 'validate_endpoints', 'Validate endpoints', { runId, endpoints: [] }, false, 30_000, 1);
+  }
+
+  return steps;
 }
 
-export function skippedPhaseResult(phase: VerificationPhase): PhaseResult {
-  return { phase, status: 'skipped', durationMs: 0, errors: [], warnings: [] };
-}
-
-export function isTerminalStatus(status: VerificationStatus): boolean {
-  return status === 'passed' || status === 'failed' || status === 'cancelled';
-}
-
-export function summarizePhases(results: PhaseResult[]): string {
-  const failed  = failedPhases(results);
-  const total   = results.length;
-  const passed  = results.filter((r) => r.status === 'passed').length;
-  if (failed.length === 0) return `All ${total} phase(s) passed`;
-  return `${passed}/${total} passed — failed: ${failed.join(', ')}`;
-}
-
-export function elapsedMs(startedAt: Date): number {
-  return Date.now() - startedAt.getTime();
+export function isRetryableError(error: string): boolean {
+  const NON_RETRYABLE = [
+    /syntax error/i, /permission denied/i, /enospc/i,
+    /network unreachable/i, /enoent.*package\.json/i,
+  ];
+  return !NON_RETRYABLE.some((p) => p.test(error));
 }

@@ -1,71 +1,57 @@
 /**
- * diagnostics/rootcause-detector.ts
- * Root cause detection — sync heuristic version used by the tools layer,
- * plus async orchestration version used by agent workflows.
+ * server/agents/verifier/diagnostics/rootcause-detector.ts
+ * Detects root causes from verification step failures.
  */
 
-import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
-import type { RootCause, FailureCategory, ParsedError } from '../types/diagnostics.types.ts';
-import { detectRootCause } from '../coordination/tool-coordinator.ts';
-import { classifyCategory } from './error-classifier.ts';
-import { verifierLogger } from '../telemetry/verifier-logger.ts';
+import type { VerificationStepResult, VerificationPhase } from '../types/verifier.types.ts';
 
-const FIX_SUGGESTIONS: Partial<Record<FailureCategory, string>> = {
-  typecheck:  'Run tsc --noEmit. Fix type errors and missing imports.',
-  build:      'Check vite.config.ts and tsconfig.json. Ensure all deps are installed.',
-  runtime:    'Verify env vars are set. Check module resolution and node_modules.',
-  test:       'Inspect failing assertions. Ensure test fixtures and mocks are initialized.',
-  network:    'Verify server port. Check CORS and firewall settings.',
-  config:     'Ensure .env file exists with all required environment variables.',
-  dependency: 'Run npm install. Check package.json for version conflicts.',
-  unknown:    'Enable verbose logging. Inspect the full output for the root error.',
+export interface VerificationRootCause {
+  phase:       VerificationPhase;
+  category:    string;
+  description: string;
+  actionable:  string;
+  errors:      string[];
+}
+
+const PHASE_ACTIONABLE: Record<VerificationPhase, string> = {
+  build:       'Fix build errors — check package.json scripts and dependencies',
+  typecheck:   'Fix TypeScript errors — run `tsc --noEmit` locally',
+  tests:       'Fix failing tests — review test assertions and mocks',
+  runtime:     'Server is not starting — check startup command and port config',
+  endpoints:   'HTTP endpoints returning wrong status — review route handlers',
+  dependencies: 'Dependencies missing — run `npm install`',
+  validation:  'Validation failed — check input format and schema',
+  recovery:    'Recovery system error — check retry configuration',
+  diagnostics: 'Diagnostics failed — check error parsing configuration',
 };
 
-// ── Sync heuristic version ────────────────────────────────────────────────────
-// Called directly by the tools layer (server/tools/verifier/diagnostics/rootcause-detector.ts).
+export function detectVerificationRootCauses(results: VerificationStepResult[]): VerificationRootCause[] {
+  const failedByPhase = new Map<VerificationPhase, VerificationStepResult[]>();
 
-export function detectRootCauses(errors: ParsedError[]): RootCause[] {
-  if (!errors.length) return [];
-  return buildHeuristicRootCauses(errors.map((e) => e.message));
-}
-
-/** Return the single most-likely root cause for a set of ParsedErrors. */
-export function primaryRootCause(errors: ParsedError[]): RootCause | undefined {
-  return detectRootCauses(errors)[0];
-}
-
-export function buildHeuristicRootCauses(errorMessages: string[]): RootCause[] {
-  const groups: Partial<Record<FailureCategory, string[]>> = {};
-  for (const msg of errorMessages) {
-    const category = classifyCategory(msg);
-    if (!groups[category]) groups[category] = [];
-    groups[category]!.push(msg);
+  for (const r of results.filter((r) => !r.success)) {
+    const arr = failedByPhase.get(r.phase) ?? [];
+    arr.push(r);
+    failedByPhase.set(r.phase, arr);
   }
 
-  return (Object.entries(groups) as [FailureCategory, string[]][]).map(([category, msgs]) => ({
-    category,
-    description:   `${msgs.length} ${category} error(s) detected`,
-    primaryError:  msgs[0],
-    relatedErrors: msgs.slice(1, 5),
-    suggestedFix:  FIX_SUGGESTIONS[category],
-  }));
-}
-
-// ── Async orchestration version ───────────────────────────────────────────────
-// Called by agent workflows via tool-coordinator.
-
-export async function detectRootCausesAsync(
-  context: ToolExecutionContext,
-  errors:  string[],
-): Promise<RootCause[]> {
-  if (!errors.length) return [];
-
-  const toolResult = await detectRootCause(context, errors);
-  if (toolResult.ok) {
-    const data = (toolResult as { ok: true; data: unknown; durationMs: number }).data;
-    if (Array.isArray(data)) return data as RootCause[];
+  const causes: VerificationRootCause[] = [];
+  for (const [phase, stepResults] of failedByPhase) {
+    const errors = stepResults.map((r) => r.error ?? 'Unknown error').filter(Boolean);
+    causes.push({
+      phase,
+      category:    phase,
+      description: errors.slice(0, 3).join('; '),
+      actionable:  PHASE_ACTIONABLE[phase] ?? 'Review logs and fix the underlying issue',
+      errors,
+    });
   }
 
-  verifierLogger.warn(context.runId, 'Root cause tool failed — using heuristic fallback');
-  return buildHeuristicRootCauses(errors);
+  return causes.sort((a, b) => {
+    const order: VerificationPhase[] = ['dependencies', 'typecheck', 'build', 'tests', 'runtime', 'endpoints'];
+    return order.indexOf(a.phase) - order.indexOf(b.phase);
+  });
+}
+
+export function primaryRootCause(results: VerificationStepResult[]): VerificationRootCause | undefined {
+  return detectVerificationRootCauses(results)[0];
 }

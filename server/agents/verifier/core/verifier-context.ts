@@ -1,58 +1,37 @@
 /**
- * core/verifier-context.ts
- * Immutable execution context for a single verification run.
+ * server/agents/verifier/core/verifier-context.ts
+ * Immutable execution context passed through the verifier agent pipeline.
  */
 
-import type { VerificationInput, VerificationConfig } from '../types/verifier.types.ts';
-import { DEFAULT_VERIFICATION_CONFIG } from '../types/verifier.types.ts';
-import { buildContext } from '../coordination/dispatcher-client.ts';
 import type { ToolExecutionContext } from '../../../tools/registry/tool-types.ts';
+import type { VerificationPhase }    from '../types/verifier.types.ts';
 
-export interface VerifierContext {
-  readonly input:       VerificationInput;
-  readonly config:      VerificationConfig;
-  readonly toolContext: ToolExecutionContext;
-  readonly startedAt:   Date;
+export interface VerifierExecutionContext {
+  readonly runId:       string;
+  readonly projectId:   string;
+  readonly sandboxRoot: string;
+  readonly phases:      ReadonlyArray<VerificationPhase>;
+  readonly port?:       number;
+  readonly timeoutMs:   number;
+  readonly signal?:     AbortSignal;
+  readonly toolCtx:     ToolExecutionContext;
 }
 
-export function createVerifierContext(
-  input:   VerificationInput,
-  config?: Partial<VerificationConfig>,
-): VerifierContext {
-  const mergedConfig: VerificationConfig = { ...DEFAULT_VERIFICATION_CONFIG, ...config };
-
-  const toolContext = buildContext(
-    input.runId,
-    input.projectId,
-    input.sandboxRoot,
-    {
-      phases:    input.phases,
-      port:      input.port,
-      timeoutMs: input.timeoutMs,
-    },
-    input.abortSignal,
-  );
-
-  return {
-    input,
-    config:    mergedConfig,
-    toolContext,
-    startedAt: new Date(),
-  };
-}
-
-export function contextWith(
-  ctx:   VerifierContext,
-  patch: Partial<Pick<VerificationConfig, 'maxRetries' | 'phaseTimeoutMs' | 'stopOnFailure'>>,
-): VerifierContext {
-  return { ...ctx, config: { ...ctx.config, ...patch } };
-}
-
-export function elapsedMs(ctx: VerifierContext): number {
-  return Date.now() - ctx.startedAt.getTime();
-}
-
-export function isTimedOut(ctx: VerifierContext): boolean {
-  const timeout = ctx.input.timeoutMs ?? 300_000;
-  return elapsedMs(ctx) > timeout;
+export function buildVerifierContext(
+  runId:       string,
+  projectId:   string,
+  phases:      VerificationPhase[],
+  sandboxRoot  = process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+  port?:       number,
+  timeoutMs    = 120_000,
+  signal?:     AbortSignal,
+): VerifierExecutionContext {
+  const toolCtx: ToolExecutionContext = Object.freeze({
+    runId, projectId, sandboxRoot, meta: {}, signal,
+  });
+  return Object.freeze({
+    runId, projectId, sandboxRoot,
+    phases:    Object.freeze([...phases]),
+    port, timeoutMs, signal, toolCtx,
+  });
 }

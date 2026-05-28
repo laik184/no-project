@@ -2,7 +2,7 @@ import {
   checkAllEndpoints,
   checkEndpoint,
   summarizeEndpointResults,
-} from '../../../agents/verifier/runtime/endpoint-checker.ts';
+} from '../lib/endpoint-checker.ts';
 import type { EndpointSpec, EndpointCheckResult } from '../shared/verifier-types.ts';
 import type { ToolDefinition }                    from '../../registry/tool-types.ts';
 import { toToolOk, toToolFail }                   from '../shared/verifier-result.ts';
@@ -13,8 +13,8 @@ export async function validateEndpoints(
   endpoints: EndpointSpec[],
   port?:     number,
 ): Promise<{ results: EndpointCheckResult[]; allPassed: boolean; failedCount: number }> {
-  const results  = await checkAllEndpoints(endpoints, { port });
-  const summary  = summarizeEndpointResults(results);
+  const results = await checkAllEndpoints(endpoints, { port });
+  const summary = summarizeEndpointResults(results);
   return { results, allPassed: summary.failed === 0, failedCount: summary.failed };
 }
 
@@ -23,8 +23,8 @@ export const endpointValidatorTool: ToolDefinition = {
   category:    'verifier',
   description: 'Validate HTTP endpoints return expected status codes',
   inputSchema: {
-    runId:     { type: 'string', description: 'Run ID',             required: true },
-    endpoints: { type: 'array',  description: 'Endpoint specs',     required: true },
+    runId:     { type: 'string', description: 'Run ID',         required: true },
+    endpoints: { type: 'array',  description: 'Endpoint specs', required: true },
     port:      { type: 'number', description: 'Override port' },
   },
   permissions: ['network'],

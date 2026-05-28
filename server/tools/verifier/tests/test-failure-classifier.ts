@@ -1,11 +1,8 @@
-import {
-  analyzeTestFailures,
-  failuresToParsedErrors,
-} from '../../../agents/verifier/testing/test-failure-analyzer.ts';
-import { parseTestOutput } from '../../../agents/verifier/testing/test-result-parser.ts';
-import type { ParsedError } from '../shared/verifier-types.ts';
-import type { ToolDefinition } from '../../registry/tool-types.ts';
-import { toToolOk }            from '../shared/verifier-result.ts';
+import { analyzeTestFailures, failuresToParsedErrors } from '../lib/test-failure-analyzer.ts';
+import { parseTestOutput }                              from '../lib/test-result-parser.ts';
+import type { ParsedError }                             from '../shared/verifier-types.ts';
+import type { ToolDefinition }                          from '../../registry/tool-types.ts';
+import { toToolOk }                                     from '../shared/verifier-result.ts';
 
 export { analyzeTestFailures, failuresToParsedErrors };
 

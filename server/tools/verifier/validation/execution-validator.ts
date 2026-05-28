@@ -1,10 +1,6 @@
-import {
-  validateExecution,
-  validateExitCode,
-} from '../../../agents/verifier/validation/execution-validator.ts';
-import type { ValidationReport } from '../shared/verifier-types.ts';
-import type { ToolDefinition }   from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail }  from '../shared/verifier-result.ts';
+import { validateExecution, validateExitCode } from '../lib/execution-validator.ts';
+import type { ToolDefinition }                 from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }                from '../shared/verifier-result.ts';
 
 export { validateExecution, validateExitCode };
 

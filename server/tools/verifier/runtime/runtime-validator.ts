@@ -1,10 +1,9 @@
-import { checkRuntime }         from '../../../agents/verifier/runtime/runtime-checker.ts';
-import type { RuntimeCheckOptions, RuntimeCheckSummary } from '../../../agents/verifier/runtime/runtime-checker.ts';
-import type { ToolDefinition, ToolExecutionContext }     from '../../registry/tool-types.ts';
-import type { EndpointSpec }                             from '../shared/verifier-types.ts';
-import { toToolOk, toToolFail }                          from '../shared/verifier-result.ts';
+import { checkRuntime, type RuntimeCheckOptions, type RuntimeCheckSummary } from '../lib/runtime-checker.ts';
+import type { ToolDefinition, ToolExecutionContext }                         from '../../registry/tool-types.ts';
+import type { EndpointSpec }                                                 from '../shared/verifier-types.ts';
+import { toToolOk, toToolFail }                                              from '../shared/verifier-result.ts';
 
-export { type RuntimeCheckOptions, type RuntimeCheckSummary };
+export type { RuntimeCheckOptions, RuntimeCheckSummary };
 
 export const runtimeValidatorTool: ToolDefinition = {
   name:        'validate_runtime',

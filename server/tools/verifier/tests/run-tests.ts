@@ -1,11 +1,11 @@
-import { runTests as _runTests } from '../../../agents/verifier/testing/test-runner.ts';
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { toToolOk, toToolFail } from '../shared/verifier-result.ts';
-import { verifierMetrics }      from '../monitoring/verification-metrics.ts';
+import { runTests as _runTests, type TestRunResult } from '../lib/test-runner.ts';
+import type { ToolDefinition, ToolExecutionContext }  from '../../registry/tool-types.ts';
+import { toToolOk, toToolFail }                       from '../shared/verifier-result.ts';
+import { verifierMetrics }                            from '../monitoring/verification-metrics.ts';
 
-export { type TestRunResult } from '../../../agents/verifier/testing/test-runner.ts';
+export type { TestRunResult };
 
-export async function runTests(runId: string, projectId: string, script = 'test') {
+export async function runTests(runId: string, projectId: string, script = 'test'): Promise<TestRunResult> {
   return _runTests(runId, projectId, script);
 }
 
@@ -30,7 +30,7 @@ export const runTestsTool: ToolDefinition = {
         (input.script   as string) ?? 'test',
       );
       const ms = Date.now() - start;
-      verifierMetrics.recordTests(ctx.runId, result.testCount - result.failCount, result.failCount);
+      verifierMetrics.recordTests(ctx.runId, result.passCount, result.failCount);
       return result.passed
         ? toToolOk(result, ms)
         : toToolFail(`${result.failCount} test(s) failed: ${result.summary}`, ms);
