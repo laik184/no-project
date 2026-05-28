@@ -3,13 +3,14 @@
  * Tool: coding_generate_dashboard
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { DashboardInput }                       from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../shared/string-utils.ts';
 
 function dashboardTemplate(name: string, widgets: string[]): string {
   const Name = toPascalCase(name);
@@ -33,7 +34,7 @@ export default ${Name}Dashboard;
 `;
 }
 
-export const generateDashboardTool = {
+export const generateDashboardTool = defineCodingTool({
   name:        'coding_generate_dashboard',
   category:    'coding',
   description: 'Generate a React dashboard layout with metric widgets. Returns file map — does not write to disk.',
@@ -59,4 +60,4 @@ export const generateDashboardTool = {
 
     return codingOk(templateResult(files, `Generated dashboard: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

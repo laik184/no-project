@@ -6,13 +6,14 @@
  * plus a stub for any missing child components.
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ComponentTreeInput }                   from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils.ts';
+import { toKebabCase, toPascalCase }                  from '../../shared/string-utils.ts';
 
 function componentStub(name: string): string {
   const Name = toPascalCase(name);
@@ -38,7 +39,7 @@ function barrelTemplate(root: string, children: string[]): string {
   return [rootLine, ...childLines].join('\n') + '\n';
 }
 
-export const generateComponentTreeTool = {
+export const generateComponentTreeTool = defineCodingTool({
   name:        'coding_generate_component_tree',
   category:    'coding',
   description: 'Generate a component tree: root component + child stubs + barrel index. Returns file map — does not write to disk.',
@@ -75,4 +76,4 @@ export const generateComponentTreeTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

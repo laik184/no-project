@@ -3,8 +3,9 @@
  * Tool: coding_generate_session_auth
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { SessionAuthInput }                     from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -71,7 +72,7 @@ export default router;
 `;
 }
 
-export const generateSessionAuthTool = {
+export const generateSessionAuthTool = defineCodingTool({
   name:        'coding_generate_session_auth',
   category:    'coding',
   description: 'Generate session-based auth with express-session. Returns file map — does not write to disk.',
@@ -92,4 +93,4 @@ export const generateSessionAuthTool = {
 
     return codingOk(templateResult(files, 'Generated session auth: routes/auth.ts', report.warnings));
   },
-} as unknown as ToolDefinition;
+});

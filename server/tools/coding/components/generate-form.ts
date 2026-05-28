@@ -3,13 +3,14 @@
  * Tool: coding_generate_form
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { FormInput }                            from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../shared/string-utils.ts';
 
 function formTemplate(
   name:   string,
@@ -64,7 +65,7 @@ export default ${Name}Form;
 `;
 }
 
-export const generateFormTool = {
+export const generateFormTool = defineCodingTool({
   name:        'coding_generate_form',
   category:    'coding',
   description: 'Generate a controlled React form component. Returns file map — does not write to disk.',
@@ -98,4 +99,4 @@ export const generateFormTool = {
 
     return codingOk(templateResult(files, `Generated form component: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

@@ -3,16 +3,17 @@
  * Tool: coding_generate_react_hook
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ReactHookInput }                       from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { reactHookTemplate }                          from '../templates/react-template.ts';
-import { toKebabCase, toCamelCase }                   from '../../../agents/coderx/utils.ts';
+import { toKebabCase, toCamelCase }                   from '../../shared/string-utils.ts';
 
-export const generateReactHookTool = {
+export const generateReactHookTool = defineCodingTool({
   name:        'coding_generate_react_hook',
   category:    'coding',
   description: 'Generate a custom React hook. Returns file map — does not write to disk.',
@@ -41,4 +42,4 @@ export const generateReactHookTool = {
 
     return codingOk(templateResult(files, `Generated React hook: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

@@ -3,12 +3,13 @@
  * Tool: coding_generate_loading_state
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { LoadingStateInput }                    from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase }                               from '../../../agents/coderx/utils.ts';
+import { toPascalCase }                               from '../../shared/string-utils.ts';
 
 type Variant = 'spinner' | 'skeleton' | 'pulse';
 
@@ -69,7 +70,7 @@ const TEMPLATES: Record<Variant, (Name: string) => string> = {
   pulse:    pulseTemplate,
 };
 
-export const generateLoadingStateTool = {
+export const generateLoadingStateTool = defineCodingTool({
   name:        'coding_generate_loading_state',
   category:    'coding',
   description: 'Generate a React loading state component (spinner | skeleton | pulse). Returns file map — does not write to disk.',
@@ -96,4 +97,4 @@ export const generateLoadingStateTool = {
 
     return codingOk(templateResult(files, `Generated loading state (${variant}): ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

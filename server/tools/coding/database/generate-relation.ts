@@ -3,13 +3,14 @@
  * Tool: coding_generate_relation
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { RelationInput }                        from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toCamelCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase }                  from '../../shared/string-utils.ts';
 
 type RelationType = 'one-to-many' | 'many-to-many' | 'one-to-one';
 
@@ -74,7 +75,7 @@ export const ${fromCamel}Relations = relations(${fromCamel}Table, ({ one }) => (
 
 const VALID_TYPES = new Set<RelationType>(['one-to-many', 'many-to-many', 'one-to-one']);
 
-export const generateRelationTool = {
+export const generateRelationTool = defineCodingTool({
   name:        'coding_generate_relation',
   category:    'coding',
   description: 'Generate a Drizzle ORM relation definition between two tables. Returns file map — does not write to disk.',
@@ -108,4 +109,4 @@ export const generateRelationTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

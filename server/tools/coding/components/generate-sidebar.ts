@@ -3,8 +3,9 @@
  * Tool: coding_generate_sidebar
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { SidebarInput }                         from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -36,7 +37,7 @@ export default Sidebar;
 `;
 }
 
-export const generateSidebarTool = {
+export const generateSidebarTool = defineCodingTool({
   name:        'coding_generate_sidebar',
   category:    'coding',
   description: 'Generate a React sidebar navigation component. Returns file map — does not write to disk.',
@@ -56,4 +57,4 @@ export const generateSidebarTool = {
     if (!report.passed) return codingFail(`Validation failed: ${report.errors.join('; ')}`);
     return codingOk(templateResult(files, `Generated sidebar with ${items.length} item(s)`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

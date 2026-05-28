@@ -5,7 +5,7 @@
  * All functions are pure and synchronous.
  */
 
-import { toPascalCase } from '../../../agents/coderx/utils.ts';
+import { toPascalCase } from '../../shared/string-utils.ts';
 
 export function jwtMiddlewareTemplate(userFields: string[] = ['email', 'password']): string {
   return `import { type Request, type Response, type NextFunction } from 'express';

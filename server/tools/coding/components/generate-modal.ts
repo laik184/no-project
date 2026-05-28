@@ -3,13 +3,14 @@
  * Tool: coding_generate_modal
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ModalInput }                           from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../shared/string-utils.ts';
 
 function modalTemplate(name: string, content?: string): string {
   const Name = toPascalCase(name);
@@ -69,7 +70,7 @@ export default ${Name}Modal;
 `;
 }
 
-export const generateModalTool = {
+export const generateModalTool = defineCodingTool({
   name:        'coding_generate_modal',
   category:    'coding',
   description: 'Generate an accessible React modal component. Returns file map — does not write to disk.',
@@ -94,4 +95,4 @@ export const generateModalTool = {
 
     return codingOk(templateResult(files, `Generated modal component: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

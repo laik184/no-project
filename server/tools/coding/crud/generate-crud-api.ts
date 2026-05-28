@@ -3,16 +3,17 @@
  * Tool: coding_generate_crud_api
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { CrudApiInput }                         from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudApiTemplate }                            from '../templates/crud-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
-export const generateCrudApiTool = {
+export const generateCrudApiTool = defineCodingTool({
   name:        'coding_generate_crud_api',
   category:    'coding',
   description: 'Generate an Express CRUD API router only (no UI, no schema). Returns file map — does not write to disk.',
@@ -41,4 +42,4 @@ export const generateCrudApiTool = {
 
     return codingOk(templateResult(files, `Generated CRUD API router: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

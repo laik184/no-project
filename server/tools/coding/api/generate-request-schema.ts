@@ -3,16 +3,17 @@
  * Tool: coding_generate_request_schema
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { RequestSchemaInput }                   from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { requestSchemaTemplate }                      from '../templates/api-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
-export const generateRequestSchemaTool = {
+export const generateRequestSchemaTool = defineCodingTool({
   name:        'coding_generate_request_schema',
   category:    'coding',
   description: 'Generate a Zod request validation schema + typed DTO. Returns file map — does not write to disk.',
@@ -46,4 +47,4 @@ export const generateRequestSchemaTool = {
 
     return codingOk(templateResult(files, `Generated request schema: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

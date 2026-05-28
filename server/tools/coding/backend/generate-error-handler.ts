@@ -3,8 +3,9 @@
  * Tool: coding_generate_error_handler
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ErrorHandlerInput }                    from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -44,7 +45,7 @@ export function notFoundHandler(_req: Request, res: Response): void {
 `;
 }
 
-export const generateErrorHandlerTool = {
+export const generateErrorHandlerTool = defineCodingTool({
   name:        'coding_generate_error_handler',
   category:    'coding',
   description: 'Generate an Express global error handler + 404 middleware. Returns file map — does not write to disk.',
@@ -66,4 +67,4 @@ export const generateErrorHandlerTool = {
 
     return codingOk(templateResult(files, 'Generated global error handler middleware', report.warnings));
   },
-} as unknown as ToolDefinition;
+});

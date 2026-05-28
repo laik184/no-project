@@ -246,3 +246,9 @@ id = "SCWfyyVe_KorMTf5wiF8Q"
 uri = "file://TOOLS_DEEP_SCAN_REPORT.md"
 type = "text"
 title = "Tools Deep Scan Report — server/tools/"
+
+[[outputs]]
+id = "nqQKvi_KoEjDxT78hVW0n"
+uri = "file://TOOLS_ARCHITECTURE_REPAIR_REPORT.md"
+type = "text"
+title = "Architecture Repair Report — server/tools/"

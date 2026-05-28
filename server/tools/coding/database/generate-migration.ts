@@ -3,13 +3,14 @@
  * Tool: coding_generate_migration
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { MigrationInput }                       from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
 function migrationTemplate(name: string, up: string, down?: string): string {
   const stamp = new Date().toISOString().replace(/[:.TZ-]/g, '').slice(0, 14);
@@ -28,7 +29,7 @@ ${downBlock}
 `;
 }
 
-export const generateMigrationTool = {
+export const generateMigrationTool = defineCodingTool({
   name:        'coding_generate_migration',
   category:    'coding',
   description: 'Generate a database migration file (up + down). Returns file map — does not write to disk.',
@@ -56,4 +57,4 @@ export const generateMigrationTool = {
 
     return codingOk(templateResult(files, `Generated migration: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

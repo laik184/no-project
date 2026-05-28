@@ -5,7 +5,7 @@
  * All functions are pure and synchronous.
  */
 
-import { toPascalCase, toCamelCase, toKebabCase, pluralize } from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase, toKebabCase, pluralize } from '../../shared/string-utils.ts';
 
 export function crudApiTemplate(resource: string, fields: string[]): string {
   const Name      = toPascalCase(resource);

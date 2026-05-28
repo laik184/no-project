@@ -5,13 +5,14 @@
  * Generates a TypeScript barrel module with re-exports.
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ModuleInput }                          from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
 function moduleTemplate(name: string, exports: string[]): string {
   if (exports.length === 0) {
@@ -22,7 +23,7 @@ function moduleTemplate(name: string, exports: string[]): string {
     .join('\n') + '\n';
 }
 
-export const generateModuleTool = {
+export const generateModuleTool = defineCodingTool({
   name:        'coding_generate_module',
   category:    'coding',
   description: 'Generate a TypeScript barrel module (index.ts) with named re-exports. Returns file map — does not write to disk.',
@@ -52,4 +53,4 @@ export const generateModuleTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

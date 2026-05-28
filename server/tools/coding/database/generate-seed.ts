@@ -3,13 +3,14 @@
  * Tool: coding_generate_seed
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { SeedInput }                            from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toCamelCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase }                  from '../../shared/string-utils.ts';
 
 function seedTemplate(table: string, count: number, fields: string[]): string {
   const Name = toPascalCase(table);
@@ -39,7 +40,7 @@ if (import.meta.url === new URL(process.argv[1], 'file://').href) {
 `;
 }
 
-export const generateSeedTool = {
+export const generateSeedTool = defineCodingTool({
   name:        'coding_generate_seed',
   category:    'coding',
   description: 'Generate a database seed script for a table. Returns file map — does not write to disk.',
@@ -67,4 +68,4 @@ export const generateSeedTool = {
 
     return codingOk(templateResult(files, `Generated seed: ${filename} (${count} records)`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

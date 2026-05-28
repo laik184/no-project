@@ -1,22 +1,25 @@
 /**
  * server/tools/telemetry/index.ts
  *
- * Fix #11 — Cross-category observability hub.
+ * Cross-category observability hub.
  *
  * Provides a single query surface for metrics and audit data
  * that spans ALL tool categories. Previously each category had
  * isolated metric stores; this module aggregates them centrally.
  *
+ * Category resolution uses the tool metadata catalogue (registered at boot)
+ * rather than string-splitting on tool names. This gives correct categories
+ * even for tools that don't follow the `category_name` naming convention.
+ *
  * Data sources:
  *   - registry/tool-metrics.ts  → per-tool invocation metrics (wired to dispatcher)
  *   - registry/tool-security.ts → audit log (wired to dispatcher)
- *   - verifier/monitoring/      → verifier-specific phase metrics
- *   - browser/monitoring/       → browser session metrics
- *   - terminal/monitoring/      → terminal execution metrics
+ *   - registry/tool-metadata.ts → category lookup (replaces tool.split('_')[0])
  */
 
 import { getAllMetricsSnapshot, getMetrics, type ToolMetrics } from '../registry/tool-metrics.ts';
 import { getAuditLog, auditStats, type AuditLogEntry }        from '../registry/tool-security.ts';
+import { getMetadata }                                          from '../registry/tool-metadata.ts';
 import type { ToolCategory }                                   from '../registry/tool-types.ts';
 
 export type { ToolMetrics, AuditLogEntry };
@@ -34,9 +37,22 @@ export interface GlobalToolStats {
 }
 
 export interface CategoryStats {
-  invocations: number;
-  failures:    number;
+  invocations:   number;
+  failures:      number;
   avgDurationMs: number;
+}
+
+/**
+ * Resolve a tool's category using the metadata catalogue.
+ * Falls back to parsing the tool name prefix only if metadata is missing
+ * (e.g. tools registered before the catalogue was populated in tests).
+ */
+function resolveCategory(toolName: string): string {
+  const meta = getMetadata(toolName);
+  if (meta?.category) return meta.category;
+  // Fallback: first segment before '_' (best-effort for unknown tools)
+  const prefix = toolName.split('_')[0];
+  return prefix ?? 'unknown';
 }
 
 /**
@@ -44,8 +60,8 @@ export interface CategoryStats {
  * This is the single query point for global observability.
  */
 export function getGlobalStats(): GlobalToolStats {
-  const snapshot  = getAllMetricsSnapshot();
-  const auditSum  = auditStats();
+  const snapshot = getAllMetricsSnapshot();
+  const auditSum = auditStats();
 
   let totalInvocations = 0;
   let totalFailures    = 0;
@@ -59,14 +75,17 @@ export function getGlobalStats(): GlobalToolStats {
     totalFailures    += m.failures;
     totalTimeouts    += m.timeouts;
 
-    const cat = tool.split('_')[0] ?? 'unknown';
-    const prev = byCategory[cat] ?? { invocations: 0, failures: 0, avgDurationMs: 0 };
+    const cat       = resolveCategory(tool);
+    const prev      = byCategory[cat] ?? { invocations: 0, failures: 0, avgDurationMs: 0 };
     const totalCatInv = prev.invocations + m.invocations;
+
     byCategory[cat] = {
-      invocations:  totalCatInv,
-      failures:     prev.failures + m.failures,
+      invocations:   totalCatInv,
+      failures:      prev.failures + m.failures,
       avgDurationMs: totalCatInv > 0
-        ? Math.round((prev.avgDurationMs * prev.invocations + m.avgDurationMs * m.invocations) / totalCatInv)
+        ? Math.round(
+            (prev.avgDurationMs * prev.invocations + m.avgDurationMs * m.invocations) / totalCatInv,
+          )
         : 0,
     };
 
@@ -82,7 +101,7 @@ export function getGlobalStats(): GlobalToolStats {
     successRate: totalInvocations > 0
       ? Math.round(((totalInvocations - totalFailures) / totalInvocations) * 100)
       : 100,
-    byCategory: byCategory as Record<ToolCategory | string, CategoryStats>,
+    byCategory:  byCategory as Record<ToolCategory | string, CategoryStats>,
     topFailures: toolFailures.slice(0, 10),
     auditSummary: auditSum,
   };

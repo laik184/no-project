@@ -3,8 +3,9 @@
  * Tool: coding_generate_navbar
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { NavbarInput }                          from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -33,7 +34,7 @@ export default Navbar;
 `;
 }
 
-export const generateNavbarTool = {
+export const generateNavbarTool = defineCodingTool({
   name:        'coding_generate_navbar',
   category:    'coding',
   description: 'Generate a responsive React navbar with navigation links. Returns file map — does not write to disk.',
@@ -53,4 +54,4 @@ export const generateNavbarTool = {
     if (!report.passed) return codingFail(`Validation failed: ${report.errors.join('; ')}`);
     return codingOk(templateResult(files, `Generated navbar with ${links.length} link(s)`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

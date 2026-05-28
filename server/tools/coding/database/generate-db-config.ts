@@ -3,8 +3,9 @@
  * Tool: coding_generate_db_config
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { DbConfigInput }                        from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -51,7 +52,7 @@ const CONFIGS: Record<Dialect, () => string> = {
   mysql:    mysqlConfig,
 };
 
-export const generateDbConfigTool = {
+export const generateDbConfigTool = defineCodingTool({
   name:        'coding_generate_db_config',
   category:    'coding',
   description: 'Generate a Drizzle ORM database configuration file. Returns file map — does not write to disk.',
@@ -75,4 +76,4 @@ export const generateDbConfigTool = {
 
     return codingOk(templateResult(files, `Generated Drizzle ${dialect} config: lib/db.ts`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

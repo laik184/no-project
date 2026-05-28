@@ -5,7 +5,7 @@
  * All functions are pure and synchronous.
  */
 
-import { toPascalCase, toKebabCase } from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase } from '../../shared/string-utils.ts';
 
 export function reactPageTemplate(name: string, content?: string): string {
   const Name = toPascalCase(name);

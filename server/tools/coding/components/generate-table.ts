@@ -3,13 +3,14 @@
  * Tool: coding_generate_table
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { TableInput }                           from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../shared/string-utils.ts';
 
 function tableTemplate(
   name:    string,
@@ -59,7 +60,7 @@ export default ${Name}Table;
 `;
 }
 
-export const generateTableTool = {
+export const generateTableTool = defineCodingTool({
   name:        'coding_generate_table',
   category:    'coding',
   description: 'Generate a React data table component. Returns file map — does not write to disk.',
@@ -88,4 +89,4 @@ export const generateTableTool = {
 
     return codingOk(templateResult(files, `Generated table component: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

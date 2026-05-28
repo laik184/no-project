@@ -3,14 +3,15 @@
  * Tool: coding_generate_jwt_auth
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { JwtAuthInput }                         from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { jwtMiddlewareTemplate, authRoutesTemplate } from '../templates/auth-template.ts';
 
-export const generateJwtAuthTool = {
+export const generateJwtAuthTool = defineCodingTool({
   name:        'coding_generate_jwt_auth',
   category:    'coding',
   description: 'Generate JWT authentication: middleware/auth.ts + routes/auth.ts (register, login, logout). Returns file map — does not write to disk.',
@@ -39,4 +40,4 @@ export const generateJwtAuthTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

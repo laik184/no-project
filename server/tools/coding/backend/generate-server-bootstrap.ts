@@ -3,14 +3,15 @@
  * Tool: coding_generate_server_bootstrap
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ServerBootstrapInput }                 from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { expressServerTemplate }                      from '../templates/express-template.ts';
 
-export const generateServerBootstrapTool = {
+export const generateServerBootstrapTool = defineCodingTool({
   name:        'coding_generate_server_bootstrap',
   category:    'coding',
   description: 'Generate an Express server entry point (server.ts). Returns file map — does not write to disk.',
@@ -40,4 +41,4 @@ export const generateServerBootstrapTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

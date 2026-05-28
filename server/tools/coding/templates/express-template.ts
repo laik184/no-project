@@ -5,7 +5,7 @@
  * All functions are pure and synchronous.
  */
 
-import { toPascalCase, toCamelCase } from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase } from '../../shared/string-utils.ts';
 
 export function expressRouteTemplate(
   name: string,

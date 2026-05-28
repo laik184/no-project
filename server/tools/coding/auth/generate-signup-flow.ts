@@ -3,12 +3,13 @@
  * Tool: coding_generate_signup_flow
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { SignupFlowInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase }                               from '../../../agents/coderx/utils.ts';
+import { toPascalCase }                               from '../../shared/string-utils.ts';
 
 function signupFlowTemplate(fields: string[]): string {
   const allFields  = Array.from(new Set(['email', 'password', ...fields]));
@@ -74,7 +75,7 @@ export default SignupPage;
 `;
 }
 
-export const generateSignupFlowTool = {
+export const generateSignupFlowTool = defineCodingTool({
   name:        'coding_generate_signup_flow',
   category:    'coding',
   description: 'Generate a React signup page with form state and API call. Returns file map — does not write to disk.',
@@ -95,4 +96,4 @@ export const generateSignupFlowTool = {
 
     return codingOk(templateResult(files, 'Generated signup page: src/pages/signup.tsx', report.warnings));
   },
-} as unknown as ToolDefinition;
+});

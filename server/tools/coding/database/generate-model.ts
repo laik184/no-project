@@ -3,13 +3,14 @@
  * Tool: coding_generate_model
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ModelInput }                           from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toKebabCase }                  from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toKebabCase }                  from '../../shared/string-utils.ts';
 
 function modelTemplate(name: string, fields: Array<{ name: string; type: string }>): string {
   const Name      = toPascalCase(name);
@@ -34,7 +35,7 @@ export type ${Name}Id = string;
 `;
 }
 
-export const generateModelTool = {
+export const generateModelTool = defineCodingTool({
   name:        'coding_generate_model',
   category:    'coding',
   description: 'Generate TypeScript model interfaces (entity + DTO types). Returns file map — does not write to disk.',
@@ -66,4 +67,4 @@ export const generateModelTool = {
 
     return codingOk(templateResult(files, `Generated model types: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

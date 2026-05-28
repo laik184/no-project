@@ -3,8 +3,9 @@
  * Tool: coding_generate_login_flow
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { LoginFlowInput }                       from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
@@ -81,7 +82,7 @@ export default LoginPage;
 `;
 }
 
-export const generateLoginFlowTool = {
+export const generateLoginFlowTool = defineCodingTool({
   name:        'coding_generate_login_flow',
   category:    'coding',
   description: 'Generate a React login page with form state and API call. Returns file map — does not write to disk.',
@@ -102,4 +103,4 @@ export const generateLoginFlowTool = {
 
     return codingOk(templateResult(files, 'Generated login page: src/pages/login.tsx', report.warnings));
   },
-} as unknown as ToolDefinition;
+});

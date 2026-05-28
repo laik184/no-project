@@ -3,13 +3,14 @@
  * Tool: coding_generate_api_handler
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { ApiHandlerInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
-import { toPascalCase, toCamelCase, toKebabCase }     from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase, toKebabCase }     from '../../shared/string-utils.ts';
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -40,7 +41,7 @@ ${bodies[method]}
 
 const VALID_METHODS = new Set<Method>(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']);
 
-export const generateApiHandlerTool = {
+export const generateApiHandlerTool = defineCodingTool({
   name:        'coding_generate_api_handler',
   category:    'coding',
   description: 'Generate a single typed Express route handler function. Returns file map — does not write to disk.',
@@ -71,4 +72,4 @@ export const generateApiHandlerTool = {
 
     return codingOk(templateResult(files, `Generated ${method} handler for "${toPascalCase(input.resource)}"`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

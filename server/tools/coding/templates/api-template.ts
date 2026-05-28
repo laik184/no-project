@@ -5,7 +5,7 @@
  * All functions are pure and synchronous.
  */
 
-import { toPascalCase, toCamelCase, pluralize } from '../../../agents/coderx/utils.ts';
+import { toPascalCase, toCamelCase, pluralize } from '../../shared/string-utils.ts';
 
 export interface ApiField {
   name:      string;

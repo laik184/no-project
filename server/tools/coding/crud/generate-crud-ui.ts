@@ -3,16 +3,17 @@
  * Tool: coding_generate_crud_ui
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { CrudUiInput }                          from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudUiTemplate }                             from '../templates/crud-template.ts';
-import { toPascalCase }                               from '../../../agents/coderx/utils.ts';
+import { toPascalCase }                               from '../../shared/string-utils.ts';
 
-export const generateCrudUITool = {
+export const generateCrudUITool = defineCodingTool({
   name:        'coding_generate_crud_ui',
   category:    'coding',
   description: 'Generate a React CRUD UI component only (list + create + delete). Returns file map — does not write to disk.',
@@ -42,4 +43,4 @@ export const generateCrudUITool = {
 
     return codingOk(templateResult(files, `Generated CRUD UI: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

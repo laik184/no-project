@@ -3,14 +3,15 @@
  * Tool: coding_generate_auth_middleware
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { AuthMiddlewareInput }                  from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { jwtMiddlewareTemplate }                      from '../templates/auth-template.ts';
 
-export const generateAuthMiddlewareTool = {
+export const generateAuthMiddlewareTool = defineCodingTool({
   name:        'coding_generate_auth_middleware',
   category:    'coding',
   description: 'Generate an auth middleware (JWT or session guard). Returns file map — does not write to disk.',
@@ -49,4 +50,4 @@ export function requireSession(req: Request, res: Response, next: NextFunction):
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

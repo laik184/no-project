@@ -3,16 +3,17 @@
  * Tool: coding_generate_crud_schema
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { CrudSchemaInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudSchemaTemplate }                         from '../templates/crud-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
-export const generateCrudSchemaTool = {
+export const generateCrudSchemaTool = defineCodingTool({
   name:        'coding_generate_crud_schema',
   category:    'coding',
   description: 'Generate a Drizzle ORM schema + Zod insert schema for a CRUD resource. Returns file map — does not write to disk.',
@@ -44,4 +45,4 @@ export const generateCrudSchemaTool = {
 
     return codingOk(templateResult(files, `Generated CRUD schema: ${filename}`, report.warnings));
   },
-} as unknown as ToolDefinition;
+});

@@ -3,19 +3,20 @@
  * Tool: coding_generate_tailwind_ui
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { TailwindUIInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { tailwindUITemplate }                         from '../templates/react-template.ts';
-import { toKebabCase }                                from '../../../agents/coderx/utils.ts';
+import { toKebabCase }                                from '../../shared/string-utils.ts';
 
 const VALID_VARIANTS = new Set(['card', 'button', 'input', 'badge', 'alert'] as const);
 type Variant = 'card' | 'button' | 'input' | 'badge' | 'alert';
 
-export const generateTailwindUITool = {
+export const generateTailwindUITool = defineCodingTool({
   name:        'coding_generate_tailwind_ui',
   category:    'coding',
   description: 'Generate a Tailwind CSS UI primitive (card | button | input | badge | alert). Returns file map — does not write to disk.',
@@ -50,4 +51,4 @@ export const generateTailwindUITool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});

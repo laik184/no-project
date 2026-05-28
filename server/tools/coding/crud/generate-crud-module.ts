@@ -6,16 +6,17 @@
  * Returns all files as a map — does not write to disk.
  */
 
-import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
+import type { ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { defineCodingTool }                       from '../../registry/define-tool.ts';
 import type { CrudModuleInput }                      from '../shared/coding-types.ts';
 import { codingOk, codingFail, templateResult }      from '../shared/coding-result.ts';
 import { invalidInputError }                          from '../shared/coding-errors.ts';
 import { validateGeneratedCode }                      from '../validation/generated-code-validator.ts';
 import { crudApiTemplate, crudUiTemplate, crudSchemaTemplate } from '../templates/crud-template.ts';
-import { toKebabCase, toPascalCase }                  from '../../../agents/coderx/utils.ts';
+import { toKebabCase, toPascalCase }                  from '../../shared/string-utils.ts';
 
-export const generateCrudModuleTool = {
+export const generateCrudModuleTool = defineCodingTool({
   name:        'coding_generate_crud_module',
   category:    'coding',
   description: 'Generate a complete CRUD module: Drizzle schema + Express API router + React UI. Returns file map — does not write to disk.',
@@ -56,4 +57,4 @@ export const generateCrudModuleTool = {
       report.warnings,
     ));
   },
-} as unknown as ToolDefinition;
+});
