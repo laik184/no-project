@@ -234,3 +234,9 @@ id = "-JZjgq_7xnkMkHmiuwhyD"
 uri = "file://ARCHITECTURE_AUDIT_server_tools.md"
 type = "text"
 title = "server/tools/ Architecture Audit Report"
+
+[[outputs]]
+id = "Cp4kfmq6q6vEZng8oDWhD"
+uri = "file://REGISTRY_DEEP_SCAN_REPORT.md"
+type = "text"
+title = "Registry Deep Scan Report"
