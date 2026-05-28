@@ -1,58 +1,74 @@
-import { runLogger } from '../../../orchestration/telemetry/run-logger.ts';
+/**
+ * server/agents/supervisor/telemetry/supervisor-logger.ts
+ *
+ * Structured logger for the supervisor agent.
+ * Logs orchestration lifecycle, retries, escalations, and failures.
+ */
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
 interface LogEntry {
-  runId: string;
+  ts:    string;
   level: LogLevel;
-  message: string;
+  runId: string;
+  msg:   string;
   meta?: Record<string, unknown>;
-  timestamp: Date;
 }
 
-const _buffer = new Map<string, LogEntry[]>();
-const MAX_BUFFER = 200;
-
-function buffer(runId: string, level: LogLevel, message: string, meta?: Record<string, unknown>): void {
-  if (!_buffer.has(runId)) _buffer.set(runId, []);
-  const entries = _buffer.get(runId)!;
-  entries.push({ runId, level, message, meta, timestamp: new Date() });
-  if (entries.length > MAX_BUFFER) entries.shift();
+function emit(
+  level: LogLevel,
+  runId: string,
+  msg:   string,
+  meta?: Record<string, unknown>,
+): void {
+  const entry: LogEntry = { ts: new Date().toISOString(), level, runId, msg, meta };
+  const prefix = `[supervisor-agent][${level.toUpperCase()}][${runId.slice(0, 8)}]`;
+  const line   = `${prefix} ${msg}`;
+  if (level === 'error') console.error(line, meta ?? '');
+  else if (level === 'warn') console.warn(line, meta ?? '');
+  else console.log(line, meta ?? '');
+  void entry;
 }
 
 export const supervisorLogger = {
-  info(runId: string, message: string, meta?: Record<string, unknown>): void {
-    runLogger.log(runId, 'info', message, meta);
-    buffer(runId, 'info', message, meta);
+  info(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('info', runId, msg, meta);
   },
 
-  warn(runId: string, message: string, meta?: Record<string, unknown>): void {
-    runLogger.log(runId, 'warn', message, meta);
-    buffer(runId, 'warn', message, meta);
+  warn(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('warn', runId, msg, meta);
   },
 
-  error(runId: string, message: string, meta?: Record<string, unknown>): void {
-    runLogger.log(runId, 'error', message, meta);
-    buffer(runId, 'error', message, meta);
+  error(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    emit('error', runId, msg, meta);
   },
 
-  debug(runId: string, message: string, meta?: Record<string, unknown>): void {
-    if (process.env.NODE_ENV !== 'production') {
-      runLogger.log(runId, 'info', `[debug] ${message}`, meta);
-    }
-    buffer(runId, 'debug', message, meta);
+  debug(runId: string, msg: string, meta?: Record<string, unknown>): void {
+    if (process.env.NODE_ENV === 'development') emit('debug', runId, msg, meta);
   },
 
-  getLogs(runId: string, level?: LogLevel): LogEntry[] {
-    const entries = _buffer.get(runId) ?? [];
-    return level ? entries.filter((e) => e.level === level) : [...entries];
+  task(runId: string, taskId: string, phase: string, meta?: Record<string, unknown>): void {
+    emit('info', runId, `task[${taskId}] → ${phase}`, meta);
   },
 
-  clearRun(runId: string): void {
-    _buffer.delete(runId);
+  retry(runId: string, taskId: string, attempt: number, reason: string): void {
+    emit('warn', runId, `retry task[${taskId}] attempt=${attempt} reason="${reason}"`);
   },
 
-  getRunIds(): string[] {
-    return Array.from(_buffer.keys());
+  escalate(runId: string, taskId: string, reason: string): void {
+    emit('warn', runId, `escalate task[${taskId}] reason="${reason}"`);
+  },
+
+  sessionStart(runId: string, projectId: string, goal: string, totalTasks: number): void {
+    emit('info', runId, 'supervision session started', { projectId, goal, totalTasks });
+  },
+
+  sessionEnd(runId: string, success: boolean, durationMs: number): void {
+    emit(
+      success ? 'info' : 'error',
+      runId,
+      `supervision session ended success=${success}`,
+      { durationMs },
+    );
   },
 };

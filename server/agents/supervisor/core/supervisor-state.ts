@@ -1,97 +1,98 @@
-import type { SupervisorSession, SupervisorStatus, ExecutionMode, GoalCategory } from '../types/supervisor.types.ts';
-import type { OrchestrationPhase } from '../../../orchestration/events/event-types.ts';
+/**
+ * server/agents/supervisor/core/supervisor-state.ts
+ *
+ * Per-run supervision state machine.
+ * Pure in-process state store — no tool calls, no direct execution.
+ */
 
-const sessions = new Map<string, SupervisorSession>();
+import type {
+  SupervisionStatus,
+  SupervisionPhase,
+  TaskOutcome,
+} from '../types/supervisor.types.ts';
 
-const VALID_TRANSITIONS: Record<SupervisorStatus, SupervisorStatus[]> = {
-  idle:     ['active'],
-  active:   ['paused', 'shutdown'],
-  paused:   ['active', 'shutdown'],
-  shutdown: [],
-};
+export interface SupervisionStateData {
+  runId:          string;
+  projectId:      string;
+  goal:           string;
+  status:         SupervisionStatus;
+  phase:          SupervisionPhase;
+  totalTasks:     number;
+  completedTasks: number;
+  failedTasks:    number;
+  outcomes:       TaskOutcome[];
+  startedAt:      number;
+  updatedAt:      number;
+}
+
+const store = new Map<string, SupervisionStateData>();
 
 export const supervisorState = {
-  create(
-    sessionId: string,
-    runId: string,
-    projectId: string,
-    goal: string,
-    mode: ExecutionMode,
-    category: GoalCategory,
-    metadata: Record<string, unknown> = {},
-  ): SupervisorSession {
-    const session: SupervisorSession = {
-      sessionId,
-      runId,
-      projectId,
-      goal,
-      mode,
-      category,
-      status:       'idle',
-      startedAt:    new Date(),
-      endedAt:      null,
-      currentPhase: null,
-      retryCount:   0,
-      metadata,
+  init(
+    runId:      string,
+    projectId:  string,
+    goal:       string,
+    totalTasks: number,
+  ): SupervisionStateData {
+    const data: SupervisionStateData = {
+      runId, projectId, goal,
+      status:         'pending',
+      phase:          'idle',
+      totalTasks,
+      completedTasks: 0,
+      failedTasks:    0,
+      outcomes:       [],
+      startedAt:      Date.now(),
+      updatedAt:      Date.now(),
     };
-    sessions.set(sessionId, session);
-    return { ...session };
+    store.set(runId, data);
+    return data;
   },
 
-  transition(sessionId: string, status: SupervisorStatus): SupervisorSession {
-    const session = sessions.get(sessionId);
-    if (!session) throw new Error(`[supervisor-state] Unknown session: ${sessionId}`);
-
-    const allowed = VALID_TRANSITIONS[session.status];
-    if (!allowed.includes(status)) {
-      throw new Error(`[supervisor-state] Invalid transition ${session.status} → ${status} for session ${sessionId}`);
-    }
-
-    session.status = status;
-    if (status === 'shutdown') session.endedAt = new Date();
-    return { ...session };
+  get(runId: string): SupervisionStateData | undefined {
+    return store.get(runId);
   },
 
-  setPhase(sessionId: string, phase: OrchestrationPhase): void {
-    const s = sessions.get(sessionId);
-    if (s) s.currentPhase = phase;
+  setPhase(runId: string, phase: SupervisionPhase): void {
+    const s = store.get(runId);
+    if (s) { s.phase = phase; s.updatedAt = Date.now(); }
   },
 
-  incrementRetry(sessionId: string): number {
-    const s = sessions.get(sessionId);
-    if (!s) return 0;
-    s.retryCount++;
-    return s.retryCount;
+  setStatus(runId: string, status: SupervisionStatus): void {
+    const s = store.get(runId);
+    if (s) { s.status = status; s.updatedAt = Date.now(); }
   },
 
-  setMeta(sessionId: string, key: string, value: unknown): void {
-    const s = sessions.get(sessionId);
-    if (s) s.metadata[key] = value;
+  recordOutcome(runId: string, outcome: TaskOutcome): void {
+    const s = store.get(runId);
+    if (!s) return;
+    s.outcomes.push(outcome);
+    s.completedTasks++;
+    if (!outcome.success) s.failedTasks++;
+    s.updatedAt = Date.now();
   },
 
-  get(sessionId: string): SupervisorSession | undefined {
-    const s = sessions.get(sessionId);
-    return s ? { ...s } : undefined;
+  isComplete(runId: string): boolean {
+    const s = store.get(runId);
+    return !!s && s.completedTasks >= s.totalTasks;
   },
 
-  getByRunId(runId: string): SupervisorSession | undefined {
-    for (const s of sessions.values()) {
-      if (s.runId === runId) return { ...s };
-    }
-    return undefined;
+  isFailed(runId: string): boolean {
+    const s = store.get(runId);
+    return s?.status === 'failed';
   },
 
-  isActive(sessionId: string): boolean {
-    return sessions.get(sessionId)?.status === 'active';
+  failureRate(runId: string): number {
+    const s = store.get(runId);
+    if (!s || s.completedTasks === 0) return 0;
+    return s.failedTasks / s.completedTasks;
   },
 
-  activeSessions(): SupervisorSession[] {
-    return Array.from(sessions.values())
-      .filter((s) => s.status === 'active' || s.status === 'paused')
-      .map((s) => ({ ...s }));
+  clear(runId: string): void {
+    store.delete(runId);
   },
 
-  clear(sessionId: string): void {
-    sessions.delete(sessionId);
+  allRunIds(): readonly string[] {
+    return Object.freeze([...store.keys()]);
   },
 };

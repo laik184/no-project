@@ -1,107 +1,120 @@
-import type { OrchestrationPhase, OrchestrationStatus, TaskPriority } from '../../../orchestration/events/event-types.ts';
+/**
+ * server/agents/supervisor/types/supervisor.types.ts
+ *
+ * All shared types for the supervisor agent orchestration layer.
+ * Zero imports from the tool layer — types only.
+ */
 
-export type SupervisorStatus = 'idle' | 'active' | 'paused' | 'shutdown';
+// ── Supervision phases ────────────────────────────────────────────────────────
 
-export type ExecutionMode = 'simple' | 'standard' | 'complex';
+export type SupervisionPhase =
+  | 'idle'
+  | 'validating'
+  | 'routing'
+  | 'supervising'
+  | 'retrying'
+  | 'escalating'
+  | 'completing'
+  | 'failed';
 
-export type GoalCategory =
-  | 'crud'
-  | 'saas_dashboard'
-  | 'ai_app'
-  | 'auth_system'
-  | 'backend_api'
-  | 'database_ops'
-  | 'unknown';
+export type SupervisionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'aborted';
 
-export type LoopRiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
+// ── Agent domain routing ──────────────────────────────────────────────────────
 
-export type EscalationReason =
-  | 'max_retries_exceeded'
-  | 'hard_failure'
-  | 'loop_detected'
-  | 'timeout_exceeded'
-  | 'stuck_task';
+export type AgentDomain =
+  | 'planner'
+  | 'executor'
+  | 'verifier'
+  | 'browser'
+  | 'filesystem'
+  | 'terminal';
 
-export interface SupervisorSession {
-  sessionId:    string;
-  runId:        string;
-  projectId:    string;
-  goal:         string;
-  mode:         ExecutionMode;
-  category:     GoalCategory;
-  status:       SupervisorStatus;
-  startedAt:    Date;
-  endedAt:      Date | null;
-  currentPhase: OrchestrationPhase | null;
-  retryCount:   number;
-  metadata:     Record<string, unknown>;
+// ── Supervision task ──────────────────────────────────────────────────────────
+
+export interface SupervisionTask {
+  id:          string;
+  domain:      AgentDomain;
+  label:       string;
+  toolName:    string;
+  input:       Record<string, unknown>;
+  timeoutMs:   number;
+  retryLimit:  number;
+  priority:    'critical' | 'high' | 'normal' | 'low';
 }
 
-export interface ComplexityResult {
-  score:                number;
-  mode:                 ExecutionMode;
-  estimatedTaskCount:   number;
-  requiresBrowser:      boolean;
-  requiresVerification: boolean;
-  factors:              string[];
+// ── Task outcome ──────────────────────────────────────────────────────────────
+
+export interface TaskOutcome {
+  taskId:     string;
+  domain:     AgentDomain;
+  success:    boolean;
+  durationMs: number;
+  output?:    string;
+  error?:     string;
+  attempt:    number;
 }
 
-export interface ClassificationResult {
-  category:   GoalCategory;
-  confidence: number;
-  tags:       string[];
-  reasoning:  string;
+// ── Validation ────────────────────────────────────────────────────────────────
+
+export interface ValidationResult {
+  valid:    boolean;
+  errors:   string[];
+  warnings: string[];
 }
 
-export interface SupervisorDecision {
-  action:    'continue' | 'retry' | 'escalate' | 'abort' | 'skip';
+// ── Session & context ─────────────────────────────────────────────────────────
+
+export interface SupervisionSessionMeta {
+  runId:          string;
+  projectId:      string;
+  sandboxRoot:    string;
+  goal:           string;
+  startedAt:      Date;
+  status:         SupervisionStatus;
+  phase:          SupervisionPhase;
+  totalTasks:     number;
+  completedTasks: number;
+  failedTasks:    number;
+}
+
+// ── Retry ─────────────────────────────────────────────────────────────────────
+
+export interface RetryPolicy {
+  maxAttempts: number;
+  delayMs:     number;
+  backoff:     'none' | 'linear' | 'exponential';
+}
+
+export type RecoveryAction = 'retry' | 'skip' | 'abort' | 'escalate';
+
+// ── Escalation ────────────────────────────────────────────────────────────────
+
+export interface EscalationRecord {
+  taskId:    string;
+  domain:    AgentDomain;
   reason:    string;
-  metadata?: Record<string, unknown>;
+  attempts:  number;
+  timestamp: number;
 }
 
-export interface LoopDetectionResult {
-  detected:    boolean;
-  risk:        LoopRiskLevel;
-  pattern?:    string;
-  occurrences?: number;
+// ── Supervision request ───────────────────────────────────────────────────────
+
+export interface SupervisionRequest {
+  runId?:      string;
+  projectId:   string;
+  sandboxRoot: string;
+  goal:        string;
+  tasks:       SupervisionTask[];
+  signal?:     AbortSignal;
+  meta?:       Record<string, unknown>;
 }
 
-export interface ExecutionHealth {
-  runId:           string;
-  healthy:         boolean;
-  stuckTasks:      string[];
-  timedOutPhases:  OrchestrationPhase[];
-  retryExhausted:  string[];
-  loopRisk:        LoopRiskLevel;
-  checkedAt:       Date;
+// ── Supervision result ────────────────────────────────────────────────────────
+
+export interface SupervisionResult {
+  runId:      string;
+  success:    boolean;
+  durationMs: number;
+  tasksRun:   number;
+  errors:     string[];
 }
-
-export interface SupervisorRunResult {
-  sessionId:    string;
-  runId:        string;
-  success:      boolean;
-  mode:         ExecutionMode;
-  category:     GoalCategory;
-  durationMs:   number;
-  retries:      number;
-  failedPhase?: OrchestrationPhase;
-  error?:       string;
-}
-
-export interface PhaseDispatch {
-  phase:     OrchestrationPhase;
-  runId:     string;
-  timeoutMs: number;
-  retryable: boolean;
-  priority:  TaskPriority;
-}
-
-export type SupervisorEventName =
-  | 'supervisor.started'
-  | 'supervisor.cycle.started'
-  | 'supervisor.cycle.completed'
-  | 'supervisor.cycle.failed'
-  | 'supervisor.loop.detected'
-  | 'supervisor.shutdown';
-
-export { OrchestrationPhase, OrchestrationStatus, TaskPriority };

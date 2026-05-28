@@ -1,0 +1,270 @@
+You are a world-class autonomous systems architect, orchestration runtime engineer, and TypeScript coordination specialist.
+
+Your task is to implement a production-grade:
+
+server/agents/supervisor/
+
+agent for an autonomous AI coding platform.
+
+IMPORTANT:
+This is ONLY an AGENT orchestration layer.
+
+This is NOT a tools layer.
+
+STRICT RULE:
+The supervisor agent must ONLY coordinate and supervise the system.
+
+NO actual execution logic is allowed inside this agent.
+
+==================================================
+CRITICAL ARCHITECTURE RULES
+
+STRICTLY FOLLOW:
+
+1. Agents orchestrate only
+2. Tools execute actual work
+3. No hidden tool implementations
+4. No direct runtime execution
+5. No direct filesystem execution
+6. No direct terminal execution
+7. No direct browser execution
+8. No direct verification execution
+9. No direct AI generation execution
+10. No business logic leakage
+
+ALL execution MUST happen ONLY through:
+
+- dispatcher-client.ts
+- centralized dispatcher
+- downstream agents
+
+==================================================
+ABSOLUTELY FORBIDDEN
+
+DO NOT USE:
+
+- spawn()
+- exec()
+- execa()
+- fs.writeFile()
+- fs.readFile()
+- Playwright launch
+- direct npm commands
+- direct runtime validation
+- direct API requests
+- direct database execution
+
+==================================================
+SUPERVISOR AGENT RESPONSIBILITY
+
+The supervisor agent should ONLY:
+
+- coordinate system workflows
+- supervise agent execution
+- manage runtime lifecycle
+- control orchestration flow
+- route execution between agents
+- manage retries/escalation
+- validate orchestration state
+- monitor failures
+- track runtime state/session
+- collect telemetry
+- coordinate dispatcher communication
+
+==================================================
+TARGET FOLDER STRUCTURE
+
+server/agents/supervisor/
+
+├── supervisor-agent.ts
+├── index.ts
+│
+├── core/
+│   ├── supervisor-context.ts
+│   ├── supervisor-session.ts
+│   └── supervisor-state.ts
+│
+├── execution/
+│   ├── supervision-loop.ts
+│   ├── task-runner.ts
+│   └── retry-manager.ts
+│
+├── coordination/
+│   ├── agent-coordinator.ts
+│   ├── dispatcher-client.ts
+│   └── supervision-routing.ts
+│
+├── validation/
+│   ├── supervision-validator.ts
+│   └── execution-validator.ts
+│
+├── monitoring/
+│   └── failure-monitor.ts
+│
+├── telemetry/
+│   ├── supervisor-logger.ts
+│   └── supervisor-metrics.ts
+│
+├── types/
+│   └── supervisor.types.ts
+│
+└── utils/
+└── supervision-utils.ts
+
+==================================================
+IMPORTANT FILE RESPONSIBILITIES
+
+supervision-loop.ts
+→ MAIN system supervision loop
+→ controls orchestration lifecycle
+→ controls retry/escalation
+→ supervises execution flow
+
+agent-coordinator.ts
+→ coordinates agents
+→ routes execution flow
+→ manages agent lifecycle
+
+dispatcher-client.ts
+→ ONLY gateway to dispatcher
+→ centralized communication layer
+
+task-runner.ts
+→ executes orchestration steps
+→ routes tasks to agents
+
+==================================================
+SUPERVISION FLOW
+
+Supervisor Agent
+↓
+Supervision Loop
+↓
+Task Runner
+↓
+Agent Coordinator
+↓
+Dispatcher Client
+↓
+Central Dispatcher
+↓
+Agents
+↓
+Tools
+↓
+Execution Result
+↓
+Retry / Continue / Escalate / Finish
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+
+CORRECT:
+
+await dispatcher.execute(
+"route_execution",
+payload
+)
+
+WRONG:
+
+spawn("npm run build")
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+
+1. Strict TypeScript only
+2. No any types
+3. No unsafe casting
+4. No circular imports
+5. No duplicated orchestration systems
+6. No duplicated retry systems
+7. No giant files (>250 lines)
+8. High cohesion
+9. Low coupling
+10. Single responsibility per file
+11. Event-driven orchestration
+12. Fully dispatcher-driven architecture
+
+==================================================
+VALIDATION REQUIREMENTS
+
+supervision-validator.ts
+must validate:
+
+- orchestration requests
+- invalid supervisor states
+- missing runtime context
+
+execution-validator.ts
+must validate:
+
+- execution lifecycle
+- invalid orchestration transitions
+- corrupted execution flow
+
+==================================================
+MONITORING REQUIREMENTS
+
+failure-monitor.ts
+must track:
+
+- orchestration failures
+- retry attempts
+- stuck workflows
+- repeated execution failures
+
+==================================================
+TELEMETRY REQUIREMENTS
+
+supervisor-logger.ts
+must log:
+
+- orchestration lifecycle
+- retries
+- escalations
+- failures
+
+supervisor-metrics.ts
+must track:
+
+- execution count
+- orchestration success rate
+- retry metrics
+- execution duration
+
+==================================================
+FINAL GOAL
+
+The final supervisor agent must become:
+
+- orchestration-only
+- centralized
+- dispatcher-driven
+- scalable
+- deterministic
+- observable
+- modular
+- production-grade
+- Replit/Cursor-level orchestration coordinator
+
+==================================================
+FINAL INSTRUCTION
+
+Be brutally strict about architecture boundaries.
+
+Detect and prevent:
+
+- hidden execution
+- direct runtime logic
+- duplicated orchestration
+- fake abstractions
+- overengineering
+- business logic leakage
+
+Enforce this architecture:
+
+Supervisor Agent → orchestration only
+Dispatcher → execution gateway
+Agents → workflow coordination
+Tools → actual execution
