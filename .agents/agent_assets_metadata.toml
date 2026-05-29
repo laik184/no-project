@@ -306,3 +306,9 @@ id = "ADaTR0n_C1jSapEEeIvlL"
 uri = "file://PLATFORM_ARCHITECTURE_REPORT.md"
 type = "text"
 title = "NURA-X Platform Architecture Report"
+
+[[outputs]]
+id = "obdzv1xoTk4osf5MicD-v"
+uri = "file://CHAT_LIFECYCLE_DEEP_SCAN.md"
+type = "text"
+title = "Chat System Deep Scan & Lifecycle Flow Report"
