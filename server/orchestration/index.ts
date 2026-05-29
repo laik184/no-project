@@ -20,6 +20,8 @@ import { newOrchestrationId } from './utils/orchestration-utils.ts';
 
 export type { OrchestrationRequest, OrchestrationResult } from './types/orchestration.types.ts';
 export { orchestrate, initOrchestrator, shutdownOrchestrator };
+export { runManager } from './core/run-manager.ts';
+export type { RunRecord } from './core/run-manager.ts';
 
 // ── Initialization ────────────────────────────────────────────────────────────
 

@@ -99,14 +99,39 @@ async function invokeAgent(
         timeoutMs:          input.timeoutMs          as number    | undefined,
       });
 
-    case 'executor':
+    case 'executor': {
+      // Build a minimal valid ExecutionPlan when the orchestration workflow
+      // did not inject one — this happens in all standard phase sequences
+      // because phase-planner.ts does not place a plan in the phase input.
+      const providedPlan = input.plan as {
+        planId: string; tasks: unknown[];
+      } | undefined;
+      const goal        = (input.goal as string | undefined) ?? '';
+      const mode        = (input.mode as string | undefined) ?? 'execute';
+      const effectiveGoal = mode !== 'execute' ? `${mode}: ${goal}` : goal;
+      const plan = providedPlan ?? {
+        planId: `auto-${runId}`,
+        tasks: [{
+          taskId:      `task-${runId}`,
+          kind:        'coding',
+          description: effectiveGoal || 'Execute the requested goal',
+          input: {
+            goal:        effectiveGoal || goal,
+            mode,
+            runId,
+            projectId,
+            sandboxRoot,
+          },
+        }],
+      };
       return runExecutorAgent({
         runId,
         projectId,
         sandboxRoot,
-        plan:    input.plan    as any,
+        plan:    plan as any,
         options: input.options as any,
       });
+    }
 
     case 'planner':
       return runPlannerCycle({
@@ -163,7 +188,7 @@ async function invokeAgent(
           runId,
           projectId,
           sandboxRoot,
-          userPrompt:  (input.userPrompt as string | undefined) ?? '',
+          userPrompt:  (input.userPrompt as string | undefined) ?? (input.goal as string | undefined) ?? '',
           context:      input.context as Record<string, unknown> | undefined,
           options:      input.options as any,
         },

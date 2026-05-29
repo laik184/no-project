@@ -1,0 +1,380 @@
+MISSION: EXECUTION CHAIN COMPLETION & ARCHITECTURE DISCIPLINE REPAIR
+
+OBJECTIVE
+
+Fix all remaining execution-chain gaps identified in MRI reports.
+
+Focus ONLY on actual code.
+
+No assumptions.
+
+No speculative refactors.
+
+No architecture redesign.
+
+Only repair proven gaps.
+
+TARGET FILES
+
+1. server/chat/orchestration/chat-orchestrator.ts
+
+2. server/orchestration/core/run-manager.ts
+
+3. server/orchestration/orchestrator.ts
+
+4. server/orchestration/coordination/agent-coordinator.ts
+
+5. server/tools/registry/tool-loader.ts
+
+6. server/orchestration/index.ts
+
+7. main.ts
+
+8. server/agents/executor/
+
+9. server/agents/planner/
+
+10. server/agents/browser/
+
+11. server/agents/verifier/
+
+12. server/agents/supervisor/
+
+13. server/agents/filesystem/
+
+14. server/agents/terminal/
+
+15. server/agents/coderx/
+
+---
+
+PHASE 1 — REALITY SCAN
+
+Analyze actual code.
+
+Determine:
+
+- Who imports whom
+- Who calls whom
+- Who owns execution
+- Who owns lifecycle
+- Who owns tool dispatch
+- Who owns orchestration startup
+
+DO NOT describe intended architecture.
+
+ONLY actual architecture.
+
+Generate:
+
+CURRENT_EXECUTION_REALITY.md
+
+---
+
+PHASE 2 — EXECUTION CHAIN VALIDATION
+
+Reconstruct:
+
+POST /api/chat/run
+
+Trace every step.
+
+Required trace:
+
+HTTP Request
+↓
+main.ts
+↓
+chat module
+↓
+controller
+↓
+chat-orchestrator
+↓
+run-manager
+↓
+orchestrator
+↓
+agent-coordinator
+↓
+agent
+↓
+tool dispatcher
+↓
+tool
+
+Identify exact breakpoints.
+
+Generate:
+
+EXECUTION_BREAKPOINTS.md
+
+---
+
+PHASE 3 — CHAT → ORCHESTRATION BRIDGE
+
+Analyze:
+
+server/chat/orchestration/chat-orchestrator.ts
+
+Verify:
+
+- startRun()
+- resumeRun()
+- completeRun()
+- failRun()
+
+If execution stops after run registration:
+
+Create the missing bridge.
+
+Ensure:
+
+chat layer
+❌ does not control agents
+
+chat layer
+❌ does not control tools
+
+chat layer
+✅ hands execution to orchestration
+
+---
+
+PHASE 4 — RUN MANAGER OWNERSHIP AUDIT
+
+Analyze:
+
+server/orchestration/core/run-manager.ts
+
+Determine:
+
+- Registry only?
+- Execution owner?
+- Lifecycle owner?
+- Metadata owner?
+
+Fix ownership confusion.
+
+Ensure single responsibility.
+
+Generate:
+
+RUN_MANAGER_OWNERSHIP_REPORT.md
+
+---
+
+PHASE 5 — ORCHESTRATION ACTIVATION
+
+Analyze:
+
+server/orchestration/index.ts
+
+Analyze:
+
+server/orchestration/orchestrator.ts
+
+Verify:
+
+- orchestrate()
+- initialization
+- startup sequence
+- orchestration lifecycle
+
+Ensure orchestration becomes reachable.
+
+Do not create duplicate orchestrators.
+
+Do not create shadow execution paths.
+
+---
+
+PHASE 6 — AGENT REACHABILITY AUDIT
+
+Analyze:
+
+browser
+executor
+planner
+filesystem
+terminal
+supervisor
+verifier
+coderx
+
+For each agent:
+
+Verify:
+
+- imported by coordinator
+- reachable from orchestrator
+- executable
+- receives phases
+- receives context
+- receives tool dispatcher
+
+Generate:
+
+AGENT_REACHABILITY_REPORT.md
+
+---
+
+PHASE 7 — TOOL REGISTRY REPAIR
+
+Analyze:
+
+server/tools/registry/tool-loader.ts
+
+Verify:
+
+- loadAllTools()
+- registration flow
+- registry population
+- registry sealing
+
+Confirm:
+
+tool count > 0
+
+Confirm:
+
+runtime dispatch works
+
+Do not create secondary registries.
+
+Do not duplicate registration.
+
+---
+
+PHASE 8 — DISCIPLINE ENFORCEMENT
+
+Detect:
+
+❌ Controller → Tool
+
+❌ Controller → Agent
+
+❌ Route → Agent
+
+❌ Tool → Agent
+
+❌ Tool → Controller
+
+❌ Circular dependencies
+
+❌ Layer inversion
+
+❌ Duplicate ownership
+
+❌ Shadow orchestration
+
+Fix only proven violations.
+
+---
+
+PHASE 9 — END TO END EXECUTION TEST
+
+Generate actual runtime graph:
+
+main.ts
+↓
+chat
+↓
+controller
+↓
+chat-orchestrator
+↓
+run-manager
+↓
+orchestrator
+↓
+agent-coordinator
+↓
+agent
+↓
+dispatcher
+↓
+tool
+
+Confirm every step is reachable.
+
+---
+
+PHASE 10 — FINAL REPORT
+
+Generate:
+
+EXECUTION_CHAIN_FINAL_REPAIR_REPORT.md
+
+SECTION A — BEFORE
+
+- Import graph
+- Execution graph
+- Reachability graph
+- Dead code graph
+- Tool graph
+
+SECTION B — FIXES APPLIED
+
+For each file:
+
+- Path
+- Problem
+- Root cause
+- Fix
+- Reason
+
+SECTION C — AFTER
+
+- Execution graph
+- Runtime graph
+- Agent graph
+- Tool graph
+- Ownership graph
+
+SECTION D — VALIDATION
+
+- Orchestrator reachable
+- Agent coordinator reachable
+- Agents reachable
+- Tools reachable
+- Registry populated
+- Registry sealed
+- Circular dependencies
+- Layer violations
+- Shadow orchestration
+
+SECTION E — SCORES
+
+- Architecture Score
+- Execution Score
+- Agent Reachability Score
+- Tool Reachability Score
+- Discipline Score
+- Production Readiness Score
+
+SUCCESS CRITERIA
+
+User Request
+↓
+Chat
+↓
+Orchestration
+↓
+Agents
+↓
+Tools
+↓
+Response
+
+All layers reachable.
+
+No dead execution chain.
+
+No duplicate ownership.
+
+No architecture violations.
+
+No assumptions.
+
+Code evidence required for every conclusion.

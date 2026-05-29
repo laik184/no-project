@@ -14,8 +14,7 @@
  * browser execution, deployment execution.
  */
 import crypto from 'crypto';
-import { orchestrate }         from '../../orchestration/index.ts';
-import { runManager }          from '../../orchestration/core/run-manager.ts';
+import { orchestrate, runManager } from '../../orchestration/index.ts';
 import { conversationManager } from './conversation-manager.ts';
 import { sessionManager }      from './session-manager.ts';
 import { turnManager }         from './turn-manager.ts';
