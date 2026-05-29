@@ -1,4 +1,4 @@
-t/**
+/**
  * chat-orchestrator.ts — Main owner of chat workflows.
  *
  * Responsibilities:
@@ -8,11 +8,13 @@ t/**
  *   - Coordinate question/clarification lifecycle
  *   - Coordinate timeline lifecycle
  *   - Delegate run registration to orchestration/core/run-manager
+ *   - Trigger the orchestration engine after chat setup completes
  *
  * DOES NOT own: planner logic, executor logic, tool execution,
  * browser execution, deployment execution.
  */
 import crypto from 'crypto';
+import { orchestrate }         from '../../orchestration/index.ts';
 import { runManager }          from '../../orchestration/core/run-manager.ts';
 import { conversationManager } from './conversation-manager.ts';
 import { sessionManager }      from './session-manager.ts';
@@ -50,11 +52,11 @@ export const chatOrchestrator = {
    *   4. Start turn
    *   5. Persist user message
    *   6. Emit run.started event
-   *   7. Optionally ask clarification
-   *   8. Open stream
-   *   9. Persist system message
+   *   7. Persist system message (base prompt)
+   *   8. Clarification check (non-blocking)
+   *   9. Open stream
    *  10. Build context
-   *  11. Return runId for orchestration engine to consume
+   *  11. Trigger orchestration engine asynchronously — returns ChatRun immediately
    */
   async startRun(payload: RunStartPayload): Promise<ChatRun> {
     const { projectId, goal, conversationId: existingConvId } = payload;
@@ -98,6 +100,29 @@ export const chatOrchestrator = {
     // 10. Build context (for downstream orchestration engine)
     const loaded   = await contextLoader.loadForRun(runId);
     buildContext(loaded.messages, sysPayload.content);
+
+    // 11. Trigger orchestration engine asynchronously.
+    //     HTTP response returns immediately with the ChatRun.
+    //     Orchestration runs in background; completeRun/failRun close the lifecycle.
+    void orchestrate({
+      orchestrationId: crypto.randomUUID(),
+      runId,
+      projectId:       String(projectId),
+      sandboxRoot,
+      goal,
+    }).then(async (result) => {
+      const content = result.ok
+        ? `Run complete — ${result.workflowsCompleted}/${result.workflowsTotal} workflows in ${result.durationMs}ms`
+        : (result.error ?? 'Orchestration failed');
+      if (result.ok) {
+        await chatOrchestrator.completeRun(runId, projectId, content);
+      } else {
+        await chatOrchestrator.failRun(runId, projectId, result.error ?? 'Orchestration failed');
+      }
+    }).catch(async (err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      await chatOrchestrator.failRun(runId, projectId, msg);
+    });
 
     return {
       runId,
