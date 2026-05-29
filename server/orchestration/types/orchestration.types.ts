@@ -123,7 +123,8 @@ export type AgentType =
   | 'browser'
   | 'filesystem'
   | 'terminal'
-  | 'supervisor';
+  | 'supervisor'
+  | 'coderx';
 
 // ── Phase result ───────────────────────────────────────────────────────────────
 

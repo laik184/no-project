@@ -14,9 +14,11 @@
  *             → tool-dispatcher.ts
  *               → <tool>
  *
- * FORBIDDEN at this 
+ * FORBIDDEN at this layer: importing from tool-dispatcher, tool-registry, or any tool directly.
+ */
 
 import { runBrowserAgent }        from '../../agents/browser/browser-agent.ts';
+import { runCoderXAgent }         from '../../agents/coderx/coderx-agent.ts';
 import { runExecutorAgent }       from '../../agents/executor/executor-agent.ts';
 import { runFilesystemAgent }     from '../../agents/filesystem/filesystem-agent.ts';
 import { runPlannerCycle }        from '../../agents/planner/planner-agent.ts';
@@ -154,6 +156,19 @@ async function invokeAgent(
         timeoutMs: input.timeoutMs as number | undefined,
       });
 
+    case 'coderx':
+      return runCoderXAgent({
+        request: {
+          requestId:   (input.requestId  as string | undefined) ?? runId,
+          runId,
+          projectId,
+          sandboxRoot,
+          userPrompt:  (input.userPrompt as string | undefined) ?? '',
+          context:      input.context as Record<string, unknown> | undefined,
+          options:      input.options as any,
+        },
+      });
+
     default: {
       const unreachable: never = agentType;
       throw new Error(`[agent-coordinator] Unknown agentType: "${unreachable}"`);
@@ -184,6 +199,7 @@ const AGENT_TYPES: readonly AgentType[] = [
   'filesystem',
   'terminal',
   'supervisor',
+  'coderx',
 ] as const;
 
 export function isValidAgentType(value: string): value is AgentType {

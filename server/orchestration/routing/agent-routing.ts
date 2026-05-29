@@ -25,6 +25,7 @@ const AGENT_CAPABILITIES: Record<AgentType, AgentCapabilities> = {
   filesystem: { canPlan: false, canExecute: true,  canVerify: false, canBrowse: false, canSupervise: false },
   terminal:   { canPlan: false, canExecute: true,  canVerify: false, canBrowse: false, canSupervise: false },
   supervisor: { canPlan: true,  canExecute: false, canVerify: true,  canBrowse: false, canSupervise: true  },
+  coderx:     { canPlan: true,  canExecute: true,  canVerify: false, canBrowse: false, canSupervise: false },
 };
 
 // ── Routing result ────────────────────────────────────────────────────────────
