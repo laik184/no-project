@@ -318,3 +318,9 @@ id = "1HZBm9NboMpAfT2yIG17D"
 uri = "file://REPAIR_SUMMARY.md"
 type = "text"
 title = "Repair Summary — Before & After"
+
+[[outputs]]
+id = "lwyjeoJHNfNQq3TlFnYph"
+uri = "file://PLANNING_EXECUTION_INTELLIGENCE_MRI_REPORT.md"
+type = "text"
+title = "PLANNING_EXECUTION_INTELLIGENCE_MRI_REPORT.md"
