@@ -9,7 +9,7 @@ import type { Workflow, Phase, ExecutionPlan, ValidationResult } from '../types/
 
 const VALID_AGENT_TYPES = new Set([
   'planner', 'executor', 'verifier', 'browser',
-  'filesystem', 'terminal', 'supervisor',
+  'filesystem', 'terminal', 'supervisor', 'coderx',
 ]);
 
 // ── Phase validation ──────────────────────────────────────────────────────────

@@ -84,21 +84,21 @@ export async function orchestrate(
 
   // ── Initialize state ──────────────────────────────────────────────────────
   initState(ctx.orchestrationId, ctx.runId);
-  const session = createSession(ctx.orchestrationId, ctx.runId, ctx.projectId, 0);
+  const session = createSession(ctx.orchestrationId, ctx.runId, ctx.projectId, 0, ctx.sessionId);
 
   // ── Run orchestration loop ────────────────────────────────────────────────
   try {
-    return await runOrchestrationLoop(fullReq, ctx, session.sessionId);
+    return await runOrchestrationLoop(fullReq, ctx, ctx.sessionId);
   } catch (err) {
     const error = toErrorMessage(err);
-    failSession(session.sessionId);
+    failSession(ctx.sessionId);
     destroyState(ctx.orchestrationId);
 
     return {
       ok:                 false,
       orchestrationId:    ctx.orchestrationId,
       runId:              ctx.runId,
-      sessionId:          session.sessionId,
+      sessionId:          ctx.sessionId,
       workflowsTotal:     0,
       workflowsCompleted: 0,
       workflowsFailed:    0,

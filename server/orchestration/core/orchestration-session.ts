@@ -19,9 +19,10 @@ export function createSession(
   runId:           string,
   projectId:       string,
   workflowsTotal:  number,
+  sessionId?:      string,
 ): OrchestrationSession {
   const session: OrchestrationSession = {
-    sessionId:       newSessionId(),
+    sessionId:       sessionId ?? newSessionId(),
     orchestrationId,
     runId,
     projectId,

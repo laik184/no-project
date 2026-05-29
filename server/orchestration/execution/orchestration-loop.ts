@@ -58,7 +58,7 @@ export async function runOrchestrationLoop(
   const workflows   = orderWorkflows(plan.workflows);
   const execPlan    = buildWorkflowExecutionPlan(req, workflows);
 
-  registerOrchestration(ctx.orchestrationId, ctx.sessionId, ctx.runId, workflows.length);
+  registerOrchestration(ctx.orchestrationId, sessionId, ctx.runId, workflows.length);
 
   // ── Running phase ─────────────────────────────────────────────────────────
 
