@@ -1,36 +1,43 @@
-import type { RunHandle } from "./types.ts";
+/**
+ * server/chat/run/registry.ts
+ *
+ * Per-run chat state cleanup registry.
+ *
+ * Called by server/infrastructure/memory/run-cleanup-manager.ts during the
+ * replay-safe eviction cycle. Cleans up all in-memory chat state associated
+ * with a run so memory is not held beyond the replay window.
+ *
+ * Ownership: this file coordinates cleanup across chat module sub-systems.
+ * It does NOT own any state — each sub-system owns and clears its own state.
+ */
 
-export const runs = new Map<string, RunHandle>();
-export const cancellations = new Set<string>();
+import { questionManager } from '../questions/question-manager.ts';
+import { contextCache }    from '../context/context-cache.ts';
+import { eventTimeline }   from '../timeline/event-timeline.ts';
+import { turnManager }     from '../orchestration/turn-manager.ts';
+import { streamManager }   from '../orchestration/stream-manager.ts';
 
-export function newRunId(): string {
-  return `run-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-export function getRun(runId: string): RunHandle | undefined {
-  return runs.get(runId);
-}
-
-export function registerRun(handle: RunHandle): void {
-  runs.set(handle.runId, handle);
-}
-
-export function requestCancel(runId: string): boolean {
-  if (!runs.has(runId)) return false;
-  cancellations.add(runId);
-  return true;
-}
-
-export function isCancelled(runId: string): boolean {
-  return cancellations.has(runId);
-}
-
-export function clearCancel(runId: string): void {
-  cancellations.delete(runId);
-}
-
-/** Remove a completed/failed/cancelled run handle. Called by run-cleanup-manager. */
+/**
+ * Release all per-run in-memory chat state.
+ * Called by run-cleanup-manager after the replay TTL expires.
+ *
+ * Safe to call multiple times — each sub-system is idempotent on clear.
+ */
 export function unregisterRun(runId: string): void {
-  runs.delete(runId);
-  cancellations.delete(runId);
+  // Cancel any pending questions for this run
+  questionManager.cancelByRun(runId);
+
+  // Evict context cache entry
+  contextCache.delete(runId);
+
+  // Clear timeline entries
+  eventTimeline.clear(runId);
+
+  // Close any lingering stream (no-op if already closed)
+  if (streamManager.isActive(runId)) {
+    streamManager.close(runId);
+  }
+
+  // Clear completed/failed turns
+  turnManager.clearCompleted();
 }

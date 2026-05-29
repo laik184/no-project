@@ -2,3 +2,4 @@
 - [Executor 5-way split](executor-split.md) — executor/ split into coder/, filesystem/, runtime/, validator/ + executor/ (orchestrator only); cross-depth import rules documented.
 - [Browser Agent structure](browser-agent-structure.md) — 37-file browser agent in server/agents/browser/; 11 modules; Playwright-based; reuses runLogger + bus patterns from executor.
 - [Centralized tool system layout](tool-system-layout.md) — server/tools/ foundation + filesystem domain migrated (50 files, 38 tools); tsconfig needs allowImportingTsExtensions+noEmit; unifiedRegistry compat shim in tool-registry.ts.
+- [Chat module integration contract](chat-module-integration.md) — server/chat/index.ts must export chatOrchestrator facade with 4 methods main.ts calls; sse-utils.ts in chat/streams/ is a hard dependency of infrastructure backpressure.ts.
