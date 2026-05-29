@@ -312,3 +312,9 @@ id = "obdzv1xoTk4osf5MicD-v"
 uri = "file://CHAT_LIFECYCLE_DEEP_SCAN.md"
 type = "text"
 title = "Chat System Deep Scan & Lifecycle Flow Report"
+
+[[outputs]]
+id = "1HZBm9NboMpAfT2yIG17D"
+uri = "file://REPAIR_SUMMARY.md"
+type = "text"
+title = "Repair Summary — Before & After"
