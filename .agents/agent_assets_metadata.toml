@@ -300,3 +300,9 @@ id = "NYIyAEWHIZxqneBRoCE7G"
 uri = "file://IMPLEMENTATION_REPORT.md"
 type = "text"
 title = "Autonomous Execution Intelligence — Implementation Report"
+
+[[outputs]]
+id = "ADaTR0n_C1jSapEEeIvlL"
+uri = "file://PLATFORM_ARCHITECTURE_REPORT.md"
+type = "text"
+title = "NURA-X Platform Architecture Report"
