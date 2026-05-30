@@ -14,9 +14,11 @@ import type {
   UpdateEntryPatch,
   MemoryFilter,
 } from '../types/memory.types.ts';
-import type { SearchQuery, SearchResult, RankedResult } from '../types/search.types.ts';
+import type { SearchQuery, SearchResult } from '../types/search.types.ts';
 import { memoryRouter }    from './memory-router.ts';
 import { memoryRegistry }  from './memory-registry.ts';
+import { graphBuilder }    from '../knowledge-graph/graph-builder.ts';
+import { retrievalEngine } from '../retrieval/retrieval-engine.ts';
 
 // ── Engine ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +27,10 @@ export class MemoryEngine {
   // ── Store operations ──────────────────────────────────────────────────────
 
   async store(input: CreateEntryInput): Promise<MemoryEntry> {
-    return memoryRouter.create(input);
+    const entry = await memoryRouter.create(input);
+    // Populate knowledge graph (fire-and-forget, non-fatal)
+    try { graphBuilder.ingest(entry); } catch { /* non-fatal */ }
+    return entry;
   }
 
   async retrieve(category: MemoryCategory, id: string): Promise<MemoryEntry | undefined> {
@@ -67,6 +72,33 @@ export class MemoryEngine {
     limit?:   number,
   ): Promise<MemoryEntry[]> {
     return memoryRouter.search(category, text, limit);
+  }
+
+  /**
+   * High-quality hybrid recall using the full retrieval pipeline.
+   * Preferred over searchCategory for agent planning/context reads.
+   * Never throws — returns empty SearchResult on error.
+   */
+  async recall(
+    text:    string,
+    options: {
+      categories?: MemoryCategory[];
+      limit?:      number;
+      minScore?:   number;
+    } = {},
+  ): Promise<SearchResult> {
+    try {
+      return await retrievalEngine.search({
+        text,
+        mode:          'hybrid',
+        categories:    options.categories,
+        limit:         options.limit ?? 10,
+        minScore:      options.minScore ?? 0.1,
+        includeStale:  false,
+      });
+    } catch {
+      return { query: { text }, results: [], totalFound: 0, durationMs: 0 };
+    }
   }
 
   // ── Stats ──────────────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
  *
  * Responsibilities:
  *   - validate incoming planning requests
+ *   - recall relevant memory context before planning
  *   - build planning context
  *   - open/close session lifecycle
  *   - delegate to planning-loop
@@ -24,6 +25,31 @@ import { validatePlanningRequest, validateRuntimeContext } from './validation/pl
 import { runPlanningLoop }                       from './execution/planning-loop.ts';
 import { makeRunId }                             from './utils/planning-utils.ts';
 import { memoryEngine }                          from '../../memory/core/memory-engine.ts';
+
+// ── Memory recall ──────────────────────────────────────────────────────────────
+
+interface PlanningMemoryContext {
+  pastDecisions:   string[];
+  knownFailures:   string[];
+  topLessons:      string[];
+}
+
+async function _recallPlanningMemory(goal: string): Promise<PlanningMemoryContext> {
+  try {
+    const [decisions, failures, lessons] = await Promise.all([
+      memoryEngine.searchCategory('decision', goal.slice(0, 100), 3),
+      memoryEngine.searchCategory('bug', 'failure error', 5),
+      memoryEngine.searchCategory('reflection', goal.slice(0, 100), 3),
+    ]);
+    return {
+      pastDecisions: decisions.map(e => e.content.slice(0, 200)),
+      knownFailures: failures.map(e => e.content.slice(0, 200)),
+      topLessons:    lessons.map(e => e.content.slice(0, 200)),
+    };
+  } catch {
+    return { pastDecisions: [], knownFailures: [], topLessons: [] };
+  }
+}
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -118,10 +144,24 @@ export async function plan(req: PlanningRequest): Promise<PlanningResult> {
   plannerMetrics.initRun(runId);
   planningMonitor.initRun(runId);
 
-  // ── 4. Build context ──────────────────────────────────────────────────────
-  const context = buildPlanningContext(runId, projectId, sandboxRoot, goal, meta, signal);
+  // ── 4. Recall memory context before planning ──────────────────────────────
+  const memoryContext = await _recallPlanningMemory(goal);
+  const hasPriorContext = memoryContext.pastDecisions.length > 0
+    || memoryContext.knownFailures.length > 0
+    || memoryContext.topLessons.length > 0;
+  if (hasPriorContext) {
+    plannerLogger.info(runId, 'Memory context loaded', {
+      pastDecisions: memoryContext.pastDecisions.length,
+      knownFailures: memoryContext.knownFailures.length,
+      topLessons:    memoryContext.topLessons.length,
+    });
+  }
 
-  // ── 5. Run planning loop ──────────────────────────────────────────────────
+  // ── 5. Build context (with memory injected into meta) ────────────────────
+  const enrichedMeta = { ...meta, memory: memoryContext };
+  const context = buildPlanningContext(runId, projectId, sandboxRoot, goal, enrichedMeta, signal);
+
+  // ── 6. Run planning loop ──────────────────────────────────────────────────
   const startedAt = Date.now();
 
   const executionPlan = await runPlanningLoop(context);
@@ -144,11 +184,11 @@ export async function plan(req: PlanningRequest): Promise<PlanningResult> {
     return failed(runId, durationMs, errors);
   }
 
-  // ── 6. Close session ──────────────────────────────────────────────────────
+  // ── 7. Close session ──────────────────────────────────────────────────────
   plannerSession.close(runId, true, durationMs);
   plannerLogger.sessionEnd(runId, true, durationMs);
 
-  // ── 7. Persist to memory platform (fire-and-forget) ───────────────────────
+  // ── 8. Persist to memory platform (fire-and-forget) ───────────────────────
   memoryEngine.store({
     category: 'decision',
     content:  JSON.stringify({ goal, planId: executionPlan.planId, durationMs }),
