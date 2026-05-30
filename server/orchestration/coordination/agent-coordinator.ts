@@ -100,15 +100,15 @@ async function invokeAgent(
       });
 
     case 'executor': {
-      // Build a minimal valid ExecutionPlan when the orchestration workflow
-      // did not inject one — this happens in all standard phase sequences
-      // because phase-planner.ts does not place a plan in the phase input.
       const providedPlan = input.plan as {
         planId: string; tasks: unknown[];
       } | undefined;
       const goal        = (input.goal as string | undefined) ?? '';
       const mode        = (input.mode as string | undefined) ?? 'execute';
       const effectiveGoal = mode !== 'execute' ? `${mode}: ${goal}` : goal;
+      // Use the planner-generated plan when available.
+      // The synthetic plan is an emergency fallback only — it fires when the
+      // planner phase did not produce a plan (e.g. planning was skipped or failed).
       const plan = providedPlan ?? {
         planId: `auto-${runId}`,
         tasks: [{
@@ -171,15 +171,25 @@ async function invokeAgent(
         metadata:  input.metadata as Record<string, unknown> | undefined,
       });
 
-    case 'verifier':
+    case 'verifier': {
+      // `input.phases` is the direct verifier phases array when set explicitly.
+      // `input.executorOutput` is injected by workflow-runner from the executor's
+      // PhaseResult.output — used to give the verifier execution context.
+      const directPhases   = input.phases        as any[] | undefined;
+      const executorOutput = input.executorOutput as any   | undefined;
+      const resolvedPhases = (directPhases && directPhases.length > 0)
+        ? directPhases
+        : undefined;
+
       return runVerification({
         runId,
         projectId,
         sandboxRoot,
-        phases:    input.phases   as any,
-        port:      input.port     as number | undefined,
+        phases:    resolvedPhases,
+        port:      (input.port ?? executorOutput?.port) as number | undefined,
         timeoutMs: input.timeoutMs as number | undefined,
       });
+    }
 
     case 'coderx':
       return runCoderXAgent({

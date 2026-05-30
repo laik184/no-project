@@ -44,6 +44,7 @@ export function shutdownPlanner(): void {
 export interface PlannerCycleResult {
   success:      boolean;
   planId?:      string;
+  plan?:        import('./types/planner.types.ts').ExecutionPlan;
   failedPhase?: string;
   error?:       string;
 }
@@ -69,6 +70,7 @@ export async function runPlannerCycle(ctx: {
     return {
       success:     result.success,
       planId:      result.plan?.planId,
+      plan:        result.plan,
       error:       result.errors[0],
       failedPhase: result.success ? undefined : 'planning',
     };

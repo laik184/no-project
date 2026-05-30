@@ -42,6 +42,51 @@ function buildPhaseOrder(workflow: Workflow): string[][] {
   return waves;
 }
 
+// ── Phase output enrichment ───────────────────────────────────────────────────
+
+/**
+ * Build an enriched copy of a phase with upstream outputs injected into input.
+ *
+ * Rules:
+ *   - If a dependency is a 'planner' phase and produced a plan, inject it as
+ *     `input.plan` so the executor consumes the real planner-generated task list.
+ *   - If a dependency is an 'executor' phase, inject its output as
+ *     `input.executorOutput` so the verifier has access to execution context.
+ *
+ * The original frozen phase object is never mutated — a new object is returned.
+ */
+function enrichPhase(
+  phase:   Phase,
+  phaseMap: Map<string, Phase>,
+  outputs:  Map<string, unknown>,
+): Phase {
+  const deps = phase.dependsOn ?? [];
+  if (deps.length === 0) return phase;
+
+  const extra: Record<string, unknown> = {};
+
+  for (const depId of deps) {
+    const depPhase  = phaseMap.get(depId);
+    const depOutput = outputs.get(depId);
+    if (!depOutput || !depPhase) continue;
+
+    switch (depPhase.agentType) {
+      case 'planner': {
+        const pr = depOutput as { plan?: unknown; success?: boolean };
+        if (pr.plan !== undefined) extra.plan = pr.plan;
+        break;
+      }
+      case 'executor': {
+        extra.executorOutput = depOutput;
+        break;
+      }
+    }
+  }
+
+  if (Object.keys(extra).length === 0) return phase;
+  return { ...phase, input: { ...phase.input, ...extra } };
+}
+
 // ── Workflow runner ───────────────────────────────────────────────────────────
 
 export async function runWorkflow(
@@ -58,12 +103,16 @@ export async function runWorkflow(
   publishWorkflowStarted(ctx, workflow.workflowId, workflow.name);
 
   const phaseResults: PhaseResult[] = [];
-  const phaseMap = new Map(workflow.phases.map(p => [p.phaseId, p]));
-  const waves    = buildPhaseOrder(workflow);
+  const phaseMap    = new Map(workflow.phases.map(p => [p.phaseId, p]));
+  const phaseOutputs = new Map<string, unknown>();
+  const waves       = buildPhaseOrder(workflow);
 
   for (const wave of waves) {
-    // Phases within a wave that have no mutual deps can run in parallel
-    const wavePhases = wave.map(id => phaseMap.get(id)).filter(Boolean) as typeof workflow.phases;
+    // Enrich each phase with outputs from completed upstream phases
+    const wavePhases = wave
+      .map(id => phaseMap.get(id))
+      .filter(Boolean)
+      .map(phase => enrichPhase(phase!, phaseMap, phaseOutputs)) as Phase[];
 
     const results = await Promise.all(
       wavePhases.map(phase =>
@@ -72,6 +121,13 @@ export async function runWorkflow(
     );
 
     phaseResults.push(...results);
+
+    // Record outputs so subsequent waves can consume them
+    for (const r of results) {
+      if (r.ok && r.output !== undefined) {
+        phaseOutputs.set(r.phaseId, r.output);
+      }
+    }
 
     const failed = results.filter(r => !r.ok);
     if (failed.length > 0 && stopOnFail) {
