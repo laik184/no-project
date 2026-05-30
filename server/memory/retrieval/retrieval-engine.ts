@@ -1,98 +1,79 @@
 /**
  * server/memory/retrieval/retrieval-engine.ts
  *
- * RetrievalEngine — deterministic, scoped, scored retrieval over both stores.
- *
- * Retrieval contract:
- *   - NEVER returns quarantined items
- *   - NEVER returns contradicted claims (unless explicitly requested)
- *   - NEVER returns expired items (unless explicitly requested)
- *   - Facts always ranked before claims
- *   - Results deterministic for same query + same store state
- *   - Respects namespace isolation
+ * Purpose: Unified retrieval API for the memory platform.
+ * Responsibility: Route queries to the correct search mode, apply reranking,
+ *   and return typed SearchResult envelopes.
+ * Exports: RetrievalEngine, retrievalEngine (singleton)
  */
 
-import type { RetrievalQuery, RetrievalResult } from "../contracts/types.ts";
-import type { FactStore } from "../facts/fact-store.ts";
-import type { ClaimStore } from "../claims/claim-store.ts";
-import type { FactIndex } from "../facts/fact-index.ts";
-import type { ClaimIndex } from "../claims/claim-index.ts";
-import type { RetrievalFilter } from "./retrieval-filter.ts";
-import type { RetrievalScorer } from "./retrieval-scorer.ts";
-import type { Clock } from "../infrastructure/clock.ts";
-
-const DEFAULT_LIMIT = 50;
+import { memoryRegistry }   from '../core/memory-registry.ts';
+import { semanticSearch }   from './semantic-search.ts';
+import { vectorSearch }     from './vector-search.ts';
+import { hybridSearch }     from './hybrid-search.ts';
+import { reranker }         from './reranker.ts';
+import type { MemoryEntry } from '../types/memory.types.ts';
+import type {
+  SearchQuery,
+  SearchResult,
+  RankedResult,
+} from '../types/search.types.ts';
 
 export class RetrievalEngine {
-  constructor(
-    private readonly _facts:        FactStore,
-    private readonly _claims:       ClaimStore,
-    private readonly _factIndex:    FactIndex,
-    private readonly _claimIndex:   ClaimIndex,
-    private readonly _filter:       RetrievalFilter,
-    private readonly _scorer:       RetrievalScorer,
-    private readonly _clock:        Clock,
-  ) {}
 
-  retrieve(query: RetrievalQuery): RetrievalResult {
-    const limit = query.limit ?? DEFAULT_LIMIT;
+  async search<T extends MemoryEntry = MemoryEntry>(
+    query: SearchQuery,
+  ): Promise<SearchResult<T>> {
+    const start     = Date.now();
+    const mode      = query.mode ?? 'hybrid';
+    const limit     = query.limit ?? 20;
+    const minScore  = query.minScore ?? 0;
 
-    // ── Facts ─────────────────────────────────────────────────────────────────
-    const allFacts = query.namespace
-      ? this._facts.listNamespace(query.namespace)
-      : this._facts.listAll();
+    // Collect candidate entries from relevant stores
+    const categories = query.categories ?? memoryRegistry.categories();
+    const allEntries: T[] = [];
 
-    const filteredFacts = this._filter.filterFacts(allFacts, query);
-    const scoredFacts = this._scorer.scoreFacts(filteredFacts);
-    const boostedFacts = this._scorer.boostKeyMatches(scoredFacts, query.keys);
-    const topFacts = boostedFacts.slice(0, Math.ceil(limit * 0.7)); // 70% budget for facts
+    await Promise.all(
+      categories.map(async (cat) => {
+        if (!memoryRegistry.has(cat)) return;
+        const store   = memoryRegistry.get<T>(cat);
+        const entries = await store.list({ excludeStale: !query.includeStale });
+        allEntries.push(...entries);
+      }),
+    );
 
-    // ── Claims ────────────────────────────────────────────────────────────────
-    const allClaims = query.namespace
-      ? this._claims.listNamespace(query.namespace)
-      : this._claims.listAll();
+    // Score
+    let results: RankedResult<T>[];
+    switch (mode) {
+      case 'semantic':
+        results = semanticSearch.rank(query.text, allEntries, limit * 3);
+        break;
+      case 'vector':
+        vectorSearch.bulkIndex(allEntries);
+        results = vectorSearch.rank(query.text, allEntries, limit * 3);
+        break;
+      default:
+        results = hybridSearch.rank(query.text, allEntries, limit * 3);
+    }
 
-    const filteredClaims = this._filter.filterClaims(allClaims, query);
-    const scoredClaims = this._scorer.scoreClaims(filteredClaims);
-    const topClaims = scoredClaims.slice(0, limit - topFacts.length);
+    // Filter by tags if specified
+    if (query.tags && query.tags.length > 0) {
+      const required = new Set(query.tags);
+      results = results.filter(r => r.entry.tags.some(t => required.has(t)));
+    }
 
-    return Object.freeze({
-      facts:        Object.freeze(topFacts),
-      claims:       Object.freeze(topClaims),
-      totalFacts:   filteredFacts.length,
-      totalClaims:  filteredClaims.length,
-      retrievedAt:  this._clock.now(),
-    });
-  }
+    // Rerank and apply minScore
+    const reranked = reranker.rerank({ query, results });
+    const filtered = minScore > 0 ? reranker.filter(reranked, minScore) : reranked;
+    const final    = filtered.slice(0, limit);
 
-  /**
-   * Retrieves only verified facts for a specific key set.
-   * Used by context builder for targeted fact injection.
-   */
-  retrieveFactsByKeys(keys: readonly string[], namespace: string): RetrievalResult {
-    return this.retrieve({ keys, namespace, limit: keys.length * 2 });
-  }
-
-  /**
-   * Retrieves the top unverified claims for a namespace.
-   * Used by context builder for [CLAIM — UNVERIFIED] injection.
-   */
-  retrieveTopClaims(namespace: string, limit = 10): RetrievalResult {
-    return this.retrieve({ namespace, limit, minConfidence: 0.3 });
-  }
-
-  /**
-   * Returns a summary of the current retrieval state for a namespace.
-   */
-  namespaceSummary(namespace: string): {
-    totalFacts: number;
-    totalClaims: number;
-    activeClaims: number;
-  } {
     return {
-      totalFacts:   this._facts.listNamespace(namespace).length,
-      totalClaims:  this._claims.listNamespace(namespace).length,
-      activeClaims: this._claims.listByStatus("unverified", namespace).length,
+      query,
+      results:    final,
+      totalFound: final.length,
+      durationMs: Date.now() - start,
     };
   }
 }
+
+export const retrievalEngine = new RetrievalEngine();
