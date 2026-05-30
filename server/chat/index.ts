@@ -19,8 +19,7 @@ import { attachmentRoutes } from './api/attachment.routes.ts';
 import { questionRoutes }   from './api/question.routes.ts';
 import { heartbeatManager } from './realtime/heartbeat-manager.ts';
 import { websocketManager } from './realtime/websocket-manager.ts';
-import { TOPIC }            from '../infrastructure/realtime/stream-topics.ts';
-import { sseManager as infraSseManager } from '../infrastructure/events/sse/sse-manager.ts';
+import { TOPIC, sseManager as infraSseManager } from '../infrastructure';
 
 // ── Module bootstrap ─────────────────────────────────────────────────────────
 

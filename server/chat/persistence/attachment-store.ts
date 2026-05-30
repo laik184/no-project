@@ -3,7 +3,7 @@
  * Data access only — no business logic.
  */
 import { eq, and } from 'drizzle-orm';
-import { db } from '../../infrastructure/db/index.ts';
+import { db } from '../../infrastructure';
 import { chatUploads } from '../../../shared/schema.ts';
 
 export interface AttachmentRecord {

@@ -3,7 +3,7 @@
  * Data access only — no business logic, no event emission.
  */
 import { desc, eq, and } from 'drizzle-orm';
-import { db } from '../../infrastructure/db/index.ts';
+import { db } from '../../infrastructure';
 import { chatMessages } from '../../../shared/schema.ts';
 import type {
   ChatMessageRecord,

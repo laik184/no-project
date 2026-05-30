@@ -9,7 +9,7 @@
  *   - getConnectionCount() for health/diagnostics
  *   - getTopicStats()      for monitoring
  */
-import { sseManager as infraSseManager } from '../../infrastructure/events/sse/sse-manager.ts';
+import { sseManager as infraSseManager } from '../../infrastructure';
 
 export const sseChatManager = {
   /** Number of currently open SSE connections (all topics). */

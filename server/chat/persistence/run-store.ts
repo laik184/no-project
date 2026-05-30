@@ -4,7 +4,7 @@
  * Chat DOES NOT write runs — that belongs to orchestration.
  */
 import { eq, and, desc } from 'drizzle-orm';
-import { db } from '../../infrastructure/db/index.ts';
+import { db } from '../../infrastructure';
 import { agentRuns } from '../../../shared/schema.ts';
 import type { ChatRun, RunStatus } from '../types/run.types.ts';
 

@@ -3,7 +3,7 @@
  * Single responsibility: wrap bus.emit with typed chat-domain payloads.
  * ONLY publishes to the "agent.event" bus key (the hub fan-out handles SSE).
  */
-import { bus } from '../../infrastructure/events/bus.ts';
+import { bus } from '../../infrastructure';
 import type { AnyChatEvent } from '../events/chat.events.ts';
 import type { QuestionAskedEvent, QuestionAnsweredEvent } from '../events/question.events.ts';
 import type { TimelinePublishedEvent } from '../events/timeline.events.ts';
