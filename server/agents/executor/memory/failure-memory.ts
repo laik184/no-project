@@ -167,6 +167,21 @@ export const failureMemory = {
     return [..._patterns.values()];
   },
 
+  /**
+   * Hydrate the in-process pattern map from persisted patterns loaded at startup.
+   * Idempotent: skips if the store already has patterns.
+   * Returns the number of patterns restored.
+   */
+  hydrate(patterns: FailurePattern[]): number {
+    if (_patterns.size > 0) return 0;      // already populated — skip
+    if (patterns.length === 0) return 0;
+
+    for (const p of patterns) {
+      _patterns.set(p.signature, { ...p });
+    }
+    return _patterns.size;
+  },
+
   reset(): void {
     _patterns.clear();
     _recentTimestamps.length = 0;

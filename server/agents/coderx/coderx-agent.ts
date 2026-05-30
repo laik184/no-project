@@ -27,6 +27,7 @@ import { runCodingLoop }           from './execution/coding-loop.ts';
 import { executionMonitor }        from './monitoring/execution-monitor.ts';
 import { toErrorMessage }          from './utils/coding-utils.ts';
 import { memoryEngine }            from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext }      from '../../memory/context/memory-context-builder.ts';
 
 // ── Default loop options ──────────────────────────────────────────────────────
 
@@ -80,6 +81,45 @@ export async function runCoderXAgent(input: CoderXAgentInput): Promise<CoderXAge
   // ── Initialize per-run stores ──────────────────────────────────────────────
   workingMemory.init(context.runId);
   coderxLogger.agentStarted(context.runId, context.requestId);
+
+  // ── Phase 4: Memory Recall ────────────────────────────────────────────────
+  // Recall architecture decisions, previous fixes, implementation patterns,
+  // coding lessons. CoderX must remember prior engineering decisions.
+  const recallTopic = request.userPrompt?.slice(0, 200) ?? 'code generation';
+  const memCtx = await buildMemoryContext(recallTopic, {
+    categories: ['architecture', 'decision', 'bug', 'learning', 'reflection', 'execution'],
+    limit:      10,
+    minScore:   0.1,
+  }).catch(() => null);
+
+  if (memCtx && memCtx.totalFound > 0) {
+    const cats = [...new Set(memCtx.entries.map(e => e.category))].join(',');
+    console.log(
+      `[coderx-agent] [memory-recall] run=${context.runId} found=${memCtx.totalFound} cats=${cats} graph=${memCtx.hasGraphData} (${memCtx.durationMs}ms)`,
+    );
+
+    // Surface architecture decisions relevant to this coding request
+    const archDecisions = await memoryEngine.searchCategory('architecture', recallTopic.slice(0, 100), 3).catch(() => []);
+    if (archDecisions.length > 0) {
+      console.log(
+        `[coderx-agent] [memory-recall] run=${context.runId} architecture-decisions=${archDecisions.length}`,
+      );
+    }
+
+    // Surface prior coding failures to avoid repeating them
+    const priorFailures = await memoryEngine.searchCategory('bug', recallTopic.slice(0, 100), 3).catch(() => []);
+    if (priorFailures.length > 0) {
+      console.warn(
+        `[coderx-agent] [memory-recall] run=${context.runId} prior-failures=${priorFailures.length} (avoid repeating)`,
+      );
+    }
+
+    // Surface knowledge graph entities (implementation patterns, tools)
+    if (memCtx.hasGraphData) {
+      const entities = memCtx.graphEntities.slice(0, 5).map(e => `${e.kind}:${e.label}`).join(', ');
+      console.log(`[coderx-agent] [memory-recall] run=${context.runId} graph-entities=${entities}`);
+    }
+  }
 
   // ── Run coding loop ────────────────────────────────────────────────────────
   try {

@@ -25,13 +25,47 @@ import { validatePlanningRequest, validateRuntimeContext } from './validation/pl
 import { runPlanningLoop }                       from './execution/planning-loop.ts';
 import { makeRunId }                             from './utils/planning-utils.ts';
 import { memoryEngine }                          from '../../memory/core/memory-engine.ts';
+import { graphTraversal }                        from '../../memory/knowledge-graph/graph-traversal.ts';
+import { graphStore }                            from '../../memory/knowledge-graph/graph-store.ts';
 
 // ── Memory recall ──────────────────────────────────────────────────────────────
 
 interface PlanningMemoryContext {
-  pastDecisions:   string[];
-  knownFailures:   string[];
-  topLessons:      string[];
+  pastDecisions:    string[];
+  knownFailures:    string[];
+  topLessons:       string[];
+  graphInsights:    string[];
+}
+
+// ── Phase 5: Knowledge-graph enrichment ──────────────────────────────────────
+
+function _recallGraphInsights(goal: string): string[] {
+  try {
+    const allEntities = graphStore.listEntities();
+    if (allEntities.length === 0) return [];
+
+    // Score graph entities by keyword overlap with the planning goal
+    const keywords = goal.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    if (keywords.length === 0) return [];
+
+    const scored = allEntities.map(e => {
+      const text = `${e.label} ${e.description}`.toLowerCase();
+      const hits  = keywords.filter(k => text.includes(k)).length;
+      return { entity: e, score: hits };
+    }).filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    const insights: string[] = [];
+    for (const { entity } of scored) {
+      const neighbours = graphTraversal.neighbours(entity.id).slice(0, 5);
+      const ctxLines = neighbours.map(n => `  → ${n.kind}:${n.label}: ${n.description.slice(0, 80)}`);
+      insights.push(`[${entity.kind}:${entity.label}] ${entity.description.slice(0, 100)}\n${ctxLines.join('\n')}`);
+    }
+    return insights;
+  } catch {
+    return [];
+  }
 }
 
 async function _recallPlanningMemory(goal: string): Promise<PlanningMemoryContext> {
@@ -41,13 +75,18 @@ async function _recallPlanningMemory(goal: string): Promise<PlanningMemoryContex
       memoryEngine.searchCategory('bug', 'failure error', 5),
       memoryEngine.searchCategory('reflection', goal.slice(0, 100), 3),
     ]);
+
+    // Phase 5: knowledge graph enrichment (synchronous — graph is in-memory)
+    const graphInsights = _recallGraphInsights(goal);
+
     return {
-      pastDecisions: decisions.map(e => e.content.slice(0, 200)),
-      knownFailures: failures.map(e => e.content.slice(0, 200)),
-      topLessons:    lessons.map(e => e.content.slice(0, 200)),
+      pastDecisions:  decisions.map(e => e.content.slice(0, 200)),
+      knownFailures:  failures.map(e => e.content.slice(0, 200)),
+      topLessons:     lessons.map(e => e.content.slice(0, 200)),
+      graphInsights,
     };
   } catch {
-    return { pastDecisions: [], knownFailures: [], topLessons: [] };
+    return { pastDecisions: [], knownFailures: [], topLessons: [], graphInsights: [] };
   }
 }
 
@@ -148,12 +187,14 @@ export async function plan(req: PlanningRequest): Promise<PlanningResult> {
   const memoryContext = await _recallPlanningMemory(goal);
   const hasPriorContext = memoryContext.pastDecisions.length > 0
     || memoryContext.knownFailures.length > 0
-    || memoryContext.topLessons.length > 0;
+    || memoryContext.topLessons.length > 0
+    || memoryContext.graphInsights.length > 0;
   if (hasPriorContext) {
     plannerLogger.info(runId, 'Memory context loaded', {
-      pastDecisions: memoryContext.pastDecisions.length,
-      knownFailures: memoryContext.knownFailures.length,
-      topLessons:    memoryContext.topLessons.length,
+      pastDecisions:  memoryContext.pastDecisions.length,
+      knownFailures:  memoryContext.knownFailures.length,
+      topLessons:     memoryContext.topLessons.length,
+      graphInsights:  memoryContext.graphInsights.length,
     });
   }
 

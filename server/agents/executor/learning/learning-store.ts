@@ -169,6 +169,28 @@ export const learningStore = {
     };
   },
 
+  /**
+   * Hydrate the in-process learning store from persisted entries loaded at startup.
+   * Idempotent: skips if the store already has entries.
+   * Returns the number of entries restored.
+   */
+  hydrate(entries: LearnedEntry[]): number {
+    if (_store.size > 0) return 0;         // already populated — skip
+    if (entries.length === 0) return 0;
+
+    for (const e of entries) {
+      const ck = _compositeKey(e.kind, e.key);
+      _store.set(ck, { ...e });
+
+      // Advance counters past restored state
+      const seq = parseInt(String(e.id).replace('ls_', ''), 10);
+      if (!isNaN(seq) && seq > _seq) _seq = seq;
+      if (e.version > _version) _version = e.version;
+    }
+
+    return _store.size;
+  },
+
   /** Hard reset — testing / governance rollback only. */
   reset(): void {
     _store.clear();

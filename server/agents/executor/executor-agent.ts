@@ -36,6 +36,10 @@ import { failureMonitor }         from './monitoring/failure-monitor.ts';
 import { executionMonitor }       from './monitoring/execution-monitor.ts';
 import { elapsedMs, toErrorMessage } from './utils/execution-utils.ts';
 import { memoryEngine }           from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext }     from '../../memory/context/memory-context-builder.ts';
+import { executionHistory }       from './memory/execution-history.ts';
+import { failureMemory }          from './memory/failure-memory.ts';
+import { learningStore }          from './learning/learning-store.ts';
 
 // ── Initialization guard ──────────────────────────────────────────────────────
 
@@ -82,6 +86,53 @@ export async function runExecutorAgent(
   }
 
   const { runId, projectId, sandboxRoot, plan, options = {} } = input;
+
+  // ── Phase 2: Memory Recall ────────────────────────────────────────────────
+  // Recall relevant prior knowledge before execution begins.
+  // Surfaces: past failures, tool reliability, execution patterns.
+  // Non-blocking: recall failure must never prevent execution.
+  const goalText = plan.tasks.map(t => t.taskId).join(' ');
+  const [memCtx] = await Promise.all([
+    buildMemoryContext(goalText, {
+      categories: ['execution', 'bug', 'learning', 'reflection', 'decision'],
+      limit:      10,
+      minScore:   0.1,
+    }).catch(() => null),
+  ]);
+
+  if (memCtx && memCtx.totalFound > 0) {
+    executorLogger.info(runId, `[memory-recall] Prior context loaded — ${memCtx.totalFound} records, graph=${memCtx.hasGraphData}`, {
+      categories:   [...new Set(memCtx.entries.map(e => e.category))],
+      graphEntities: memCtx.graphEntities.length,
+      durationMs:   memCtx.durationMs,
+    });
+
+    // Surface chronic failures to warn early
+    const chronicFailures = failureMemory.chroniclePatterns();
+    if (chronicFailures.length > 0) {
+      executorLogger.warn(runId, `[memory-recall] ${chronicFailures.length} chronic failure pattern(s) detected from prior runs`, {
+        patterns: chronicFailures.slice(0, 3).map(p => `${p.toolName}:${p.occurrences}x`),
+      });
+    }
+
+    // Log top learned tool reliability scores
+    const topReliable = learningStore.topByKind('tool-reliability', 3);
+    if (topReliable.length > 0) {
+      executorLogger.info(runId, '[memory-recall] Learned tool reliability', {
+        tools: topReliable.map(e => `${e.key}=${e.value.toFixed(2)}`),
+      });
+    }
+
+    // Log execution history summary
+    const histSummary = executionHistory.summary();
+    if (histSummary.totalRecorded > 0) {
+      executorLogger.info(runId, '[memory-recall] Execution history', {
+        total:       histSummary.totalRecorded,
+        successRate: histSummary.successRate,
+        avgRetries:  histSummary.avgRetries,
+      });
+    }
+  }
 
   // ── Build context ─────────────────────────────────────────────────────────
   let context;

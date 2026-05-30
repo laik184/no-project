@@ -181,6 +181,28 @@ export const executionHistory = {
     };
   },
 
+  /**
+   * Hydrate the in-process store from persisted entries loaded at startup.
+   * Idempotent: skips if the store already has entries.
+   * Returns the number of entries restored.
+   */
+  hydrate(entries: ExecutionHistoryEntry[]): number {
+    if (_history.length > 0) return 0;       // already populated — skip
+    if (entries.length === 0) return 0;
+
+    for (const e of entries) {
+      _history.push(e);
+      // Advance sequence counter past any restored IDs
+      const seq = parseInt(String(e.id).replace('hist_', ''), 10);
+      if (!isNaN(seq) && seq > _seq) _seq = seq;
+    }
+
+    // Enforce ring-buffer limit (keep newest)
+    while (_history.length > MAX_RUNS) _history.shift();
+
+    return _history.length;
+  },
+
   reset(): void { _history.length = 0; _seq = 0; },
   size():  number { return _history.length; },
 };

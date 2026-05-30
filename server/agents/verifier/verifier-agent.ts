@@ -23,6 +23,7 @@ import { verifierMetrics }              from './telemetry/verifier-metrics.ts';
 import { verifierHealthMonitor }        from './monitoring/health-monitor.ts';
 import { makeRunId, defaultSteps }      from './utils/verification-utils.ts';
 import { memoryEngine }                 from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext }           from '../../memory/context/memory-context-builder.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -69,6 +70,41 @@ export async function runVerification(req: VerifierInput): Promise<VerifierOutpu
     verifierLogger.warn(runId, 'Verifier runtime degraded', {
       active: verifierHealthMonitor.activeCount(),
     });
+  }
+
+  // ── Phase 3: Memory Recall ────────────────────────────────────────────────
+  // Recall previous verification failures, known bug patterns, false positives.
+  // Verifier should not rediscover the same mistakes.
+  const recallTopic = `verification ${phases.join(' ')} typecheck build runtime`;
+  const memCtx = await buildMemoryContext(recallTopic, {
+    categories: ['bug', 'execution', 'reflection', 'learning'],
+    limit:      8,
+    minScore:   0.1,
+  }).catch(() => null);
+
+  if (memCtx && memCtx.totalFound > 0) {
+    verifierLogger.lifecycle(runId, 'memory-recall-loaded', {
+      totalFound:  memCtx.totalFound,
+      hasGraph:    memCtx.hasGraphData,
+      durationMs:  memCtx.durationMs,
+    });
+
+    // Recall recent verification failures for this phase combination
+    const priorFailures = await memoryEngine.searchCategory('bug', phases.join(' '), 5).catch(() => []);
+    if (priorFailures.length > 0) {
+      verifierLogger.lifecycle(runId, 'memory-recall-prior-failures', {
+        count:    priorFailures.length,
+        patterns: priorFailures.slice(0, 3).map(e => e.content.slice(0, 80)),
+      });
+    }
+
+    // Recall known regression signatures
+    const regressions = await memoryEngine.searchCategory('reflection', 'regression verification fix', 3).catch(() => []);
+    if (regressions.length > 0) {
+      verifierLogger.lifecycle(runId, 'memory-recall-regressions', {
+        count: regressions.length,
+      });
+    }
   }
 
   // ── 3. Build execution context ────────────────────────────────────────────

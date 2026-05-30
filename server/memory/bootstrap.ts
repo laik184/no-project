@@ -2,14 +2,17 @@
  * server/memory/bootstrap.ts
  *
  * Purpose: One-time boot sequence for the memory platform.
- * Responsibility: Register all domain stores with the registry, then boot
- *   the manager. Call once at application startup.
+ * Responsibility: Register all domain stores with the registry, boot
+ *   the manager, run startup hydration for in-process executor stores,
+ *   and schedule the periodic reflection loop.
+ * Call once at application startup.
  * Exports: bootstrapMemory()
  */
 
 import { memoryRegistry }    from './core/memory-registry.ts';
 import { memoryManager }     from './core/memory-manager.ts';
 import { reflectionEngine }  from './reflection/reflection-engine.ts';
+import { runStartupHydration } from './bootstrap/hydration-manager.ts';
 
 // Domain stores
 import { decisionStore }     from './decision-memory/decision-store.ts';
@@ -52,6 +55,13 @@ export function bootstrapMemory(options: {
 
   // Boot lifecycle manager (TTL eviction, etc.)
   memoryManager.boot(options.evictionIntervalMs ?? 60_000);
+
+  // ── Phase 1: Startup Hydration ─────────────────────────────────────────────
+  // Restore in-process executor stores from the persisted memory platform.
+  // Fire-and-forget: hydration failure must never prevent server startup.
+  runStartupHydration({ idempotent: true, maxPerStore: 200 }).catch((err) => {
+    console.error('[memory] Startup hydration error (non-fatal):', err instanceof Error ? err.message : err);
+  });
 
   // Schedule periodic reflection loop (unref'd — won't keep process alive)
   const reflectionMs = options.reflectionIntervalMs ?? REFLECTION_INTERVAL_MS;
