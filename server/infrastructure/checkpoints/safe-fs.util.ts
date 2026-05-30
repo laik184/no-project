@@ -2,6 +2,7 @@
  * server/infrastructure/checkpoints/safe-fs.util.ts
  *
  * Safe filesystem operations with error swallowing and backup support.
+ * Public interface over atomic-write.util.ts — consumers import from here only.
  */
 import fs   from 'fs/promises';
 import path from 'path';
@@ -37,6 +38,22 @@ export async function safeDeleteFile(
     return { ok: true };
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { ok: true };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Backup a file safely — creates a .bak copy before any destructive operation.
+ * No-op if file doesn't exist. Never throws; returns ok/error result.
+ * Use this instead of importing backupBeforeWrite from atomic-write.util.ts directly.
+ */
+export async function safeBackup(
+  filePath: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await backupBeforeWrite(filePath);
+    return { ok: true };
+  } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

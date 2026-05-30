@@ -12,7 +12,8 @@
  *   stats()                                   → topic distribution snapshot
  */
 import type { Response } from 'express';
-import { bus } from '../bus.ts';
+import { bus }   from '../bus.ts';
+import { TOPIC } from '../../realtime/stream-topics.ts';
 
 // ── Connection record ─────────────────────────────────────────────────────────
 
@@ -39,18 +40,18 @@ function nextId(): string {
 bus.on('agent.event', (payload) => {
   const projectId = (payload as Record<string, unknown>).projectId as number | undefined;
   const runId     = (payload as Record<string, unknown>).runId     as string | undefined;
-  broadcastToTopic('agent', payload, projectId ?? null, runId);
+  broadcastToTopic(TOPIC.AGENT, payload, projectId ?? null, runId);
 });
 
 bus.on('run.lifecycle', (payload) => {
   const projectId = (payload as Record<string, unknown>).projectId as number | undefined;
   const runId     = (payload as Record<string, unknown>).runId     as string | undefined;
-  broadcastToTopic('lifecycle', payload, projectId ?? null, runId);
+  broadcastToTopic(TOPIC.LIFECYCLE, payload, projectId ?? null, runId);
 });
 
-bus.on('checkpoint', (payload) => {
+bus.on(TOPIC.CHECKPOINT, (payload) => {
   const projectId = (payload as Record<string, unknown>).projectId as number | undefined;
-  broadcastToTopic('checkpoint', payload, projectId ?? null, undefined);
+  broadcastToTopic(TOPIC.CHECKPOINT, payload, projectId ?? null, undefined);
 });
 
 // ── Internal broadcast ────────────────────────────────────────────────────────

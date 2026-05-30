@@ -7,16 +7,19 @@
  * SINGLE SOURCE OF TRUTH: all process state lives in runtimeManager.
  * No local Maps. No spawn calls. No duplicate state.
  * Restart-safe: state persists across server restarts via process-registry.
+ *
+ * Read-only access (get/all/isRunning) goes through processRegistry facade.
+ * Write access (start/stop/restart) stays on runtimeManager directly.
  */
 
 import { existsSync } from 'fs';
-import { runtimeManager } from '../../infrastructure/runtime/runtime-manager.ts';
+import { runtimeManager }  from '../../infrastructure/runtime/runtime-manager.ts';
+import { processRegistry } from '../../infrastructure/process/process-registry.ts';
 import type {
   ProjectProcess, ProjectStatus, RunProjectInput, StopProjectInput,
   RestartProjectInput, RunResult, StopResult, RestartResult,
   ProjectStatusResult, RuntimeServiceEvents, RuntimeServiceConfig,
 } from './runtime.types.ts';
-import type { RuntimeEntry } from '../../infrastructure/runtime/runtime-types.ts';
 
 // ─── ID parsing ───────────────────────────────────────────────────────────────
 
@@ -41,14 +44,14 @@ const STATUS_MAP: Record<string, ProjectStatus> = {
   crashed:  'error',
 };
 
-function toProjectProcess(id: string, entry: RuntimeEntry): ProjectProcess {
+function toProjectProcess(id: string, entry: ReturnType<typeof processRegistry.get> & {}): ProjectProcess {
   return {
     id,
     pid:         entry.pid,
     port:        entry.port,
     status:      STATUS_MAP[entry.status] ?? 'stopped',
     startedAt:   new Date(entry.startedAt),
-    projectPath: entry.cwd,
+    projectPath: (entry as unknown as Record<string, unknown>).cwd as string | undefined,
     command:     entry.command,
     env:         {},
   };
@@ -97,7 +100,7 @@ export class RuntimeService {
       return { ok: false, id, error: `Process ${id} is already running (pid: ${result.pid})` };
     }
 
-    const entry = runtimeManager.get(projectId);
+    const entry = processRegistry.get(projectId);
     if (entry) this.events.onStart?.(toProjectProcess(id, entry));
 
     return { ok: true, id, pid: result.pid, port: result.port };
@@ -111,7 +114,9 @@ export class RuntimeService {
       return { ok: false, id, error: `Cannot resolve numeric projectId from id: "${id}"` };
     }
 
-    if (!runtimeManager.isRunning(projectId)) {
+    const proc = processRegistry.get(projectId);
+    const running = proc?.status === 'running' || proc?.status === 'starting';
+    if (!running) {
       return { ok: false, id, error: `No running process found for id: ${id}` };
     }
 
@@ -145,7 +150,7 @@ export class RuntimeService {
   }
 
   getStatus(): ProjectStatusResult {
-    const all = runtimeManager.all();
+    const all = processRegistry.all();
     const running = all.map(e => toProjectProcess(String(e.projectId), e));
     const byStatus = running.reduce((acc, p) => {
       acc[p.status] = (acc[p.status] ?? 0) + 1;
@@ -157,13 +162,15 @@ export class RuntimeService {
   getProcess(id: string): ProjectProcess | undefined {
     const projectId = parseProjectId(id);
     if (!projectId) return undefined;
-    const entry = runtimeManager.get(projectId);
+    const entry = processRegistry.get(projectId);
     return entry ? toProjectProcess(id, entry) : undefined;
   }
 
   isRunning(id: string): boolean {
     const projectId = parseProjectId(id);
-    return projectId ? runtimeManager.isRunning(projectId) : false;
+    if (!projectId) return false;
+    const entry = processRegistry.get(projectId);
+    return entry?.status === 'running' || entry?.status === 'starting';
   }
 
   /** No-op: runtimeManager handles shutdown via main.ts SIGTERM handler. */

@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { safeWriteFile, safeDeleteFile } from '../../infrastructure/checkpoints/safe-fs.util.ts';
-import { backupBeforeWrite } from '../../infrastructure/checkpoints/atomic-write.util.ts';
+import { safeWriteFile, safeDeleteFile, safeBackup } from '../../infrastructure/checkpoints/safe-fs.util.ts';
 import type {
   SaveFileInput, SaveFileResult, ReadFileInput, ReadFileResult,
   RenameFileInput, RenameFileResult, DeleteFileInput, DeleteFileResult,
@@ -123,7 +122,7 @@ export class CrudService {
       fs.mkdirSync(path.dirname(absNew), { recursive: true });
 
       // Backup source before rename so the original path is recoverable
-      await backupBeforeWrite(absOld);
+      await safeBackup(absOld);
       fs.renameSync(absOld, absNew);
 
       this.emit({ type: 'renamed', path: newPath, oldPath });
