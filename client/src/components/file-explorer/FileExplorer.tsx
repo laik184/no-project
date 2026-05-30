@@ -1,58 +1,31 @@
 import { RawTreeNode } from "./types";
-import { emojiIcon } from "./file-icon";
+import { fileIcon } from "./file-icon";
 import { ContextMenu } from "./ContextMenu";
 import { useFileExplorer } from "./use-file-explorer";
 import { useState } from "react";
+import { ChevronRight, ChevronDown, FilePlus, FolderPlus, RotateCcw } from "lucide-react";
 
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)}KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// Keyframe injection — done once at module scope, avoids re-injecting on re-renders
-if (typeof document !== "undefined" && !document.getElementById("__fe-anim__")) {
+// Inject animations once
+if (typeof document !== "undefined" && !document.getElementById("__rfe-anim__")) {
   const s = document.createElement("style");
-  s.id = "__fe-anim__";
+  s.id = "__rfe-anim__";
   s.textContent = `
-    @keyframes fe-writing-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.45; }
-    }
-    @keyframes fe-writing-dots {
-      0%   { content: ""; }
-      33%  { content: "."; }
-      66%  { content: ".."; }
-      100% { content: "..."; }
-    }
-    .fe-writing-row {
-      border-left: 2px solid #7c8dff !important;
-      background: rgba(124,141,255,0.07) !important;
-    }
-    .fe-writing-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      margin-left: auto;
-      font-size: 10px;
-      padding: 0 5px;
-      border-radius: 6px;
-      background: rgba(124,141,255,0.18);
-      color: #a5b4fc;
-      animation: fe-writing-pulse 1.1s ease-in-out infinite;
-      white-space: nowrap;
-    }
-    .fe-writing-spinner {
-      width: 7px;
-      height: 7px;
-      border: 1.5px solid rgba(124,141,255,0.35);
-      border-top-color: #a5b4fc;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes rfe-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes rfe-spin  { to{transform:rotate(360deg)} }
+    .rfe-writing-row { border-left:2px solid #3b82f6!important; background:rgba(59,130,246,.06)!important; }
+    .rfe-spinner { width:6px;height:6px;border:1.5px solid rgba(59,130,246,.3);border-top-color:#60a5fa;border-radius:50%;animation:rfe-spin .7s linear infinite; }
+    .rfe-badge { display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(59,130,246,.15);color:#93c5fd;animation:rfe-pulse 1.2s ease infinite;white-space:nowrap; }
+    .rfe-row::-webkit-scrollbar{display:none}
+    .rfe-sidebar ::-webkit-scrollbar{width:3px}
+    .rfe-sidebar ::-webkit-scrollbar-track{background:transparent}
+    .rfe-sidebar ::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+    .rfe-sidebar ::-webkit-scrollbar-thumb:hover{background:#444}
   `;
   document.head.appendChild(s);
 }
@@ -64,102 +37,109 @@ interface FileExplorerProps {
 }
 
 function RenderNode({
-  node, basePath, activeFile, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath,
-  setHoveredPath, setFocusedPath, onSelect, onContextMenu,
+  node, basePath, depth, activeFile, dirtyFiles, aiFiles,
+  writingFiles, writingSizes, hoveredPath, setHoveredPath,
+  setFocusedPath, onSelect, onContextMenu,
 }: {
-  node: RawTreeNode;
-  basePath: string;
-  activeFile?: string;
-  dirtyFiles: Set<string>;
-  aiFiles: Set<string>;
-  writingFiles: Set<string>;
-  writingSizes: Map<string, number>;
+  node: RawTreeNode; basePath: string; depth: number;
+  activeFile?: string; dirtyFiles: Set<string>; aiFiles: Set<string>;
+  writingFiles: Set<string>; writingSizes: Map<string, number>;
   hoveredPath: string | null;
   setHoveredPath: (p: string | null) => void;
   setFocusedPath: (p: string | null) => void;
   onSelect: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void;
 }) {
-  const type    = node.type === "folder" ? "directory" : node.type;
-  const full    = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
-  const isDir   = type === "directory";
-  const active  = !!activeFile && activeFile === full;
-  const dirty   = dirtyFiles.has(full);
-  const ai      = aiFiles.has(full);
-  const writing = writingFiles.has(full);
+  const [open, setOpen] = useState(depth < 2);
+  const isDir    = node.type === "folder" || node.type === "directory";
+  const full     = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
+  const active   = !!activeFile && activeFile === full;
+  const dirty    = dirtyFiles.has(full);
+  const ai       = aiFiles.has(full);
+  const writing  = writingFiles.has(full);
   const writeSize = writingSizes.get(full);
-  const hovered = hoveredPath === full;
+  const hovered  = hoveredPath === full;
+  const indent   = 8 + depth * 16;
 
-  const rowStyle: React.CSSProperties = {
-    padding: "2px 6px", cursor: "pointer",
-    display: "flex", alignItems: "center", gap: 6,
-    background: writing
-      ? "rgba(124,141,255,0.07)"
-      : active
-        ? "#16355a"
-        : hovered
-          ? "#020617"
-          : "transparent",
-    color: "#f9fafb", fontSize: 13,
-    borderLeft: writing ? "2px solid #7c8dff" : "2px solid transparent",
+  const rowBase: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 4,
+    height: 22, paddingRight: 6, cursor: "pointer",
+    paddingLeft: indent,
+    fontSize: 12, userSelect: "none",
+    borderLeft: writing ? "2px solid #3b82f6"
+      : active ? "2px solid #3b82f6"
+      : "2px solid transparent",
+    background: writing ? "rgba(59,130,246,.06)"
+      : active ? "#2a2a2a"
+      : hovered ? "#252525"
+      : "transparent",
+    color: active ? "#f0f0f0" : "#c4c4c4",
+    transition: "background .1s, color .1s",
   };
-
-  const writingBadge = (
-    <span className="fe-writing-badge">
-      <span className="fe-writing-spinner" />
-      {writeSize !== undefined ? `writing · ${formatBytes(writeSize)}` : "writing"}
-    </span>
-  );
-
-  const aiBadge = (
-    <span style={{ marginLeft: "auto", fontSize: 10, padding: "0 4px",
-      borderRadius: 6, background: "#22c55e33", color: "#22c55e" }}>AI</span>
-  );
 
   if (isDir) {
     return (
-      <div key={full}>
-        <div style={rowStyle}
-          onClick={() => { setFocusedPath(full); onSelect(full); }}
+      <div>
+        <div
+          style={rowBase}
+          onClick={() => { setFocusedPath(full); setOpen(v => !v); onSelect(full); }}
           onContextMenu={(e) => onContextMenu(e, full, true)}
           onMouseEnter={() => setHoveredPath(full)}
           onMouseLeave={() => setHoveredPath(null)}
-          data-testid={`folder-${node.name}`}>
-          <span>{emojiIcon(node.name, type)}</span>
-          <span>{node.name}</span>
-          {writing ? writingBadge : ai ? aiBadge : null}
+          data-testid={`folder-${node.name}`}
+        >
+          <span style={{ color: "#555", flexShrink: 0, display: "flex" }}>
+            {open
+              ? <ChevronDown  style={{ width: 11, height: 11 }} />
+              : <ChevronRight style={{ width: 11, height: 11 }} />}
+          </span>
+          {fileIcon(node.name, "folder", open)}
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {node.name}
+          </span>
+          {writing ? (
+            <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
+          ) : ai ? (
+            <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(34,197,94,.15)", color: "#4ade80", letterSpacing: .3 }}>AI</span>
+          ) : null}
         </div>
-        <div style={{ paddingLeft: 12 }}>
-          {Array.isArray(node.children) &&
-            node.children.map((child) => (
-              <RenderNode key={child.name} node={child} basePath={full}
+        {open && (
+          <div>
+            {Array.isArray(node.children) && node.children.map((child) => (
+              <RenderNode key={child.name} node={child} basePath={full} depth={depth + 1}
                 activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
                 writingFiles={writingFiles} writingSizes={writingSizes}
                 hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
                 setFocusedPath={setFocusedPath} onSelect={onSelect}
                 onContextMenu={onContextMenu} />
             ))}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div key={full} style={rowStyle}
+    <div
+      style={rowBase}
       onClick={() => { setFocusedPath(full); onSelect(full); }}
       onContextMenu={(e) => onContextMenu(e, full, false)}
       onMouseEnter={() => setHoveredPath(full)}
       onMouseLeave={() => setHoveredPath(null)}
-      data-testid={`file-${node.name}`}>
-      <span>{emojiIcon(node.name, type)}</span>
-      <span>{node.name}</span>
-      {writing
-        ? writingBadge
-        : dirty
-          ? <span style={{ marginLeft: "auto" }}>•</span>
-          : ai
-            ? aiBadge
-            : null}
+      data-testid={`file-${node.name}`}
+    >
+      <span style={{ width: 11, flexShrink: 0 }} />
+      {fileIcon(node.name, "file")}
+      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {node.name}
+      </span>
+      {writing ? (
+        <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
+      ) : dirty ? (
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", flexShrink: 0 }} />
+      ) : ai ? (
+        <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(34,197,94,.15)", color: "#4ade80", letterSpacing: .3 }}>AI</span>
+      ) : null}
     </div>
   );
 }
@@ -168,79 +148,110 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string; isDir: boolean } | null>(null);
 
   const {
-    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath, setHoveredPath,
-    setFocusedPath, refreshFiles, apiSaveFile,
+    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath,
+    setHoveredPath, setFocusedPath, refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,
   } = useFileExplorer({ projectPath, activeFile });
 
-  const openContextMenu = (e: React.MouseEvent, path: string, isDir: boolean) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, path, isDir });
+  const openCtx = (e: React.MouseEvent, path: string, isDir: boolean) => {
+    e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, path, isDir });
   };
-
-  const closeContextMenu = () => setContextMenu(null);
+  const closeCtx = () => setContextMenu(null);
 
   const handleNewFile = async () => {
     if (!contextMenu) return;
-    const base = contextMenu.isDir
-      ? contextMenu.path
-      : contextMenu.path.replace(/\/[^/]+$/, "");
+    const base = contextMenu.isDir ? contextMenu.path : contextMenu.path.replace(/\/[^/]+$/, "");
     const name = window.prompt("New file name:");
     if (!name) return;
     const full = (base.endsWith("/") ? base : base + "/") + name;
-    try { await apiSaveFile(full, ""); refreshFiles(full); }
-    catch (e) { console.error("[FileExplorer] create file failed:", e); }
-    finally { closeContextMenu(); }
+    try { await apiSaveFile(full, ""); refreshFiles(full); } catch {}
+    finally { closeCtx(); }
   };
 
   const handleNewFolder = async () => {
     if (!contextMenu) return;
-    const base = contextMenu.isDir
-      ? contextMenu.path
-      : contextMenu.path.replace(/\/[^/]+$/, "");
+    const base = contextMenu.isDir ? contextMenu.path : contextMenu.path.replace(/\/[^/]+$/, "");
     const name = window.prompt("New folder name:");
     if (!name) return;
     const full = (base.endsWith("/") ? base : base + "/") + name + "/.keep";
-    try { await apiSaveFile(full, ""); refreshFiles(full); }
-    catch (e) { console.error("[FileExplorer] create folder failed:", e); }
-    finally { closeContextMenu(); }
-  };
-
-  const handleRename = async () => {
-    if (!contextMenu) return;
-    await handleRenamePath(contextMenu.path);
-    closeContextMenu();
-  };
-
-  const handleDelete = async () => {
-    if (!contextMenu) return;
-    await handleDeletePath(contextMenu.path);
-    closeContextMenu();
+    try { await apiSaveFile(full, ""); refreshFiles(full); } catch {}
+    finally { closeCtx(); }
   };
 
   return (
-    <div style={{ width: 260, background: "#020617", color: "#e5e7eb",
-        borderRight: "1px solid #111827", fontFamily: "system-ui, sans-serif",
-        fontSize: 13, position: "relative" }}
-      onClick={() => { if (contextMenu) closeContextMenu(); }}>
-      <div style={{ padding: "6px 8px", borderBottom: "1px solid #111827",
-          fontSize: 12, textTransform: "uppercase", letterSpacing: 0.08, color: "#9ca3af" }}>
-        Files
+    <div
+      className="rfe-sidebar"
+      style={{
+        width: 240, display: "flex", flexDirection: "column",
+        background: "#1c1c1c", borderRight: "1px solid #2e2e2e",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        fontSize: 12, position: "relative", height: "100%",
+      }}
+      onClick={() => { if (contextMenu) closeCtx(); }}
+    >
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 8px", height: 36, flexShrink: 0,
+        borderBottom: "1px solid #2a2a2a",
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Files
+        </span>
+        <div style={{ display: "flex", gap: 2 }}>
+          {[
+            { Icon: FilePlus, title: "New File", onClick: async () => {
+              const name = window.prompt("New file name:");
+              if (!name) return;
+              const full = (projectPath ? projectPath + "/" : "") + name;
+              try { await apiSaveFile(full, ""); refreshFiles(full); } catch {}
+            }},
+            { Icon: FolderPlus, title: "New Folder", onClick: async () => {
+              const name = window.prompt("New folder name:");
+              if (!name) return;
+              const full = (projectPath ? projectPath + "/" : "") + name + "/.keep";
+              try { await apiSaveFile(full, ""); refreshFiles(full); } catch {}
+            }},
+            { Icon: RotateCcw, title: "Refresh", onClick: () => refreshFiles() },
+          ].map(({ Icon, title, onClick }) => (
+            <button key={title} title={title} onClick={onClick}
+              style={{
+                width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
+                background: "transparent", border: "none", cursor: "pointer",
+                borderRadius: 4, color: "#555", transition: "background .1s, color .1s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#2e2e2e"; (e.currentTarget as HTMLElement).style.color = "#ccc"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#555"; }}
+            >
+              <Icon style={{ width: 13, height: 13 }} />
+            </button>
+          ))}
+        </div>
       </div>
-      <div style={{ padding: 4, overflowY: "auto", height: "calc(100vh - 32px)" }}>
-        {tree.map((node) => (
-          <RenderNode key={node.name} node={node} basePath={projectPath || ""}
-            activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
-            writingFiles={writingFiles} writingSizes={writingSizes}
-            hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
-            setFocusedPath={setFocusedPath}
-            onSelect={(path) => onSelect && onSelect(path)}
-            onContextMenu={openContextMenu} />
-        ))}
+
+      {/* Tree */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+        {tree.length === 0 ? (
+          <div style={{ padding: "16px 12px", color: "#444", fontSize: 11, textAlign: "center" }}>
+            No files yet
+          </div>
+        ) : (
+          tree.map((node) => (
+            <RenderNode key={node.name} node={node} basePath={projectPath || ""} depth={0}
+              activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
+              writingFiles={writingFiles} writingSizes={writingSizes}
+              hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
+              setFocusedPath={setFocusedPath}
+              onSelect={(path) => onSelect && onSelect(path)}
+              onContextMenu={openCtx} />
+          ))
+        )}
       </div>
+
       <ContextMenu menu={contextMenu}
         onNewFile={handleNewFile} onNewFolder={handleNewFolder}
-        onRename={handleRename} onDelete={handleDelete} />
+        onRename={async () => { if (contextMenu) { await handleRenamePath(contextMenu.path); closeCtx(); } }}
+        onDelete={async () => { if (contextMenu) { await handleDeletePath(contextMenu.path); closeCtx(); } }} />
     </div>
   );
 }

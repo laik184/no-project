@@ -22,11 +22,16 @@ export function InlineInput({ initialValue = "", onConfirm, onCancel }: InlineIn
         if (e.key === "Escape") { e.preventDefault(); onCancel(); }
       }}
       onBlur={() => { if (val.trim()) onConfirm(val.trim()); else onCancel(); }}
-      className="flex-1 min-w-0 rounded px-1.5 py-0.5 text-[11.5px] outline-none"
       style={{
-        background: "rgba(124,141,255,0.12)",
-        border: "1px solid rgba(124,141,255,0.35)",
-        color: "rgba(226,232,240,0.95)",
+        flex: 1, minWidth: 0,
+        padding: "1px 5px", borderRadius: 3,
+        background: "#141414",
+        border: "1px solid #3b82f6",
+        color: "#e4e4e7",
+        fontSize: 12,
+        outline: "none",
+        boxShadow: "0 0 0 2px rgba(59,130,246,.2)",
+        fontFamily: "inherit",
       }}
       autoFocus
       data-testid="input-file-rename"
@@ -48,19 +53,24 @@ export function ActionIcon({ children, onClick, title, danger = false, testId }:
       onClick={onClick}
       title={title}
       data-testid={testId}
-      className="w-4 h-4 flex items-center justify-center rounded transition-colors"
-      style={{ color: danger ? "rgba(248,113,113,0.6)" : "rgba(148,163,184,0.5)" }}
+      style={{
+        width: 20, height: 20,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "transparent", border: "none", cursor: "pointer",
+        borderRadius: 3,
+        color: danger ? "rgba(248,113,113,.55)" : "#555",
+        transition: "background .1s, color .1s",
+        flexShrink: 0,
+      }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = danger
-          ? "rgba(239,68,68,0.12)"
-          : "rgba(255,255,255,0.08)";
-        (e.currentTarget as HTMLElement).style.color = danger ? "#f87171" : "rgba(226,232,240,0.8)";
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = danger ? "rgba(239,68,68,.12)" : "#2e2e2e";
+        el.style.color      = danger ? "#ef4444" : "#c4c4c4";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "transparent";
-        (e.currentTarget as HTMLElement).style.color = danger
-          ? "rgba(248,113,113,0.6)"
-          : "rgba(148,163,184,0.5)";
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = "transparent";
+        el.style.color      = danger ? "rgba(248,113,113,.55)" : "#555";
       }}
     >
       {children}

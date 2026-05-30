@@ -47,87 +47,115 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ background: "rgba(10,12,22,0.97)" }}>
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
+      background: "#1c1c1c",
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <span className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "rgba(148,163,184,0.4)" }}>Explorer</span>
-        <div className="flex items-center gap-0.5">
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 8px", height: 36, flexShrink: 0,
+        borderBottom: "1px solid #2a2a2a",
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#555", textTransform: "uppercase", letterSpacing: ".08em" }}>
+          Explorer
+        </span>
+        <div style={{ display: "flex", gap: 2 }}>
           <ActionIcon onClick={() => setCreatingFile(true)}   title="New File"   testId="button-new-file">
-            <FilePlus style={{ width: 12, height: 12 }} />
+            <FilePlus style={{ width: 13, height: 13 }} />
           </ActionIcon>
           <ActionIcon onClick={() => setCreatingFolder(true)} title="New Folder" testId="button-new-folder">
-            <FolderPlus style={{ width: 12, height: 12 }} />
+            <FolderPlus style={{ width: 13, height: 13 }} />
           </ActionIcon>
           <ActionIcon onClick={onClose} title="Close Explorer" testId="button-close-file-explorer">
-            <X style={{ width: 12, height: 12 }} />
+            <X style={{ width: 13, height: 13 }} />
           </ActionIcon>
         </div>
       </div>
 
       {/* Search */}
-      <div className="px-2 py-1.5 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <Search style={{ width: 11, height: 11, color: "rgba(148,163,184,0.4)", flexShrink: 0 }} />
+      <div style={{ padding: "6px 8px", flexShrink: 0, borderBottom: "1px solid #242424" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "4px 8px", borderRadius: 5,
+          background: "#141414", border: "1px solid #2e2e2e",
+        }}>
+          <Search style={{ width: 11, height: 11, color: "#444", flexShrink: 0 }} />
           <input
             ref={searchRef} value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files…"
-            className="flex-1 bg-transparent outline-none text-[11.5px]"
-            style={{ color: "rgba(226,232,240,0.8)", caretColor: "rgba(124,141,255,0.9)" }}
+            style={{
+              flex: 1, background: "transparent", border: "none", outline: "none",
+              fontSize: 12, color: "#c4c4c4", caretColor: "#3b82f6",
+            }}
             data-testid="input-file-search"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} style={{ color: "rgba(148,163,184,0.4)" }}>
+            <button onClick={() => setSearchQuery("")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#444", display: "flex", padding: 0 }}>
               <X style={{ width: 10, height: 10 }} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Inline create inputs */}
+      {/* Inline create input */}
       {(creatingFile || creatingFolder) && (
-        <div className="px-3 py-1.5 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2">
-            {creatingFile
-              ? <FilePlus   style={{ width: 12, height: 12, color: "#60a5fa", flexShrink: 0 }} />
-              : <FolderPlus style={{ width: 12, height: 12, color: "#7c8dff", flexShrink: 0 }} />}
-            <InlineInput
-              initialValue={creatingFile ? "newfile.tsx" : "new-folder"}
-              onConfirm={creatingFile ? handleNewFile : handleNewFolder}
-              onCancel={() => { setCreatingFile(false); setCreatingFolder(false); }}
-            />
-          </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "4px 8px", flexShrink: 0,
+          borderBottom: "1px solid #242424", background: "#1e1e1e",
+        }}>
+          {creatingFile
+            ? <FilePlus   style={{ width: 12, height: 12, color: "#60a5fa", flexShrink: 0 }} />
+            : <FolderPlus style={{ width: 12, height: 12, color: "#e8a427", flexShrink: 0 }} />}
+          <InlineInput
+            initialValue={creatingFile ? "newfile.tsx" : "new-folder"}
+            onConfirm={creatingFile ? handleNewFile : handleNewFolder}
+            onCancel={() => { setCreatingFile(false); setCreatingFolder(false); }}
+          />
         </div>
       )}
 
       {/* Tree / Search results */}
-      <div className="flex-1 overflow-y-auto py-1 px-1"
-        style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}>
+      <div style={{
+        flex: 1, overflowY: "auto", padding: "4px 0",
+        scrollbarWidth: "thin", scrollbarColor: "#333 transparent",
+      }}>
         {sq ? (
           searchResults.length > 0 ? (
             searchResults.map(({ node, path }) => (
               <button key={node.id} onClick={() => handleSelect(node)}
-                className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-white/5"
-                style={{ background: activeFileName === node.name ? "rgba(124,141,255,0.12)" : undefined }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6, width: "100%",
+                  padding: "4px 10px", background: activeFileName === node.name ? "#2a2a2a" : "transparent",
+                  border: "none", cursor: "pointer", textAlign: "left",
+                  borderLeft: activeFileName === node.name ? "2px solid #3b82f6" : "2px solid transparent",
+                  transition: "background .1s",
+                }}
+                onMouseEnter={e => { if (activeFileName !== node.name) (e.currentTarget as HTMLElement).style.background = "#252525"; }}
+                onMouseLeave={e => { if (activeFileName !== node.name) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 data-testid={`search-result-${node.name}`}>
                 {fileIcon(node.name, "file")}
-                <div className="min-w-0">
-                  <p className="text-[11.5px] truncate"
-                    style={{ color: activeFileName === node.name ? "rgba(226,232,240,0.95)" : "rgba(203,213,225,0.75)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    color: activeFileName === node.name ? "#f0f0f0" : "#c4c4c4",
+                  }}>
                     {node.name}
-                  </p>
-                  <p className="text-[10px] truncate" style={{ color: "rgba(100,116,139,0.55)" }}>
+                  </div>
+                  <div style={{ fontSize: 10, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {path.split("/").slice(0, -1).join("/")}
-                  </p>
+                  </div>
                 </div>
               </button>
             ))
           ) : (
-            <div className="flex items-center justify-center py-6">
-              <span className="text-[11px]" style={{ color: "rgba(148,163,184,0.3)" }}>No files found</span>
+            <div style={{ padding: "20px 12px", color: "#3a3a3a", fontSize: 11, textAlign: "center" }}>
+              No results for "{searchQuery}"
             </div>
           )
         ) : (
