@@ -21,6 +21,7 @@ import { allSnapshots, getStuckOrchestrations } from './monitoring/orchestration
 import { getEscalations }                  from './lifecycle/escalation-manager.ts';
 import { toErrorMessage, newOrchestrationId } from './utils/orchestration-utils.ts';
 import { buildMemoryContext, memoryEngine } from '../memory/index.ts';
+import { getBrowserAgentMetrics, getActiveCount } from '../agents/browser/index.ts';
 
 // ── Initialization state ──────────────────────────────────────────────────────
 
@@ -136,20 +137,24 @@ export async function orchestrate(
 // ── Diagnostics ───────────────────────────────────────────────────────────────
 
 export function getOrchestratorDiagnostics(runId: string): {
-  metrics:        ReturnType<typeof getRunMetrics>;
-  globalMetrics:  ReturnType<typeof globalSummary>;
-  failureSummary: ReturnType<typeof getFailureSummary>;
-  escalations:    ReturnType<typeof getEscalations>;
-  activeSnapshots: ReturnType<typeof allSnapshots>;
-  stuckLoops:      ReturnType<typeof getStuckOrchestrations>;
+  metrics:              ReturnType<typeof getRunMetrics>;
+  globalMetrics:        ReturnType<typeof globalSummary>;
+  failureSummary:       ReturnType<typeof getFailureSummary>;
+  escalations:          ReturnType<typeof getEscalations>;
+  activeSnapshots:      ReturnType<typeof allSnapshots>;
+  stuckLoops:           ReturnType<typeof getStuckOrchestrations>;
+  browserAgentMetrics:  ReturnType<typeof getBrowserAgentMetrics>;
+  browserActiveSessions: number;
 } {
   return {
-    metrics:         getRunMetrics(runId),
-    globalMetrics:   globalSummary(),
-    failureSummary:  getFailureSummary(runId),
-    escalations:     getEscalations(runId),
-    activeSnapshots: allSnapshots(),
-    stuckLoops:      getStuckOrchestrations(),
+    metrics:               getRunMetrics(runId),
+    globalMetrics:         globalSummary(),
+    failureSummary:        getFailureSummary(runId),
+    escalations:           getEscalations(runId),
+    activeSnapshots:       allSnapshots(),
+    stuckLoops:            getStuckOrchestrations(),
+    browserAgentMetrics:   getBrowserAgentMetrics(),
+    browserActiveSessions: getActiveCount(),
   };
 }
 
