@@ -17,7 +17,7 @@
  * FORBIDDEN at this layer: importing from tool-dispatcher, tool-registry, or any tool directly.
  */
 
-import { runBrowserAgent }        from '../../agents/browser/browser-agent.ts';
+import { runBrowserAgent }        from '../../agents/browser/index.ts';
 import { runCoderXAgent }         from '../../agents/coderx/coderx-agent.ts';
 import { runExecutorAgent }       from '../../agents/executor/executor-agent.ts';
 import { runFilesystemAgent }     from '../../agents/filesystem/filesystem-agent.ts';
