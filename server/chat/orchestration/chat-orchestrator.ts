@@ -32,6 +32,7 @@ import { eventPublisher }      from '../realtime/event-publisher.ts';
 import { makeRunStartedEvent, makeRunCompletedEvent, makeRunFailedEvent } from '../events/run.events.ts';
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
+import { memoryEngine }        from '../../memory/core/memory-engine.ts';
 
 export class ChatOrchestratorError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -92,6 +93,15 @@ export const chatOrchestrator = {
 
     // 8. Clarification check (non-blocking — orchestration engine waits if question is asked)
     clarificationManager.maybeAskClarification(runId, projectId, goal);
+
+    // Fire-and-forget: persist conversation turn to memory platform
+    memoryEngine.store({
+      category: 'conversation',
+      content:  goal,
+      tags:     ['chat', 'user-goal'],
+      score:    1.0,
+      meta:     { runId, projectId, conversationId: conversation.conversationId, agentSource: 'chat' },
+    }).catch(console.error);
 
     // 9. Open stream
     streamManager.open(runId, projectId);

@@ -17,6 +17,7 @@ import { summarizeFailures }                       from './monitoring/failure-mo
 import { getAgentMetrics }                         from './telemetry/browser-metrics.ts';
 import { toErrorMessage }                          from './utils/browser-utils.ts';
 import type { FlowStep }                           from './types/navigation.types.ts';
+import { memoryEngine }                            from '../../memory/core/memory-engine.ts';
 
 // ── Agent input ───────────────────────────────────────────────────────────────
 
@@ -94,6 +95,15 @@ export async function runBrowserAgent(
   if (!contextCheck.ok) {
     console.warn(`[browser-agent] Context validation failed for runId=${runId}: ${contextCheck.summary}`);
   }
+
+  // Fire-and-forget: persist browser run outcome to memory platform
+  memoryEngine.store({
+    category: 'learning',
+    content:  JSON.stringify({ url, ok: loopResult.ok, stepsExecuted: loopResult.steps.length, integrityOk: integrity.ok, durationMs: loopResult.durationMs }),
+    tags:     ['browser', loopResult.ok ? 'success' : 'failure'],
+    score:    loopResult.ok ? 0.9 : 0.2,
+    meta:     { runId, projectId, agentSource: 'browser' },
+  }).catch(console.error);
 
   return {
     ok:             loopResult.ok,

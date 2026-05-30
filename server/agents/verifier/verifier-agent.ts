@@ -22,6 +22,7 @@ import { verifierLogger }               from './telemetry/verifier-logger.ts';
 import { verifierMetrics }              from './telemetry/verifier-metrics.ts';
 import { verifierHealthMonitor }        from './monitoring/health-monitor.ts';
 import { makeRunId, defaultSteps }      from './utils/verification-utils.ts';
+import { memoryEngine }                 from '../../memory/core/memory-engine.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -100,6 +101,17 @@ export async function runVerification(req: VerifierInput): Promise<VerifierOutpu
   verifierLogger.lifecycle(runId, 'verification-complete', {
     ok: result.success, durationMs, steps: result.outcomes.length,
   });
+
+  // Fire-and-forget: persist bug entries for any verification failures
+  if (errors.length > 0) {
+    memoryEngine.store({
+      category: 'bug',
+      content:  JSON.stringify({ phases, errors, stepsRun: result.outcomes.length }),
+      tags:     ['verification', 'failure', ...phases],
+      score:    0.3,
+      meta:     { runId, agentSource: 'verifier' },
+    }).catch(console.error);
+  }
 
   return {
     ok:         result.success,

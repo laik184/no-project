@@ -26,6 +26,7 @@ import { coderxMetrics }           from './telemetry/coderx-metrics.ts';
 import { runCodingLoop }           from './execution/coding-loop.ts';
 import { executionMonitor }        from './monitoring/execution-monitor.ts';
 import { toErrorMessage }          from './utils/coding-utils.ts';
+import { memoryEngine }            from '../../memory/core/memory-engine.ts';
 
 // ── Default loop options ──────────────────────────────────────────────────────
 
@@ -89,6 +90,15 @@ export async function runCoderXAgent(input: CoderXAgentInput): Promise<CoderXAge
     } else {
       coderxLogger.agentFailed(context.runId, result.error ?? 'unknown error');
     }
+
+    // Fire-and-forget: persist coding run outcome to memory platform
+    memoryEngine.store({
+      category: 'execution',
+      content:  JSON.stringify({ ok: result.ok, tasksCompleted: result.tasksCompleted, tasksFailed: result.tasksFailed, durationMs: result.durationMs }),
+      tags:     ['coderx', result.ok ? 'success' : 'failure'],
+      score:    result.ok ? 1.0 : 0.2,
+      meta:     { runId: context.runId, projectId: context.projectId, agentSource: 'coderx' },
+    }).catch(console.error);
 
     return result;
 

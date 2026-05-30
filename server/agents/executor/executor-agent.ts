@@ -35,6 +35,7 @@ import { executorMetrics }        from './telemetry/executor-metrics.ts';
 import { failureMonitor }         from './monitoring/failure-monitor.ts';
 import { executionMonitor }       from './monitoring/execution-monitor.ts';
 import { elapsedMs, toErrorMessage } from './utils/execution-utils.ts';
+import { memoryEngine }           from '../../memory/core/memory-engine.ts';
 
 // ── Initialization guard ──────────────────────────────────────────────────────
 
@@ -135,6 +136,15 @@ export async function runExecutorAgent(
       tasksFailed:    result.tasksFailed,
       durationMs:     result.durationMs,
     });
+
+    // Fire-and-forget: persist execution outcome to memory platform
+    memoryEngine.store({
+      category: 'execution',
+      content:  JSON.stringify({ ok: result.ok, tasksCompleted: result.tasksCompleted, tasksFailed: result.tasksFailed, durationMs: result.durationMs }),
+      tags:     ['executor', result.ok ? 'success' : 'failure'],
+      score:    result.ok ? 1.0 : 0.2,
+      meta:     { runId, projectId, agentSource: 'executor' },
+    }).catch(console.error);
 
     return result;
 

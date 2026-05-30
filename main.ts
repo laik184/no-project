@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { chatOrchestrator }                    from './server/chat/index.ts';
 import { loadAllTools }                        from './server/tools/registry/tool-loader.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
+import { bootstrapMemory }                     from './server/memory/bootstrap.ts';
 
 const app  = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -10,7 +11,8 @@ const PORT = Number(process.env.PORT) || 3001;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ── Bootstrap — tools must be registered before orchestration initializes ─────
+// ── Bootstrap — memory platform must boot first, then tools, then orchestration
+bootstrapMemory();
 loadAllTools();
 initOrchestration();
 

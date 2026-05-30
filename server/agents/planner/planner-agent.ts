@@ -23,6 +23,7 @@ import { planningMonitor }                       from './monitoring/planning-mon
 import { validatePlanningRequest, validateRuntimeContext } from './validation/planning-validator.ts';
 import { runPlanningLoop }                       from './execution/planning-loop.ts';
 import { makeRunId }                             from './utils/planning-utils.ts';
+import { memoryEngine }                          from '../../memory/core/memory-engine.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -146,6 +147,22 @@ export async function plan(req: PlanningRequest): Promise<PlanningResult> {
   // ── 6. Close session ──────────────────────────────────────────────────────
   plannerSession.close(runId, true, durationMs);
   plannerLogger.sessionEnd(runId, true, durationMs);
+
+  // ── 7. Persist to memory platform (fire-and-forget) ───────────────────────
+  memoryEngine.store({
+    category: 'decision',
+    content:  JSON.stringify({ goal, planId: executionPlan.planId, durationMs }),
+    tags:     ['planning', 'goal'],
+    score:    1.0,
+    meta:     { runId, projectId, agentSource: 'planner' },
+  }).catch(console.error);
+  memoryEngine.store({
+    category: 'architecture',
+    content:  JSON.stringify({ planId: executionPlan.planId, taskCount: (executionPlan as any).tasks?.length ?? 0 }),
+    tags:     ['architecture', 'execution-plan'],
+    score:    0.9,
+    meta:     { runId, projectId, agentSource: 'planner' },
+  }).catch(console.error);
 
   return {
     runId,

@@ -21,6 +21,7 @@ import { runSupervisionLoop }                         from './execution/supervis
 import { validateSupervisionRequest, validateRuntimeContext } from './validation/supervision-validator.ts';
 import { supervisorLogger }                           from './telemetry/supervisor-logger.ts';
 import { makeRunId }                                  from './utils/supervision-utils.ts';
+import { memoryEngine }                               from '../../memory/core/memory-engine.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -138,6 +139,15 @@ export async function supervise(
   supervisorLogger.info(runId, `Supervision complete — success=${success}`, {
     durationMs, tasksRun: outcomes.length, errors: errors.length,
   });
+
+  // Fire-and-forget: persist supervision decision to memory platform
+  memoryEngine.store({
+    category: 'decision',
+    content:  JSON.stringify({ goal, success, tasksRun: outcomes.length, durationMs }),
+    tags:     ['supervision', success ? 'success' : 'failure'],
+    score:    success ? 1.0 : 0.3,
+    meta:     { runId, projectId, agentSource: 'supervisor' },
+  }).catch(console.error);
 
   return { runId, success, durationMs, tasksRun: outcomes.length, errors };
 }
