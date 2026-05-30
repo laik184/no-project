@@ -6,6 +6,8 @@
  * No external deps — deterministic, versioned, corruption-safe.
  */
 
+import { memoryEngine } from '../../../memory/core/memory-engine.ts';
+
 // ── Entry types ───────────────────────────────────────────────────────────────
 
 export type LearnedKind =
@@ -91,6 +93,16 @@ export const learningStore = {
       existing.version    += 1;
       if (metadata) Object.assign(existing.metadata ??= {}, metadata);
       _version++;
+
+      // Write-through: persist updated entry to long-term memory (fire-and-forget)
+      memoryEngine.store({
+        category: 'learning',
+        content:  JSON.stringify({ kind, key, value: existing.value, evidence: existing.evidence, version: existing.version, metadata: existing.metadata }),
+        tags:     [kind, key.split('::')[0]],
+        score:    existing.value,
+        meta:     { agentSource: 'executor-learning-store', kind, key },
+      }).catch(console.error);
+
       return existing;
     }
 
@@ -108,6 +120,16 @@ export const learningStore = {
     };
     _store.set(ck, entry);
     _version++;
+
+    // Write-through: persist new entry to long-term memory (fire-and-forget)
+    memoryEngine.store({
+      category: 'learning',
+      content:  JSON.stringify({ kind, key, value: entry.value, evidence: 1, version: 1, metadata }),
+      tags:     [kind, key.split('::')[0]],
+      score:    entry.value,
+      meta:     { agentSource: 'executor-learning-store', kind, key },
+    }).catch(console.error);
+
     return entry;
   },
 

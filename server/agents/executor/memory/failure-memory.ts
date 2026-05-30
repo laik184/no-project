@@ -9,6 +9,7 @@
  */
 
 import type { TaskKind } from '../types/executor.types.ts';
+import { memoryEngine } from '../../../memory/core/memory-engine.ts';
 
 // ── Pattern signature ─────────────────────────────────────────────────────────
 
@@ -86,6 +87,16 @@ export const failureMemory = {
       existing.occurrences++;
       existing.lastSeen = now;
       if (!existing.runIds.includes(runId)) existing.runIds.push(runId);
+
+      // Write-through: persist updated pattern to long-term memory (fire-and-forget)
+      memoryEngine.store({
+        category: 'bug',
+        content:  JSON.stringify(existing),
+        tags:     [toolName, kind, _categorise(error, kind)],
+        score:    existing.occurrences >= CHRONIC_THRESHOLD ? 0.1 : 0.4,
+        meta:     { runId, agentSource: 'executor-failure-memory', signature: sig },
+      }).catch(console.error);
+
       return existing;
     }
 
@@ -100,6 +111,16 @@ export const failureMemory = {
       runIds:       [runId],
     };
     _patterns.set(sig, pattern);
+
+    // Write-through: persist new pattern to long-term memory (fire-and-forget)
+    memoryEngine.store({
+      category: 'bug',
+      content:  JSON.stringify(pattern),
+      tags:     [toolName, kind, _categorise(error, kind)],
+      score:    0.5,
+      meta:     { runId, agentSource: 'executor-failure-memory', signature: sig },
+    }).catch(console.error);
+
     return pattern;
   },
 

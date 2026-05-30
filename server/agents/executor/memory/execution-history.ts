@@ -9,6 +9,7 @@
  */
 
 import type { TaskKind } from '../types/executor.types.ts';
+import { memoryEngine } from '../../../memory/core/memory-engine.ts';
 
 // ── Entry types ───────────────────────────────────────────────────────────────
 
@@ -77,6 +78,26 @@ export const executionHistory = {
     };
     _history.push(entry);
     if (_history.length > MAX_RUNS) _history.shift();
+
+    // Write-through: persist to long-term memory platform (fire-and-forget)
+    memoryEngine.store({
+      category: 'execution',
+      content:  JSON.stringify({
+        runId:      params.runId,
+        taskId:     params.taskId,
+        toolName:   params.toolName,
+        kind:       params.kind,
+        outcome:    params.outcome,
+        retries:    params.retries,
+        durationMs: params.durationMs,
+        errorClass: entry.errorClass,
+        fixApplied: params.fixApplied,
+      }),
+      tags:  [params.toolName, params.outcome, params.kind, ...(entry.errorClass ? [entry.errorClass] : [])],
+      score: params.outcome === 'success' ? 1.0 : params.outcome === 'partial' ? 0.5 : 0.2,
+      meta:  { runId: params.runId, agentSource: 'executor-execution-history' },
+    }).catch(console.error);
+
     return entry;
   },
 
