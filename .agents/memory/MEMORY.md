@@ -10,3 +10,4 @@
 - [Replit environment setup](replit-env-setup.md) — dual-process dev: Vite on :5000 (webview), Express API on :3001; Vite proxies /api /sse /events /preview /ws to :3001; LLM_BASE_URL+LLM_MODEL set via .replit [userenv]; OpenRouter integration registered as javascript_openrouter_ai_integrations:2.0.0; no external auth.
 - [Memory runtime gaps](memory-runtime-gaps.md) — RESOLVED: startup hydration, agent recall, graph wiring all complete; business/feedback/revenue/prediction stores are disk-backed (no hydration needed).
 - [Company Brain completion](company-brain-completion.md) — hydration.types+memory-loader+memory-hydrator+hydration-manager in bootstrap/; memory-context-builder in context/; hydrate() on 3 executor stores; recall in Executor/Verifier/CoderX/Planner+graph.
+- [Agent memory ownership audit](agent-memory-audit.md) — 17 files audited; 3 deleted (orphaned facades); 14 KEEP_LOCAL; 3 already BRIDGE to platform; no MIGRATE candidates remain.
