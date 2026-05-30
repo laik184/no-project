@@ -267,9 +267,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
           Files
         </span>
         <div style={{ display: "flex", gap: 1 }}>
-          {hdrBtn(FilePlus,   "New File",   () => { closeCtx(); setCreating("file"); })}
-          {hdrBtn(FolderPlus, "New Folder", () => { closeCtx(); setCreating("folder"); })}
-          {hdrBtn(RotateCcw,  "Refresh",    () => refreshFiles())}
+          {hdrBtn(RotateCcw, "Refresh", () => refreshFiles())}
         </div>
       </div>
 
