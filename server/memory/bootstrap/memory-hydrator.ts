@@ -11,13 +11,9 @@
  * Does NOT manage the hydration lifecycle (see hydration-manager.ts).
  */
 
-import { executionHistory }  from '../../agents/executor/memory/execution-history.ts';
-import { failureMemory }     from '../../agents/executor/memory/failure-memory.ts';
-import { learningStore }     from '../../agents/executor/learning/learning-store.ts';
+import { executionHistory, failureMemory, learningStore } from '../../agents/executor/index.ts';
+import type { ExecutionHistoryEntry, FailurePattern, LearnedEntry } from '../../agents/executor/index.ts';
 import type { StoreHydrationResult } from './hydration.types.ts';
-import type { ExecutionHistoryEntry } from '../../agents/executor/memory/execution-history.ts';
-import type { FailurePattern }        from '../../agents/executor/memory/failure-memory.ts';
-import type { LearnedEntry }          from '../../agents/executor/learning/learning-store.ts';
 
 // ── Individual hydrators ──────────────────────────────────────────────────────
 

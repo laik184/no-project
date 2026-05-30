@@ -39,7 +39,8 @@ export type {
 export { DEFAULT_RETRY_CONFIG } from './execution/retry-manager.ts';
 
 // ── Planning ──────────────────────────────────────────────────────────────────
-export { planExecution }           from './planning/execution-planner.ts';
+export { planExecution }                                    from './planning/execution-planner.ts';
+export type { PlannerResult }                               from './planning/execution-planner.ts';
 export { selectTool, listToolsForKind, defaultToolForKind } from './planning/tool-selection.ts';
 
 // ── Telemetry & monitoring ────────────────────────────────────────────────────
@@ -50,3 +51,14 @@ export { executionMonitor }  from './monitoring/execution-monitor.ts';
 
 // ── Context ───────────────────────────────────────────────────────────────────
 export { buildExecutorContext, toToolContext } from './core/executor-context.ts';
+export type { ExecutorContextInput }           from './core/executor-context.ts';
+
+// ── Memory (used by memory bootstrap layer) ───────────────────────────────────
+export { executionHistory }                                           from './memory/execution-history.ts';
+export type { ExecutionHistoryEntry, ExecutionHistorySummary }        from './memory/execution-history.ts';
+export { failureMemory }                                              from './memory/failure-memory.ts';
+export type { FailurePattern, FailureCategory, FailureAnalysis }      from './memory/failure-memory.ts';
+
+// ── Learning (used by memory bootstrap layer) ─────────────────────────────────
+export { learningStore }                                              from './learning/learning-store.ts';
+export type { LearnedEntry, LearnedKind, LearningStoreSummary }       from './learning/learning-store.ts';

@@ -19,7 +19,7 @@
 
 import { runBrowserAgent }        from '../../agents/browser/index.ts';
 import { runCoderXAgent }         from '../../agents/coderx/index.ts';
-import { runExecutorAgent }       from '../../agents/executor/executor-agent.ts';
+import { runExecutorAgent }       from '../../agents/executor/index.ts';
 import { runFilesystemAgent }     from '../../agents/filesystem/filesystem-agent.ts';
 import { runPlannerCycle }        from '../../agents/planner/planner-agent.ts';
 import { runSupervisorCycle }     from '../../agents/supervisor/supervisor-agent.ts';
