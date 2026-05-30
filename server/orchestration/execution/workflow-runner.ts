@@ -10,6 +10,7 @@ import type {
   Workflow,
   WorkflowResult,
   PhaseResult,
+  Phase,
   OrchestrationContext,
   OrchestrationRetryConfig,
 } from '../types/orchestration.types.ts';
@@ -19,6 +20,7 @@ import { recordWorkflowStarted, recordWorkflowCompleted, recordWorkflowFailed } 
 import { logWorkflowStarted, logWorkflowCompleted, logWorkflowFailed } from '../telemetry/orchestration-logger.ts';
 import { publishWorkflowStarted, publishWorkflowCompleted, publishWorkflowFailed } from '../events/event-publisher.ts';
 import { DEFAULT_RETRY_CONFIG }   from './retry-manager.ts';
+import { buildMemoryContext }     from '../../memory/context/memory-context-builder.ts';
 
 // ── Phase dependency ordering ─────────────────────────────────────────────────
 
@@ -101,6 +103,14 @@ export async function runWorkflow(
   setActiveWorkflow(ctx.orchestrationId, workflow.workflowId);
   logWorkflowStarted(ctx.orchestrationId, workflow.workflowId, workflow.name);
   publishWorkflowStarted(ctx, workflow.workflowId, workflow.name);
+
+  // Recall memory context for this workflow
+  const memCtx = await buildMemoryContext(workflow.name, {
+    categories: ['execution', 'learning', 'bug'],
+  });
+  if (memCtx.totalFound > 0) {
+    console.log(`[workflow-runner] Memory context for "${workflow.name}" — ${memCtx.totalFound} records, hasGraph=${memCtx.hasGraphData}`);
+  }
 
   const phaseResults: PhaseResult[] = [];
   const phaseMap    = new Map(workflow.phases.map(p => [p.phaseId, p]));

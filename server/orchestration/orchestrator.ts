@@ -20,6 +20,8 @@ import { summarize as getFailureSummary }  from './monitoring/failure-monitor.ts
 import { allSnapshots, getStuckOrchestrations } from './monitoring/orchestration-monitor.ts';
 import { getEscalations }                  from './lifecycle/escalation-manager.ts';
 import { toErrorMessage, newOrchestrationId } from './utils/orchestration-utils.ts';
+import { buildMemoryContext }              from '../memory/context/memory-context-builder.ts';
+import { memoryEngine }                    from '../memory/core/memory-engine.ts';
 
 // ── Initialization state ──────────────────────────────────────────────────────
 
@@ -86,13 +88,36 @@ export async function orchestrate(
   initState(ctx.orchestrationId, ctx.runId);
   const session = createSession(ctx.orchestrationId, ctx.runId, ctx.projectId, 0, ctx.sessionId);
 
+  // ── Recall memory context before orchestration ────────────────────────────
+  const memCtx = await buildMemoryContext(fullReq.goal ?? fullReq.runId, {
+    categories: ['decision', 'architecture', 'execution', 'learning', 'reflection'],
+  });
+  console.log(`[orchestrator] Memory context — ${memCtx.totalFound} records, hasGraph=${memCtx.hasGraphData}`);
+
   // ── Run orchestration loop ────────────────────────────────────────────────
   try {
-    return await runOrchestrationLoop(fullReq, ctx, ctx.sessionId);
+    const result = await runOrchestrationLoop(fullReq, ctx, ctx.sessionId);
+    // Fire-and-forget: persist orchestration outcome to memory platform
+    memoryEngine.store({
+      category: result.ok ? 'execution' : 'bug',
+      content:  JSON.stringify({ goal: fullReq.goal, ok: result.ok, workflowsCompleted: result.workflowsCompleted, workflowsTotal: result.workflowsTotal, durationMs: result.durationMs }),
+      tags:     ['orchestration', result.ok ? 'success' : 'failure'],
+      score:    result.ok ? 0.95 : 0.2,
+      meta:     { runId: ctx.runId, orchestrationId: ctx.orchestrationId, agentSource: 'orchestrator' },
+    }).catch(console.error);
+    return result;
   } catch (err) {
     const error = toErrorMessage(err);
     failSession(ctx.sessionId);
     destroyState(ctx.orchestrationId);
+    // Fire-and-forget: persist failure to memory platform
+    memoryEngine.store({
+      category: 'bug',
+      content:  JSON.stringify({ goal: fullReq.goal, error, phase: 'orchestration-loop' }),
+      tags:     ['orchestration', 'failure', 'exception'],
+      score:    0.1,
+      meta:     { runId: ctx.runId, orchestrationId: ctx.orchestrationId, agentSource: 'orchestrator' },
+    }).catch(console.error);
 
     return {
       ok:                 false,

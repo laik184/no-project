@@ -18,6 +18,7 @@ import { getAgentMetrics }                         from './telemetry/browser-met
 import { toErrorMessage }                          from './utils/browser-utils.ts';
 import type { FlowStep }                           from './types/navigation.types.ts';
 import { memoryEngine }                            from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext }                      from '../../memory/context/memory-context-builder.ts';
 
 // ── Agent input ───────────────────────────────────────────────────────────────
 
@@ -67,6 +68,14 @@ export async function runBrowserAgent(
     validateUI:        input.validateUI,
     timeoutMs:         input.timeoutMs,
   };
+
+  // 1b. Recall memory context before browser execution
+  const memCtx = await buildMemoryContext(`browser automation ${url}`, {
+    categories: ['learning', 'bug', 'execution', 'reflection'],
+  });
+  if (memCtx.totalFound > 0) {
+    console.log(`[browser-agent] Memory context — ${memCtx.totalFound} records, hasGraph=${memCtx.hasGraphData}`);
+  }
 
   // 2. Run the browser loop
   let loopResult: BrowserLoopResult;

@@ -27,6 +27,7 @@ import {
   buildRetryDecision,
   DEFAULT_RETRY_CONFIG,
 } from './retry-manager.ts';
+import { buildMemoryContext }    from '../../memory/context/memory-context-builder.ts';
 
 // ── Phase runner ──────────────────────────────────────────────────────────────
 
@@ -36,6 +37,14 @@ export async function runPhase(
   ctx:        OrchestrationContext,
   config:     OrchestrationRetryConfig = DEFAULT_RETRY_CONFIG,
 ): Promise<PhaseResult> {
+  // Recall memory context for this phase before dispatch
+  const memCtx = await buildMemoryContext(`${phase.agentType} ${phase.name}`, {
+    categories: ['execution', 'learning', 'bug', 'reflection'],
+  });
+  if (memCtx.totalFound > 0) {
+    console.log(`[phase-runner] Memory context for phase "${phase.phaseId}" (${phase.agentType}) — ${memCtx.totalFound} records, hasGraph=${memCtx.hasGraphData}`);
+  }
+
   const toolCtx   = toToolContext(ctx, { workflowId, phaseId: phase.phaseId });
   let retryState  = createRetryState(phase.phaseId, config);
 

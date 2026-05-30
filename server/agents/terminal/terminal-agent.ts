@@ -22,6 +22,8 @@ import { validateSandboxPath }                  from './validation/security-vali
 import { runtimeHealthMonitor }                 from './monitoring/runtime-health-monitor.ts';
 import { terminalLogger }                       from './telemetry/terminal-logger.ts';
 import { makeRunId }                            from './utils/execution-utils.ts';
+import { buildMemoryContext }                   from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine }                         from '../../memory/core/memory-engine.ts';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -88,8 +90,19 @@ export async function executeTerminalSession(
     return failed(runId, 0, securityErrors);
   }
 
+  // ── 2b. Recall memory context before terminal execution ───────────────────
+  const memCtx = await buildMemoryContext(`terminal execution ${projectId}`, {
+    categories: ['learning', 'bug', 'execution', 'reflection'],
+  });
+  const enrichedMeta: Record<string, unknown> = memCtx.totalFound > 0
+    ? { ...meta, memoryContext: memCtx.summary, memoryGraphEntities: memCtx.graphEntities.length }
+    : { ...meta };
+  if (memCtx.totalFound > 0) {
+    terminalLogger.info(runId, 'Memory context loaded', { records: memCtx.totalFound, hasGraph: memCtx.hasGraphData });
+  }
+
   // ── 3. Build execution context ────────────────────────────────────────────
-  const context = buildTerminalContext(runId, projectId, sandboxRoot, meta, signal);
+  const context = buildTerminalContext(runId, projectId, sandboxRoot, enrichedMeta, signal);
 
   // ── 4. Delegate to terminal runner ────────────────────────────────────────
   const startedAt = Date.now();
@@ -103,6 +116,15 @@ export async function executeTerminalSession(
   terminalLogger.info(runId, `Session complete — success=${result.success}`, {
     durationMs, stepsRun: result.outcomes.length, errors: errors.length,
   });
+
+  // Fire-and-forget: persist terminal outcome to memory platform
+  memoryEngine.store({
+    category: result.success ? 'execution' : 'bug',
+    content:  JSON.stringify({ projectId, sandboxRoot, success: result.success, stepsRun: result.outcomes.length, errors: errors.slice(0, 3) }),
+    tags:     ['terminal', result.success ? 'success' : 'failure'],
+    score:    result.success ? 0.9 : 0.3,
+    meta:     { runId, agentSource: 'terminal' },
+  }).catch(console.error);
 
   return {
     runId,

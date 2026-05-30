@@ -20,6 +20,8 @@ import type {
 } from './types/filesystem.types.ts';
 import type { FilesystemLoopOptions } from './execution/filesystem-loop.ts';
 import { buildContext, type FilesystemContextInput } from './core/filesystem-context.ts';
+import { buildMemoryContext }                        from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine }                              from '../../memory/core/memory-engine.ts';
 import {
   createSession,
   startSession,
@@ -110,11 +112,28 @@ export async function runFilesystemAgent(
     operations: input.operations.length,
   });
 
+  // ── Recall memory context before filesystem execution ────────────────────
+  const memCtx = await buildMemoryContext(`filesystem ${context.projectId}`, {
+    categories: ['learning', 'bug', 'execution', 'architecture'],
+  });
+  if (memCtx.totalFound > 0) {
+    filesystemLogger.info(runId, 'Memory context loaded', { records: memCtx.totalFound, hasGraph: memCtx.hasGraphData });
+  }
+
   try {
     const result = await runFilesystemLoop(input.operations, context, input.options ?? {});
 
     if (result.ok) completeSession(session.sessionId);
     else           failSession(session.sessionId);
+
+    // Fire-and-forget: persist filesystem outcome to memory platform
+    memoryEngine.store({
+      category: result.ok ? 'execution' : 'bug',
+      content:  JSON.stringify({ projectId: context.projectId, ok: result.ok, completed: result.operationsCompleted, failed: result.operationsFailed, durationMs: result.durationMs }),
+      tags:     ['filesystem', result.ok ? 'success' : 'failure'],
+      score:    result.ok ? 0.9 : 0.3,
+      meta:     { runId, agentSource: 'filesystem' },
+    }).catch(console.error);
 
     filesystemLogger.info(runId, `Agent run complete — ok=${result.ok}`, {
       sessionId:  session.sessionId,

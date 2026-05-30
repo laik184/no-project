@@ -33,6 +33,7 @@ import { makeRunStartedEvent, makeRunCompletedEvent, makeRunFailedEvent } from '
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
 import { memoryEngine }        from '../../memory/core/memory-engine.ts';
+import { buildMemoryContextString } from '../../memory/context/memory-context-builder.ts';
 
 export class ChatOrchestratorError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -106,9 +107,14 @@ export const chatOrchestrator = {
     // 9. Open stream
     streamManager.open(runId, projectId);
 
+    // 9b. Recall memory context to enrich orchestration context
+    const memCtxStr = await buildMemoryContextString(goal, {
+      categories: ['conversation', 'decision', 'architecture', 'reflection'],
+    });
+
     // 10. Build context (for downstream orchestration engine)
     const loaded   = await contextLoader.loadForRun(runId);
-    buildContext(loaded.messages, sysPayload.content);
+    buildContext(loaded.messages, memCtxStr ? `${sysPayload.content}\n\n${memCtxStr}` : sysPayload.content);
 
     // 11. Trigger orchestration engine asynchronously.
     //     HTTP response returns immediately with the ChatRun.

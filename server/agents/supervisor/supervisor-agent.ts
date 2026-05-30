@@ -22,6 +22,7 @@ import { validateSupervisionRequest, validateRuntimeContext } from './validation
 import { supervisorLogger }                           from './telemetry/supervisor-logger.ts';
 import { makeRunId }                                  from './utils/supervision-utils.ts';
 import { memoryEngine }                               from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext }                         from '../../memory/context/memory-context-builder.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
@@ -117,8 +118,19 @@ export async function supervise(
   supervisorSession.open({ runId, projectId, sandboxRoot, goal, totalTasks: tasks.length });
   supervisorSession.transition(runId, 'validating');
 
+  // ── 3b. Recall memory context before supervision ─────────────────────────
+  const memCtx = await buildMemoryContext(goal, {
+    categories: ['decision', 'architecture', 'learning', 'reflection', 'execution'],
+  });
+  const enrichedMeta: Record<string, unknown> = memCtx.totalFound > 0
+    ? { ...meta, memoryContext: memCtx.summary, memoryGraphEntities: memCtx.graphEntities.length }
+    : { ...meta };
+  if (memCtx.totalFound > 0) {
+    supervisorLogger.info(runId, 'Memory context loaded', { records: memCtx.totalFound, hasGraph: memCtx.hasGraphData });
+  }
+
   // ── 4. Build context ──────────────────────────────────────────────────────
-  const context = buildSupervisionContext(runId, projectId, sandboxRoot, goal, meta, signal);
+  const context = buildSupervisionContext(runId, projectId, sandboxRoot, goal, enrichedMeta, signal);
 
   // ── 5. Delegate to supervision loop ───────────────────────────────────────
   const startedAt = Date.now();
