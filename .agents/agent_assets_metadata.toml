@@ -324,3 +324,9 @@ id = "lwyjeoJHNfNQq3TlFnYph"
 uri = "file://PLANNING_EXECUTION_INTELLIGENCE_MRI_REPORT.md"
 type = "text"
 title = "PLANNING_EXECUTION_INTELLIGENCE_MRI_REPORT.md"
+
+[[outputs]]
+id = "HwEe2PRfLHstrZ2ZnAIL3"
+uri = "file://FILE_EXPLORER_REPORT.md"
+type = "text"
+title = "File Explorer Deep Scan Report"
