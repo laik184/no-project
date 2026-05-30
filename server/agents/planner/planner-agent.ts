@@ -24,9 +24,7 @@ import { planningMonitor }                       from './monitoring/planning-mon
 import { validatePlanningRequest, validateRuntimeContext } from './validation/planning-validator.ts';
 import { runPlanningLoop }                       from './execution/planning-loop.ts';
 import { makeRunId }                             from './utils/planning-utils.ts';
-import { memoryEngine }                          from '../../memory/core/memory-engine.ts';
-import { graphTraversal }                        from '../../memory/knowledge-graph/graph-traversal.ts';
-import { graphStore }                            from '../../memory/knowledge-graph/graph-store.ts';
+import { memoryEngine, graphTraversal, graphStore } from '../../memory/index.ts';
 
 // ── Memory recall ──────────────────────────────────────────────────────────────
 

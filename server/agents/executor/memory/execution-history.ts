@@ -9,7 +9,7 @@
  */
 
 import type { TaskKind } from '../types/executor.types.ts';
-import { memoryEngine } from '../../../memory/core/memory-engine.ts';
+import { memoryEngine } from '../../../memory/index.ts';
 
 // ── Entry types ───────────────────────────────────────────────────────────────
 

@@ -17,8 +17,7 @@ import { summarizeFailures }                       from './monitoring/failure-mo
 import { getAgentMetrics }                         from './telemetry/browser-metrics.ts';
 import { toErrorMessage }                          from './utils/browser-utils.ts';
 import type { FlowStep }                           from './types/navigation.types.ts';
-import { memoryEngine }                            from '../../memory/core/memory-engine.ts';
-import { buildMemoryContext }                      from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine, buildMemoryContext }         from '../../memory/index.ts';
 
 // ── Agent input ───────────────────────────────────────────────────────────────
 

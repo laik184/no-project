@@ -21,8 +21,7 @@ import { runSupervisionLoop }                         from './execution/supervis
 import { validateSupervisionRequest, validateRuntimeContext } from './validation/supervision-validator.ts';
 import { supervisorLogger }                           from './telemetry/supervisor-logger.ts';
 import { makeRunId }                                  from './utils/supervision-utils.ts';
-import { memoryEngine }                               from '../../memory/core/memory-engine.ts';
-import { buildMemoryContext }                         from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine, buildMemoryContext }            from '../../memory/index.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 

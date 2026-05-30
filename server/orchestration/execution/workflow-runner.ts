@@ -20,7 +20,7 @@ import { recordWorkflowStarted, recordWorkflowCompleted, recordWorkflowFailed } 
 import { logWorkflowStarted, logWorkflowCompleted, logWorkflowFailed } from '../telemetry/orchestration-logger.ts';
 import { publishWorkflowStarted, publishWorkflowCompleted, publishWorkflowFailed } from '../events/event-publisher.ts';
 import { DEFAULT_RETRY_CONFIG }   from './retry-manager.ts';
-import { buildMemoryContext }     from '../../memory/context/memory-context-builder.ts';
+import { buildMemoryContext }     from '../../memory/index.ts';
 
 // ── Phase dependency ordering ─────────────────────────────────────────────────
 

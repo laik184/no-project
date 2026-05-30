@@ -36,5 +36,9 @@ export { compressionEngine, summarizer, clusterer, archiver } from './compressio
 export { checkpointManager, checkpointStore, snapshotBuilder } from './checkpoints/index.ts';
 export { memoryMetrics, memoryEvents, telemetryReporter }      from './telemetry/index.ts';
 
+// ── Context builder (public API for agents / orchestrators) ──────────────────
+export { buildMemoryContext, buildMemoryContextString } from './context/memory-context-builder.ts';
+export type { MemoryContext, ContextBuildOptions }      from './context/memory-context-builder.ts';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type * from './types/index.ts';

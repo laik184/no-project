@@ -32,8 +32,7 @@ import { eventPublisher }      from '../realtime/event-publisher.ts';
 import { makeRunStartedEvent, makeRunCompletedEvent, makeRunFailedEvent } from '../events/run.events.ts';
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
-import { memoryEngine }        from '../../memory/core/memory-engine.ts';
-import { buildMemoryContextString } from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
 
 export class ChatOrchestratorError extends Error {
   constructor(message: string, public readonly code: string) {

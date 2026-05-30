@@ -6,7 +6,7 @@
  * No external deps — deterministic, versioned, corruption-safe.
  */
 
-import { memoryEngine } from '../../../memory/core/memory-engine.ts';
+import { memoryEngine } from '../../../memory/index.ts';
 
 // ── Entry types ───────────────────────────────────────────────────────────────
 

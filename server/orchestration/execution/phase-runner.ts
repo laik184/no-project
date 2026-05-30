@@ -27,7 +27,7 @@ import {
   buildRetryDecision,
   DEFAULT_RETRY_CONFIG,
 } from './retry-manager.ts';
-import { buildMemoryContext }    from '../../memory/context/memory-context-builder.ts';
+import { buildMemoryContext }    from '../../memory/index.ts';
 
 // ── Phase runner ──────────────────────────────────────────────────────────────
 

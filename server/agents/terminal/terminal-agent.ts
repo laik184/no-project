@@ -22,8 +22,7 @@ import { validateSandboxPath }                  from './validation/security-vali
 import { runtimeHealthMonitor }                 from './monitoring/runtime-health-monitor.ts';
 import { terminalLogger }                       from './telemetry/terminal-logger.ts';
 import { makeRunId }                            from './utils/execution-utils.ts';
-import { buildMemoryContext }                   from '../../memory/context/memory-context-builder.ts';
-import { memoryEngine }                         from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext, memoryEngine }     from '../../memory/index.ts';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 

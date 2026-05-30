@@ -20,8 +20,7 @@ import type {
 } from './types/filesystem.types.ts';
 import type { FilesystemLoopOptions } from './execution/filesystem-loop.ts';
 import { buildContext, type FilesystemContextInput } from './core/filesystem-context.ts';
-import { buildMemoryContext }                        from '../../memory/context/memory-context-builder.ts';
-import { memoryEngine }                              from '../../memory/core/memory-engine.ts';
+import { buildMemoryContext, memoryEngine }           from '../../memory/index.ts';
 import {
   createSession,
   startSession,

@@ -26,8 +26,7 @@ import { coderxMetrics }           from './telemetry/coderx-metrics.ts';
 import { runCodingLoop }           from './execution/coding-loop.ts';
 import { executionMonitor }        from './monitoring/execution-monitor.ts';
 import { toErrorMessage }          from './utils/coding-utils.ts';
-import { memoryEngine }            from '../../memory/core/memory-engine.ts';
-import { buildMemoryContext }      from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine, buildMemoryContext } from '../../memory/index.ts';
 
 // ── Default loop options ──────────────────────────────────────────────────────
 

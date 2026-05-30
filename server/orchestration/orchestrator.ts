@@ -20,8 +20,7 @@ import { summarize as getFailureSummary }  from './monitoring/failure-monitor.ts
 import { allSnapshots, getStuckOrchestrations } from './monitoring/orchestration-monitor.ts';
 import { getEscalations }                  from './lifecycle/escalation-manager.ts';
 import { toErrorMessage, newOrchestrationId } from './utils/orchestration-utils.ts';
-import { buildMemoryContext }              from '../memory/context/memory-context-builder.ts';
-import { memoryEngine }                    from '../memory/core/memory-engine.ts';
+import { buildMemoryContext, memoryEngine } from '../memory/index.ts';
 
 // ── Initialization state ──────────────────────────────────────────────────────
 

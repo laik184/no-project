@@ -22,8 +22,7 @@ import { verifierLogger }               from './telemetry/verifier-logger.ts';
 import { verifierMetrics }              from './telemetry/verifier-metrics.ts';
 import { verifierHealthMonitor }        from './monitoring/health-monitor.ts';
 import { makeRunId, defaultSteps }      from './utils/verification-utils.ts';
-import { memoryEngine }                 from '../../memory/core/memory-engine.ts';
-import { buildMemoryContext }           from '../../memory/context/memory-context-builder.ts';
+import { memoryEngine, buildMemoryContext } from '../../memory/index.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 
