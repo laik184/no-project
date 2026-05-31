@@ -1,9 +1,16 @@
 export interface CheckpointData {
-  checkpointId: string;
-  label: string;
-  description: string;
-  time: string;
-  filesChanged: number;
+  checkpointId:  string;
+  label:         string;
+  description:   string;
+  time:          string;
+  filesChanged:  number;
+  /** Optional enriched fields populated from backend checkpoints */
+  runId?:        string;
+  createdAt?:    string;
+  trigger?:      string;
+  createdFiles?:  string[];
+  modifiedFiles?: string[];
+  deletedFiles?:  string[];
 }
 
 export const ACTION_STEPS = [

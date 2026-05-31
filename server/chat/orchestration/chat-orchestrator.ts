@@ -30,6 +30,9 @@ import { timelineManager }     from '../timeline/timeline-manager.ts';
 import { runTimeline }         from '../timeline/run-timeline.ts';
 import { eventPublisher }      from '../realtime/event-publisher.ts';
 import { makeRunStartedEvent, makeRunCompletedEvent, makeRunFailedEvent } from '../events/run.events.ts';
+import { makeCheckpointCreatedPayload } from '../events/checkpoint.events.ts';
+import { chatCheckpointStore }         from '../persistence/checkpoint-store.ts';
+import { bus }                         from '../../infrastructure/index.ts';
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
@@ -132,7 +135,7 @@ export const chatOrchestrator = {
         ? `Run complete — ${result.workflowsCompleted}/${result.workflowsTotal} workflows in ${result.durationMs}ms`
         : (result.error ?? 'Orchestration failed');
       if (result.ok) {
-        await chatOrchestrator.completeRun(runId, projectId, content);
+        await chatOrchestrator.completeRun(runId, projectId, content, undefined, goal);
       } else {
         await chatOrchestrator.failRun(runId, projectId, result.error ?? 'Orchestration failed');
       }
@@ -155,12 +158,14 @@ export const chatOrchestrator = {
   /**
    * Finalize a run after the orchestration engine completes.
    * Closes stream, completes turn, appends timeline, persists assistant message.
+   * Creates a checkpoint and emits checkpoint.created on the checkpoint SSE topic.
    */
   async completeRun(
     runId:     string,
     projectId: number,
     content:   string,
     tokensUsed?: number,
+    goal?:     string,
   ): Promise<void> {
     const startedAt = Date.now();
 
@@ -194,6 +199,17 @@ export const chatOrchestrator = {
 
     // Publish completed event
     eventPublisher.publish(makeRunCompletedEvent(runId, projectId, durationMs));
+
+    // Create checkpoint + emit on checkpoint SSE topic (fire-and-forget)
+    chatCheckpointStore
+      .createForRun(runId, projectId, goal ?? content, 'run_complete')
+      .then((cp) => {
+        const payload = makeCheckpointCreatedPayload(cp);
+        bus.emit('checkpoint', payload);
+      })
+      .catch((err) => {
+        console.warn('[checkpoint] Failed to create checkpoint for run', runId, err);
+      });
   },
 
   /**

@@ -148,11 +148,65 @@ export function useAgentRunner() {
       startStream, pushToken, finalizeStream, flushGroup,
     }));
 
+    // Tracks whether a real checkpoint.created SSE arrived for this run.
+    // If it arrives before lifecycle completes, we store it; if after, we push immediately.
+    const checkpointDataRef = { current: null as null | ReturnType<typeof buildCheckpointMessage> };
+    const lifecycleCompletedRef = { current: false };
+
+    function buildCheckpointMessage(e: {
+      checkpointId: string; timestamp: string; filesChanged: number;
+      createdFiles: string[]; modifiedFiles: string[]; deletedFiles: string[];
+      title: string; trigger?: string;
+    }) {
+      const timeStr = new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return {
+        role: "checkpoint" as const,
+        time: timeStr,
+        checkpoint: {
+          checkpointId:  e.checkpointId,
+          label:         e.title,
+          description:   `Saved progress at end of loop`,
+          time:          timeStr,
+          createdAt:     e.timestamp,
+          trigger:       e.trigger ?? "run_complete",
+          filesChanged:  e.filesChanged,
+          createdFiles:  e.createdFiles,
+          modifiedFiles: e.modifiedFiles,
+          deletedFiles:  e.deletedFiles,
+        },
+      };
+    }
+
     const offCheckpoint = subscribe("checkpoint", (raw) => {
       try {
-        const e = raw as { eventType: string; trigger?: string; runId?: string };
+        const e = raw as {
+          eventType: string; runId?: string; trigger?: string;
+          checkpointId?: string; timestamp?: string; filesChanged?: number;
+          createdFiles?: string[]; modifiedFiles?: string[]; deletedFiles?: string[];
+          title?: string;
+        };
+        // Filter by runId when present
         if (e.runId && e.runId !== runId) return;
-        if (e.eventType === "stable") {
+
+        if (e.eventType === "checkpoint.created" && e.checkpointId) {
+          const msg_ = buildCheckpointMessage({
+            checkpointId:  e.checkpointId,
+            timestamp:     e.timestamp ?? new Date().toISOString(),
+            filesChanged:  e.filesChanged ?? 0,
+            createdFiles:  e.createdFiles ?? [],
+            modifiedFiles: e.modifiedFiles ?? [],
+            deletedFiles:  e.deletedFiles ?? [],
+            title:         e.title ?? msg.slice(0, 72),
+            trigger:       e.trigger,
+          });
+          if (lifecycleCompletedRef.current) {
+            // Lifecycle already fired — push checkpoint message now
+            setMessages((p) => [...p, msg_]);
+          } else {
+            // Lifecycle not yet fired — store for lifecycle handler
+            checkpointDataRef.current = msg_;
+          }
+        } else if (e.eventType === "stable") {
           toast({
             description: `Safety snapshot saved${e.trigger ? ` (${e.trigger.replace(/_/g, " ")})` : ""}`,
             duration: 2500,
@@ -175,28 +229,20 @@ export function useAgentRunner() {
         setIsAgentThinking(false);
         setIsAgentTyping(false);
         setActiveAction(null);
+        lifecycleCompletedRef.current = true;
 
-        const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         const summary =
           e.status === "completed"  ? `Done — finished **"${msg}"**.`
           : e.status === "cancelled" ? "Cancelled."
           : "Run failed. Check the console for details.";
 
-        setMessages((p) => [
-          ...p,
-          { role: "agent", content: summary, time: "just now" },
-          ...(e.status === "completed" ? [{
-            role: "checkpoint" as const,
-            time: timeStr,
-            checkpoint: {
-              checkpointId: `cp-${Date.now()}`,
-              label:        msg.length > 60 ? msg.slice(0, 60) + "…" : msg,
-              description:  `After: ${msg.length > 40 ? msg.slice(0, 40) + "…" : msg}`,
-              time:         timeStr,
-              filesChanged: 0,
-            },
-          }] : []),
-        ]);
+        setMessages((p) => {
+          // Append summary; also append checkpoint if SSE already arrived
+          const extra: typeof p = checkpointDataRef.current
+            ? [checkpointDataRef.current]
+            : [];
+          return [...p, { role: "agent", content: summary, time: "just now" }, ...extra];
+        });
       } catch { /* skip */ }
     });
 

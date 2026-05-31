@@ -200,6 +200,11 @@ export const checkpoints = pgTable("checkpoints", {
   gitCommitSha:  varchar("git_commit_sha", { length: 64 }),
   fileCount:     integer("file_count").default(0).notNull(),
   label:         text("label"),
+  description:   text("description"),
+  createdFiles:  jsonb("created_files").default([]),
+  modifiedFiles: jsonb("modified_files").default([]),
+  deletedFiles:  jsonb("deleted_files").default([]),
+  fileSnapshots: jsonb("file_snapshots").default({}),
   createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("checkpoints_project_id_idx").on(t.projectId),

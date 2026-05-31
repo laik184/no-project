@@ -12,12 +12,13 @@ import { Router }              from 'express';
 import type { Application }   from 'express';
 import type { Server }        from 'http';
 import type { Request, Response } from 'express';
-import { chatRoutes }       from './api/chat.routes.ts';
-import { runRoutes }        from './api/run.routes.ts';
-import { historyRoutes }    from './api/history.routes.ts';
-import { attachmentRoutes } from './api/attachment.routes.ts';
-import { questionRoutes }   from './api/question.routes.ts';
-import { runStartRouter }   from './api/run-start.router.ts';
+import { chatRoutes }        from './api/chat.routes.ts';
+import { runRoutes }         from './api/run.routes.ts';
+import { historyRoutes }     from './api/history.routes.ts';
+import { attachmentRoutes }  from './api/attachment.routes.ts';
+import { questionRoutes }    from './api/question.routes.ts';
+import { runStartRouter }    from './api/run-start.router.ts';
+import { checkpointRoutes }  from './api/checkpoint.routes.ts';
 import { heartbeatManager } from './realtime/heartbeat-manager.ts';
 import { websocketManager } from './realtime/websocket-manager.ts';
 import { TOPIC, sseManager as infraSseManager } from '../infrastructure';
@@ -87,8 +88,9 @@ export const chatOrchestrator = {
    *   /api/run/*  — run start / cancel / active
    */
   mountRoutes(app: Application): void {
-    app.use('/api/chat', chatRouter);
-    app.use('/api/run',  runStartRouter);
+    app.use('/api/chat',        chatRouter);
+    app.use('/api/run',         runStartRouter);
+    app.use('/api/checkpoints', checkpointRoutes);
   },
 
   /**
