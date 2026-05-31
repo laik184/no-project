@@ -9,11 +9,13 @@ import http from 'http';
 import express from 'express';
 import multer from 'multer';
 
+import { bootstrapMemory }          from './server/memory/index.ts';
 import { chatOrchestrator }         from './server/chat/index.ts';
 import consolePipeline              from './server/console/index.ts';
 import previewPipeline              from './server/preview/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 import projectsRouter               from './server/projects/projects.router.ts';
+import { runStartRouter }           from './server/chat/api/run-start.router.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Multer — memory storage for file uploads (used by chat attachments)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 app.use(upload.single('file'));
+
+// ── Memory platform ───────────────────────────────────────────────────────────
+// Must run before any module that stores to or reads from memoryEngine.
+
+bootstrapMemory();
 
 // ── Health check ──────────────────────────────────────────────────────────────
 
@@ -51,6 +58,9 @@ app.use('/api/orchestration', createOrchestrationRouter());
 
 // Projects: /api/projects/*
 app.use('/api', projectsRouter);
+
+// Run: POST /api/run, POST /api/run/:runId/cancel
+app.use('/api/run', runStartRouter);
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 

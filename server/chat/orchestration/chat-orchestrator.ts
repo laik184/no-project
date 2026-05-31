@@ -33,6 +33,7 @@ import { makeRunStartedEvent, makeRunCompletedEvent, makeRunFailedEvent } from '
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
+import { runWriter } from '../persistence/run-writer.ts';
 
 export class ChatOrchestratorError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -69,8 +70,10 @@ export const chatOrchestrator = {
       ? (conversationManager.get(existingConvId) ?? conversationManager.create(projectId, goal))
       : conversationManager.create(projectId, goal);
 
-    // 2. Register run in infra run-manager
+    // 2. Register run in infra run-manager and persist to DB
+    //    (agent_runs row must exist before any chat_messages FK reference)
     runManager.register(runId, projectId);
+    await runWriter.create(runId, projectId, goal);
 
     // 3. Session
     sessionManager.open(conversation.conversationId, projectId);
@@ -179,8 +182,9 @@ export const chatOrchestrator = {
     const turn = turnManager.getByRun(runId);
     if (turn) turnManager.complete(turn.turnId);
 
-    // Update infra run-manager
+    // Update infra run-manager and DB
     runManager.setStatus(runId, 'complete');
+    runWriter.setStatus(runId, 'completed').catch(console.error);
 
     const durationMs = Date.now() - startedAt;
 
@@ -208,6 +212,7 @@ export const chatOrchestrator = {
     if (turn) turnManager.fail(turn.turnId);
 
     runManager.setStatus(runId, 'failed');
+    runWriter.setStatus(runId, 'failed').catch(console.error);
 
     runTimeline.recordFailed(runId, error);
     timelineManager.clear(runId);
@@ -236,6 +241,7 @@ export const chatOrchestrator = {
     if (turn) turnManager.cancel(turn.turnId);
 
     runManager.setStatus(runId, 'cancelled');
+    runWriter.setStatus(runId, 'cancelled').catch(console.error);
 
     runTimeline.recordCancelled(runId);
     timelineManager.clear(runId);
