@@ -13,6 +13,7 @@ import { chatOrchestrator }         from './server/chat/index.ts';
 import consolePipeline              from './server/console/index.ts';
 import previewPipeline              from './server/preview/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
+import projectsRouter               from './server/projects/projects.router.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,9 @@ app.use('/api',         previewPipeline);
 
 // Orchestration: /api/orchestration/*
 app.use('/api/orchestration', createOrchestrationRouter());
+
+// Projects: /api/projects/*
+app.use('/api', projectsRouter);
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
