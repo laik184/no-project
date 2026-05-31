@@ -7,6 +7,7 @@
 
 import http from 'http';
 import express from 'express';
+import type { Request, Response } from 'express';
 
 import { bootstrapMemory }                            from './server/memory/index.ts';
 import { chatOrchestrator }                           from './server/chat/index.ts';
@@ -15,6 +16,7 @@ import previewPipeline                                from './server/preview/ind
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 import projectsRouter                                 from './server/projects/projects.router.ts';
 import { seedDefaultProject }                         from './server/infrastructure/seed.ts';
+import { TOPIC, sseManager }                          from './server/infrastructure/index.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -33,6 +35,38 @@ bootstrapMemory();
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
+});
+
+// ── /api/realtime — shared SSE stream for all topics ─────────────────────────
+//
+// The frontend RealtimeProvider connects here once and subscribes to all topics.
+// Events are sent as NAMED SSE events ("event: <topic>\ndata: ...\n\n") so that
+// the browser's addEventListener(topic, cb) fires correctly.
+// Query params: projectId (optional) — scopes broadcast to a single project.
+
+app.get('/api/realtime', (req: Request, res: Response) => {
+  const projectId = req.query.projectId ? Number(req.query.projectId) : null;
+  const runId     = req.query.runId as string | undefined;
+
+  res.writeHead(200, {
+    'Content-Type':      'text/event-stream',
+    'Cache-Control':     'no-cache, no-transform',
+    'Connection':        'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  (res as any).flushHeaders?.();
+
+  // Subscribe to ALL known topics so the client receives everything.
+  const topicSet = new Set<string>(Object.values(TOPIC));
+
+  const cleanup = sseManager.register(
+    res,
+    topicSet as unknown as ReadonlySet<string>,
+    projectId,
+    runId,
+  );
+
+  req.on('close', () => cleanup());
 });
 
 // ── Mount modules ─────────────────────────────────────────────────────────────

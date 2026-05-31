@@ -197,8 +197,9 @@ export const chatOrchestrator = {
     runTimeline.recordCompleted(runId, durationMs);
     timelineManager.clear(runId);
 
-    // Publish completed event
+    // Publish completed event (agent topic) + lifecycle event (lifecycle topic)
     eventPublisher.publish(makeRunCompletedEvent(runId, projectId, durationMs));
+    bus.emit('run.lifecycle', { status: 'completed', runId, projectId, durationMs, ts: Date.now() });
 
     // Create checkpoint + emit on checkpoint SSE topic (fire-and-forget)
     chatCheckpointStore
@@ -234,6 +235,7 @@ export const chatOrchestrator = {
     timelineManager.clear(runId);
 
     eventPublisher.publish(makeRunFailedEvent(runId, projectId, error));
+    bus.emit('run.lifecycle', { status: 'failed', runId, projectId, error, ts: Date.now() });
   },
 
   /**
@@ -261,6 +263,7 @@ export const chatOrchestrator = {
 
     runTimeline.recordCancelled(runId);
     timelineManager.clear(runId);
+    bus.emit('run.lifecycle', { status: 'cancelled', runId, projectId: record.projectId, ts: Date.now() });
 
     return { runId, cancelled: true };
   },

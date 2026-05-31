@@ -62,7 +62,9 @@ function broadcastToTopic(
   projectId: number | null,
   runId:     string | undefined,
 ): void {
-  const data = `data: ${JSON.stringify({ topic, payload })}\n\n`;
+  // Named SSE event so addEventListener(topic, cb) fires on the client.
+  // Format: "event: <topic>\ndata: <json>\n\n"
+  const data = `event: ${topic}\ndata: ${JSON.stringify(payload)}\n\n`;
 
   for (const conn of connections.values()) {
     if (!conn.topics.has(topic)) continue;
