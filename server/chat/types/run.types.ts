@@ -1,4 +1,4 @@
-export type RunMode   = 'planned' | 'tool-loop';
+export type RunMode   = 'planned' | 'direct' | 'auto';
 export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface ChatRun {

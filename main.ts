@@ -14,6 +14,7 @@ import consolePipeline                                from './server/console/ind
 import previewPipeline                                from './server/preview/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 import projectsRouter                                 from './server/projects/projects.router.ts';
+import { seedDefaultProject }                         from './server/infrastructure/seed.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -62,9 +63,17 @@ chatOrchestrator.bootstrap(server);
 
 initOrchestration();
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[server] API server listening on port ${PORT}`);
-});
+// Seed DB then start listening
+seedDefaultProject()
+  .then(() => {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`[server] API server listening on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[server] Startup seed failed:', err);
+    process.exit(1);
+  });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

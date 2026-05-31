@@ -103,7 +103,9 @@ export function useAgentRunner() {
     setIsAgentThinking(true);
     setActiveAction({ type: "action", tool: "analysis.think", content: "Connecting to agent…", status: "running" });
 
-    const mode = getAgentMode();
+    const agentMode = getAgentMode();
+    // Map UI tier → backend run mode
+    const runMode = agentMode === "power" ? "planned" : agentMode === "lite" ? "direct" : "auto";
 
     // POST /api/run — get back a runId
     let runId: string;
@@ -111,7 +113,7 @@ export function useAgentRunner() {
       const r = await fetch("/api/run", {
         method:  "POST",
         headers: { "Content-Type": "application/json", "x-project-id": String(projectId) },
-        body:    JSON.stringify({ projectId, goal: msg, mode }),
+        body:    JSON.stringify({ projectId, goal: msg, mode: runMode }),
       });
       const j = await r.json();
       if (!r.ok || !j?.ok) throw new Error(j?.error?.message || `HTTP ${r.status}`);
