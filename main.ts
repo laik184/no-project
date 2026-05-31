@@ -9,12 +9,11 @@ import http from 'http';
 import express from 'express';
 
 import { bootstrapMemory }          from './server/memory/index.ts';
-import { chatOrchestrator }         from './server/chat/index.ts';
+import { chatOrchestrator, runStartRouter } from './server/chat/index.ts';
 import consolePipeline              from './server/console/index.ts';
 import previewPipeline              from './server/preview/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 import projectsRouter               from './server/projects/projects.router.ts';
-import { runStartRouter }           from './server/chat/api/run-start.router.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 

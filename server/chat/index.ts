@@ -130,6 +130,7 @@ export { attachmentManager }     from './attachments/attachment-manager.ts';
 export { timelineManager }       from './timeline/timeline-manager.ts';
 export { chatStore }             from './persistence/chat-store.ts';
 export { eventPublisher }        from './realtime/event-publisher.ts';
+export { runStartRouter }        from './api/run-start.router.ts';
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 
