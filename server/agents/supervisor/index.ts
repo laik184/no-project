@@ -6,7 +6,13 @@
  */
 
 // ── Entry point ───────────────────────────────────────────────────────────────
-export { supervise, initSupervisorAgent, shutdownSupervisorAgent } from './supervisor-agent.ts';
+export {
+  supervise,
+  initSupervisorAgent,
+  shutdownSupervisorAgent,
+  runSupervisorCycle,
+} from './supervisor-agent.ts';
+export type { SupervisorCycleResult } from './supervisor-agent.ts';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type {

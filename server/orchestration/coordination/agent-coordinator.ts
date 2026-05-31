@@ -22,7 +22,7 @@ import { runCoderXAgent }         from '../../agents/coderx/index.ts';
 import { runExecutorAgent }       from '../../agents/executor/index.ts';
 import { runFilesystemAgent }     from '../../agents/filesystem/index.ts';
 import { runPlannerCycle }        from '../../agents/planner/index.ts';
-import { runSupervisorCycle }     from '../../agents/supervisor/supervisor-agent.ts';
+import { runSupervisorCycle }     from '../../agents/supervisor/index.ts';
 import { executeTerminalSession } from '../../agents/terminal/terminal-agent.ts';
 import { runVerification }        from '../../agents/verifier/verifier-agent.ts';
 
