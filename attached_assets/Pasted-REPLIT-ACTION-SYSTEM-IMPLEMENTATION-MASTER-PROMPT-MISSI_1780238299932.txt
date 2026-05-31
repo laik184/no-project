@@ -1,0 +1,348 @@
+REPLIT ACTION SYSTEM IMPLEMENTATION MASTER PROMPT
+
+MISSION
+
+Deep scan complete ho chuka hai.
+
+Ab analysis mode se implementation mode me jao.
+
+Target:
+
+client/src/components/chat/
+
+Goal:
+
+Current chat action system ko Replit-style Action System me upgrade karna.
+
+IMPORTANT RULES
+
+- Existing working functionality break nahi honi chahiye
+- Existing components rewrite nahi karne
+- Extend ya wrap karna hai
+- Every new file under 250 LOC
+- TypeScript strict mode maintain karna
+- No any
+- ToolGroupLine fallback rehna chahiye
+- LiveActionBar untouched
+- QuestionCard untouched
+- RealtimeProvider untouched
+- useTokenStream untouched
+- useRunReattach untouched
+
+PHASE 1 — FOUNDATION
+
+Modify:
+
+client/src/components/chat/types.ts
+
+Add:
+
+- role: "plan"
+- PlanData interface
+
+Extend AgentStreamItem.meta:
+
+- stdout?: string[]
+- exitCode?: number
+- imageUrl?: string
+- packageNames?: string[]
+- lineCount?: number
+- url?: string
+- commitHash?: string
+- branch?: string
+- duration?: number
+
+Verify build passes.
+
+PHASE 2 — ACTION REGISTRY
+
+Create:
+
+client/src/components/chat/cards/
+
+Create:
+
+- ActionCardRegistry.tsx
+- index.ts
+
+Requirements:
+
+Implement:
+
+renderActionCard(tool,item,onOpenFile)
+
+Normalize tool names:
+
+shell_exec -> shell.exec
+file_write -> file.write
+
+Registry routing:
+
+Planning -> PlanningCard
+File Open -> FileOpenCard
+File Write -> FileWriteCard
+Terminal -> TerminalCard
+Package -> PackageCard
+Screenshot -> ScreenshotCard
+Git -> GitCard
+Deploy -> DeployCard
+Database -> DatabaseCard
+
+Fallback:
+
+ToolGroupLine renderer
+
+No UI change yet.
+
+Verify build passes.
+
+PHASE 3 — ACTION GROUP SYSTEM
+
+Create:
+
+- ActionGroup.tsx
+- ActionSummaryBar.tsx
+- ActionTimeline.tsx
+
+Behavior:
+
+1 Action
+→ Direct Card
+
+2-3 Actions
+→ SummaryBar + Cards
+
+4+ Actions
+→ SummaryBar + Timeline
+
+Update:
+
+ChatMessages.tsx
+
+Replace:
+
+ToolGroupLine
+
+With:
+
+ActionGroup
+
+Verify UI unchanged for unmapped tools.
+
+PHASE 4 — PLANNING SYSTEM
+
+Create:
+
+PlanningCard.tsx
+
+Features:
+
+- Progress Bar
+- Step List
+- Pending
+- Running
+- Success
+- Error
+- Expand / Collapse
+
+Update:
+
+agent-event-handler.ts
+
+Change:
+
+plan.created
+
+from markdown bubble
+
+to
+
+role:"plan"
+
+Add:
+
+plan.step.update handler
+
+Update:
+
+ChatMessages.tsx
+
+Add:
+
+role === "plan"
+
+Render:
+
+PlanningCard
+
+Verify planning flow works.
+
+PHASE 5 — FILE CARDS
+
+Create:
+
+FileOpenCard.tsx
+
+Features:
+
+- Filename
+- Language Badge
+- Line Count
+- Open CTA
+
+Create:
+
+FileWriteCard.tsx
+
+Features:
+
+- Filename
+- Language Badge
+- Status Badge
+- Inline Diff Preview
+- Open CTA
+
+Integrate diff.queued with file_write action metadata.
+
+Verify diff rendering.
+
+PHASE 6 — TERMINAL SYSTEM
+
+Create:
+
+TerminalCard.tsx
+
+Features:
+
+- Command Header
+- Scrollable Output
+- Exit Code Badge
+- Duration Badge
+- Copy Output
+
+Update:
+
+agent-event-handler.ts
+
+Support:
+
+- shell.output
+- tool.completed
+- tool.error
+
+Append stdout lines live.
+
+Verify graceful fallback if backend events absent.
+
+PHASE 7 — PACKAGE CARD
+
+Create:
+
+PackageCard.tsx
+
+Features:
+
+- Package List
+- Progress State
+- Installed Count
+- Failed Count
+
+Route:
+
+package_install
+package_uninstall
+detect_missing_packages
+
+PHASE 8 — SECONDARY CARDS
+
+Create:
+
+- ScreenshotCard.tsx
+- GitCard.tsx
+- DeployCard.tsx
+- DatabaseCard.tsx
+
+Requirements:
+
+ScreenshotCard:
+
+- image preview
+- url
+- open button
+
+GitCard:
+
+- branch
+- hash
+- operation
+
+DeployCard:
+
+- url
+- status
+
+DatabaseCard:
+
+- operation
+- duration
+
+PHASE 9 — ACTION ANALYTICS
+
+Upgrade:
+
+ActionSummaryBar
+
+Show:
+
+- running count
+- failed count
+- completed count
+
+Show duration badges where available.
+
+PHASE 10 — REPORT GENERATION
+
+After ALL implementation complete:
+
+Create root report:
+
+REPLIT_ACTION_IMPLEMENTATION_REPORT.md
+
+Include:
+
+1. Files Created
+2. Files Modified
+3. LOC Added
+4. Features Added
+5. Before vs After Architecture
+6. Before vs After Workflow
+7. Before vs After Folder Structure
+8. Replit Parity Estimate
+9. Remaining Gaps
+10. Backend Dependencies
+11. Risks
+12. Screens Ready
+13. Future P3 Improvements
+
+Final section:
+
+Replit Parity Score
+
+Before:
+XX%
+
+After:
+XX%
+
+Remaining:
+XX%
+
+Do NOT stop until implementation report is generated.
+
+Return:
+
+- implementation summary
+- created files list
+- modified files list
+- parity score
+- report path
