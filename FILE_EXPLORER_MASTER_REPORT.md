@@ -1,822 +1,933 @@
 # FILE EXPLORER MASTER REPORT
-> Complete reverse-engineering of `client/src/components/file-explorer/`  
-> Generated: 2026-05-31 | Total LOC: 2 341 across 18 files
+## X10 Deep Architecture Intelligence Report
+
+**Scope:** `client/src/components/file-explorer/` — all 22 files  
+**Perspective:** Senior Frontend Architect · Senior UX Engineer · Senior React Engineer · Senior IDE Product Designer · Senior AI Workspace Architect
 
 ---
 
 ## TABLE OF CONTENTS
 
-1. [Complete Architecture Overview](#1-complete-architecture-overview)
+1. [Architecture Overview](#1-architecture-overview)
 2. [File Inventory](#2-file-inventory)
-3. [Component Responsibility Map](#3-component-responsibility-map)
-4. [UI Flow Analysis](#4-ui-flow-analysis)
-5. [State Flow Analysis](#5-state-flow-analysis)
-6. [UX Audit](#6-ux-audit)
-7. [AI IDE Audit](#7-ai-ide-audit)
-8. [Replit Comparison](#8-replit-comparison)
-9. [VS Code Comparison](#9-vs-code-comparison)
-10. [Cursor Comparison](#10-cursor-comparison)
-11. [Missing Features — Gap Analysis](#11-missing-features--gap-analysis)
-12. [Technical Debt](#12-technical-debt)
-13. [Recommended Roadmap](#13-recommended-roadmap)
+3. [Component Map](#3-component-map)
+4. [Import Graph](#4-import-graph)
+5. [State Flow](#5-state-flow)
+6. [UI Flow](#6-ui-flow)
+7. [UX Audit](#7-ux-audit)
+8. [AI Audit](#8-ai-audit)
+9. [Accessibility Audit](#9-accessibility-audit)
+10. [Realtime Audit](#10-realtime-audit)
+11. [The Dual Tree Problem — Critical Finding](#11-the-dual-tree-problem--critical-finding)
+12. [IDE Comparison](#12-ide-comparison)
+13. [Missing Features](#13-missing-features)
+14. [Technical Debt](#14-technical-debt)
+15. [Recommended Roadmap](#15-recommended-roadmap)
+16. [Final Architect Verdict](#16-final-architect-verdict)
 
 ---
 
-## 1. COMPLETE ARCHITECTURE OVERVIEW
+## 1. Architecture Overview
 
-### Dual-Explorer Architecture
-
-There are **two completely separate explorer implementations** living side by side:
+The file explorer is not a single system. It is **two completely separate, architecturally incompatible file explorer implementations** living side-by-side, serving different consumers, using different data models, different event buses, and different UI conventions — with zero code sharing between them.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        FILE EXPLORER SYSTEM                             │
-│                                                                         │
-│  ┌──────────────────────────┐     ┌──────────────────────────────────┐  │
-│  │   FileExplorer.tsx       │     │   FileTreePanel.tsx              │  │
-│  │   (Real Sandbox Explorer)│     │   (In-Memory Demo Explorer)      │  │
-│  │                          │     │                                  │  │
-│  │  ▸ Data: RawTreeNode[]   │     │  ▸ Data: FileNode[]             │  │
-│  │  ▸ Source: Backend API   │     │  ▸ Source: in-memory state      │  │
-│  │  ▸ Menu: right-click     │     │  ▸ Menu: hover 3-dot button     │  │
-│  │  ▸ Writes: API calls     │     │  ▸ Writes: setState             │  │
-│  │  ▸ Realtime: SSE events  │     │  ▸ Realtime: none               │  │
-│  │  ▸ Used by: unified-grid │     │  ▸ Used by: CenterPanel         │  │
-│  └──────────────────────────┘     └──────────────────────────────────┘  │
-│            │                                    │                        │
-│            ▼                                    ▼                        │
-│     useFileExplorer()                      TreeNode.tsx                 │
-│     ContextMenu.tsx                        TreeNodeMenu.tsx             │
-│     OpenEditorsPanel.tsx                   InlineInput.tsx              │
-│     AgentStatusPanel.tsx                   tree-helpers.ts              │
-└─────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         FILE EXPLORER SYSTEM                                │
+│                                                                             │
+│  ┌──────────────────────────┐     ┌──────────────────────────────────────┐  │
+│  │     FileTreePanel.tsx    │     │          FileExplorer.tsx            │  │
+│  │    (Client-Only Tree)    │     │       (Server-Backed Tree)           │  │
+│  │                          │     │                                      │  │
+│  │  Data model: FileNode    │     │  Data model: RawTreeNode             │  │
+│  │  IDs: uid() strings      │     │  IDs: NONE — path-based             │  │
+│  │  Storage: in-memory only │     │  Storage: localStorage (panels)     │  │
+│  │  API: NONE               │     │  API: /api/list-files ← MISSING     │  │
+│  │  Content: stored in node │     │  Content: loaded separately          │  │
+│  │  Events: treepanel-*     │     │  Events: rfe:set-expanded            │  │
+│  │  Menu: TreeNodeMenu.tsx  │     │  Menu: ContextMenu.tsx               │  │
+│  │  Node: TreeNode.tsx      │     │  Node: RenderNode (local function)  │  │
+│  │  Used by: CenterPanel    │     │  Used by: unified-grid               │  │
+│  └──────────────────────────┘     └──────────────────────────────────────┘  │
+│                                                                             │
+│  CRITICAL: These two trees NEVER synchronize. They show different data.    │
+│  CRITICAL: FileExplorer's server API routes DO NOT EXIST on the server.    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Shared Infrastructure (used by both)
+### The fundamental problem
+
+`FileExplorer` is the modern, AI-aware, feature-rich tree. It calls:
+- `GET /api/list-files` — **does not exist**
+- `POST /api/save-file` — **does not exist**
+- `POST /api/rename-file` — **does not exist**
+- `POST /api/delete-file` — **does not exist**
+- `POST /api/duplicate-file` — **does not exist**
+
+The server only exposes `GET /api/files/list`, `POST /api/files/create`, `DELETE /api/files/*` via the preview pipeline. The path conventions are also different (FileExplorer sends projectPath-relative paths; the files API uses sandbox-relative paths).
+
+**Result: FileExplorer always shows an empty tree in production.**
+
+`FileTreePanel` has no API calls at all. It manages a local in-memory tree. All file operations (rename, delete, create) modify React state only — nothing persists to disk. After a page reload, everything is lost.
+
+---
+
+## 2. File Inventory
+
+### Core Components (22 files total)
+
+| File | Type | Lines | Role | Used In Production? |
+|------|------|--------|------|---------------------|
+| `FileExplorer.tsx` | Component | ~560 | Modern sidebar explorer | Yes (unified-grid) |
+| `FileTreePanel.tsx` | Component | ~555 | Legacy panel explorer | Yes (CenterPanel) |
+| `TreeNode.tsx` | Component | ~344 | Node renderer for FileTreePanel | Yes (FileTreePanel) |
+| `TreeNodeMenu.tsx` | Component | ~175 | ⋯ hover menu for TreeNode | Yes (TreeNode) |
+| `ContextMenu.tsx` | Component | ~144 | Right-click menu for FileExplorer | Yes (FileExplorer) |
+| `InlineInput.tsx` | Component | ~79 | Rename/create input field | Yes (both trees) |
+| `FileHistoryPanel.tsx` | Component | ~55 | File version history viewer | Partial (modal in FileExplorer) |
+| `AIActivityBadge.tsx` | Component | ~37 | Animated AI activity indicator | Yes (both trees) |
+| `AgentStatusPanel.tsx` | Component | ~92 | Agent state status strip | Yes (FileExplorer) |
+| `OpenEditorsPanel.tsx` | Component | ~110 | Open editors section | Yes (FileExplorer) |
+| `RecentFilesPanel.tsx` | Component | ~91 | Recent files section | Yes (FileExplorer) |
+| `PinnedFilesPanel.tsx` | Component | ~113 | Pinned files section | Yes (FileExplorer) |
+| `ProjectInsightsPanel.tsx` | Component | ~82 | Stats summary section | Yes (FileExplorer) |
+| `file-icon.tsx` | Utility | ~111 | File type icons | Yes (multiple) |
+| `tree-helpers.ts` | Utility | ~197 | Tree manipulation functions | Yes (FileTreePanel) |
+| `use-file-explorer.ts` | Hook | ~244 | Core data + API hook | Yes (FileExplorer) |
+| `use-open-editors.ts` | Hook | ~45 | Open editors with localStorage | Yes (FileExplorer) |
+| `use-recent-files.ts` | Hook | ~33 | Recent files with localStorage | Yes (FileExplorer) |
+| `use-pinned-files.ts` | Hook | ~48 | Pinned files with localStorage | Yes (FileExplorer) |
+| `use-agent-status.ts` | Hook | ~69 | Agent state tracker | Yes (AgentStatusPanel) |
+| `use-git-status.tsx` | Hook | ~49 | Git change tracking | Yes (both trees) |
+| `use-file-explorer-utils.ts` | Utility | ~19 | countTree + formatBytes | Yes (FileExplorer, ProjectInsightsPanel) |
+| `types.ts` | Types | ~33 | Shared type definitions | Yes (multiple) |
+| `index.ts` | Barrel | ~22 | Public API surface | Yes (consumers) |
+
+### External consumers
+| File | Imports | What it uses |
+|------|---------|--------------|
+| `client/src/components/layout/unified-grid.tsx` | `FileExplorer` | Primary sidebar explorer in the main layout |
+| `client/src/components/layout/CenterPanel.tsx` | `FileTreePanel` | File panel inside code editor pane |
+| `client/src/pages/core/workspace.tsx` | (via CenterPanel) | Toggle visibility state |
+
+---
+
+## 3. Component Map
 
 ```
-types.ts          — Type contracts
-file-icon.tsx     — Icon mapping + language guessing
-InlineInput.tsx   — Inline rename / create input
-use-open-editors  — localStorage open-editor list
-use-recent-files  — localStorage recent-files list
-use-agent-status  — Realtime agent heartbeat
-tree-helpers.ts   — Pure tree mutation utilities
-```
+FileExplorer.tsx (default export)
+  ├── PinnedFilesPanel          (new, P3)
+  ├── OpenEditorsPanel
+  ├── RecentFilesPanel
+  ├── [Header row]
+  │   └── InlineInput (via InlineCreateRow)
+  ├── [Search bar]
+  ├── [Tree scroll container]
+  │   └── RenderNode (recursive, local function — NOT a named component)
+  │       ├── fileIcon()
+  │       ├── AIActivityBadge
+  │       ├── GitStatusBadge   (from use-git-status.tsx)
+  │       └── [indent guides]
+  ├── AgentStatusPanel
+  ├── ProjectInsightsPanel     (new, P3)
+  ├── ContextMenu
+  ├── FileHistoryPanel (modal) (new, P3)
+  └── [resize handle div]
 
-### Data Flow Summary
-
-```
-Backend API ──────► useFileExplorer ──► FileExplorer ──► RenderNode
-SSE Stream  ──────► useRealtimeEvent     (sidebar)        (recursive)
-                                                │
-                                         ContextMenu
-                                         OpenEditorsPanel
-                                         AgentStatusPanel
-
-In-memory ────────► FileTreePanel ──────► TreeNode
-makeInitialTree()   (panel)               (recursive)
-                                          TreeNodeMenu (portal)
+FileTreePanel.tsx (named export)
+  ├── TreeNode (recursive)
+  │   ├── fileIcon()
+  │   ├── InlineInput
+  │   ├── AIActivityBadge
+  │   ├── GitStatusBadge
+  │   └── TreeNodeMenu (⋯ button)
+  │       └── createPortal → document.body
+  └── [search results list]
+  └── [inline create row]
 ```
 
 ---
 
-## 2. FILE INVENTORY
-
-| # | File | Purpose | LOC | Key Exports |
-|---|---|---|---|---|
-| 1 | `types.ts` | Type contracts | 22 | FileNode, RawTreeNode, ContextMenuState |
-| 2 | `index.ts` | Barrel re-exports | 18 | All 18 exports |
-| 3 | `tree-helpers.ts` | Pure tree utilities | 136 | uid, flattenFiles, deleteNodeById, renameNodeById, addNodeToRoot, addNodeInsideFolder, optimisticInsertFile, removeOptimisticFile, makeInitialTree |
-| 4 | `file-icon.tsx` | Icon + lang mapping | 49 | fileIcon, guessLang, emojiIcon |
-| 5 | `InlineInput.tsx` | Inline text input | 79 | InlineInput, ActionIcon |
-| 6 | `use-recent-files.ts` | Recent files store | 33 | useRecentFiles |
-| 7 | `use-open-editors.ts` | Open editors store | 45 | useOpenEditors |
-| 8 | `use-agent-status.ts` | Agent heartbeat | 69 | useAgentStatus, AgentStatus, AgentId, AgentState |
-| 9 | `AIActivityBadge.tsx` | Animated activity badge | 36 | AIActivityBadge |
-| 10 | `AgentStatusPanel.tsx` | Agent status sidebar panel | 92 | AgentStatusPanel |
-| 11 | `OpenEditorsPanel.tsx` | Open editors sidebar panel | 110 | OpenEditorsPanel |
-| 12 | `FileHistoryPanel.tsx` | File version history | 55 | FileHistoryPanel (default) |
-| 13 | `ContextMenu.tsx` | Right-click context menu | 88 | ContextMenu |
-| 14 | `TreeNodeMenu.tsx` | Hover 3-dot node menu | 178 | TreeNodeMenu |
-| 15 | `TreeNode.tsx` | Recursive tree node | 213 | TreeNode |
-| 16 | `use-file-explorer.ts` | Main explorer hook | 216 | useFileExplorer |
-| 17 | `FileExplorer.tsx` | Real sandbox explorer | 490 | FileExplorer (default) |
-| 18 | `FileTreePanel.tsx` | In-memory demo explorer | 412 | FileTreePanel |
-
-### Dependency Graph
+## 4. Import Graph
 
 ```
-FileExplorer.tsx
-  ├── useFileExplorer (use-file-explorer.ts)
-  │     ├── types.ts
-  │     ├── tree-helpers.ts (optimisticInsertFile, removeOptimisticFile)
-  │     └── @/realtime/useRealtimeStream
-  ├── useOpenEditors (use-open-editors.ts)
-  ├── useRecentFiles (use-recent-files.ts)
-  ├── OpenEditorsPanel (OpenEditorsPanel.tsx)
-  │     └── file-icon.tsx
-  ├── AgentStatusPanel (AgentStatusPanel.tsx)
-  │     └── useAgentStatus (use-agent-status.ts)
-  │           └── @/realtime/useRealtimeStream
-  ├── ContextMenu (ContextMenu.tsx)
-  │     └── types.ts
-  ├── InlineInput (InlineInput.tsx)
-  └── file-icon.tsx
-
-FileTreePanel.tsx
-  ├── TreeNode (TreeNode.tsx)
-  │     ├── file-icon.tsx
-  │     ├── InlineInput.tsx
-  │     └── TreeNodeMenu (TreeNodeMenu.tsx)
-  │           └── types.ts
+index.ts
+  ├── types.ts
+  ├── file-icon.tsx  ←  [react-icons/si, lucide-react]
+  ├── tree-helpers.ts ← file-icon.tsx, types.ts
   ├── InlineInput.tsx
-  ├── file-icon.tsx
-  └── tree-helpers.ts
+  ├── TreeNode.tsx  ← types.ts, file-icon.tsx, InlineInput.tsx, TreeNodeMenu.tsx,
+  │                   AIActivityBadge.tsx, use-git-status.tsx
+  ├── TreeNodeMenu.tsx ← types.ts, [lucide], createPortal
+  ├── FileTreePanel.tsx ← types.ts, file-icon.tsx, tree-helpers.ts, TreeNode.tsx,
+  │                       InlineInput.tsx, use-git-status.tsx, [jszip], [lucide]
+  ├── ContextMenu.tsx ← types.ts, [lucide]
+  ├── use-file-explorer.ts ← AIActivityBadge.tsx, types.ts, tree-helpers.ts,
+  │                          @/realtime/useRealtimeStream ← BROKEN MODULE
+  ├── use-open-editors.ts
+  ├── use-recent-files.ts
+  ├── use-pinned-files.ts
+  ├── use-agent-status.ts ← @/realtime/useRealtimeStream ← BROKEN MODULE
+  ├── use-git-status.tsx
+  ├── use-file-explorer-utils.ts ← types.ts
+  ├── OpenEditorsPanel.tsx ← file-icon.tsx
+  ├── RecentFilesPanel.tsx ← file-icon.tsx
+  ├── PinnedFilesPanel.tsx ← file-icon.tsx (new)
+  ├── AgentStatusPanel.tsx ← use-agent-status.ts
+  ├── ProjectInsightsPanel.tsx ← types.ts, use-file-explorer-utils.ts (new)
+  ├── AIActivityBadge.tsx
+  ├── FileExplorer.tsx ← [all of the above]
+  └── FileHistoryPanel.tsx ← ../../services/agent-ultra.service
+```
 
-FileHistoryPanel.tsx
-  └── ../../services/agent-ultra.service (external)
+### Broken dependency chain
+```
+use-file-explorer.ts ──→ @/realtime/useRealtimeStream ──→ ./realtime-provider.tsx
+use-agent-status.ts  ──→ @/realtime/useRealtimeStream ──→ [TypeScript error TS2307]
+```
+`useRealtimeStream` TypeScript has a JSX error (module resolves to .tsx but --jsx not set in tsconfig root). However Vite's transpiler handles JSX so this likely works at runtime despite the TS error.
+
+---
+
+## 5. State Flow
+
+### FileExplorer state ownership
+
+```
+FileExplorer (main component)
+  │
+  ├── LOCAL STATE (useState)
+  │   ├── contextMenu: ContextMenuState | null
+  │   ├── searchQuery: string
+  │   ├── creating: "file" | "folder" | null
+  │   ├── width: number (sidebar pixel width, restored from localStorage)
+  │   ├── selectedPaths: Set<string> (multi-select)
+  │   ├── dragSourcePath: string | null
+  │   ├── dropTargetPath: string | null
+  │   ├── clipboard: ClipboardState | null  (copy/cut/paste)
+  │   ├── historyFile: string | null         (history modal)
+  │   └── metaTooltip: FileMeta+position | null
+  │
+  ├── REFS (useRef, no re-render)
+  │   ├── lastSelectedPath (shift-select anchor)
+  │   ├── dragRef (resize drag state)
+  │   ├── handleRef (resize DOM node)
+  │   ├── treeScrollRef (tree scroll container)
+  │   ├── searchRef (search input — DECLARED BUT NEVER USED)
+  │   ├── uploadRef (folder upload input)
+  │   ├── metaCache: Map<path, FileMeta>
+  │   └── metaTimer: timeout handle
+  │
+  ├── DERIVED (useMemo)
+  │   ├── folderCounts: Map<string, number>    (O(n) tree walk)
+  │   └── searchExpandedPaths: Set<string>     (O(n) tree walk)
+  │
+  └── EXTERNAL HOOKS
+      ├── useFileExplorer() → tree, dirtyFiles, aiFiles, aiActivity,
+      │                       writingFiles, writingSizes, focusedPath,
+      │                       hoveredPath, refreshFiles, apiSaveFile,
+      │                       apiMovePath, apiDuplicatePath,
+      │                       handleRenamePath, handleDeletePath
+      ├── useGitStatus() → statusMap
+      ├── useOpenEditors() → openFiles, openFile, closeFile, closeAll
+      ├── useRecentFiles() → recentFiles, recordOpen
+      └── usePinnedFiles() → pinnedFiles, pinFile, unpinFile, isPinned, clearPinned
+```
+
+### useFileExplorer state ownership
+
+```
+useFileExplorer
+  ├── tree: RawTreeNode[]           ← fetched from /api/list-files (MISSING ROUTE)
+  ├── dirtyFiles: Set<string>       ← from "file-dirty" / "file-saved" window events
+  ├── aiFiles: Set<string>          ← from useRealtimeEvent("agent", ...)
+  ├── aiActivity: Map<string, ActivityKind>  ← from realtime agent events
+  ├── writingFiles: Set<string>     ← from useRealtimeEvent("file", type=writing)
+  ├── writingSizes: Map<string, number>      ← from realtime file events
+  ├── focusedPath: string | null    ← lifted from RenderNode
+  └── hoveredPath: string | null    ← lifted from RenderNode
+```
+
+### localStorage keys (potential collisions)
+
+| Key | Owner | Survives reload | Max size |
+|-----|-------|-----------------|----------|
+| `rfe_sidebar_width` | FileExplorer | ✓ | 3 chars |
+| `nura-x:open-editors` | useOpenEditors | ✓ | 12 paths |
+| `nura-x:recent-files` | useRecentFiles | ✓ | 8 paths |
+| `nura-x:pinned-files` | usePinnedFiles | ✓ | 10 paths |
+
+No collision risks. Keys are namespaced appropriately.
+
+### RenderNode state ownership
+
+```
+RenderNode (per-instance)
+  └── open: boolean (expanded/collapsed)
+      ← initialized: depth < 2
+      ← controlled: forcedExpandedPaths.has(full) || open
+      ← updated: via "rfe:set-expanded" custom events (by path)
+```
+
+**Risk:** RenderNode is keyed by `node.name` in parent `.map()`. If two nodes in the same folder share a name (impossible but bugs can cause it), keys collide. More critically: when a file is renamed, the component unmounts → remounts → loses `open` state. This is acceptable for files but causes folders to close on rename.
+
+---
+
+## 6. UI Flow
+
+### Layout structure (FileExplorer)
+```
+┌─────────────────────────────┐  ← width: 160-480px, resizable
+│ [Pinned Files]              │  ← PinnedFilesPanel (hidden if empty)
+│ [Open Editors]              │  ← OpenEditorsPanel (hidden if empty)
+│ [Recent Files]              │  ← RecentFilesPanel (hidden if empty)
+├─────────────────────────────┤
+│ Files  ↻ +file +folder ▲   │  ← Header row (32px)
+│ (workspace · 12f 4d)        │
+├─────────────────────────────┤
+│ 🔍 Search files…            │  ← Search bar (with auto-expand)
+├─────────────────────────────┤
+│ [InlineCreateRow?]          │  ← Only when creating === "file|folder"
+├─────────────────────────────┤
+│                             │  ← Tree scroll area (flex: 1, overflow-y auto)
+│  📁 src/                 4 │  ← Folder with count badge
+│    ⚛ App.tsx         Editing│  ← File with AI badge
+│    📜 index.ts          M  │  ← File with dirty badge
+│    [RenderNode recursive]   │
+│                             │
+├─────────────────────────────┤
+│ [Agent Status]              │  ← AgentStatusPanel (collapsible, start collapsed)
+├─────────────────────────────┤
+│ [Project Insights]          │  ← ProjectInsightsPanel (collapsible, start collapsed)
+└─────────────────────────────┘
+│ [resize handle]             │  ← 4px wide drag handle on right edge
+```
+
+### Tree row anatomy (file)
+```
+[2px accent bar][indentPx][spacer11px][icon13px][name flex1][badge?]
+```
+
+### Tree row anatomy (folder)
+```
+[2px accent bar][indentPx][chevron11px][icon13px][name flex1][count?][badge?]
+```
+
+### Indent guides
+```
+For depth=3:
+position:absolute lines at:
+  x = 4 + 0*14 + 5 = 9
+  x = 4 + 1*14 + 5 = 23
+  x = 4 + 2*14 + 5 = 37
+```
+Guides are 1px wide, color `#202020` — nearly invisible on `#1c1c1c` background.
+
+### Context menu flow
+```
+Right-click row
+  → setContextMenu({x, y, path, isDir})
+  → ContextMenu renders fixed-position
+  → Backdrop div (inset-0) captures outside clicks
+  → Escape key handled via useEffect (capture phase)
+  → Items computed + filtered per: isDir, clipboard state, isPinned
+```
+
+### File metadata tooltip flow
+```
+File mouseenter
+  → handleShowMeta(path, clientX, clientY)
+  → 500ms setTimeout
+  → if metaCache.has(path): immediate render
+  → else: GET /api/files/stat
+  → setMetaTooltip({path, size, mtime, x, y})
+  → renders fixed-position near cursor
+
+File mouseleave
+  → clearTimeout(metaTimer)
+  → setMetaTooltip(null)
 ```
 
 ---
 
-## 3. COMPONENT RESPONSIBILITY MAP
+## 7. UX Audit
 
-### `FileExplorer.tsx` — Real Sandbox Explorer
-- **What it does**: Renders the resizable sidebar explorer for a real project sandbox. Fetches file tree from `/api/list-files`, shows AI writing indicators, dirty-file dots, fuzzy search with highlight, right-click context menu, inline file/folder creation, Open Editors panel, Agent Status panel.
-- **When it renders**: When a project is active in the workspace; mounted inside `unified-grid.tsx`.
-- **Who calls it**: `unified-grid.tsx`
-- **UI responsibility**: Sidebar layout, resize handle (160–480px), header with file/folder count, search bar, tree scroll area, empty state.
-- **UX responsibility**: File selection → triggers editor open; right-click → context menu; keyboard Delete/F2/Ctrl+S forwarded via window events.
-- **State**: `contextMenu`, `searchQuery`, `creating`, `width` — all local. Tree state owned by `useFileExplorer`.
-- **AI features**: Writing indicator (pulsing blue border + byte size badge), AI-written badge (green "AI" pill), Agent Status panel at bottom.
+### Search UX — **Good**
 
-### `FileTreePanel.tsx` — In-Memory Demo Explorer
-- **What it does**: Standalone file explorer panel backed entirely by React state (no backend). Supports upload-folder (webkitdirectory), download-as-zip (JSZip), show/hide hidden files, collapse-all, inline create at root or inside folder. Header has 3-dot dropdown menu with 8 panel-level actions.
-- **When it renders**: When user opens the Files panel inside the IDE's center column (`CenterPanel.tsx`).
-- **Who calls it**: `CenterPanel.tsx`
-- **UI responsibility**: Panel layout, search bar + 3-dot dropdown, inline create row, tree scroll area, empty state with quick-action buttons.
-- **UX responsibility**: File open → calls `onFileOpen` prop; tree state is ephemeral (lost on unmount); supports folder upload from disk.
-- **State**: `tree`, `searchQuery`, `creatingFile`, `creatingFolder`, `showMenu`, `showHidden`, `collapseRevision` — all local.
-- **AI features**: None (no realtime connection).
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| Auto-expand matching folders | ✓ Excellent | Pure useMemo, non-destructive, instant |
+| Search term highlighting | ✓ Good | Yellow highlight on matching substring |
+| Search-as-you-type | ✓ Good | Controlled input, no debounce needed |
+| Empty state | ✓ Good | "No results" message |
+| Clear button | ✓ Good | ✕ appears when query non-empty |
+| Search scope | ⚠ Average | Only matches by filename, not file content |
+| Focus on Ctrl+F | ✗ Missing | searchRef declared but `.focus()` never called |
+| Search across both panels | ✗ Missing | FileTreePanel has its own disconnected search |
 
-### `TreeNode.tsx` — Recursive Tree Node
-- **What it does**: Renders a single file or folder row inside `FileTreePanel`. Manages hover state, open/close toggle, inline rename (InlineInput), inline create inside folder (InlineInput), hover 3-dot button (opens TreeNodeMenu), collapse propagation via `collapseRevision` counter.
-- **When it renders**: Once per visible node in `FileTreePanel`; recursively for children.
-- **Who calls it**: `FileTreePanel` (root nodes), itself (children).
-- **UI responsibility**: Row with indent, chevron, icon, name, 3-dot button; inline input overlay; recursive children.
-- **UX responsibility**: Click → `onSelect`; hover → show dot button; dot click → TreeNodeMenu; rename → InlineInput; create inside → InlineInput child row.
-- **State**: `open`, `renaming`, `hovered`, `creatingInside`, `localCollapse`, `menu` — all local.
+### Tree UX — **Good**
 
-### `TreeNodeMenu.tsx` — Hover 3-Dot Popup Menu
-- **What it does**: Portal-rendered (document.body) popup menu for a file or folder node. 10 items for folders (Rename, Search dir, Add file, Add folder, Collapse children, Open shell, Copy path, Copy link, Download zip, Delete), 7 items for files (folder-only items hidden). Closes on outside click or Escape. Flips upward if near bottom of viewport.
-- **When it renders**: When user clicks the ⋯ button on a hovered TreeNode.
-- **Who calls it**: `TreeNode`
-- **UI responsibility**: Fixed-position popup, min-width 208px, portal mount on `document.body`.
-- **UX responsibility**: Each item fires a callback + closes menu. Shell and search dispatch window CustomEvents. Download uses dynamic `import("jszip")`.
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| Depth=2 auto-expand | ✓ Good | First 2 levels open by default |
+| Indent guides | ⚠ Average | Too dark (#202020 on #1c1c1c), barely visible |
+| Folder counts | ✓ Good | Recursive count, memoized |
+| Folder count color | ✗ Poor | `#2e2e2e` = near invisible on dark bg |
+| Scroll to active | ✓ Good | `block: "center"` after 80ms |
+| Expand parents of active file | ✓ Good | Via rfe:set-expanded events |
+| Drag and drop | ✓ Good | With drop target highlight + circular nesting guard |
+| Multi-select | ✓ Good | Ctrl+click toggle, Shift+click range |
+| Cut files visual feedback | ✓ Good | opacity 0.4 |
+| File open feedback | ⚠ Average | No animation or transition, instant highlight |
+| Rename flow | ✗ Poor | `window.prompt()` native dialog — breaks immersion |
+| Delete flow | ✗ Poor | `window.confirm()` native dialog — breaks immersion |
+| Hidden files toggle | ✗ Missing | FileTreePanel has it; FileExplorer does not |
+| Collapse all | ✗ Missing | FileTreePanel has it; FileExplorer does not |
+| Download as zip | ✗ Missing | FileTreePanel has it; FileExplorer does not |
 
-### `ContextMenu.tsx` — Right-Click Context Menu
-- **What it does**: Right-click context menu for `FileExplorer`. 7 items: New File, New Folder, Rename, Duplicate (stub), Copy Path, Copy Relative Path, Delete. Has a fixed backdrop div to capture outside clicks.
-- **When it renders**: On right-click of any file or folder in `FileExplorer`.
-- **Who calls it**: `FileExplorer`
-- **Gap**: Duplicate action is a no-op (`onClick: () => {}`). No portal — renders inside explorer div.
+### Keyboard UX — **Good**
 
-### `useFileExplorer.ts` — Core Explorer Hook
-- **What it does**: Owns all async state for `FileExplorer`. Fetches tree from `/api/list-files`. Tracks dirty files (file-dirty/file-saved window events), AI-written files (SSE agent events), in-flight write files (SSE file events with 15s safety fallback), writing byte sizes. Debounces tree refresh (200ms). Provides API helpers: `apiSaveFile`, `apiRenameFile`, `apiDeleteFile`, `handleRenamePath`, `handleDeletePath`. Handles keyboard: Delete, F2, Ctrl+S.
-- **Realtime**: Subscribes to `"agent"` events (diff → mark AI file, refresh tree) and `"file"` events (writing → show indicator, done → coalesced tree refresh).
+| Key | FileExplorer | FileTreePanel |
+|-----|-------------|---------------|
+| ↓ / ↑ | Move focus row | Move focus row |
+| → | Expand folder | Expand folder |
+| ← | Collapse folder | Collapse folder |
+| Enter | Open file / toggle folder | Open file / toggle folder |
+| Space | Refocus (no-op essentially) | Open file |
+| Home | Jump to first | Jump to first |
+| End | Jump to last | Jump to last |
+| Delete | Delete focused/active path | ✗ Not implemented |
+| F2 | Rename focused/active path | ✗ Not implemented |
+| Ctrl+S | Dispatch global-save | ✗ Not implemented |
+| Escape | Close context menu | ✗ Not wired |
+| Ctrl+F | ✗ No search focus | ✗ No search focus |
+| Ctrl+C/X/V | ✗ Not wired | ✗ Not applicable |
 
-### `use-agent-status.ts` — Agent Heartbeat Hook
-- **What it does**: Maintains state for 6 agents (planner, executor, verifier, supervisor, browser, filesystem). Subscribes to SSE `"agent"` events (agent:start → running, agent:done → completed → idle after 3s, agent:error → error → idle after 5s, diff → executor running briefly) and `"lifecycle"` events (run:start → planner running, run:complete → all idle, run:error → planner error).
+### Context Menu UX — **Average**
 
-### `use-open-editors.ts` — Open Editors Store
-- **What it does**: localStorage-backed list of open file paths (max 12). `openFile` prepends and deduplicates. `closeFile` removes by path. `closeAll` clears. Persists across page refresh.
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| Right-click activation | ✓ Good | Standard pattern |
+| Keyboard dismissal | ✓ Good | Escape via capture listener |
+| Outside-click dismissal | ⚠ Average | Via backdrop div (not document mousedown), misses keyboard tabbing outside |
+| Copy path | ✓ Good | Both full and relative variants |
+| Copy/Cut/Paste | ⚠ Average | Cut works; Copy paste is non-functional (dispatches event with no handler) |
+| Pin/Unpin | ✓ Good | Proper toggle with state feedback |
+| History | ⚠ Average | Opens but FileHistoryPanel is barely styled |
+| Context: folder vs file items | ✓ Good | Items correctly filtered by isDir |
+| Visual dividers | ⚠ Average | Computed programmatically but logic is fragile |
+| Portal rendering | ✗ Missing | Rendered in document flow, can be clipped by overflow containers |
+| Viewport overflow guard | ✓ Good | Menu appears at fixed position |
+| Submenu support | ✗ Missing | No support for nested operations |
+| Keyboard navigation inside menu | ✗ Missing | Tab/arrows don't cycle through items |
 
-### `use-recent-files.ts` — Recent Files Store
-- **What it does**: localStorage-backed list of recently opened files (max 8). Same prepend-dedup pattern as open editors. Only records paths that look like files (have an extension).
+### File Operations UX — **Poor**
 
-### `OpenEditorsPanel.tsx` — Open Editors Sidebar Section
-- **What it does**: VS Code-style "OPEN EDITORS" section above the file tree. Shows up to 12 open files with file icon, name, active highlight (blue left border), hover X button to close, "Close All" X in header. Hidden when no files open.
-- **Note**: Only wired to `FileExplorer`, not `FileTreePanel`.
+| Operation | FileExplorer | FileTreePanel |
+|-----------|-------------|---------------|
+| Create file | ✓ Inline input | ✓ Inline input |
+| Create folder | ✓ Inline input | ✓ Inline input |
+| Rename | ✗ window.prompt() | ✓ Inline input in TreeNode |
+| Delete | ✗ window.confirm() | ✓ window.confirm() (same) |
+| Duplicate | ⚠ Works but pastes next to original | ✓ Works in-memory |
+| Move (drag) | ✓ Full DnD | ✓ In-memory DnD |
+| Cut+Paste | ✓ Functional | ✗ Not available |
+| Copy+Paste | ✗ Non-functional | ✗ Not available |
+| Upload folder | ✓ webkitdirectory | ✓ webkitdirectory |
+| Download zip | ✗ Missing | ✓ JSZip download |
+| Open in terminal | ✗ Dispatches event with no handler | ✓ Dispatches shell:open |
 
-### `AgentStatusPanel.tsx` — Agent Status Sidebar Section
-- **What it does**: Collapsible "AGENTS" section at the bottom of `FileExplorer` sidebar. Shows 6 agent rows with pulsing color dot (idle = dim, running = blue pulse, error = red, completed = green). Shows active count badge. Collapses to header-only by default.
+### AI UX — **Excellent**
 
-### `AIActivityBadge.tsx` — Activity Kind Badge
-- **What it does**: Small animated badge showing AI activity kind (Creating/Editing/Reading/Analyzing/Refactoring) with pulsing dot. Used for per-file AI status indication. **Not currently wired into any explorer tree row** — exported but unused in the tree.
-
-### `FileHistoryPanel.tsx` — File Version History
-- **What it does**: Shows file version history from `getFileHistory()` API. Click to diff adjacent versions. Uses `any[]` for history type. **Not integrated into FileExplorer or FileTreePanel** — exists as standalone component.
-
-### `InlineInput.tsx` — Shared Inline Input
-- **What it does**: Single-line text input for inline rename/create. Auto-selects existing value on mount. Enter → confirm, Escape → cancel, blur → confirm if non-empty. Blue focus ring styling.
-- **ActionIcon**: Small 20×20 icon button with hover highlight, danger variant.
-
-### `file-icon.tsx` — Icon + Language Mapping
-- **What it does**: Maps file extension → lucide React icon with color. Maps name → language string for editor. Emoji fallback for non-React contexts. Covers: tsx/jsx (blue), ts/js (green), json (yellow), css (pink), html (orange), md (slate), .env (lime), images (purple), default (gray).
-
-### `tree-helpers.ts` — Pure Tree Utilities
-- **What it does**: All tree mutation as pure functions (immutable, return new arrays).
-  - `uid()` — random 7-char ID
-  - `flattenFiles()` — recursively flatten to `{node, path}[]`
-  - `deleteNodeById()` — recursive delete by ID
-  - `renameNodeById()` — recursive rename + re-guess lang
-  - `addNodeToRoot()` — prepend to root
-  - `addNodeInsideFolder()` — insert as first child of matching folder ID
-  - `optimisticInsertFile()` — insert optimistic placeholder for file path
-  - `removeOptimisticFile()` — remove optimistic placeholder
-  - `makeInitialTree()` — generate a demo FileNode tree with realistic content
-
----
-
-## 4. UI FLOW ANALYSIS
-
-### Explorer Load
-```
-App mounts unified-grid
-  → FileExplorer mounts with projectPath
-  → useFileExplorer runs useEffect([projectPath])
-  → fetch /api/list-files?projectPath=...
-  → setTree(response.tree)
-  → RenderNode recursively renders tree
-  → Folders at depth < 2 start open
-```
-
-### Search
-**FileExplorer (real):**
-```
-User types in search input → setSearchQuery
-  → RenderNode receives searchQuery prop
-  → Files: if name !includes query → return null
-  → Folders: always shown (so hierarchy is visible)
-  → Matching chars wrapped in <span color="#fbbf24">
-```
-
-**FileTreePanel (in-memory):**
-```
-User types → setSearchQuery → sq derived
-  → flattenFiles(tree).filter(path.includes(sq))
-  → Shows flat list of matching files (no folder hierarchy)
-  → Two-line rows: filename + parent path
-```
-
-### Open File
-**FileExplorer:**
-```
-Click file row
-  → setFocusedPath(full)
-  → useOpenEditors.openFile(path)   [prepend to open editors list]
-  → useRecentFiles.recordOpen(path) [prepend to recent files list]
-  → selectHandler(path)             [prop callback → parent opens editor]
-```
-
-**FileTreePanel:**
-```
-Click TreeNode file
-  → onSelect(node)
-  → onFileOpen(name, content, lang) [prop callback → CenterPanel opens editor]
-```
-
-### Rename
-**FileExplorer (real):**
-```
-Right-click → ContextMenu → "Rename"
-  → window.prompt("Rename to:", oldName)
-  → fetch POST /api/rename-file { oldPath, newPath }
-  → refreshFiles(newPath) → optimistic insert + loadTree()
-```
-
-**FileTreePanel (in-memory):**
-```
-Hover TreeNode → click ⋯ → TreeNodeMenu → "Rename"
-  → setRenaming(true)
-  → InlineInput renders with current name, auto-selected
-  → Enter → onRename(id, newName)
-  → renameNodeById(tree, id, newName) + re-guesses lang
-```
-
-### Delete
-**FileExplorer (real):**
-```
-Right-click → ContextMenu → "Delete"
-  → window.confirm("Delete this file/folder?")
-  → fetch POST /api/delete-file { targetPath }
-  → refreshFiles()
-```
-
-**FileTreePanel (in-memory):**
-```
-Hover → ⋯ → TreeNodeMenu → "Delete"
-  → window.confirm(`Delete "${node.name}"?`)
-  → onDelete(node.id) → deleteNodeById(tree, id)
-```
-
-### Create File
-**FileExplorer:**
-```
-Header "+" button OR context menu "New File"
-  → setCreating("file")
-  → InlineCreateRow renders at top of tree
-  → Confirm → createFile(name) → fetch POST /api/save-file
-  → refreshFiles(full) [optimistic + reload]
-```
-
-**FileTreePanel (root):**
-```
-Header 3-dot → "New file"
-  → setCreatingFile(true)
-  → InlineInput row at top of tree
-  → Confirm → handleNewFile(name) → addNodeToRoot(tree, node)
-  → onFileOpen(name, "", lang)
-```
-
-**FileTreePanel (inside folder via TreeNodeMenu):**
-```
-Hover folder → ⋯ → "Add file"
-  → TreeNode: setOpen(true); setCreating("file")
-  → InlineInput row renders as first child of open folder
-  → Confirm → onCreateInside("file", name, parentId)
-  → addNodeInsideFolder(tree, parentId, node)
-  → onFileOpen(name, "", lang)
-```
-
-### Context Menu
-**FileExplorer:**
-```
-onContextMenu on any row → openCtx(e, path, isDir)
-  → setContextMenu({ x, y, path, isDir })
-  → ContextMenu renders at mouse position
-  → Outside click on explorer div → closeCtx()
-```
-
-**FileTreePanel (TreeNodeMenu):**
-```
-Hover any TreeNode → ⋯ button visible
-  → openMenu(e) → getBoundingClientRect() → setMenu({x, y})
-  → TreeNodeMenu portal-renders on document.body
-  → 50ms delay before outside-click listener registers
-  → Escape or outside mousedown → onClose → setMenu(null)
-```
-
-### Expand / Collapse Folder
-**FileExplorer:**
-```
-Click folder row → setOpen(v => !v) [local state in RenderNode]
-```
-
-**FileTreePanel:**
-```
-Click folder row → setOpen(v => !v) [local state in TreeNode]
-Panel-level "Collapse all" → setCollapseRevision(v => v+1)
-  → passed as prop → all TreeNodes useEffect → setOpen(false)
-TreeNodeMenu "Collapse child folders" → setLocalCollapse(v => v+1)
-  → added to collapseRevision passed to children only
-```
-
-### Realtime Update (FileExplorer only)
-```
-SSE "file" event: { type: "writing", path, size }
-  → setWritingFiles(add path)
-  → setWritingSizes(add path → size)
-  → Show pulsing rfe-badge + byte count on file row
-  → 15s safety fallback to clear if completion missed
-
-SSE "file" event: { type: "add" | "change" | "unlink", path }
-  → Cancel safety timer
-  → Clear writingFiles, writingSizes for path
-  → Debounce 200ms → loadTree() [single fetch after burst]
-
-SSE "agent" event: { type: "diff", diff.path }
-  → setAiFiles(add path) [green AI pill on row]
-  → refreshFiles() [reload tree]
-```
-
-### History View
-```
-FileHistoryPanel — standalone, not integrated into either explorer
-Consumer must mount it separately with { projectId, filePath }
-Calls getFileHistory() → renders version list
-Click (i > 0) → onSelectForDiff(older.content, newer.content)
-```
+| Feature | Rating | Notes |
+|---------|--------|-------|
+| Writing indicator (real-time) | ✓ Excellent | Animated badge + size counter |
+| AI editing badge | ✓ Excellent | Color-coded per activity type |
+| File highlighting during AI writes | ✓ Excellent | Blue accent + glow background |
+| 15s writing timeout (auto-clear) | ✓ Good | Prevents stale "writing" states |
+| Agent status panel | ✓ Good | Per-agent status with pulse dots |
+| Dirty tracking | ✓ Good | Via file-dirty / file-saved events |
+| Git status badges | ⚠ Average | Infrastructure exists; nothing dispatches events |
+| File history | ⚠ Average | Panel exists; barely styled; diff not wired |
 
 ---
 
-## 5. STATE FLOW ANALYSIS
+## 8. AI Audit
 
-### FileExplorer State Map
+### AIActivityBadge.tsx
+- **Renders:** Animated colored pill badge (Creating/Editing/Reading/Analyzing/Refactoring)
+- **Animation:** CSS `rfe-pulse` keyframe (defined in index.css, not here — risk if CSS isn't loaded)
+- **Data source:** `aiActivity` map from `useFileExplorer`, driven by `useRealtimeEvent("agent", ...)`
+- **Missing:** No "completed" state — badge just disappears when AI finishes. VS Code shows a brief green checkmark.
+- **Missing:** No per-file "last agent action" memory — badges vanish after realtime connection drops.
+
+### AgentStatusPanel.tsx
+- **Renders:** Collapsible section with 6 hardcoded agents: planner, executor, verifier, supervisor, browser, filesystem
+- **Data source:** `useAgentStatus()` which listens to realtime "agent" and "lifecycle" events
+- **Risk:** 6 agents are hardcoded in `DEFAULT_AGENTS`. If the backend adds/removes agents, the panel won't update.
+- **Risk:** Completed state shows for 3s, error state shows for 5s — then auto-resets to idle. If a second agent event arrives during the timeout window, the `setTimeout` reference is lost (no clear before setting new timer). **Memory leak for error state.**
+- **Missing:** Agent task description. The `task?: string` field on AgentStatus is never rendered.
+- **Missing:** Agent run history. No log of what each agent did.
+- **Missing:** Click to expand agent detail / task log.
+
+### useFileExplorer.ts (AI tracking)
+- **`aiFiles` Set:** Accumulates all paths ever touched by AI. **Never cleared.** After a long session, every file in the project will be in `aiFiles`. The `ai` badge (line 231 in FileExplorer) fires for ALL historical AI files, not just currently-active ones.
+- **`aiActivity` Map:** Same accumulation problem — never cleared when activity ends.
+- **`writingFiles` Set:** Properly cleared via 15s timeout per file.
+- **`writingSizes` Map:** Properly cleared alongside writingFiles.
+- **Realtime write flow:**
+  ```
+  realtime "file" event (type=writing) → writingFiles.add(path) → badge shows
+  15s timeout → writingFiles.delete(path) → badge hides
+  realtime "file" event (type≠writing) → writingFiles.delete(path) → badge hides immediately
+  ```
+  This is correct. The 15s guard handles server silence.
+
+### useAgentStatus.ts (AI tracking)
+- **Dual realtime subscriptions:** One for "agent" events, one for "lifecycle" events.
+- **diff event handling:** When a `diff` event arrives, executor is set to "running" for 2s. This is a heuristic — the executor is not necessarily writing the file, but it's a reasonable proxy.
+- **`run:complete` resets ALL agents to DEFAULT_AGENTS** — correct, this is a clean reset.
+- **Race condition:** `run:start` sets planner to running, but if `run:complete` fires before `agent:start` events, agents are already reset. This is safe.
+
+### FileHistoryPanel.tsx — **Inadequate**
+- Uses `getFileHistory(projectId, filePath)` from `../../services/agent-ultra.service`
+- Has raw `<h3>File History</h3>` — unstyled, inconsistent with the dark theme
+- The `onSelectForDiff` prop exists in the interface and is wired to `sendToDiff()`, but **FileExplorer passes no `onSelectForDiff`** when rendering it in the modal — the prop is always undefined. Diff functionality is dead.
+- Loading state is plain `<div>Loading...</div>` with no spinner
+- Uses `any[]` type for history items — zero type safety
+- `<b>Version:</b>` inline bold tags — not styled consistently
+- If `getFileHistory` fails, `setHistory(r?.history || [])` silently shows empty — no error state
+- **This component needs a complete rewrite** to match the quality of the rest of the system.
+
+---
+
+## 9. Accessibility Audit
+
+### FileExplorer
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `role="tree"` on scroll container | ✓ | Correct ARIA landmark |
+| `role="treeitem"` on rows | ✓ | Correct |
+| `role="group"` on children | ✓ | Correct tree structure |
+| `aria-expanded` on folders | ✓ | Boolean, correctly reflects state |
+| `aria-selected` on rows | ✓ | Reflects active state |
+| `aria-label` on tree container | ✓ | "File explorer" |
+| `tabIndex` management | ✓ | Roving tabIndex (focused=0, others=-1) |
+| Keyboard navigation | ✓ | Full ↓↑→←Enter Home End |
+| Focus ring visibility | ⚠ | `outline: 1px solid rgba(59,130,246,.3)` — low contrast, hard to see |
+| Screen reader file names | ✓ | Text content is readable |
+| Context menu `role="menu"` | ✓ | Correct |
+| Context menu `role="menuitem"` | ✓ | Correct |
+| Keyboard navigation inside menu | ✗ | Arrow keys don't cycle menu items |
+| Context menu focus trap | ✗ | Tab can escape the menu |
+| Drag-and-drop accessibility | ✗ | No keyboard drag alternative |
+| Color-only status (dirty M badge) | ⚠ | Color + letter "M", but no aria-label |
+| AI badge screen reader | ⚠ | Text is readable but no aria-live |
+| Image alternatives | ✓ | Icons are decorative (no alt needed for SVG icons) |
+| High contrast mode | ✗ | No `@media (forced-colors)` support |
+| Resize handle label | ✗ | No aria-label on resize handle |
+| PinnedFilesPanel header `role="button"` | ✓ | Present |
+
+### FileTreePanel
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `role="tree"` | ✓ | Present |
+| `role="treeitem"` | ✓ | Present (via data-tree-row + TreeNode) |
+| Keyboard nav | ✓ | Implemented |
+| Context menu focus | ✗ | TreeNodeMenu never receives focus |
+| `window.confirm()` for delete | ✗ | Not accessible — no keyboard trap, no ARIA |
+| `window.confirm()` focus restoration | ✗ | Focus lost after dialog closes |
+
+---
+
+## 10. Realtime Audit
+
+### Event bus architecture
+
+The system uses TWO separate event buses — neither documented, both implicit:
+
+**1. Window Custom Events (both trees use these)**
+```
+"file-refresh"         → reloads tree (useFileExplorer)
+"explorer:refresh"     → alias for file-refresh
+"file-create-failed"   → removes optimistic file from tree
+"file-dirty"           → marks path as dirty (unsaved)
+"file-saved"           → unmarks path as dirty
+"rfe:set-expanded"     → expand/collapse RenderNode by path
+"rfe:treepanel-set-expanded" → expand/collapse TreeNode by ID
+"rfe:git-status"       → populate git status map
+"global-save"          → trigger save from keyboard shortcut
+"explorer:paste"       → dispatched on copy+paste (NOTHING CATCHES THIS)
+"shell:open"           → open terminal at path (TreeNodeMenu, NOTHING CATCHES THIS)
+"explorer:search-dir"  → search within directory (TreeNodeMenu, NOTHING CATCHES THIS)
+```
+
+**2. Realtime WebSocket/SSE events (via useRealtimeEvent)**
+```
+"agent" events:
+  type=diff         → aiFiles.add(path), aiActivity.set(path, "editing"), refreshFiles()
+  type=agent:start  → agentStatus.set(id, "running")
+  type=agent:done   → agentStatus.set(id, "completed") → 3s → idle
+  type=agent:error  → agentStatus.set(id, "error") → 5s → idle
+
+"file" events:
+  type=writing      → writingFiles.add(path), writingSizes.set(path, size)
+  type=other        → writingFiles.delete(path), tree debounce refresh (200ms)
+
+"lifecycle" events:
+  event=run:start   → planner → running
+  event=run:complete → all agents → idle
+  event=run:error   → planner → error
+```
+
+### Realtime risks
+
+| Risk | Severity | Detail |
+|------|----------|--------|
+| `useRealtimeStream` TypeScript error | Medium | Module resolves to .tsx with --jsx not set in tsconfig root. Works at runtime (Vite) but kills type checking. |
+| `aiFiles` never cleared | High | Set accumulates forever. After a long session all files have AI badge. |
+| `aiActivity` never cleared | High | Map accumulates forever. Shows stale activity kinds. |
+| Agent memory leak (error state setTimeout) | Medium | setTimeout reference not stored; if error fires twice, first timeout is orphaned. |
+| `explorer:paste` event uncaught | High | Copy+paste dispatches event that nothing in the codebase handles. Copy paste is broken. |
+| `shell:open` event uncaught | Medium | Terminal integration exists in menu but terminal panel doesn't listen. |
+| `explorer:search-dir` uncaught | Low | Search-in-directory feature exists in menu but nothing handles it. |
+| `rfe:git-status` never dispatched | Medium | Git infrastructure exists but nothing dispatches the events. Git badges never appear. |
+| Tree refresh debounce (200ms) | Low | If many file events arrive rapidly, each one resets the 200ms timer. This is correct behavior but could delay tree updates noticeably for large AI writes. |
+
+---
+
+## 11. The Dual Tree Problem — Critical Finding
+
+This is the **most important architectural issue** in the entire codebase.
+
+### What exists
+```
+Route: /workspace (workspace.tsx)
+  └── CenterPanel (showFileExplorer toggle)
+      └── FileTreePanel ← Pure in-memory tree, no API
+
+Route: unified-grid layout (always visible)
+  └── FileExplorer ← Server-backed tree, API routes MISSING
+```
+
+### The two trees never communicate
+
+If a user creates a file in FileTreePanel, FileExplorer doesn't know.  
+If an AI agent writes a file and FileExplorer refreshes, FileTreePanel doesn't know.  
+If a user renames a file in FileExplorer (via window.prompt), FileTreePanel shows old name.
+
+### Why FileExplorer is always empty
 
 ```
-useFileExplorer (hook)
-├── tree: RawTreeNode[]            ← API fetch, SSE refresh
-├── dirtyFiles: Set<string>        ← window "file-dirty" / "file-saved" events
-├── aiFiles: Set<string>           ← SSE agent "diff" events
-├── writingFiles: Set<string>      ← SSE file "writing" events
-├── writingSizes: Map<string,num>  ← SSE file "writing" events
-├── focusedPath: string|null       ← click, keyboard
-└── hoveredPath: string|null       ← mouse enter/leave
-
-FileExplorer (component)
-├── contextMenu: {x,y,path,isDir}|null  ← right-click
-├── searchQuery: string                 ← input
-├── creating: "file"|"folder"|null      ← header buttons
-└── width: number                       ← drag resize → localStorage
-
-useOpenEditors
-└── openFiles: string[]                 ← localStorage "nura-x:open-editors"
-
-useRecentFiles
-└── recentFiles: string[]               ← localStorage "nura-x:recent-files"
+useFileExplorer.ts:27
+  fetch(`/api/list-files?projectPath=${encodeURIComponent(current)}`)
 ```
 
-### FileTreePanel State Map
+The server has:
+- `GET /api/files/list` (preview pipeline files router) ← DIFFERENT ROUTE
+- No `GET /api/list-files`
 
+The server file operations are:
 ```
-FileTreePanel (component)
-├── tree: FileNode[]                    ← in-memory, starts empty
-├── searchQuery: string                 ← input
-├── creatingFile: boolean               ← header 3-dot menu
-├── creatingFolder: boolean             ← header 3-dot menu
-├── showMenu: boolean                   ← header 3-dot button
-├── showHidden: boolean                 ← 3-dot → toggle
-└── collapseRevision: number            ← 3-dot → collapse all
-
-TreeNode (per-node)
-├── open: boolean                       ← defaults depth < 2
-├── renaming: boolean                   ← TreeNodeMenu → Rename
-├── hovered: boolean                    ← mouse enter/leave
-├── creatingInside: "file"|"folder"|null ← TreeNodeMenu → Add file/folder
-├── localCollapse: number               ← TreeNodeMenu → Collapse children
-└── menu: {x,y}|null                    ← ⋯ button click
+POST /api/files/create   ← FileExplorer calls /api/save-file (MISSING)
+DELETE /api/files/*      ← FileExplorer calls /api/delete-file (MISSING)
 ```
 
-### Props Flow
+**Every API call from FileExplorer returns 404. The tree is always empty.**
+
+### Why FileTreePanel is a toy
+
+FileTreePanel maintains state in React useState. After reload:
+- All files are gone
+- All rename/delete operations are reversed
+- Nothing ever touched the disk
+
+It's a demo/prototype UI, not a real file manager.
+
+### The fix
+
+The correct architecture is one tree, one API. Either:
+1. Wire FileExplorer to the existing `/api/files/*` routes (adapting paths)
+2. Create the missing routes (`/api/list-files` etc.) that delegate to the sandbox filesystem
+3. Eliminate FileTreePanel and replace its consumer (CenterPanel) with FileExplorer
+
+---
+
+## 12. IDE Comparison
+
+### Feature comparison matrix
+
+| Feature | FileExplorer | FileTreePanel | VS Code | Cursor | Replit | Windsurf |
+|---------|-------------|---------------|---------|--------|--------|----------|
+| **Tree rendering** | Partial | Exists | Exists | Exists | Exists | Exists |
+| **Real filesystem connection** | ✗ Missing | ✗ Missing | ✓ | ✓ | ✓ | ✓ |
+| **File create inline** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **File rename inline** | ✗ prompt() | ✓ Inline | ✓ | ✓ | ✓ | ✓ |
+| **File delete with confirm** | ✗ confirm() | ✗ confirm() | ✓ Modal | ✓ Modal | ✓ | ✓ Modal |
+| **Drag & drop move** | ✓ | ✓ (memory) | ✓ | ✓ | ✓ | ✓ |
+| **Multi-select** | ✓ | ✓ | ✓ | ✓ | Partial | ✓ |
+| **Keyboard navigation** | ✓ | ✓ | ✓ | ✓ | Partial | ✓ |
+| **Search with highlight** | ✓ | Partial | ✓ | ✓ | ✓ | ✓ |
+| **Search auto-expand** | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| **Search file content** | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| **Git status decorators** | Partial | Partial | ✓ | ✓ | Partial | ✓ |
+| **Copy/paste files** | Partial | ✗ | ✓ | ✓ | Partial | ✓ |
+| **File type icons** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Open editors panel** | ✓ | ✗ | ✓ | ✓ | Partial | ✓ |
+| **Recent files panel** | ✓ | ✗ | Partial | ✓ | Partial | ✓ |
+| **Pinned files** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ Better than reference |
+| **File size tooltip** | ✓ | ✗ | ✓ | ✓ | ✗ | Partial |
+| **Modified time tooltip** | ✓ | ✗ | ✓ | ✓ | ✗ | Partial |
+| **Folder file counts** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ Better than reference |
+| **AI activity badges** | ✓ | Partial | ✗ | ✓ | Partial | ✓ |
+| **Writing live indicator** | ✓ | ✗ | ✗ | Partial | Partial | ✓ |
+| **Agent status panel** | ✓ | ✗ | ✗ | Partial | ✗ | ✓ |
+| **File history** | Partial | ✗ | ✓ via Source Control | ✓ | ✓ | ✓ |
+| **Download as zip** | ✗ | ✓ | ✗ | ✗ | Partial | ✗ |
+| **Upload folder** | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ |
+| **Collapse all** | ✗ | ✓ | ✓ | ✓ | Partial | ✓ |
+| **Show/hide dotfiles** | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Context menu** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Sidebar resize** | ✓ | ✗ | ✓ | ✓ | Partial | ✓ |
+| **Workspace insights** | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ Better than reference |
+| **Inline rename in tree** | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Summary:** FileExplorer has better AI awareness than any reference tool. It matches or exceeds references on AI/agent features. It falls behind on basic file operations (rename, delete UX, copy paste) and critically: the underlying filesystem connection is broken.
+
+---
+
+## 13. Missing Features
+
+### P1 — Critical (blocks production use)
+
+| Feature | Problem | Business Value | Complexity | Recommended Location |
+|---------|---------|----------------|------------|----------------------|
+| **Wire FileExplorer to real API** | `/api/list-files` doesn't exist. Tree always empty. | Critical — entire system is non-functional | Medium | Server: add routes that map to `/api/files/list` etc. or refactor `use-file-explorer.ts` to use existing routes |
+| **Inline rename in FileExplorer** | `window.prompt()` breaks immersion, accessibility, and cannot be styled | High — UX fundamental | Low | Replace `handleRenamePath` prompt with InlineInput inside RenderNode |
+| **Styled delete confirm modal** | `window.confirm()` cannot be themed, blocked by browser security in some contexts | High — UX fundamental | Low | Replace with a small inline confirm UI or styled modal |
+| **Fix copy+paste (copy)** | Copy dispatches `explorer:paste` event that nothing handles. Copy paste is silently broken. | High — frequent user action | Medium | Add a server-side `/api/copy-file` endpoint or read+rewrite via existing save API |
+| **Clear aiFiles + aiActivity** | Both accumulate forever. Eventually every file shows AI badge | High — core AI feature becomes noise | Low | Clear on `run:complete` lifecycle event |
+
+### P2 — Important (significant user impact)
+
+| Feature | Problem | Business Value | Complexity | Recommended Location |
+|---------|---------|----------------|------------|----------------------|
+| **Unify the two trees** | Dual tree system creates split UX and duplicated logic | Very High | High | Eliminate FileTreePanel or redirect its consumer to FileExplorer |
+| **Search file content** | Only filename search; no content search | High — essential IDE feature | High | New endpoint + Fuse.js or backend grep |
+| **Collapse all folders** | Missing from FileExplorer (present in FileTreePanel) | Medium | Low | Add button to header; dispatch rfe:set-expanded for all visible folder paths |
+| **Show/hide hidden files** | Missing from FileExplorer (present in FileTreePanel) | Medium | Low | Filter `tree` to exclude dotfiles |
+| **Git status dispatching** | `useGitStatus` infrastructure exists but nothing dispatches events | Medium | Medium | Server-side git status polling + dispatch |
+| **Keyboard-accessible context menu** | Arrow keys don't navigate menu items | Medium | Low | Add onKeyDown cycling through visible items |
+| **InlineInput rename in FileExplorer** | Currently uses window.prompt | High | Low | Inject InlineInput into RenderNode on rename trigger |
+| **Copy+paste cross-folder** | Copy paste needs a proper file copy API | Medium | Medium | POST /api/files/copy endpoint |
+| **Focus search on Ctrl+F** | searchRef exists but .focus() never called | Medium | Trivial | One line: add `if (e.key === "f" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); searchRef.current?.focus(); }` to window keydown |
+| **Download folder as zip** | Present in FileTreePanel, missing from FileExplorer | Low-Medium | Low | Add to context menu; reuse JSZip pattern from FileTreePanel |
+| **Terminal open here** | TreeNodeMenu dispatches shell:open but nothing catches it | Medium | Medium | Register handler in shell panel |
+
+### P3 — Nice to Have (already implemented set, future extensions)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| File size + modified tooltip | ✓ Implemented | But depends on `/api/files/stat` which uses wrong path resolution |
+| Pinned files panel | ✓ Implemented | |
+| Copy/cut (cut fully works) | ✓/Partial | |
+| Folder upload | ✓ Implemented | |
+| Search auto-expand | ✓ Implemented | |
+| Scroll to active | ✓ Implemented | |
+| Folder file counts | ✓ Implemented | Color too dark |
+| File history modal | ✓ Implemented | FileHistoryPanel needs redesign |
+| Project insights | ✓ Implemented | |
+| Section hierarchy | ✓ Implemented | |
+| **File icon for more types** | Future | Missing: Dockerfile, .sh styled, .lock, C/C++, Swift |
+| **Workspace switcher** | Future | Multi-project support in sidebar |
+| **Breadcrumb header** | Future | "project / src / components" shown above tree |
+| **File preview on hover** | Future | Peek first N lines on extended hover |
+| **Sort options** | Future | By name / type / modified / size |
+| **Filter by type** | Future | Show only .ts files etc. |
+| **Open in split editor** | Future | Context menu → opens in new pane |
+| **Badge counts on Open Editors** | Future | Show dirty count in section header |
+
+---
+
+## 14. Technical Debt
+
+### Dead Code
+
+| Item | Location | Evidence | Risk if Removed |
+|------|----------|----------|-----------------|
+| `emojiIcon()` | `file-icon.tsx` | Exported from index.ts, zero importers found | Zero |
+| `makeInitialTree()` | `tree-helpers.ts` | Exported, no consumers outside the file (creates demo data) | Zero |
+| `searchRef` | `FileExplorer.tsx` (line 356) | Declared `useRef<HTMLInputElement>`, attached to input, but `.focus()` never called | Near zero — just becomes a working feature if wired |
+| `searchRef` | `FileTreePanel.tsx` (line 105) | Same — never programmatically focused | Near zero |
+| `addNodeToRoot` | `tree-helpers.ts` | Used only in FileTreePanel; dead if FileTreePanel is retired | Low |
+| `addNodeInsideFolder` | `tree-helpers.ts` | Same | Low |
+| `moveNode` | `tree-helpers.ts` | Used only in FileTreePanel (in-memory moves) | Low |
+| `flattenVisibleIds` | `FileTreePanel.tsx` (local function) | Used only within FileTreePanel | Zero (local) |
+| `buildTreeFromFiles` | `FileTreePanel.tsx` (local function) | Used only in FileTreePanel folder upload | Zero (local) |
+| `localCollapse` state | `TreeNode.tsx` (line 58) | Tracked but only used to compute `childCollapse`; could be replaced with a direct ref | Low |
+| FileHistoryPanel `onSelectForDiff` prop | `FileHistoryPanel.tsx` | Prop exists and `sendToDiff()` is wired; but FileExplorer renders the panel without passing this prop | None currently — dead prop |
+
+### Broken Patterns
+
+| Pattern | Location | Problem |
+|---------|----------|---------|
+| `window.prompt()` for rename | `use-file-explorer.ts:223` | Browser dialog: can't style, can't test, blocks thread, breaks in popup-blocked contexts |
+| `window.confirm()` for delete | `use-file-explorer.ts:231`, `TreeNode.tsx:267,337` | Same issues as above |
+| `window.confirm()` for delete | `TreeNode.tsx:267` | Shows full path `"Delete "${node.name}"?"` — just the name, not full path — ambiguous for duplicate names |
+| `activeFileName === node.name` | `TreeNode.tsx:64` | Compares by filename only, not path. Two files with the same name in different folders both highlight active. |
+| `RenderNode` keyed by `node.name` | `FileExplorer.tsx` (tree .map) | If two siblings share a name (can happen during optimistic insert), keys collide. Also: rename causes folder open state loss. |
+| Width saved on mouseup before state updates | `FileExplorer.tsx:507` | `localStorage.setItem(WIDTH_KEY, String(width))` inside `onUp` captures `width` from closure when `useEffect` ran, not the final value. Width is saved stale. Should use `dragRef.current.startW + currentDelta`. |
+| `aiFiles` Set never cleared | `use-file-explorer.ts` | Set grows indefinitely. Line 231: `ai ? <AIActivityBadge activity="editing" />` fires for ALL historically AI-touched files every render. |
+| Opacity 0.4 for cut files | `FileExplorer.tsx:189` | Good visual cue, but cut state survives page reload (clipboard useState resets, but visual dim is gone). Users won't know they had a cut pending after reload. |
+| Meta tooltip at fixed clientX/Y | `FileExplorer.tsx:351` | Tooltip position is captured at mouseenter, but user may have scrolled or resized. Position could be wrong. |
+| Folder count color `#2e2e2e` | `FileExplorer.tsx:266` | On `#1c1c1c` background = 1.1:1 contrast ratio. Near invisible. WCAG minimum is 4.5:1. |
+| PinnedFilesPanel uses purple active accent | `PinnedFilesPanel.tsx:75` | `#a78bfa` vs rest of system using `#3b82f6` (blue). Inconsistent design language. |
+| FileHistoryPanel bare HTML | `FileHistoryPanel.tsx` | `<h3>`, `<b>`, `<div>Loading...</div>` — unstyled, breaks dark theme |
+| `any[]` history type | `FileHistoryPanel.tsx:11` | Zero type safety |
+
+### Performance Risks
+
+| Risk | Location | Impact | Fix |
+|------|----------|--------|-----|
+| `folderCounts` useMemo recomputes entire tree on every tree change | `FileExplorer.tsx:473` | O(n) on every AI file event (which triggers tree refresh every 200ms during writes) | Acceptable for trees <1000 nodes |
+| `searchExpandedPaths` useMemo recomputes on every tree change + query change | `FileExplorer.tsx:489` | O(n) per tree refresh during search | Same — acceptable |
+| `selectedPaths` Set includes all paths (no virtualization) | `FileExplorer.tsx:343` | Shift-select queries DOM for all `[data-tree-path]` elements | Fine for <500 nodes |
+| `guides` Array.from in every RenderNode render | `FileExplorer.tsx:192` | Creates `depth` span elements per row, per render | Low impact; spans are tiny |
+| No tree virtualization | Both trees | With 5000+ files, both trees render all DOM nodes | Risk: large projects lag |
+| `metaCache` ref (Map) never expires | `FileExplorer.tsx:352` | File metadata cached forever in memory | Low risk; evict on `file-refresh` event |
+| `writingTimers` Map in useFileExplorer | `use-file-explorer.ts:21` | Timers stored in ref; cleaned up on unmount | Correct |
+
+### Scalability Risks
+
+| Risk | Detail |
+|------|--------|
+| No tree virtualization | FileTreePanel renders every visible node; FileExplorer renders entire tree. Both will lag with >2000 nodes. |
+| `makeInitialTree()` in tree-helpers.ts | Bakes `.env` content with real env-like data into the demo tree. No security issue since it's client-side demo data, but a conceptual mismatch. |
+| localStorage for panels | 12 open editors, 8 recent files, 10 pinned files — all stored as path strings. Max ~2KB per store. No risk. |
+| Realtime tree refresh debounce | 200ms — reasonable but could starve on rapid file events during large AI rewrites. |
+
+---
+
+## 15. Recommended Roadmap
+
+### Sprint 1: Foundation (Unbreak the system)
+
+**Priority: Critical — these block production use of FileExplorer**
+
+1. **Fix the API route mismatch** — FileExplorer calls `/api/list-files` etc. Either:
+   - Add Express routes that delegate to the existing preview files service
+   - Refactor `use-file-explorer.ts` to call `GET /api/files/list`, `POST /api/files/create`, `DELETE /api/files/{path}`
+   - Align path conventions (projectPath prefix vs sandbox-relative)
+
+2. **Replace window.prompt() with InlineInput rename** — modify `handleRenamePath` to set a `renamingPath` state; render InlineInput at the correct RenderNode.
+
+3. **Replace window.confirm() with styled modal** — add a tiny `ConfirmModal` component (~30 lines) used for delete operations.
+
+4. **Fix aiFiles accumulation** — add `run:complete` handler in `useFileExplorer` that calls `setAiFiles(new Set())` and `setAiActivity(new Map())`.
+
+5. **Fix clipboard copy+paste** — either: add a server-side `/api/files/copy` endpoint, OR implement client-side copy by reading file content + writing to destination via the save API.
+
+### Sprint 2: Consolidation (Eliminate the dual tree)
+
+1. **Retire FileTreePanel** OR make it a thin wrapper around FileExplorer data — the in-memory toy tree serves no purpose in a production app.
+
+2. **Wire CenterPanel to use FileExplorer** with appropriate prop mapping.
+
+3. **Unify the event buses** — `rfe:set-expanded` and `rfe:treepanel-set-expanded` should be one event. TreeNode's custom event handling should be removed.
+
+4. **Fix width persistence bug** — use a ref to track current width during drag; save on mouseup from the ref value, not the stale closure.
+
+### Sprint 3: UX Polish
+
+1. **Inline rename in RenderNode** — put InlineInput directly in the tree row.
+
+2. **Collapse all + Show hidden files** — 2 buttons, 10 lines each.
+
+3. **Fix folder count color** — change from `#2e2e2e` to `#4a4a4a` (readable).
+
+4. **Fix PinnedFilesPanel accent** — change `#a78bfa` to `#3b82f6` for consistency.
+
+5. **Wire Ctrl+F to search focus** — one line in window keydown handler.
+
+6. **Keyboard navigation inside context menu** — Arrow keys cycle through items.
+
+7. **Clear metaCache on file-refresh** — prevents stale sizes showing.
+
+### Sprint 4: AI Features (Already partially implemented, needs polish)
+
+1. **Redesign FileHistoryPanel** — proper dark styling, type safety, error states, diff view wired.
+
+2. **Git status dispatching** — poll `git status --porcelain` on file saves; dispatch `rfe:git-status` events.
+
+3. **Agent task display in AgentStatusPanel** — render the `task?: string` field.
+
+4. **Fix agent error setTimeout leak** — store timer ref, clear before setting new one.
+
+5. **aiFiles badge differentiation** — separate "currently active" (aiActivity has key) from "historically touched" (aiFiles has key but no activity). Don't show badge for historical-only.
+
+### Sprint 5: Power Features
+
+1. **Tree virtualization** — react-window or react-virtual for >500 node projects.
+
+2. **File content search** — grep-like endpoint; Fuse.js for client-side fuzzy search.
+
+3. **Download as zip from FileExplorer** — reuse JSZip pattern from FileTreePanel.
+
+4. **Sort + filter options** — sort by name/type/modified; filter by extension.
+
+5. **Breadcrumb path** — show current path above tree.
+
+---
+
+## 16. Final Architect Verdict
+
+### What is architecturally strong
+
+1. **The AI integration design is genuinely excellent.** The `writingFiles` + `AIActivityBadge` system — with live file sizes, per-activity colors, and 15s timeout guards — is more sophisticated than Cursor or Windsurf. This is a real competitive differentiator.
+
+2. **The `useFileExplorer` hook design is correct.** Lifting state to a hook, separating API calls from rendering, and using custom events for cross-component communication is sound architecture. The hook is composable and testable.
+
+3. **The RenderNode prop design is disciplined.** Rather than using Context, all state is passed explicitly. This makes data flow obvious and prevents unexpected re-renders from context subscription.
+
+4. **The panel system is elegant.** PinnedFilesPanel, OpenEditorsPanel, RecentFilesPanel all follow the same pattern (collapsible section, consistent visual language, localStorage persistence). This is good component design.
+
+5. **`folderCounts` and `searchExpandedPaths` as pure useMemo.** Non-destructive, recomputed lazily, no state mutation — correct approach.
+
+6. **`use-git-status.tsx` event-driven design.** Decoupled from git implementation. Any git poller can dispatch `rfe:git-status` and the UI just works. Good design for future extensibility.
+
+### What is architecturally wrong
+
+1. **Two parallel trees are the original sin.** Every problem in this codebase traces back to the decision to build two separate tree implementations. The code duplication is massive: two keyboard handlers, two drag-drop systems, two context menus, two search implementations, two fold-state systems.
+
+2. **FileExplorer calls API routes that don't exist.** This is not a minor bug — it makes the entire `FileExplorer` component non-functional. The component silently shows an empty tree forever.
+
+3. **FileTreePanel is a write-on-throw-away prototype** deployed as production code. Nothing it does touches the filesystem.
+
+4. **`window.prompt()` and `window.confirm()` in production React code in 2024** is unacceptable. This breaks accessibility, styling, and testing.
+
+5. **aiFiles and aiActivity never clear.** The AI tracking system is conceptually correct but has a fundamental state management flaw that causes it to self-contaminate over time.
+
+6. **ContextMenu is not portal-rendered.** It renders in document flow and can be clipped by overflow containers — a classic beginner mistake for overlay elements.
+
+### The one-sentence verdict
+
+> The file explorer contains outstanding AI-first workspace features built on a broken foundation — a non-functional server connection, an unretired toy component, and unresolved modal patterns that must be fixed before any of the P3 enhancements provide real user value.
+
+### Recommended action order
 
 ```
-FileExplorer
-  Props IN:  projectPath, onSelect?, onFileSelect?, activeFile?
-  Props OUT: (callbacks) → parent opens editor, nothing else
-
-FileTreePanel
-  Props IN:  onFileOpen(name, content, lang), onClose(), activeFileName?
-  Props OUT: (callbacks) → parent opens editor, parent closes panel
-
-TreeNode
-  Props IN:  node, depth, activeFileName, onSelect, onDelete, onRename,
-             onCreateInside?, collapseRevision?, showHidden?, path?
-  Props OUT: callbacks propagated from FileTreePanel
+1. Fix /api/list-files route → FileExplorer works
+2. Fix aiFiles accumulation → AI badges are accurate
+3. Fix window.prompt/confirm → UX is production-grade
+4. Fix ContextMenu as portal → Layout safety
+5. Retire FileTreePanel → Eliminate dual tree complexity
+6. Fix copy+paste → Clipboard fully functional
+7. Redesign FileHistoryPanel → History feature is real
+8. Add git status polling → Git decorators come alive
+9. Add tree virtualization → Scale to large projects
+10. Add file content search → Full IDE parity
 ```
 
-### Realtime Events (SSE)
-
-| Event Type | Sub-type | Handler | Effect |
-|---|---|---|---|
-| `"agent"` | `diff` | useFileExplorer | aiFiles ← path, refreshFiles() |
-| `"agent"` | `agent:start` | useAgentStatus | agents ← running |
-| `"agent"` | `agent:done` | useAgentStatus | agents ← completed → idle (3s) |
-| `"agent"` | `agent:error` | useAgentStatus | agents ← error → idle (5s) |
-| `"file"` | `writing` | useFileExplorer | writingFiles/Sizes ← path, 15s fallback |
-| `"file"` | `add/change/unlink` | useFileExplorer | clear writing, debounced tree refresh |
-| `"lifecycle"` | `run:start` | useAgentStatus | planner ← running |
-| `"lifecycle"` | `run:complete` | useAgentStatus | all ← idle |
-| `"lifecycle"` | `run:error` | useAgentStatus | planner ← error |
-
-### Window Events
-
-| Event | Direction | Purpose |
-|---|---|---|
-| `file-refresh` | dispatch → listen | Manual tree reload trigger |
-| `file-create-failed` | dispatch → listen | Remove optimistic file |
-| `explorer:refresh` | dispatch → listen | External refresh trigger |
-| `file-dirty` | dispatch → listen | Mark file modified (unsaved) |
-| `file-saved` | dispatch → listen | Clear dirty mark |
-| `global-save` | dispatch | Ctrl+S → parent saves |
-| `shell:open` | dispatch | TreeNodeMenu → shell panel |
-| `explorer:search-dir` | dispatch | TreeNodeMenu → search in dir |
-
-### localStorage Keys
-
-| Key | Hook | Max | Purpose |
-|---|---|---|---|
-| `nura-x:open-editors` | useOpenEditors | 12 files | Open editor tabs |
-| `nura-x:recent-files` | useRecentFiles | 8 files | Recent files list |
-| `nura-x:explorer-width` | FileExplorer | 160–480px | Sidebar width |
-
 ---
 
-## 6. UX AUDIT
-
-### 6.1 Spacing and Density
-
-| Metric | FileExplorer | FileTreePanel | Rating |
-|---|---|---|---|
-| Row height | 20px | 22px | **Good** |
-| Font size | 12px | 12px | **Good** |
-| Indent per level | 14px | 16px | **Good** |
-| Icon size | 13px | 13px | **Good** |
-| Header height | 32px | 36px | **Average** (slightly tall) |
-| Overall density | VS Code-like | Slightly looser | **Good** |
-
-**Rating: Good**
-
-### 6.2 Hierarchy
-
-- Indentation guides exist in `FileExplorer` (1px vertical lines per depth level). ✅
-- `FileTreePanel` / `TreeNode` has no indent guides — only indentation. ⚠️
-- Folder chevron (▶/▼) + colored folder icon gives good visual hierarchy. ✅
-- Active file: blue left border + darker background. ✅
-
-**Rating: Good**
-
-### 6.3 Discoverability
-
-- New File / New Folder buttons in header toolbar. ✅
-- Empty state has quick-action buttons. ✅
-- Hover-only 3-dot button (⋯) is hard to discover — no hint it exists. ⚠️
-- Right-click context menu in `FileExplorer` — not discoverable without trying. ⚠️
-- No tooltip on file/folder rows explaining available actions. ❌
-
-**Rating: Average**
-
-### 6.4 Accessibility
-
-- No `role="tree"`, `role="treeitem"` on rows. ❌
-- No `aria-expanded` on folder rows. ❌
-- No `aria-selected` on active file. ❌
-- No keyboard navigation (arrow keys to move focus between items). ❌
-- Tab focus does not traverse tree items. ❌
-- F2 and Delete work but only for `focusedPath` in `FileExplorer`. Partial. ⚠️
-
-**Rating: Poor**
-
-### 6.5 Keyboard Navigation
-
-| Action | FileExplorer | FileTreePanel |
-|---|---|---|
-| F2 to rename | ✅ (focusedPath) | ❌ |
-| Delete to delete | ✅ (focusedPath) | ❌ |
-| Ctrl+S global save | ✅ | ❌ |
-| Arrow keys (navigate) | ❌ | ❌ |
-| Enter to open | ❌ | ❌ |
-| Escape to cancel | ✅ (InlineInput) | ✅ (InlineInput) |
-
-**Rating: Poor**
-
-### 6.6 Search UX
-
-| Feature | FileExplorer | FileTreePanel |
-|---|---|---|
-| Fuzzy match | Character-position highlight | Substring match only |
-| Result display | Tree with non-matching files hidden | Flat list with path |
-| Empty state | None — tree just empties | "No results for X" message |
-| Folder collapse on search | No — tree still shows folders | N/A (flat results) |
-| Clear button | ✅ X button | ✅ X button |
-| Keyboard focus shortcut | None | None |
-
-**Rating: Average**
-
-### 6.7 Context Menu UX
-
-| Feature | ContextMenu (FileExplorer) | TreeNodeMenu (FileTreePanel) |
-|---|---|---|
-| Trigger | Right-click | Hover + click ⋯ button |
-| Items | 7 (Duplicate is a stub) | 10 for folders / 7 for files |
-| Portal render | ❌ (inside explorer div) | ✅ (document.body) |
-| Viewport flip | ❌ | ✅ |
-| Outside click close | ✅ (backdrop div) | ✅ (mousedown listener) |
-| Escape close | ❌ | ✅ |
-| Keyboard open | ❌ | ❌ |
-
-**Rating: Average**
-
-### 6.8 Tree UX
-
-| Feature | Exists? | Notes |
-|---|---|---|
-| Auto-expand on file create | ✅ | FileTreePanel opens folder before inline input |
-| Scroll-to-active | ❌ | No auto-scroll to active file |
-| Drag-and-drop reorder | ❌ | Not implemented |
-| Multi-select | ❌ | Not implemented |
-| Cut / Copy / Paste | ❌ | Not implemented |
-| Show in explorer (reveal) | ❌ | No "reveal in tree" from editor |
-| New file at cursor position | ✅ | TreeNodeMenu "Add file" inside folder |
-
-**Rating: Average**
-
----
-
-## 7. AI IDE AUDIT
-
-| Feature | Status | Implementation |
-|---|---|---|
-| **AI Activity Badges** | ✅ Exists | Green "AI" pill on file rows (aiFiles Set) |
-| **Writing Progress** | ✅ Exists | Blue pulsing badge + byte size on in-flight writes |
-| **Agent Status Panel** | ✅ Exists | AgentStatusPanel: 6 agents, pulsing dots |
-| **AIActivityBadge Component** | ⚠️ Exists, unused in tree | Exported but not wired to any row |
-| **Open Editors Panel** | ✅ Exists | VS Code-style, localStorage-persisted |
-| **Recent Files** | ✅ Hook exists | useRecentFiles exported but no panel UI |
-| **File Ownership** | ❌ Missing | No per-file agent assignment indicator |
-| **Realtime Feedback** | ✅ Partial | Write progress + tree refresh; no line-level cursors |
-| **Workspace Awareness** | ⚠️ Partial | Counts files/folders in header; no project-wide stats |
-| **Git Indicators** | ❌ Missing | No git status, branch, modified/untracked badges |
-| **Collaboration** | ❌ Missing | No multi-user cursors, presence indicators |
-| **Diff View Integration** | ⚠️ Partial | FileHistoryPanel exists but not wired into explorer |
-| **Agent Task Display** | ⚠️ Partial | Agent state (running/done/error) shown; no task description in tree |
-
-### AI Strengths
-- Writing progress with byte-size is excellent — better than Replit's basic spinner.
-- 6-agent status panel is unique and gives clear system visibility.
-- Debounced tree refresh prevents flood of API calls during AI write bursts.
-- 15-second safety fallback prevents stuck writing indicators.
-
-### AI Gaps
-- `AIActivityBadge` (Creating/Editing/Reading/Analyzing/Refactoring) is fully built but **never used** in any tree row.
-- `useRecentFiles` hook is built and wired into `FileExplorer.handleSelect` but **no panel UI** shows recent files.
-- No per-file "which agent is working on this" — just a binary AI pill.
-- No typing/streaming cursors in file rows (unlike Cursor's live indicators).
-
----
-
-## 8. REPLIT COMPARISON
-
-| Feature | Nura-X | Replit | Status |
-|---|---|---|---|
-| File tree | ✅ | ✅ | Equal |
-| Right-click menu | ✅ | ✅ | Equal |
-| Inline rename | ✅ | ✅ | Equal |
-| Search | ✅ | ✅ | Equal |
-| File type icons | ✅ (lucide only) | ✅ (custom SVGs) | **Worse** — lucide icons are generic |
-| Hover actions | ✅ | ✅ | Equal |
-| Sidebar resize | ✅ | ✅ | Equal |
-| Open editors | ✅ | ✅ | Equal |
-| Recent files panel | ❌ (hook only) | ✅ | **Missing** |
-| AI writing indicator | ✅ **better** | ❌ | Better |
-| Agent status | ✅ **unique** | ❌ | Better |
-| Git status badges | ❌ | ✅ | **Missing** |
-| File permission icons | ❌ | ❌ | N/A |
-| Drag-and-drop | ❌ | ✅ | **Missing** |
-| Multi-select | ❌ | ✅ | **Missing** |
-| Breadcrumbs | ❌ | ❌ | N/A |
-| File diff from history | ⚠️ Exists, unwired | ✅ | **Incomplete** |
-| Shell integration (context menu) | ⚠️ event only | ✅ | **Partial** |
-| Keyboard navigation | ❌ | ✅ | **Missing** |
-| File count in header | ✅ | ❌ | Better |
-
----
-
-## 9. VS CODE COMPARISON
-
-| Feature | Nura-X | VS Code | Status |
-|---|---|---|---|
-| File tree | ✅ | ✅ | Equal |
-| Indent guides | ✅ FileExplorer | ✅ | Partial (missing in FileTreePanel) |
-| Inline rename | ✅ | ✅ | Equal |
-| Multi-select | ❌ | ✅ | **Missing** |
-| Drag-and-drop | ❌ | ✅ | **Missing** |
-| Keyboard navigation (arrows) | ❌ | ✅ | **Missing** |
-| aria roles | ❌ | ✅ | **Missing** |
-| Git decorations | ❌ | ✅ | **Missing** |
-| File badges (problems count) | ❌ | ✅ | **Missing** |
-| File watching / auto-refresh | ✅ SSE-based | ✅ native FS | Equal (different mechanism) |
-| Explorer sections (collapsible) | ✅ partial | ✅ full | Partial |
-| Reveal in tree (from editor) | ❌ | ✅ | **Missing** |
-| Copy/Cut/Paste files | ❌ | ✅ | **Missing** |
-| Duplicate file | ❌ stub | ✅ | **Missing** |
-| Collapse all (global) | ✅ | ✅ | Equal |
-| Show/hide hidden files | ✅ | ✅ via config | Equal |
-| Dirty indicator (●) | ✅ (M badge) | ✅ (● dot) | VS Code more standard |
-| Context menu richness | ⚠️ 7 items | ✅ 12+ items | **Weaker** |
-
----
-
-## 10. CURSOR COMPARISON
-
-| Feature | Nura-X | Cursor | Status |
-|---|---|---|---|
-| File tree | ✅ | ✅ | Equal |
-| AI activity on file rows | ✅ (static pill) | ✅ (live streaming) | **Weaker** — static vs live |
-| Agent state panel | ✅ **unique** | ❌ | Better |
-| Writing progress | ✅ (bytes) | ❌ | Better |
-| Real-time cursors | ❌ | ✅ | **Missing** |
-| AI-suggested file names | ❌ | ❌ | N/A |
-| Indexed context awareness | ❌ | ✅ | **Missing** |
-| Hover 3-dot menu | ✅ | ✅ | Equal |
-| Compact density | ✅ | ✅ | Equal |
-| Tab open editors | ✅ | ✅ (tabs, not list) | Different style |
-| Breadcrumb path | ❌ | ✅ | **Missing** |
-| Pinned files | ❌ | ✅ | **Missing** |
-
----
-
-## 11. MISSING FEATURES — GAP ANALYSIS
-
-### P1 — Critical (blocks core IDE feel)
-
-| Feature | Why it matters | Complexity | Risk |
-|---|---|---|---|
-| **Keyboard navigation** (arrows, Enter) | Standard in every IDE; makes explorer usable without mouse | Medium | Low — local state change |
-| **aria roles** (tree/treeitem/expanded) | Screen reader users completely blocked; accessibility requirement | Low | None |
-| **Recent Files Panel UI** | Hook built; no panel. Users can't access recently opened files. | Low | None |
-| **Reveal active file in tree** | Cursor/VS Code core feature — scroll tree to show currently open file | Medium | Low |
-| **ContextMenu: Escape to close** | Basic UX — escape should close the right-click menu | Low | None |
-
-### P2 — Important (professional quality gap)
-
-| Feature | Why it matters | Complexity | Risk |
-|---|---|---|---|
-| **Wire AIActivityBadge into tree rows** | Component exists but unused; AI activity not shown per-file in demo explorer | Low | None |
-| **Git status indicators** (M/U/A/D badges) | Every modern IDE shows git status inline | High | Needs git integration |
-| **Drag-and-drop file/folder move** | Expected in any file manager | High | Medium — tree mutation + API |
-| **Multi-file select** | Required for bulk operations | High | Medium |
-| **Duplicate file** | Currently a stub in ContextMenu | Low | None |
-| **File icons — language-specific SVGs** | Lucide icons are generic; language icons (TS blue, React atom, etc.) are standard | Medium | None |
-| **Indent guides in TreeNode/FileTreePanel** | FileExplorer has them; FileTreePanel does not | Low | None |
-| **Dirty indicator (● dot)** | Currently shows "M" badge; VS Code-style dot before filename is more standard | Low | None |
-
-### P3 — Nice to Have (polish / power features)
-
-| Feature | Why it matters | Complexity | Risk |
-|---|---|---|---|
-| **File size in tooltip** | Helpful for large files | Low | None |
-| **Last modified timestamp** | Context for debugging | Low | None |
-| **Pinned files section** | Power user feature | Medium | None |
-| **Copy/Cut/Paste files** | Standard file manager | Medium | Medium |
-| **Folder upload to real sandbox** | FileTreePanel has it in-memory; FileExplorer has no upload | Medium | Medium |
-| **Search: expand matching folders** | Currently folders that contain matches aren't auto-expanded in FileExplorer search | Medium | Low |
-| **Scroll-to-active on mount** | When editor opens file, tree should scroll to it | Low | None |
-| **File count badge per folder** | Shows scale at a glance | Low | None |
-| **Minimap / scrollbar markers** | Dirty/AI files marked on scrollbar thumb | High | Low |
-
----
-
-## 12. TECHNICAL DEBT
-
-### 1. Dual Explorer Divergence
-Two completely separate implementations (`FileExplorer` + `FileTreePanel`) share almost no UI code. `FileTreePanel/TreeNode` has hover-menu, inline-create, collapse propagation. `FileExplorer/RenderNode` has realtime indicators, indent guides, resize. Neither is a superset of the other.
-
-**Risk**: Features added to one are not reflected in the other. Over time they diverge further.
-
-**Recommended**: Unify into a single `TreeRow` component that accepts both `FileNode` and `RawTreeNode` via adapter, with feature flags for AI indicators, realtime, etc.
-
-### 2. ContextMenu — No Portal, No Escape
-`ContextMenu.tsx` renders inside the explorer div (not portaled), has no Escape handler, and has a broken "Duplicate" action. Inconsistent with `TreeNodeMenu` which is properly portaled.
-
-### 3. FileHistoryPanel — Dead Integration
-`FileHistoryPanel` calls `getFileHistory()` and supports diff but is not wired into either explorer. There is no way to open it from a file row.
-
-### 4. AIActivityBadge — Built but Unwired
-The `AIActivityBadge` component (5 activity kinds with animated dot) is exported but never used in any tree row. The `use-agent-status` hook tracks which agents are working but not *which file* they are working on.
-
-### 5. useRecentFiles — No Panel
-`useRecentFiles` is wired to `handleSelect` in `FileExplorer` so it records opens correctly, but no panel shows the list.
-
-### 6. window.prompt / window.confirm in Production Code
-`handleRenamePath` uses `window.prompt` and `handleDeletePath` uses `window.confirm` — these are browser-native modal dialogs, not styled to match the IDE. **Poor UX** and can't be tested.
-
-### 7. FileHistoryPanel uses `any[]`
-```ts
-const [history, setHistory] = useState<any[]>([]);
-```
-Violates project's "no `any`" principle.
-
-### 8. FileTreePanel — Tree State Ephemeral
-The in-memory `FileTreePanel` tree is lost on unmount/remount. No persistence, no `makeInitialTree()` called by default. Users start with an empty tree every time.
-
-### 9. collapseRevision Propagation is O(n) Re-renders
-Every `collapseRevision` increment triggers a `useEffect` in every mounted `TreeNode` descendant, causing N re-renders (one per visible node). Fine at small scale, but problematic with deep trees.
-
----
-
-## 13. RECOMMENDED ROADMAP
-
-### Sprint 1 — Quick Wins (1–2 days)
-1. **[P1]** Add `aria-expanded`, `role="tree"`, `role="treeitem"` to both explorers.
-2. **[P1]** Wire `Escape` to close `ContextMenu`.
-3. **[P1]** Add Recent Files panel UI in `FileExplorer` sidebar (hook already built).
-4. **[P2]** Fix Duplicate stub in `ContextMenu` — copy file content + add to tree.
-5. **[P2]** Wire `AIActivityBadge` into `TreeNode` rows when agent is active on that file.
-6. **[P2]** Add indent guides to `TreeNode/FileTreePanel` (match FileExplorer style).
-7. **[P3]** Call `makeInitialTree()` in `FileTreePanel` initial state so it starts populated.
-
-### Sprint 2 — Core UX (3–5 days)
-1. **[P1]** Keyboard navigation: arrow keys move focus, Enter opens file, F2 renames.
-2. **[P1]** Reveal-in-tree: emit event from editor → explorer scrolls to file.
-3. **[P2]** Replace `window.prompt` / `window.confirm` with styled inline UI.
-4. **[P2]** Language-specific SVG file icons (replace lucide generics).
-5. **[P2]** Git status badges (M/U/A/D) — requires `/api/git-status` endpoint.
-
-### Sprint 3 — Power Features (1–2 weeks)
-1. **[P2]** Drag-and-drop file/folder move with optimistic updates.
-2. **[P2]** Multi-file select (Ctrl+click, Shift+click) + bulk delete/move.
-3. **[P3]** Pinned files section at top of explorer.
-4. **[P3]** Folder upload in `FileExplorer` (real sandbox — not just demo).
-5. **[P3]** Search: auto-expand folders containing matches in FileExplorer.
-6. **[P3]** Per-agent file ownership tracking → show which agent owns which file row.
-
-### Sprint 4 — Unification
-1. Merge `FileExplorer` and `FileTreePanel` into one unified explorer with mode prop.
-2. Unify `RenderNode` and `TreeNode` into a single `TreeRow` component.
-3. Fix `FileHistoryPanel` integration — add "History" option to context menus.
-4. Fix `FileHistoryPanel` `any[]` type.
-
----
-
-*End of FILE_EXPLORER_MASTER_REPORT.md*
+*Generated by X10 Deep Scan · All 22 files analyzed · Zero assumptions — only what the code says.*

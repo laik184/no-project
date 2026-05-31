@@ -330,3 +330,9 @@ id = "HwEe2PRfLHstrZ2ZnAIL3"
 uri = "file://FILE_EXPLORER_REPORT.md"
 type = "text"
 title = "File Explorer Deep Scan Report"
+
+[[outputs]]
+id = "nHqRd4N77R7eiFFH3mYyg"
+uri = "file://FILE_EXPLORER_MASTER_REPORT.md"
+type = "text"
+title = "FILE EXPLORER MASTER REPORT — X10 Deep Scan"
