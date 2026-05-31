@@ -7,7 +7,7 @@ import JSZip from "jszip";
 import { FileNode } from "./types";
 import { guessLang, fileIcon } from "./file-icon";
 import {
-  flattenFiles, deleteNodeById, renameNodeById, addNodeToRoot, uid,
+  flattenFiles, deleteNodeById, renameNodeById, addNodeToRoot, addNodeInsideFolder, uid,
 } from "./tree-helpers";
 import { TreeNode } from "./TreeNode";
 import { ActionIcon, InlineInput } from "./InlineInput";
@@ -127,6 +127,14 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
   };
   const handleDelete    = (id: string)              => setTree((p) => deleteNodeById(p, id));
   const handleRename    = (id: string, name: string) => setTree((p) => renameNodeById(p, id, name));
+
+  const handleCreateInside = (type: "file" | "folder", name: string, parentId: string) => {
+    const newNode: FileNode = type === "file"
+      ? { id: uid(), name, type: "file", lang: guessLang(name), content: "" }
+      : { id: uid(), name, type: "folder", children: [] };
+    setTree((p) => addNodeInsideFolder(p, parentId, newNode));
+    if (type === "file") onFileOpen(name, "", guessLang(name));
+  };
 
   const handleNewFile   = (name: string) => {
     setTree((p) => addNodeToRoot(p, { id: uid(), name, type: "file", lang: guessLang(name), content: "" }));
@@ -393,6 +401,7 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
               key={node.id} node={node} depth={0}
               activeFileName={activeFileName}
               onSelect={handleSelect} onDelete={handleDelete} onRename={handleRename}
+              onCreateInside={handleCreateInside}
               collapseRevision={collapseRevision} showHidden={showHidden}
             />
           ))

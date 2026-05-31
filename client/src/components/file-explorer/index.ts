@@ -3,6 +3,7 @@ export { fileIcon, guessLang, emojiIcon }               from "./file-icon";
 export { uid, flattenFiles, deleteNodeById, renameNodeById, addNodeToRoot, makeInitialTree } from "./tree-helpers";
 export { InlineInput, ActionIcon }                      from "./InlineInput";
 export { TreeNode }                                     from "./TreeNode";
+export { TreeNodeMenu }                                 from "./TreeNodeMenu";
 export { FileTreePanel }                                from "./FileTreePanel";
 export { ContextMenu }                                  from "./ContextMenu";
 export { useFileExplorer }                              from "./use-file-explorer";

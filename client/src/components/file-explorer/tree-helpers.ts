@@ -44,6 +44,23 @@ export function addNodeToRoot(nodes: FileNode[], node: FileNode): FileNode[] {
   return [node, ...nodes];
 }
 
+/** Insert a node as the first child of the folder with the given parentId. */
+export function addNodeInsideFolder(
+  nodes: FileNode[],
+  parentId: string,
+  node: FileNode,
+): FileNode[] {
+  return nodes.map((n) => {
+    if (n.id === parentId && n.type === "folder") {
+      return { ...n, children: [node, ...(n.children ?? [])] };
+    }
+    if (n.children) {
+      return { ...n, children: addNodeInsideFolder(n.children, parentId, node) };
+    }
+    return n;
+  });
+}
+
 export function optimisticInsertFile(tree: RawTreeNode[], filePath: string): RawTreeNode[] {
   const parts = filePath.split("/").filter(Boolean);
   const fileName = parts.pop();
