@@ -35,8 +35,8 @@ interface FileExplorerProps {
   activeFile?: string;
 }
 
-// Indent guide line width per level
-const INDENT = 16;
+// Indent guide line width per level — tightened from 16 → 14
+const INDENT = 14;
 
 function RenderNode({
   node, basePath, depth, activeFile, dirtyFiles, aiFiles,
@@ -71,7 +71,7 @@ function RenderNode({
 
   const rowStyle: React.CSSProperties = {
     display: "flex", alignItems: "center", gap: 4,
-    height: 22, paddingRight: 4, paddingLeft,
+    height: 20, paddingRight: 4, paddingLeft,
     cursor: "pointer", userSelect: "none", fontSize: 12,
     position: "relative",
     borderLeft: active ? "2px solid #3b82f6"
@@ -101,7 +101,7 @@ function RenderNode({
           {Array.from({ length: depth }).map((_, i) => (
             <span key={i} style={{
               position: "absolute",
-              left: 8 + i * INDENT + 5,
+              left: 4 + i * INDENT + 5,
               top: 0, bottom: 0, width: 1,
               background: "#252525",
               pointerEvents: "none",
@@ -151,7 +151,7 @@ function RenderNode({
       {Array.from({ length: depth }).map((_, i) => (
         <span key={i} style={{
           position: "absolute",
-          left: 8 + i * INDENT + 5,
+          left: 4 + i * INDENT + 5,
           top: 0, bottom: 0, width: 1,
           background: "#252525",
           pointerEvents: "none",
@@ -181,12 +181,12 @@ function InlineCreateRow({
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 6,
-      padding: "3px 8px 3px 10px", height: 26,
+      padding: "2px 6px 2px 8px", height: 22,
       borderBottom: "1px solid #222", background: "#1e1e1e",
     }}>
       {type === "file"
-        ? <FilePlus   style={{ width: 12, height: 12, color: "#60a5fa", flexShrink: 0 }} />
-        : <FolderPlus style={{ width: 12, height: 12, color: "#e8a427", flexShrink: 0 }} />}
+        ? <FilePlus   style={{ width: 11, height: 11, color: "#60a5fa", flexShrink: 0 }} />
+        : <FolderPlus style={{ width: 11, height: 11, color: "#e8a427", flexShrink: 0 }} />}
       <InlineInput
         initialValue={type === "file" ? "untitled.tsx" : "new-folder"}
         onConfirm={onConfirm}
@@ -234,15 +234,15 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
   const hdrBtn = (Icon: React.ElementType, title: string, onClick: () => void) => (
     <button key={title} title={title} onClick={onClick}
       style={{
-        width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center",
+        width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center",
         background: "transparent", border: "none", cursor: "pointer",
-        borderRadius: 4, color: "#4a4a4a", transition: "background .1s, color .1s",
+        borderRadius: 3, color: "#4a4a4a", transition: "background .1s, color .1s",
         flexShrink: 0,
       }}
       onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; }}
       onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#4a4a4a"; }}
     >
-      <Icon style={{ width: 13, height: 13 }} />
+      <Icon style={{ width: 12, height: 12 }} />
     </button>
   );
 
@@ -250,7 +250,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
     <div
       className="rfe-sidebar"
       style={{
-        width: 240, display: "flex", flexDirection: "column",
+        width: 220, display: "flex", flexDirection: "column",
         background: "#1c1c1c", borderRight: "1px solid #252525",
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         fontSize: 12, position: "relative", height: "100%",
@@ -260,7 +260,7 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 6px 0 10px", height: 36, flexShrink: 0,
+        padding: "0 4px 0 8px", height: 32, flexShrink: 0,
         borderBottom: "1px solid #252525",
       }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "#4a4a4a", textTransform: "uppercase", letterSpacing: ".08em" }}>
@@ -272,10 +272,10 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
       </div>
 
       {/* ── Search ── */}
-      <div style={{ padding: "5px 8px", flexShrink: 0, borderBottom: "1px solid #222" }}>
+      <div style={{ padding: "4px 6px", flexShrink: 0, borderBottom: "1px solid #222" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 6,
-          padding: "3px 8px", borderRadius: 4,
+          padding: "2px 6px", borderRadius: 4,
           background: "#141414", border: "1px solid #272727",
         }}>
           <Search style={{ width: 11, height: 11, color: "#3a3a3a", flexShrink: 0 }} />
@@ -312,17 +312,17 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
       {/* ── Tree / Empty state ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: "2px 0" }}>
         {isEmpty && !creating ? (
-          /* Replit-style empty state */
+          /* Compact empty state */
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
-            padding: "28px 16px 20px", gap: 10,
+            padding: "20px 12px 14px", gap: 8,
           }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 8,
+              width: 28, height: 28, borderRadius: 6,
               background: "#202020", border: "1px solid #2a2a2a",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <FolderPlus style={{ width: 16, height: 16, color: "#3a3a3a" }} />
+              <FolderPlus style={{ width: 13, height: 13, color: "#3a3a3a" }} />
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 12, color: "#555", fontWeight: 500, marginBottom: 4 }}>No files yet</div>
@@ -330,15 +330,15 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
                 Create a file or folder<br />to get started
               </div>
             </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+            <div style={{ display: "flex", gap: 6 }}>
               {[
                 { label: "New file",   Icon: FilePlus,   onClick: () => setCreating("file") },
                 { label: "New folder", Icon: FolderPlus, onClick: () => setCreating("folder") },
               ].map(({ label, Icon, onClick }) => (
                 <button key={label} onClick={onClick}
                   style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "5px 10px", borderRadius: 5, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "4px 8px", borderRadius: 4, cursor: "pointer",
                     background: "#222", border: "1px solid #2e2e2e",
                     color: "#666", fontSize: 11, fontFamily: "inherit",
                     transition: "all .1s",
