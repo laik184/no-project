@@ -1,24 +1,33 @@
 /**
  * client/src/components/panels/CheckpointPanel.tsx
- * Full Checkpoint History panel — browse, compare, and restore checkpoints.
+ *
+ * Full Checkpoint History panel.
+ * Tasks implemented here:
+ *   T3 — SSE-driven cache invalidation (no more 8 s polling lag)
+ *   T4 — Delete checkpoint button + confirmation dialog
+ *   T6 — Enhanced diff viewer (created / modified / deleted sections)
  */
 
 import { useState } from "react";
 import {
   Camera, RotateCcw, Plus, ChevronDown, GitCommit,
-  ShieldCheck, AlertTriangle, Loader2, RefreshCw,
+  ShieldCheck, Loader2, RefreshCw,
   Activity, X, CheckCircle2, FileCode, Clock,
-  Diff, Zap,
+  Diff, Zap, Trash2, AlertTriangle,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 import {
   useCheckpoints,
   useCheckpointDiff,
   useRecoveryDiagnostics,
   useCreateCheckpoint,
   useRollbackCheckpoint,
+  useDeleteCheckpoint,
   useValidateCheckpoint,
   useResetRecovery,
+  CHECKPOINT_KEYS,
   type CheckpointMeta,
   type CheckpointStatus,
   type CheckpointTrigger,
@@ -26,37 +35,63 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function getProjectId(): number {
+  return Number(window.localStorage.getItem("nura.projectId") || "1") || 1;
+}
+
 function fmtRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 60_000)   return "just now";
+  if (diff < 60_000)    return "just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   return `${Math.floor(diff / 86_400_000)}d ago`;
 }
 
-function triggerLabel(t: CheckpointTrigger): string {
-  const map: Record<CheckpointTrigger, string> = {
-    run_start:       "Before run",
-    manual:          "Manual",
-    pre_destructive: "Pre-delete",
-    auto:            "Auto",
-    emergency:       "Emergency",
+function triggerLabel(t: CheckpointTrigger | string): string {
+  const map: Record<string, string> = {
+    run_start: "Before run", run_complete: "After run",
+    manual: "Manual", pre_destructive: "Pre-delete",
+    auto: "Auto", emergency: "Emergency",
+    loop_end: "Loop end", phase_complete: "Phase",
+    files_threshold: "File threshold",
   };
   return map[t] ?? t;
 }
 
-function statusColor(s: CheckpointStatus) {
+function statusColor(s: CheckpointStatus | string) {
   if (s === "stable")      return { text: "#4ade80", bg: "rgba(74,222,128,0.12)",  border: "rgba(74,222,128,0.28)"  };
   if (s === "rolled_back") return { text: "#60a5fa", bg: "rgba(96,165,250,0.12)",  border: "rgba(96,165,250,0.28)"  };
   if (s === "failed")      return { text: "#f87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.28)" };
   return                          { text: "#fbbf24", bg: "rgba(251,191,36,0.12)",  border: "rgba(251,191,36,0.28)"  };
 }
 
-// ── Diff viewer ────────────────────────────────────────────────────────────
+// ── Enhanced Diff Viewer (Task 6) ─────────────────────────────────────────
 
 function DiffViewer({ fromId, toId, onClose }: { fromId: string; toId: string; onClose: () => void }) {
-  const { data, isLoading } = useCheckpointDiff(fromId, toId, true);
+  const pid = getProjectId();
+  const { data, isLoading, isError } = useCheckpointDiff(fromId, toId, !!(fromId && toId && fromId !== toId));
   const diff = data?.diff;
+
+  const renderSection = (files: string[], color: string, symbol: string, label: string) => {
+    if (!files.length) return null;
+    return (
+      <div>
+        <p className="font-semibold mb-1 flex items-center gap-1" style={{ color }}>
+          <span>{symbol}</span>
+          <span>{label}</span>
+          <span className="font-normal text-[9.5px] ml-0.5" style={{ color: `${color}99` }}>({files.length})</span>
+        </p>
+        <div className="space-y-0.5 max-h-36 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+          {files.map(f => (
+            <p key={f} className="truncate pl-2 flex items-center gap-1" style={{ color: `${color}bb` }}>
+              <FileCode style={{ width: 8, height: 8, flexShrink: 0 }} />
+              <span className="truncate text-[9.5px]">{f}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(124,141,255,0.22)", background: "rgba(124,141,255,0.04)", animation: "cp-fadein 0.18s ease both" }}>
@@ -64,45 +99,37 @@ function DiffViewer({ fromId, toId, onClose }: { fromId: string; toId: string; o
         <div className="flex items-center gap-1.5">
           <Diff style={{ width: 11, height: 11, color: "#7c8dff" }} />
           <span className="text-[10.5px] font-semibold" style={{ color: "rgba(203,213,225,0.9)" }}>Snapshot diff</span>
+          {data?.summary && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,141,255,0.12)", color: "rgba(167,185,255,0.8)" }}>
+              {data.summary}
+            </span>
+          )}
         </div>
         <button onClick={onClose} className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10" style={{ color: "rgba(148,163,184,0.5)" }}>
           <X style={{ width: 10, height: 10 }} />
         </button>
       </div>
-      {isLoading ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#7c8dff" }} />
-        </div>
-      ) : diff ? (
-        <div className="px-3 py-2.5 space-y-2 text-[10px]">
-          {diff.added.length > 0 && (
-            <div>
-              <p className="font-semibold mb-1" style={{ color: "#4ade80" }}>+ Added ({diff.added.length})</p>
-              {diff.added.slice(0, 6).map(f => <p key={f} className="truncate pl-2" style={{ color: "rgba(74,222,128,0.75)" }}>{f}</p>)}
-              {diff.added.length > 6 && <p className="pl-2" style={{ color: "rgba(148,163,184,0.4)" }}>+{diff.added.length - 6} more</p>}
-            </div>
-          )}
-          {diff.removed.length > 0 && (
-            <div>
-              <p className="font-semibold mb-1" style={{ color: "#f87171" }}>– Removed ({diff.removed.length})</p>
-              {diff.removed.slice(0, 6).map(f => <p key={f} className="truncate pl-2" style={{ color: "rgba(248,113,113,0.75)" }}>{f}</p>)}
-              {diff.removed.length > 6 && <p className="pl-2" style={{ color: "rgba(148,163,184,0.4)" }}>+{diff.removed.length - 6} more</p>}
-            </div>
-          )}
-          {diff.modified.length > 0 && (
-            <div>
-              <p className="font-semibold mb-1" style={{ color: "#fbbf24" }}>~ Modified ({diff.modified.length})</p>
-              {diff.modified.slice(0, 6).map(f => <p key={f} className="truncate pl-2" style={{ color: "rgba(251,191,36,0.75)" }}>{f}</p>)}
-              {diff.modified.length > 6 && <p className="pl-2" style={{ color: "rgba(148,163,184,0.4)" }}>+{diff.modified.length - 6} more</p>}
-            </div>
-          )}
-          {diff.totalChanges === 0 && (
-            <p className="py-2 text-center" style={{ color: "rgba(148,163,184,0.5)" }}>No file changes between these checkpoints.</p>
-          )}
-        </div>
-      ) : (
-        <p className="px-3 py-3 text-[10px] text-center" style={{ color: "rgba(148,163,184,0.5)" }}>Could not load diff — snapshots may not be available for these checkpoints.</p>
-      )}
+
+      <div className="px-3 py-2.5 text-[10px]">
+        {isLoading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#7c8dff" }} />
+          </div>
+        )}
+        {isError && (
+          <p className="py-2 text-center" style={{ color: "rgba(248,113,113,0.7)" }}>Could not load diff.</p>
+        )}
+        {diff && !isLoading && (
+          <div className="space-y-3">
+            {renderSection(diff.added,    "#4ade80", "+", "Added")}
+            {renderSection(diff.modified, "#fbbf24", "~", "Modified")}
+            {renderSection(diff.removed,  "#f87171", "−", "Removed")}
+            {diff.totalChanges === 0 && (
+              <p className="py-2 text-center" style={{ color: "rgba(148,163,184,0.5)" }}>No file changes between these checkpoints.</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -110,8 +137,7 @@ function DiffViewer({ fromId, toId, onClose }: { fromId: string; toId: string; o
 // ── Single checkpoint row ─────────────────────────────────────────────────
 
 function CheckpointRow({
-  cp, isLatest, compareMode, isCompareSelected,
-  onToggleCompare, allIds,
+  cp, isLatest, compareMode, isCompareSelected, onToggleCompare, allIds,
 }: {
   cp: CheckpointMeta;
   isLatest: boolean;
@@ -122,13 +148,20 @@ function CheckpointRow({
 }) {
   const [expanded,    setExpanded]    = useState(false);
   const [rollState,   setRollState]   = useState<"idle"|"confirm"|"rolling"|"done"|"error">("idle");
+  const [deleteState, setDeleteState] = useState<"idle"|"confirm"|"deleting"|"done"|"error">("idle");
   const [validateMsg, setValidateMsg] = useState<string | null>(null);
   const [showDiff,    setShowDiff]    = useState(false);
-  const [diffTarget,  setDiffTarget]  = useState<string>("");
+  const [diffTarget,  setDiffTarget]  = useState("");
 
   const rollback = useRollbackCheckpoint();
+  const deleteCp = useDeleteCheckpoint();
   const validate = useValidateCheckpoint();
-  const sc = statusColor(cp.status);
+  const status   = (cp as CheckpointMeta & { status?: string }).status ?? "stable";
+  const sc       = statusColor(status);
+  const prevId   = allIds[allIds.indexOf(cp.id) + 1];
+  const fileCount = (cp.fileCount ?? cp.filesChanged) ?? 0;
+  const gitSha   = cp.gitSha ?? cp.gitCommitSha;
+  const label    = (cp as CheckpointMeta & { label?: string }).label ?? (cp as CheckpointMeta & { title?: string }).title;
 
   const handleRollback = async () => {
     if (rollState === "idle")    { setRollState("confirm"); setTimeout(() => setRollState(s => s === "confirm" ? "idle" : s), 4000); return; }
@@ -145,6 +178,20 @@ function CheckpointRow({
     }
   };
 
+  const handleDelete = async () => {
+    if (deleteState === "idle")    { setDeleteState("confirm"); setTimeout(() => setDeleteState(s => s === "confirm" ? "idle" : s), 4000); return; }
+    if (deleteState === "confirm") {
+      setDeleteState("deleting");
+      try {
+        await deleteCp.mutateAsync(cp.id);
+        setDeleteState("done");
+      } catch {
+        setDeleteState("error");
+        setTimeout(() => setDeleteState("idle"), 3000);
+      }
+    }
+  };
+
   const handleValidate = async () => {
     setValidateMsg(null);
     try {
@@ -157,7 +204,7 @@ function CheckpointRow({
     }
   };
 
-  const prevId = allIds[allIds.indexOf(cp.id) + 1];
+  if (deleteState === "done") return null;
 
   return (
     <div className="relative" style={{ animation: "cp-fadein 0.2s cubic-bezier(0.22,1,0.36,1) both" }}>
@@ -182,37 +229,35 @@ function CheckpointRow({
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[11.5px] font-semibold" style={{ color: "rgba(226,232,240,0.92)" }}>
                 {triggerLabel(cp.trigger)}
-                {cp.label && cp.label !== "manual" && cp.label !== triggerLabel(cp.trigger) ? ` · ${cp.label}` : ""}
+                {label && label !== "manual" && label !== triggerLabel(cp.trigger) ? ` · ${label}` : ""}
               </span>
               {isLatest && (
                 <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.25)", color: "#4ade80" }}>latest</span>
               )}
               <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}>
-                {cp.status}
+                {status}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <Clock style={{ width: 9, height: 9, color: "rgba(148,163,184,0.45)" }} />
               <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.55)" }}>{fmtRelative(cp.createdAt)}</span>
-              {cp.gitSha && (
+              {gitSha && (
                 <>
                   <GitCommit style={{ width: 9, height: 9, color: "rgba(148,163,184,0.35)" }} />
-                  <span className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.45)" }}>{cp.gitSha.slice(0, 7)}</span>
+                  <span className="text-[10px] font-mono" style={{ color: "rgba(148,163,184,0.45)" }}>{gitSha.slice(0, 7)}</span>
                 </>
               )}
-              {cp.fileCount != null && (
+              {fileCount > 0 && (
                 <>
                   <FileCode style={{ width: 9, height: 9, color: "rgba(148,163,184,0.35)" }} />
-                  <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.45)" }}>{cp.fileCount} files</span>
+                  <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.45)" }}>{fileCount} files</span>
                 </>
               )}
             </div>
           </div>
 
           {!compareMode && (
-            <ChevronDown
-              style={{ width: 13, height: 13, color: "rgba(148,163,184,0.4)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
-            />
+            <ChevronDown style={{ width: 13, height: 13, color: "rgba(148,163,184,0.4)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }} />
           )}
           {compareMode && (
             <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: isCompareSelected ? "rgba(124,141,255,0.3)" : "rgba(255,255,255,0.06)", border: `1px solid ${isCompareSelected ? "rgba(124,141,255,0.5)" : "rgba(255,255,255,0.1)"}` }}>
@@ -225,7 +270,6 @@ function CheckpointRow({
         {expanded && !compareMode && (
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", animation: "cp-fadein 0.15s ease both" }}>
             <div className="px-3 py-3 space-y-2.5">
-              {/* Validate message */}
               {validateMsg && (
                 <p className="text-[10.5px] px-2.5 py-1.5 rounded-lg" style={{ background: validateMsg.startsWith("✓") ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", border: `1px solid ${validateMsg.startsWith("✓") ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}`, color: validateMsg.startsWith("✓") ? "#4ade80" : "#f87171" }}>
                   {validateMsg}
@@ -234,12 +278,8 @@ function CheckpointRow({
 
               {/* Diff section */}
               {showDiff ? (
-                <DiffViewer
-                  fromId={cp.id}
-                  toId={diffTarget || prevId || cp.id}
-                  onClose={() => setShowDiff(false)}
-                />
-              ) : prevId && (
+                <DiffViewer fromId={cp.id} toId={diffTarget || prevId || cp.id} onClose={() => setShowDiff(false)} />
+              ) : prevId ? (
                 <button
                   onClick={() => { setDiffTarget(prevId); setShowDiff(true); }}
                   className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[10.5px] transition-all hover:bg-white/5"
@@ -249,29 +289,29 @@ function CheckpointRow({
                   <Diff style={{ width: 11, height: 11 }} />
                   Compare with previous checkpoint
                 </button>
-              )}
+              ) : null}
 
-              {/* Action buttons */}
+              {/* Action row: Rollback + Validate + Delete */}
               <div className="flex gap-1.5">
                 {/* Rollback */}
                 <button
                   onClick={handleRollback}
-                  disabled={rollState === "rolling" || rollState === "done" || cp.status === "rolled_back"}
+                  disabled={rollState === "rolling" || rollState === "done" || status === "rolled_back"}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10.5px] font-medium transition-all"
                   style={
                     rollState === "done"    ? { background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.3)", color: "#4ade80" } :
                     rollState === "error"   ? { background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171" } :
                     rollState === "confirm" ? { background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.45)", color: "#fbbf24" } :
                     rollState === "rolling" ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(148,163,184,0.5)" } :
-                    cp.status === "rolled_back" ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(148,163,184,0.35)", cursor: "not-allowed" } :
+                    status === "rolled_back" ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(148,163,184,0.35)", cursor: "not-allowed" } :
                     { background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "rgba(252,165,165,0.85)" }
                   }
                   data-testid={`button-rollback-${cp.id}`}
                 >
                   {rollState === "rolling" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw style={{ width: 11, height: 11 }} />}
-                  {rollState === "idle"    && (cp.status === "rolled_back" ? "Already rolled back" : "Rollback")}
-                  {rollState === "confirm" && "Confirm rollback?"}
-                  {rollState === "rolling" && "Rolling back…"}
+                  {rollState === "idle"    && (status === "rolled_back" ? "Rolled back" : "Rollback")}
+                  {rollState === "confirm" && "Confirm?"}
+                  {rollState === "rolling" && "Rolling…"}
                   {rollState === "done"    && "Done!"}
                   {rollState === "error"   && "Failed"}
                 </button>
@@ -287,7 +327,33 @@ function CheckpointRow({
                 >
                   {validate.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck style={{ width: 11, height: 11 }} />}
                 </button>
+
+                {/* Delete (Task 4) */}
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteState === "deleting"}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10.5px] font-medium transition-all"
+                  style={
+                    deleteState === "confirm" ? { background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.45)", color: "#f87171" } :
+                    deleteState === "deleting" ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(148,163,184,0.4)" } :
+                    deleteState === "error"   ? { background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" } :
+                    { border: "1px solid rgba(255,255,255,0.09)", color: "rgba(148,163,184,0.5)" }
+                  }
+                  data-testid={`button-delete-${cp.id}`}
+                  title={deleteState === "confirm" ? "Click again to confirm delete" : "Delete checkpoint"}
+                >
+                  {deleteState === "deleting" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 style={{ width: 11, height: 11 }} />}
+                  {deleteState === "confirm" && <span className="text-[9.5px]">Sure?</span>}
+                </button>
               </div>
+
+              {/* Delete confirmation warning */}
+              {deleteState === "confirm" && (
+                <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-lg text-[10px]" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)", color: "rgba(252,165,165,0.8)", animation: "cp-fadein 0.12s ease both" }}>
+                  <AlertTriangle style={{ width: 10, height: 10, flexShrink: 0, marginTop: 1 }} />
+                  <span>This permanently removes the checkpoint and its snapshot. Click the trash icon again to confirm.</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -329,18 +395,16 @@ function DiagnosticsPanel() {
         </div>
       ) : d ? (
         <div className="px-3 py-2.5 grid grid-cols-3 gap-2">
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>Lock</p>
-            <span className="text-[11px] font-semibold" style={{ color: d.locked ? "#fbbf24" : "#4ade80" }}>{d.locked ? "Locked" : "Free"}</span>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>Failures</p>
-            <span className="text-[11px] font-semibold" style={{ color: d.consecutiveFailures > 0 ? "#f87171" : "#4ade80" }}>{d.consecutiveFailures}</span>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>Circuit</p>
-            <span className="text-[11px] font-semibold" style={{ color: d.circuitOpen ? "#f87171" : "#4ade80" }}>{d.circuitOpen ? "Open" : "Closed"}</span>
-          </div>
+          {[
+            { label: "Lock",    value: d.locked               ? "Locked" : "Free",   color: d.locked               ? "#fbbf24" : "#4ade80" },
+            { label: "Fails",   value: String(d.consecutiveFailures),                  color: d.consecutiveFailures > 0 ? "#f87171" : "#4ade80" },
+            { label: "Circuit", value: d.circuitOpen          ? "Open"   : "Closed", color: d.circuitOpen          ? "#f87171" : "#4ade80" },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="text-center">
+              <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: "rgba(148,163,184,0.4)" }}>{label}</p>
+              <span className="text-[11px] font-semibold" style={{ color }}>{value}</span>
+            </div>
+          ))}
         </div>
       ) : (
         <p className="px-3 py-3 text-[10px] text-center" style={{ color: "rgba(148,163,184,0.4)" }}>Unavailable</p>
@@ -352,6 +416,14 @@ function DiagnosticsPanel() {
 // ── Main panel ─────────────────────────────────────────────────────────────
 
 export function CheckpointPanel() {
+  const pid = getProjectId();
+  const qc  = useQueryClient();
+
+  // Task 3 — SSE-driven cache invalidation: any checkpoint event refreshes the list
+  useRealtimeEvent("checkpoint", () => {
+    qc.invalidateQueries({ queryKey: CHECKPOINT_KEYS.list(pid) });
+  });
+
   const { data, isLoading, isFetching, refetch } = useCheckpoints();
   const createCp = useCreateCheckpoint();
 
@@ -361,7 +433,7 @@ export function CheckpointPanel() {
   const [labelInput,     setLabelInput]     = useState("");
   const [showCreate,     setShowCreate]     = useState(false);
 
-  const checkpoints = data?.checkpoints ?? [];
+  const checkpoints = (data?.checkpoints ?? []).slice().reverse(); // newest first
   const sortedIds   = checkpoints.map(c => c.id);
 
   const handleToggleCompare = (id: string) => {
@@ -370,10 +442,6 @@ export function CheckpointPanel() {
       if (prev.length >= 2)  return [prev[1], id];
       return [...prev, id];
     });
-  };
-
-  const handleRunCompare = () => {
-    if (selectedForCmp.length === 2) setCompareIds([selectedForCmp[0], selectedForCmp[1]]);
   };
 
   const handleCreate = async () => {
@@ -418,7 +486,6 @@ export function CheckpointPanel() {
             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all"
             style={compareMode ? { background: "rgba(124,141,255,0.15)", border: "1px solid rgba(124,141,255,0.35)", color: "#7c8dff" } : { border: "1px solid rgba(255,255,255,0.09)", color: "rgba(148,163,184,0.65)" }}
             data-testid="button-compare-mode"
-            title="Compare two checkpoints"
           >
             <Diff style={{ width: 10, height: 10 }} />
             Compare
@@ -471,7 +538,7 @@ export function CheckpointPanel() {
           </span>
           {selectedForCmp.length === 2 && (
             <button
-              onClick={handleRunCompare}
+              onClick={() => setCompareIds([selectedForCmp[0], selectedForCmp[1]])}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all"
               style={{ background: "rgba(124,141,255,0.2)", border: "1px solid rgba(124,141,255,0.4)", color: "#7c8dff" }}
               data-testid="button-run-compare"
@@ -505,7 +572,7 @@ export function CheckpointPanel() {
             <div className="text-center">
               <p className="text-[12.5px] font-semibold mb-1" style={{ color: "rgba(203,213,225,0.7)" }}>No checkpoints yet</p>
               <p className="text-[10.5px] leading-relaxed" style={{ color: "rgba(148,163,184,0.45)" }}>
-                Checkpoints are auto-created before each agent run.<br />Click Save to create one manually.
+                Checkpoints are auto-created at end of each agent run.<br />Click Save to create one manually.
               </p>
             </div>
           </div>
@@ -536,7 +603,7 @@ export function CheckpointPanel() {
         <div className="px-4 py-2 flex-shrink-0 flex items-center gap-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <AlertTriangle style={{ width: 9, height: 9, color: "rgba(251,191,36,0.5)" }} />
           <span className="text-[9.5px]" style={{ color: "rgba(148,163,184,0.38)" }}>
-            Rollback is irreversible and stops the running process. Always validate first.
+            Rollback restores all files. Always validate before rolling back.
           </span>
         </div>
       )}

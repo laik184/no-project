@@ -12,19 +12,28 @@ import {
 } from '../events/checkpoint.events.ts';
 import type { CheckpointListItem } from '../types/checkpoint.types.ts';
 
-function toListItem(cp: import('../types/checkpoint.types.ts').ChatCheckpoint): CheckpointListItem {
+function toListItem(
+  cp:     import('../types/checkpoint.types.ts').ChatCheckpoint,
+  status: 'stable' | 'rolled_back' | 'failed' | 'creating' = 'stable',
+): CheckpointListItem {
+  const sha = cp.gitCommitSha ?? undefined;
   return {
     id:            cp.id,
     runId:         cp.runId,
     projectId:     cp.projectId,
+    label:         cp.title,
     title:         cp.title,
     description:   cp.description,
     trigger:       cp.trigger,
+    status,
     filesChanged:  cp.filesChanged,
+    fileCount:     cp.filesChanged,
     createdFiles:  cp.createdFiles,
     modifiedFiles: cp.modifiedFiles,
     deletedFiles:  cp.deletedFiles,
     createdAt:     cp.createdAt.toISOString(),
+    gitCommitSha:  sha,
+    gitSha:        sha,
   };
 }
 
@@ -39,7 +48,7 @@ export const checkpointController = {
     }
     try {
       const cps = await chatCheckpointStore.listByProject(projectId);
-      res.json({ ok: true, checkpoints: cps.map(toListItem) });
+      res.json({ ok: true, checkpoints: cps.map(cp => toListItem(cp)) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
@@ -68,7 +77,7 @@ export const checkpointController = {
     try {
       const cp = await chatCheckpointStore.createManual(projectId, label || 'manual');
       const payload = makeCheckpointCreatedPayload(cp);
-      bus.emit('checkpoint', payload);
+      bus.emit('checkpoint', payload as unknown as Record<string, unknown>);
       res.status(201).json({ ok: true, checkpoint: toListItem(cp) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
@@ -84,9 +93,8 @@ export const checkpointController = {
         res.status(400).json({ ok: false, error: result.error ?? 'Rollback failed' });
         return;
       }
-      // Emit SSE so connected clients know a rollback happened
       const payload = makeCheckpointRollbackPayload(checkpointId, '', Number(projectId));
-      bus.emit('checkpoint', payload);
+      bus.emit('checkpoint', payload as unknown as Record<string, unknown>);
       res.json({ ok: true, ...result });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
@@ -103,8 +111,28 @@ export const checkpointController = {
         return;
       }
       const event = makeCheckpointDeletedEvent(checkpointId, Number(projectId));
-      bus.emit('checkpoint', event);
+      bus.emit('checkpoint', event as unknown as Record<string, unknown>);
       res.json({ ok: true, checkpointId });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  /**
+   * GET /api/checkpoints/:projectId/:checkpointId/diff?compareId=<id>
+   * Returns file-level diff between two checkpoint snapshots.
+   */
+  async diff(req: Request, res: Response): Promise<void> {
+    const { checkpointId } = req.params;
+    const compareId = typeof req.query.compareId === 'string' ? req.query.compareId : '';
+    if (!compareId) {
+      res.status(400).json({ ok: false, error: 'compareId query param is required' });
+      return;
+    }
+    try {
+      const diff = await chatCheckpointStore.diffCheckpoints(checkpointId, compareId);
+      const summary = `${diff.added.length} added, ${diff.removed.length} removed, ${diff.modified.length} modified`;
+      res.json({ ok: true, diff, summary });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
