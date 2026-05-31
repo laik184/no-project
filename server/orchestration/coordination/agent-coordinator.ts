@@ -23,7 +23,7 @@ import { runExecutorAgent }       from '../../agents/executor/index.ts';
 import { runFilesystemAgent }     from '../../agents/filesystem/index.ts';
 import { runPlannerCycle }        from '../../agents/planner/index.ts';
 import { runSupervisorCycle }     from '../../agents/supervisor/index.ts';
-import { executeTerminalSession } from '../../agents/terminal/terminal-agent.ts';
+import { executeTerminalSession } from '../../agents/terminal/index.ts';
 import { runVerification }        from '../../agents/verifier/verifier-agent.ts';
 
 import type { AgentType, Phase, PhaseResult } from '../types/orchestration.types.ts';
