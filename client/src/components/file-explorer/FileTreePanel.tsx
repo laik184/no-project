@@ -271,7 +271,7 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
               background: "#1a1a1a", border: "1px solid #2e2e2e",
               borderRadius: 8, padding: "4px 0",
               boxShadow: "0 12px 32px rgba(0,0,0,.6)",
-              minWidth: 192,
+              minWidth: 160,
             }}>
               <MenuItem Icon={FilePlus}       label="New file"          testId="menu-new-file"
                 onClick={() => { setCreatingFile(true); setCreatingFolder(false); setShowMenu(false); }} />
