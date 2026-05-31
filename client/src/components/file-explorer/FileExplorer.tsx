@@ -2,9 +2,24 @@ import { RawTreeNode } from "./types";
 import { fileIcon } from "./file-icon";
 import { ContextMenu } from "./ContextMenu";
 import { useFileExplorer } from "./use-file-explorer";
-import { useState, useRef } from "react";
+import { useOpenEditors } from "./use-open-editors";
+import { useRecentFiles } from "./use-recent-files";
+import { OpenEditorsPanel } from "./OpenEditorsPanel";
+import { AgentStatusPanel } from "./AgentStatusPanel";
+import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, RotateCcw, Search, X } from "lucide-react";
 import { InlineInput } from "./InlineInput";
+
+// ── Sidebar resize constants ───────────────────────────────────────────────────
+const WIDTH_KEY = "nura-x:explorer-width";
+const MIN_W     = 160;
+const MAX_W     = 480;
+const DEF_W     = 220;
+
+function loadWidth(): number {
+  try { return Math.min(MAX_W, Math.max(MIN_W, Number(localStorage.getItem(WIDTH_KEY)) || DEF_W)); }
+  catch { return DEF_W; }
+}
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -12,10 +27,19 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function countTree(nodes: RawTreeNode[]): { files: number; folders: number } {
+  let files = 0, folders = 0;
+  for (const n of nodes) {
+    if (n.type === "file") { files++; }
+    else { folders++; if (n.children) { const c = countTree(n.children); files += c.files; folders += c.folders; } }
+  }
+  return { files, folders };
+}
+
 // Inject animations once
 if (typeof document !== "undefined" && !document.getElementById("__rfe-anim__")) {
   const s = document.createElement("style");
-  s.id = "__rfe-anim__";
+  s.id    = "__rfe-anim__";
   s.textContent = `
     @keyframes rfe-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     @keyframes rfe-spin  { to{transform:rotate(360deg)} }
@@ -25,17 +49,19 @@ if (typeof document !== "undefined" && !document.getElementById("__rfe-anim__"))
     .rfe-sidebar ::-webkit-scrollbar-track{background:transparent}
     .rfe-sidebar ::-webkit-scrollbar-thumb{background:#2e2e2e;border-radius:2px}
     .rfe-sidebar ::-webkit-scrollbar-thumb:hover{background:#3a3a3a}
+    .rfe-resize-handle { width:4px;cursor:col-resize;position:absolute;top:0;right:0;bottom:0;z-index:10;background:transparent;transition:background .15s; }
+    .rfe-resize-handle:hover,.rfe-resize-handle.dragging { background:rgba(59,130,246,.35); }
   `;
   document.head.appendChild(s);
 }
 
 interface FileExplorerProps {
-  projectPath: string;
-  onSelect?: (path: string) => void;
-  activeFile?: string;
+  projectPath:    string;
+  onSelect?:      (path: string) => void;
+  onFileSelect?:  (path: string) => void; // alias used by unified-grid
+  activeFile?:    string;
 }
 
-// Indent guide line width per level — tightened from 16 → 14
 const INDENT = 14;
 
 function RenderNode({
@@ -54,18 +80,31 @@ function RenderNode({
   searchQuery: string;
 }) {
   const [open, setOpen] = useState(depth < 2);
-  const isDir    = node.type === "folder" || node.type === "directory";
-  const full     = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
-  const active   = !!activeFile && activeFile === full;
-  const dirty    = dirtyFiles.has(full);
-  const ai       = aiFiles.has(full);
-  const writing  = writingFiles.has(full);
+  const isDir     = node.type === "folder" || node.type === "directory";
+  const full      = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
+  const active    = !!activeFile && activeFile === full;
+  const dirty     = dirtyFiles.has(full);
+  const ai        = aiFiles.has(full);
+  const writing   = writingFiles.has(full);
   const writeSize = writingSizes.get(full);
-  const hovered  = hoveredPath === full;
+  const hovered   = hoveredPath === full;
 
-  // Search filter — hide nodes that don't match
   const sq = searchQuery.trim().toLowerCase();
   if (sq && !node.name.toLowerCase().includes(sq) && !isDir) return null;
+
+  // Fuzzy search highlight — wraps matching chars in a highlighted span
+  const highlightName = (name: string): React.ReactNode => {
+    if (!sq) return name;
+    const idx = name.toLowerCase().indexOf(sq);
+    if (idx === -1) return name;
+    return (
+      <>
+        {name.slice(0, idx)}
+        <span style={{ color: "#fbbf24", fontWeight: 600 }}>{name.slice(idx, idx + sq.length)}</span>
+        {name.slice(idx + sq.length)}
+      </>
+    );
+  };
 
   const paddingLeft = 4 + depth * INDENT;
 
@@ -74,12 +113,13 @@ function RenderNode({
     height: 20, paddingRight: 4, paddingLeft,
     cursor: "pointer", userSelect: "none", fontSize: 12,
     position: "relative",
-    borderLeft: active ? "2px solid #3b82f6"
-      : writing ? "2px solid #3b82f6"
-      : "2px solid transparent",
+    borderLeft: active   ? "2px solid #3b82f6"
+      : writing          ? "2px solid #60a5fa"
+      : dirty            ? "2px solid #f59e0b"
+      :                    "2px solid transparent",
     background: writing ? "rgba(59,130,246,.06)"
-      : active ? "#2a2a2a"
-      : hovered ? "#252525"
+      : active  ? "#2a2a2a"
+      : hovered ? "#202020"
       : "transparent",
     color: active ? "#f0f0f0" : "#b4b4b4",
     transition: "background .1s, color .1s",
@@ -97,14 +137,11 @@ function RenderNode({
           onMouseLeave={() => setHoveredPath(null)}
           data-testid={`folder-${node.name}`}
         >
-          {/* Indent guide lines */}
           {Array.from({ length: depth }).map((_, i) => (
             <span key={i} style={{
-              position: "absolute",
-              left: 4 + i * INDENT + 5,
+              position: "absolute", left: 4 + i * INDENT + 5,
               top: 0, bottom: 0, width: 1,
-              background: "#252525",
-              pointerEvents: "none",
+              background: "#202020", pointerEvents: "none",
             }} />
           ))}
           <span style={{ color: "#4a4a4a", flexShrink: 0, display: "flex", zIndex: 1 }}>
@@ -113,8 +150,8 @@ function RenderNode({
               : <ChevronRight style={{ width: 11, height: 11 }} />}
           </span>
           {fileIcon(node.name, "folder", open)}
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: hovered || active ? "#d4d4d4" : "#aaaaaa" }}>
-            {node.name}
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: hovered || active ? "#d4d4d4" : "#9a9a9a" }}>
+            {highlightName(node.name)}
           </span>
           {writing ? (
             <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
@@ -147,26 +184,22 @@ function RenderNode({
       onMouseLeave={() => setHoveredPath(null)}
       data-testid={`file-${node.name}`}
     >
-      {/* Indent guide lines */}
       {Array.from({ length: depth }).map((_, i) => (
         <span key={i} style={{
-          position: "absolute",
-          left: 4 + i * INDENT + 5,
+          position: "absolute", left: 4 + i * INDENT + 5,
           top: 0, bottom: 0, width: 1,
-          background: "#252525",
-          pointerEvents: "none",
+          background: "#202020", pointerEvents: "none",
         }} />
       ))}
-      {/* Spacer aligns files with folder chevron */}
       <span style={{ width: 11, flexShrink: 0, zIndex: 1 }} />
       {fileIcon(node.name, "file")}
       <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {node.name}
+        {highlightName(node.name)}
       </span>
       {writing ? (
         <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
       ) : dirty ? (
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", flexShrink: 0 }} title="Unsaved changes" />
+        <span title="Modified" style={{ fontSize: 9, padding: "0 3px", borderRadius: 2, background: "rgba(245,158,11,.15)", color: "#f59e0b", flexShrink: 0, letterSpacing: .2 }}>M</span>
       ) : ai ? (
         <span style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "rgba(34,197,94,.15)", color: "#4ade80", letterSpacing: .3 }}>AI</span>
       ) : null}
@@ -174,7 +207,7 @@ function RenderNode({
   );
 }
 
-// ── Inline creation row (appears at top of tree) ──────────────────────────────
+// ── Inline creation row ────────────────────────────────────────────────────────
 function InlineCreateRow({
   type, onConfirm, onCancel,
 }: { type: "file" | "folder"; onConfirm: (name: string) => void; onCancel: () => void }) {
@@ -196,17 +229,62 @@ function InlineCreateRow({
   );
 }
 
-export default function FileExplorer({ projectPath, onSelect, activeFile }: FileExplorerProps) {
+export default function FileExplorer({ projectPath, onSelect, onFileSelect, activeFile }: FileExplorerProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; path: string; isDir: boolean } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [creating, setCreating]       = useState<"file" | "folder" | null>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [width, setWidth]             = useState(loadWidth);
+  const searchRef  = useRef<HTMLInputElement>(null);
+  const dragRef    = useRef<{ startX: number; startW: number } | null>(null);
+  const handleRef  = useRef<HTMLDivElement>(null);
+
+  const selectHandler = onFileSelect ?? onSelect;
 
   const {
     tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath,
     setHoveredPath, setFocusedPath, refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,
   } = useFileExplorer({ projectPath, activeFile });
+
+  const { openFiles, openFile, closeFile, closeAll } = useOpenEditors();
+  const { recordOpen } = useRecentFiles();
+
+  // ── Sidebar resize ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = e.clientX - dragRef.current.startX;
+      const next  = Math.min(MAX_W, Math.max(MIN_W, dragRef.current.startW + delta));
+      setWidth(next);
+    };
+    const onUp = () => {
+      if (!dragRef.current) return;
+      try { localStorage.setItem(WIDTH_KEY, String(width)); } catch {}
+      dragRef.current = null;
+      handleRef.current?.classList.remove("dragging");
+      document.body.style.cursor = "";
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup",   onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup",   onUp);
+    };
+  }, [width]);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = { startX: e.clientX, startW: width };
+    handleRef.current?.classList.add("dragging");
+    document.body.style.cursor = "col-resize";
+  };
+
+  // ── File select — records open + recent ───────────────────────────────────
+  const handleSelect = (path: string) => {
+    openFile(path);
+    recordOpen(path);
+    selectHandler?.(path);
+  };
 
   const openCtx = (e: React.MouseEvent, path: string, isDir: boolean) => {
     e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, path, isDir });
@@ -229,18 +307,22 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
     setCreating(null);
   };
 
-  const isEmpty = tree.length === 0;
+  const { files: fileCount, folders: folderCount } = countTree(tree);
+  const isEmpty    = tree.length === 0;
+  const workspaceName = projectPath
+    ? projectPath.split("/").filter(Boolean).pop() ?? "workspace"
+    : "workspace";
 
   const hdrBtn = (Icon: React.ElementType, title: string, onClick: () => void) => (
     <button key={title} title={title} onClick={onClick}
       style={{
         width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center",
         background: "transparent", border: "none", cursor: "pointer",
-        borderRadius: 3, color: "#4a4a4a", transition: "background .1s, color .1s",
+        borderRadius: 3, color: "#3a3a3a", transition: "background .1s, color .1s",
         flexShrink: 0,
       }}
       onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; }}
-      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#4a4a4a"; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#3a3a3a"; }}
     >
       <Icon style={{ width: 12, height: 12 }} />
     </button>
@@ -250,35 +332,54 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
     <div
       className="rfe-sidebar"
       style={{
-        width: 220, display: "flex", flexDirection: "column",
+        width, display: "flex", flexDirection: "column", position: "relative",
         background: "#1c1c1c", borderRight: "1px solid #252525",
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        fontSize: 12, position: "relative", height: "100%",
+        fontSize: 12, height: "100%", flexShrink: 0,
       }}
       onClick={() => { if (contextMenu) closeCtx(); }}
     >
+      {/* ── Open Editors panel ── */}
+      <OpenEditorsPanel
+        files={openFiles}
+        activeFile={activeFile}
+        onSelect={(path) => { selectHandler?.(path); }}
+        onClose={closeFile}
+        onCloseAll={closeAll}
+      />
+
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 4px 0 8px", height: 32, flexShrink: 0,
         borderBottom: "1px solid #252525",
       }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#4a4a4a", textTransform: "uppercase", letterSpacing: ".08em" }}>
-          Files
-        </span>
-        <div style={{ display: "flex", gap: 1 }}>
-          {hdrBtn(RotateCcw, "Refresh", () => refreshFiles())}
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#4a4a4a", textTransform: "uppercase", letterSpacing: ".08em" }}>
+            Files
+          </span>
+          {projectPath && (
+            <span style={{ fontSize: 9, color: "#303030", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              title={projectPath}>
+              {workspaceName} · {fileCount}f {folderCount}d
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
+          {hdrBtn(FilePlus,   "New File",    () => setCreating("file"))}
+          {hdrBtn(FolderPlus, "New Folder",  () => setCreating("folder"))}
+          {hdrBtn(RotateCcw,  "Refresh",     () => refreshFiles())}
         </div>
       </div>
 
       {/* ── Search ── */}
-      <div style={{ padding: "4px 6px", flexShrink: 0, borderBottom: "1px solid #222" }}>
+      <div style={{ padding: "4px 6px", flexShrink: 0, borderBottom: "1px solid #1e1e1e" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "2px 6px", borderRadius: 4,
-          background: "#141414", border: "1px solid #272727",
+          background: "#141414", border: "1px solid #232323",
         }}>
-          <Search style={{ width: 11, height: 11, color: "#3a3a3a", flexShrink: 0 }} />
+          <Search style={{ width: 11, height: 11, color: "#363636", flexShrink: 0 }} />
           <input
             ref={searchRef}
             value={searchQuery}
@@ -312,7 +413,6 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
       {/* ── Tree / Empty state ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: "2px 0" }}>
         {isEmpty && !creating ? (
-          /* Compact empty state */
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
             padding: "20px 12px 14px", gap: 8,
@@ -358,19 +458,32 @@ export default function FileExplorer({ projectPath, onSelect, activeFile }: File
               writingFiles={writingFiles} writingSizes={writingSizes}
               hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
               setFocusedPath={setFocusedPath}
-              onSelect={(path) => onSelect && onSelect(path)}
+              onSelect={handleSelect}
               onContextMenu={openCtx}
               searchQuery={searchQuery} />
           ))
         )}
       </div>
 
+      {/* ── Agent status panel ── */}
+      <AgentStatusPanel />
+
+      {/* ── Context menu ── */}
       <ContextMenu
         menu={contextMenu}
+        targetPath={contextMenu?.path ?? ""}
         onNewFile={() => { closeCtx(); setCreating("file"); }}
         onNewFolder={() => { closeCtx(); setCreating("folder"); }}
         onRename={async () => { if (contextMenu) { await handleRenamePath(contextMenu.path); closeCtx(); } }}
         onDelete={async () => { if (contextMenu) { await handleDeletePath(contextMenu.path); closeCtx(); } }}
+      />
+
+      {/* ── Resize handle ── */}
+      <div
+        ref={handleRef}
+        className="rfe-resize-handle"
+        onMouseDown={startResize}
+        data-testid="sidebar-resize-handle"
       />
     </div>
   );
