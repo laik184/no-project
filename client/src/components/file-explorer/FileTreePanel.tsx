@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Search, X, FilePlus, FolderPlus } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, X, FilePlus, FolderPlus, MoreHorizontal } from "lucide-react";
 import { FileNode } from "./types";
 import { guessLang, fileIcon } from "./file-icon";
 import {
@@ -20,7 +20,20 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
   const [searchQuery, setSearchQuery]     = useState("");
   const [creatingFile, setCreatingFile]   = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showMenu, setShowMenu]           = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const menuRef   = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
 
   const sq = searchQuery.trim().toLowerCase();
   const searchResults = sq ? flattenFiles(tree).filter(({ path }) => path.toLowerCase().includes(sq)) : [];
@@ -74,10 +87,15 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
         </div>
       </div>
 
-      {/* ── Search ── */}
-      <div style={{ padding: "5px 8px", flexShrink: 0, borderBottom: "1px solid #222" }}>
+      {/* ── Search + 3-dot menu ── */}
+      <div style={{
+        padding: "5px 6px 5px 8px", flexShrink: 0,
+        borderBottom: "1px solid #222",
+        display: "flex", alignItems: "center", gap: 4,
+      }}>
+        {/* Search input */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 6,
+          flex: 1, display: "flex", alignItems: "center", gap: 6,
           padding: "3px 8px", borderRadius: 4,
           background: "#141414", border: "1px solid #2a2a2a",
         }}>
@@ -99,6 +117,57 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
               style={{ background: "none", border: "none", cursor: "pointer", color: "#444", display: "flex", padding: 0 }}>
               <X style={{ width: 10, height: 10 }} />
             </button>
+          )}
+        </div>
+
+        {/* 3-dot menu */}
+        <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            onClick={() => setShowMenu(v => !v)}
+            title="More actions"
+            data-testid="button-explorer-more"
+            style={{
+              width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
+              background: showMenu ? "#2a2a2a" : "transparent",
+              border: "none", cursor: "pointer", borderRadius: 4,
+              color: showMenu ? "#b4b4b4" : "#4a4a4a",
+              transition: "background .1s, color .1s", flexShrink: 0,
+            }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; }}
+            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; if (!showMenu) { el.style.background = "transparent"; el.style.color = "#4a4a4a"; } }}
+          >
+            <MoreHorizontal style={{ width: 14, height: 14 }} />
+          </button>
+
+          {showMenu && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 100,
+              background: "#1e1e1e", border: "1px solid #2e2e2e",
+              borderRadius: 6, padding: "3px 0",
+              boxShadow: "0 8px 24px rgba(0,0,0,.5)",
+              minWidth: 148,
+            }}>
+              {[
+                { label: "New File",   Icon: FilePlus,   action: () => { setCreatingFile(true); setCreatingFolder(false); setShowMenu(false); } },
+                { label: "New Folder", Icon: FolderPlus, action: () => { setCreatingFolder(true); setCreatingFile(false); setShowMenu(false); } },
+              ].map(({ label, Icon, action }) => (
+                <button key={label} onClick={action}
+                  data-testid={`menu-${label.toLowerCase().replace(" ", "-")}`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    width: "100%", padding: "5px 12px",
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: "#888", fontSize: 12, fontFamily: "inherit", textAlign: "left",
+                    transition: "background .1s, color .1s",
+                  }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#272727"; el.style.color = "#d4d4d4"; }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#888"; }}
+                >
+                  <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />
+                  {label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
