@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Bot, Sparkles, MessageSquarePlus } from "lucide-react";
+import { Bot, MessageSquarePlus, CheckCircle2, XCircle, Ban, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentMarkdown } from "@/components/agent/AgentMarkdown";
 import { CheckpointCard } from "@/components/panels/CheckpointCard";
@@ -8,7 +8,7 @@ import { ThinkingBubble, LiveActionBar } from "./LiveActionBar";
 import { QuestionCard } from "./QuestionCard";
 import { ActionGroup } from "./ActionGroup";
 import { PlanningCard } from "./cards/PlanningCard";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, CompletionData } from "./types";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
 interface ChatMessagesProps {
@@ -23,6 +23,73 @@ interface ChatMessagesProps {
   onSelectPrompt: (prompt: string) => void;
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+}
+
+function CompletionCard({ data }: { data: CompletionData }) {
+  const isOk        = data.status === "completed";
+  const isCancelled = data.status === "cancelled";
+
+  const statusColor = isOk ? "#22C55E" : isCancelled ? "#F59E0B" : "#EF4444";
+  const StatusIcon  = isOk ? CheckCircle2 : isCancelled ? Ban : XCircle;
+  const statusLabel = isOk ? "Completed" : isCancelled ? "Cancelled" : "Failed";
+
+  return (
+    <div className="rounded-xl overflow-hidden" data-testid="completion-card"
+      style={{ background: "#111827", border: `1px solid ${isOk ? "rgba(34,197,94,0.2)" : isCancelled ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5"
+        style={{ borderBottom: "1px solid #263244" }}>
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${statusColor}14`, border: `1px solid ${statusColor}30` }}>
+          <StatusIcon style={{ width: 12, height: 12, color: statusColor }} />
+        </div>
+        <span className="text-[11.5px] font-semibold flex-1 truncate" style={{ color: "#E5E7EB" }}>
+          {statusLabel}
+        </span>
+        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
+          style={{ background: "#1A2230", border: "1px solid #263244", color: "#94A3B8" }}>
+          {formatDuration(data.durationMs)}
+        </span>
+      </div>
+
+      {/* Goal */}
+      <div className="px-3 py-2" style={{ borderBottom: "1px solid #263244" }}>
+        <p className="text-[10px] font-medium mb-0.5" style={{ color: "#94A3B8" }}>Task</p>
+        <p className="text-[11px] leading-snug" style={{ color: "#E5E7EB" }}>
+          {data.goal.length > 100 ? `${data.goal.slice(0, 100)}…` : data.goal}
+        </p>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center divide-x px-0" style={{ borderColor: "#263244" }}>
+        <div className="flex-1 flex flex-col items-center py-2 gap-0.5">
+          <span className="text-[14px] font-semibold tabular-nums" style={{ color: "#E5E7EB" }}>
+            {data.filesChanged}
+          </span>
+          <span className="text-[9px]" style={{ color: "#94A3B8" }}>files changed</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center py-2 gap-0.5" style={{ borderLeft: "1px solid #263244" }}>
+          <span className="text-[14px] font-semibold tabular-nums" style={{ color: "#E5E7EB" }}>
+            {data.actionsCompleted}
+          </span>
+          <span className="text-[9px]" style={{ color: "#94A3B8" }}>actions</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center py-2 gap-0.5" style={{ borderLeft: "1px solid #263244" }}>
+          <span className="text-[14px] font-semibold tabular-nums" style={{ color: statusColor }}>
+            {statusLabel}
+          </span>
+          <span className="text-[9px]" style={{ color: "#94A3B8" }}>status</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeAction, showNewChatScreen, suggestedPrompts, onOpenFile, onAnswer, onSelectPrompt }: ChatMessagesProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -34,23 +101,23 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
     <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3 min-h-0">
       {showNewChatScreen && (
         <div className="flex flex-col items-center justify-center flex-1 h-full gap-5 text-center px-2 py-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "rgba(124,141,255,0.08)", border: "1px solid rgba(124,141,255,0.18)" }}>
-            <MessageSquarePlus className="h-7 w-7 text-primary" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: "#1A2230", border: "1px solid #263244" }}>
+            <Cpu className="h-5 w-5" style={{ color: "#3B82F6" }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground mb-1.5">New chat with Agent</p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed px-2">
-              Agent can make changes, review its work, and debug itself automatically.
+            <p className="text-sm font-semibold mb-1" style={{ color: "#E5E7EB" }}>New session</p>
+            <p className="text-[11px] leading-relaxed px-2" style={{ color: "#94A3B8" }}>
+              NURAX can make changes, review its work, and debug itself automatically.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-center">
             {suggestedPrompts.map((prompt) => (
               <button key={prompt} onClick={() => onSelectPrompt(prompt)}
-                className="px-3 py-1.5 rounded-lg text-[11px] text-white/75 hover:text-white transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+                className="px-3 py-1.5 rounded-lg text-[11px] transition-colors"
+                style={{ background: "#1A2230", border: "1px solid #263244", color: "#94A3B8" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#E5E7EB"; (e.currentTarget as HTMLElement).style.borderColor = "#3B82F6"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#94A3B8"; (e.currentTarget as HTMLElement).style.borderColor = "#263244"; }}
                 data-testid={`button-new-chat-prompt-${prompt.replace(/\s+/g, "-").toLowerCase()}`}>
                 {prompt}
               </button>
@@ -78,6 +145,9 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
         if (msg.role === "plan") {
           return <PlanningCard key={i} plan={msg.plan} />;
         }
+        if (msg.role === "completion") {
+          return <CompletionCard key={i} data={msg.completion} />;
+        }
         if (msg.role === "tool_group") {
           return (
             <ActionGroup
@@ -90,8 +160,12 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
         return (
           <div key={i} className={cn("flex gap-2", msg.role === "user" ? "flex-row-reverse" : "flex-row")}>
             <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[9px] font-bold mt-0.5"
-              style={msg.role === "agent" ? { background: "linear-gradient(135deg, #7c8dff 0%, #a78bfa 100%)" } : { background: "rgba(255,255,255,0.1)" }}>
-              {msg.role === "agent" ? <Bot className="h-3 w-3 text-white" /> : <span className="text-foreground">U</span>}
+              style={msg.role === "agent"
+                ? { background: "#1A2230", border: "1px solid #263244" }
+                : { background: "#1e3a5f", border: "1px solid rgba(59,130,246,0.25)" }}>
+              {msg.role === "agent"
+                ? <Bot className="h-3 w-3" style={{ color: "#3B82F6" }} />
+                : <span style={{ color: "#94A3B8" }}>U</span>}
             </div>
             {msg.role === "agent" ? (
               <div className="flex-1 min-w-0 py-0.5" data-testid={`message-agent-${i}`}>
@@ -102,13 +176,13 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
                       @keyframes stream-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
                       .stream-cursor { animation: stream-cursor 0.8s ease-in-out infinite; }
                     `}</style>
-                    <span className="stream-cursor inline-block w-[2px] h-[13px] ml-0.5 rounded-sm align-middle" style={{ background: "#7c8dff", verticalAlign: "text-bottom" }} />
+                    <span className="stream-cursor inline-block w-[2px] h-[13px] ml-0.5 rounded-sm align-middle" style={{ background: "#3B82F6", verticalAlign: "text-bottom" }} />
                   </>
                 )}
               </div>
             ) : (
               <div className="max-w-[82%] px-3 py-2 rounded-2xl text-[11.5px] leading-relaxed"
-                style={{ background: "rgba(124,141,255,0.18)", border: "1px solid rgba(124,141,255,0.28)", color: "rgba(226,232,240,1)" }}
+                style={{ background: "#1A2230", border: "1px solid #263244", color: "#E5E7EB" }}
                 data-testid={`message-user-${i}`}>
                 {msg.content}
               </div>
@@ -131,16 +205,16 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
             .typing-wrapper{animation:typing-fade-in 0.2s cubic-bezier(0.22,1,0.36,1) both}
           `}</style>
           <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
-            style={{ background: "linear-gradient(135deg, #7c8dff 0%, #a78bfa 100%)", boxShadow: "0 0 10px rgba(124,141,255,0.35)" }}>
-            <Sparkles className="h-3 w-3 text-white" />
+            style={{ background: "#1A2230", border: "1px solid #263244" }}>
+            <Bot className="h-3 w-3" style={{ color: "#3B82F6" }} />
           </div>
           <div className="typing-wrapper flex flex-col gap-1.5 px-3.5 py-2.5 rounded-2xl rounded-tl-sm"
-            style={{ background: "rgba(124,141,255,0.07)", border: "1px solid rgba(124,141,255,0.2)" }}>
-            <span className="text-[11px] font-semibold" style={{ color: "rgba(167,139,250,0.95)" }}>Responding</span>
+            style={{ background: "#111827", border: "1px solid #263244" }}>
+            <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Responding</span>
             <div className="flex items-center gap-[4px]">
-              <span className="typing-dot-1 w-[5px] h-[5px] rounded-full block" style={{ background: "rgba(167,139,250,0.9)" }} />
-              <span className="typing-dot-2 w-[5px] h-[5px] rounded-full block" style={{ background: "rgba(167,139,250,0.9)" }} />
-              <span className="typing-dot-3 w-[5px] h-[5px] rounded-full block" style={{ background: "rgba(167,139,250,0.9)" }} />
+              <span className="typing-dot-1 w-[5px] h-[5px] rounded-full block" style={{ background: "#3B82F6" }} />
+              <span className="typing-dot-2 w-[5px] h-[5px] rounded-full block" style={{ background: "#3B82F6" }} />
+              <span className="typing-dot-3 w-[5px] h-[5px] rounded-full block" style={{ background: "#3B82F6" }} />
             </div>
           </div>
         </div>

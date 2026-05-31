@@ -9,8 +9,6 @@ import { FileCode, ExternalLink, CheckCircle2, Loader2,
          ThumbsUp, ThumbsDown, GitPullRequest, X }    from "lucide-react";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
-// ── Language helpers ───────────────────────────────────────────────────────────
-
 const LANG_MAP: Record<string, string> = {
   ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript",
   py: "Python", rs: "Rust", go: "Go", css: "CSS", html: "HTML",
@@ -26,8 +24,6 @@ const getLang      = (p: string) => LANG_MAP[p.split(".").pop()?.toLowerCase() ?
 const getFilename  = (p: string) => p.split("/").pop() ?? p;
 
 const PATCH_TOOLS = new Set(["patch.queue", "diff.queued", "patch_queue"]);
-
-// ── Diff Accept/Reject bar (T1) ────────────────────────────────────────────────
 
 type AcceptState = "pending" | "accepting" | "accepted" | "rejected" | "error";
 
@@ -66,7 +62,7 @@ function DiffAcceptRejectBar({
   if (state === "accepted") {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2 text-[10px]"
-        style={{ borderTop: "1px solid rgba(74,222,128,0.1)", color: "#4ade80" }}>
+        style={{ borderTop: "1px solid rgba(34,197,94,0.12)", color: "#22C55E" }}>
         <CheckCircle2 style={{ width: 11, height: 11 }} />
         Change applied
       </div>
@@ -76,7 +72,7 @@ function DiffAcceptRejectBar({
   if (state === "rejected") {
     return (
       <div className="flex items-center gap-1.5 px-3 py-2 text-[10px]"
-        style={{ borderTop: "1px solid rgba(248,113,113,0.1)", color: "rgba(248,113,113,0.7)" }}>
+        style={{ borderTop: "1px solid rgba(239,68,68,0.12)", color: "rgba(239,68,68,0.7)" }}>
         <X style={{ width: 11, height: 11 }} />
         Change rejected
       </div>
@@ -84,20 +80,20 @@ function DiffAcceptRejectBar({
   }
 
   return (
-    <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+    <div style={{ borderTop: "1px solid #263244" }}>
       {state === "error" && errMsg && (
-        <p className="px-3 pt-1.5 text-[9.5px]" style={{ color: "#f87171" }}>{errMsg}</p>
+        <p className="px-3 pt-1.5 text-[9.5px]" style={{ color: "#EF4444" }}>{errMsg}</p>
       )}
       <div className="flex items-center gap-2 px-3 py-2">
-        <GitPullRequest style={{ width: 11, height: 11, color: "rgba(124,141,255,0.7)", flexShrink: 0 }} />
-        <span className="flex-1 text-[10px]" style={{ color: "rgba(148,163,184,0.65)" }}>
+        <GitPullRequest style={{ width: 11, height: 11, color: "rgba(59,130,246,0.7)", flexShrink: 0 }} />
+        <span className="flex-1 text-[10px]" style={{ color: "#94A3B8" }}>
           AI proposes this change
         </span>
         <button
           onClick={() => setState("rejected")}
           disabled={state === "accepting"}
           className="flex items-center gap-1 px-2 py-1 rounded-md text-[9.5px] font-medium transition-all hover:bg-white/[0.06]"
-          style={{ border: "1px solid rgba(248,113,113,0.25)", color: "rgba(248,113,113,0.8)" }}
+          style={{ border: "1px solid rgba(239,68,68,0.25)", color: "rgba(239,68,68,0.8)" }}
           data-testid="button-diff-reject">
           <ThumbsDown style={{ width: 10, height: 10 }} />
           Reject
@@ -106,7 +102,7 @@ function DiffAcceptRejectBar({
           onClick={handleAccept}
           disabled={state === "accepting"}
           className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[9.5px] font-medium transition-all"
-          style={{ background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.3)", color: "#4ade80" }}
+          style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22C55E" }}
           data-testid="button-diff-accept">
           {state === "accepting"
             ? <Loader2 className="animate-spin" style={{ width: 10, height: 10 }} />
@@ -117,8 +113,6 @@ function DiffAcceptRejectBar({
     </div>
   );
 }
-
-// ── Main card ──────────────────────────────────────────────────────────────────
 
 interface FileWriteCardProps {
   item: AgentStreamItem;
@@ -137,7 +131,6 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
   const logs      = item.meta?.logs as string | undefined;
   const proposed  = item.meta?.proposed as string | undefined;
 
-  // Diff preview: prefer logs (unified diff), fall back to comparing original vs proposed
   const previewLines = logs
     ? logs.split("\n").filter((l) => l.startsWith("+") || l.startsWith("-")).slice(0, 4)
     : [];
@@ -147,10 +140,8 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
       className="rounded-lg overflow-hidden"
       data-testid="file-write-card"
       style={{
-        background: isPatch
-          ? "rgba(124,141,255,0.04)"
-          : "rgba(134,239,172,0.04)",
-        border: `1px solid ${isPatch ? "rgba(124,141,255,0.18)" : "rgba(134,239,172,0.15)"}`,
+        background: "#111827",
+        border: isPatch ? "1px solid rgba(59,130,246,0.2)" : "1px solid rgba(134,239,172,0.15)",
         animation: "card-enter 0.22s cubic-bezier(0.22,1,0.36,1) both",
       }}>
 
@@ -158,36 +149,36 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
       <div className="flex items-center gap-2.5 px-3 py-2">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{
-            background: isPatch ? "rgba(124,141,255,0.1)" : "rgba(134,239,172,0.1)",
-            border: `1px solid ${isPatch ? "rgba(124,141,255,0.22)" : "rgba(134,239,172,0.2)"}`,
+            background: isPatch ? "rgba(59,130,246,0.1)" : "rgba(134,239,172,0.08)",
+            border: isPatch ? "1px solid rgba(59,130,246,0.2)" : "1px solid rgba(134,239,172,0.15)",
           }}>
-          <FileCode style={{ width: 13, height: 13, color: isPatch ? "#7c8dff" : "#86efac" }} />
+          <FileCode style={{ width: 13, height: 13, color: isPatch ? "#3B82F6" : "#86efac" }} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-[11.5px] font-medium font-mono truncate"
-              style={{ color: "rgba(203,213,225,0.9)" }}>{filename}</span>
+              style={{ color: "#E5E7EB" }}>{filename}</span>
             <span className="text-[8.5px] px-1.5 py-0.5 rounded-sm font-mono flex-shrink-0"
-              style={{ background: `${langColor}15`, border: `1px solid ${langColor}30`, color: `${langColor}cc` }}>
+              style={{ background: `${langColor}12`, border: `1px solid ${langColor}28`, color: `${langColor}cc` }}>
               {lang}
             </span>
             {isPatch && (
               <span className="text-[8.5px] px-1.5 py-0.5 rounded-sm font-mono flex-shrink-0"
-                style={{ background: "rgba(124,141,255,0.1)", border: "1px solid rgba(124,141,255,0.25)", color: "#7c8dff" }}>
+                style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.22)", color: "#3B82F6" }}>
                 patch
               </span>
             )}
           </div>
           <span className="text-[9px] font-mono truncate block mt-0.5"
-            style={{ color: "rgba(100,116,139,0.5)" }}>{filePath}</span>
+            style={{ color: "#94A3B8" }}>{filePath}</span>
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
           {!isPatch && (
             isRunning
               ? <Loader2 className="animate-spin" style={{ width: 12, height: 12, color: "#86efac" }} />
-              : <span className="flex items-center gap-1 text-[9px] font-medium" style={{ color: "#4ade80" }}>
+              : <span className="flex items-center gap-1 text-[9px] font-medium" style={{ color: "#22C55E" }}>
                   <CheckCircle2 style={{ width: 11, height: 11 }} />
                   Written
                 </span>
@@ -195,7 +186,7 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
           {!isPatch && onOpenFile && isDone && (
             <button onClick={() => onOpenFile(filePath)}
               className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium transition-colors hover:bg-white/[0.06]"
-              style={{ color: "#86efac", border: "1px solid rgba(134,239,172,0.2)" }}
+              style={{ color: "#86efac", border: "1px solid rgba(134,239,172,0.18)" }}
               data-testid={`button-file-write-open-${filename}`}>
               <ExternalLink style={{ width: 9, height: 9 }} /> Open
             </button>
@@ -207,12 +198,12 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
       {previewLines.length > 0 && (
         <div className="px-3 pb-2.5">
           <div className="rounded-md overflow-hidden text-[9.5px] font-mono leading-relaxed"
-            style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(134,239,172,0.1)" }}>
+            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid #263244" }}>
             {previewLines.map((line, i) => (
               <div key={i} className="px-2.5 py-[1px]"
                 style={{
-                  background: line.startsWith("+") ? "rgba(74,222,128,0.07)" : "rgba(248,113,113,0.07)",
-                  color:      line.startsWith("+") ? "rgba(134,239,172,0.8)"  : "rgba(248,113,113,0.7)",
+                  background: line.startsWith("+") ? "rgba(34,197,94,0.07)"  : "rgba(239,68,68,0.07)",
+                  color:      line.startsWith("+") ? "rgba(134,239,172,0.8)" : "rgba(248,113,113,0.7)",
                 }}>
                 {line.slice(0, 80)}{line.length > 80 ? "…" : ""}
               </div>
@@ -221,12 +212,11 @@ export function FileWriteCard({ item, onOpenFile }: FileWriteCardProps) {
         </div>
       )}
 
-      {/* T1 — Accept / Reject bar for patch.queue */}
       {isPatch && isDone && proposed !== undefined && (
         <DiffAcceptRejectBar filePath={filePath} proposed={proposed} />
       )}
       {isPatch && isRunning && (
-        <div className="flex items-center gap-1.5 px-3 pb-2 text-[10px]" style={{ color: "#7c8dff" }}>
+        <div className="flex items-center gap-1.5 px-3 pb-2 text-[10px]" style={{ color: "#3B82F6" }}>
           <Loader2 className="animate-spin" style={{ width: 10, height: 10 }} />
           Preparing patch…
         </div>

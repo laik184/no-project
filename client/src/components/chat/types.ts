@@ -26,14 +26,23 @@ export interface PlanData {
   risks?: string[];
 }
 
+export interface CompletionData {
+  status: "completed" | "cancelled" | "failed";
+  goal: string;
+  filesChanged: number;
+  actionsCompleted: number;
+  durationMs: number;
+}
+
 export type ChatMessage =
-  | { role: "user";       content: string;            time: string }
-  | { role: "agent";      content: string;            time: string; isStreaming?: boolean }
-  | { role: "tool_group"; actions: AgentStreamItem[]; time: string }
-  | { role: "diff";       diffs: FileDiff[];           time: string }
-  | { role: "checkpoint"; checkpoint: CheckpointData; time: string }
-  | { role: "question";   question: QuestionData;     time: string }
-  | { role: "plan";       plan: PlanData;             time: string };
+  | { role: "user";       content: string;                time: string }
+  | { role: "agent";      content: string;                time: string; isStreaming?: boolean }
+  | { role: "tool_group"; actions: AgentStreamItem[];     time: string }
+  | { role: "diff";       diffs: FileDiff[];              time: string }
+  | { role: "checkpoint"; checkpoint: CheckpointData;     time: string }
+  | { role: "question";   question: QuestionData;         time: string }
+  | { role: "plan";       plan: PlanData;                 time: string }
+  | { role: "completion"; completion: CompletionData;     time: string };
 
 export interface ChatPanelProps {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;

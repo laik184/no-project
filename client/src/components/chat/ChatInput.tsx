@@ -48,11 +48,10 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
 
   return (
     <div className="p-3 border-t flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-      <div className="rounded-xl transition-all duration-300"
+      <div className="rounded-xl transition-all duration-200"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: isBusy ? "1px solid rgba(124,141,255,0.4)" : "1px solid rgba(255,255,255,0.09)",
-          boxShadow: isBusy ? "0 0 0 3px rgba(124,141,255,0.08), 0 4px 20px rgba(0,0,0,0.2)" : "0 4px 20px rgba(0,0,0,0.2)",
+          background: "#111827",
+          border: isBusy ? "1px solid rgba(59,130,246,0.35)" : "1px solid #263244",
         }}>
         <textarea ref={chatInputRef} value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
@@ -73,20 +72,22 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               </button>
               {showPopup && (
                 <div className="absolute bottom-full left-0 mb-2 z-50 overflow-hidden"
-                  style={{ width: 175, background: "rgba(13,13,28,0.98)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, boxShadow: "0 -4px 32px rgba(0,0,0,0.5)" }}>
+                  style={{ width: 175, background: "#0B0F14", border: "1px solid #263244", borderRadius: 12, boxShadow: "0 -4px 32px rgba(0,0,0,0.5)" }}>
                   <label data-testid="button-chat-popup-upload-file"
-                    className="flex items-center gap-3 w-full px-4 py-3 text-left text-xs text-white/75 hover:bg-white/6 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-left text-xs hover:bg-white/6 transition-colors cursor-pointer"
+                    style={{ color: "#94A3B8" }}
                     onClick={() => setShowPopup(false)}>
                     <input type="file" multiple accept=".pdf,.zip,.tar,.gz,.txt,.csv,.json,.md" className="hidden" onChange={handleFilesChange} />
-                    <Paperclip className="h-3.5 w-3.5 text-[#7c8dff] flex-shrink-0" />
+                    <Paperclip className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#3B82F6" }} />
                     <span>Upload File</span>
                   </label>
-                  <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "0 12px" }} />
+                  <div style={{ height: 1, background: "#263244", margin: "0 12px" }} />
                   <label data-testid="button-chat-popup-upload-photo"
-                    className="flex items-center gap-3 w-full px-4 py-3 text-left text-xs text-white/75 hover:bg-white/6 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-left text-xs hover:bg-white/6 transition-colors cursor-pointer"
+                    style={{ color: "#94A3B8" }}
                     onClick={() => setShowPopup(false)}>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilesChange} />
-                    <ImageIcon className="h-3.5 w-3.5 text-[#a78bfa] flex-shrink-0" />
+                    <ImageIcon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
                     <span>Upload Photo</span>
                   </label>
                 </div>
@@ -99,7 +100,7 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
             {isBusy ? (
               <button onClick={onStop}
                 className="flex items-center gap-1 px-2 h-6 rounded-lg text-[10px] font-semibold text-white transition-all hover:opacity-80 active:scale-95"
-                style={{ background: "rgba(239,68,68,0.85)", boxShadow: "0 0 10px rgba(239,68,68,0.4)" }}
+                style={{ background: "rgba(239,68,68,0.85)" }}
                 data-testid="button-stop-agent-input">
                 <div className="w-2 h-2 rounded-sm bg-white flex-shrink-0" />Stop
               </button>
@@ -107,7 +108,7 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               <button onClick={onSend} disabled={!chatInput.trim()}
                 className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200",
                   chatInput.trim() ? "text-white hover:opacity-90" : "bg-white/5 text-muted-foreground/50 cursor-not-allowed")}
-                style={chatInput.trim() ? { background: "linear-gradient(135deg, #7c8dff 0%, #a78bfa 100%)", boxShadow: "0 0 12px rgba(124,141,255,0.4)" } : {}}
+                style={chatInput.trim() ? { background: "#3B82F6" } : {}}
                 data-testid="button-chat-send">
                 <Send className="h-3 w-3" />
               </button>

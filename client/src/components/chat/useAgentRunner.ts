@@ -94,6 +94,8 @@ export function useAgentRunner() {
 
   // ── Start a new agent run ─────────────────────────────────────────────────
   const runAgent = async (msg: string) => {
+    const runStartMs = Date.now();
+
     // Deduplicate back-to-back identical user messages
     setMessages((prev) => {
       const last = prev[prev.length - 1];
@@ -104,10 +106,8 @@ export function useAgentRunner() {
     setActiveAction({ type: "action", tool: "analysis.think", content: "Connecting to agent…", status: "running" });
 
     const agentMode = getAgentMode();
-    // Map UI tier → backend run mode
     const runMode = agentMode === "power" ? "planned" : agentMode === "lite" ? "direct" : "auto";
 
-    // POST /api/run — get back a runId
     let runId: string;
     try {
       const r = await fetch("/api/run", {
@@ -141,15 +141,12 @@ export function useAgentRunner() {
       setMessages((p) => [...p, { role: "tool_group", time: "just now", actions }]);
     };
 
-    // Subscribe to all three topics for this run
     const offAgent = subscribe("agent", buildAgentHandler({
       runId, inflight,
       setMessages, setIsAgentThinking, setIsAgentTyping, setActiveAction,
       startStream, pushToken, finalizeStream, flushGroup,
     }));
 
-    // Tracks whether a real checkpoint.created SSE arrived for this run.
-    // If it arrives before lifecycle completes, we store it; if after, we push immediately.
     const checkpointDataRef = { current: null as null | ReturnType<typeof buildCheckpointMessage> };
     const lifecycleCompletedRef = { current: false };
 
@@ -185,7 +182,6 @@ export function useAgentRunner() {
           createdFiles?: string[]; modifiedFiles?: string[]; deletedFiles?: string[];
           title?: string;
         };
-        // Filter by runId when present
         if (e.runId && e.runId !== runId) return;
 
         if (e.eventType === "checkpoint.created" && e.checkpointId) {
@@ -200,10 +196,8 @@ export function useAgentRunner() {
             trigger:       e.trigger,
           });
           if (lifecycleCompletedRef.current) {
-            // Lifecycle already fired — push checkpoint message now
             setMessages((p) => [...p, msg_]);
           } else {
-            // Lifecycle not yet fired — store for lifecycle handler
             checkpointDataRef.current = msg_;
           }
         } else if (e.eventType === "stable") {
@@ -231,22 +225,40 @@ export function useAgentRunner() {
         setActiveAction(null);
         lifecycleCompletedRef.current = true;
 
-        const summary =
-          e.status === "completed"  ? `Done — finished **"${msg}"**.`
-          : e.status === "cancelled" ? "Cancelled."
-          : "Run failed. Check the console for details.";
+        const durationMs = Date.now() - runStartMs;
 
         setMessages((p) => {
-          // Append summary; also append checkpoint if SSE already arrived
-          const extra: typeof p = checkpointDataRef.current
-            ? [checkpointDataRef.current]
-            : [];
-          return [...p, { role: "agent", content: summary, time: "just now" }, ...extra];
+          // Count tool_group actions completed during this run
+          const actionsCompleted = p
+            .filter((m) => m.role === "tool_group")
+            .reduce((sum, m) => sum + (m.role === "tool_group" ? m.actions.length : 0), 0);
+
+          // Count files changed (from checkpoint data if available)
+          const cpData = checkpointDataRef.current;
+          const filesChanged = cpData
+            ? (cpData.checkpoint.createdFiles?.length ?? 0) +
+              (cpData.checkpoint.modifiedFiles?.length ?? 0) +
+              (cpData.checkpoint.deletedFiles?.length ?? 0)
+            : 0;
+
+          const completionMsg: ChatMessage = {
+            role: "completion",
+            time: "just now",
+            completion: {
+              status: e.status as "completed" | "cancelled" | "failed",
+              goal: msg,
+              filesChanged,
+              actionsCompleted,
+              durationMs,
+            },
+          };
+
+          const extra: ChatMessage[] = cpData ? [cpData] : [];
+          return [...p, completionMsg, ...extra];
         });
       } catch { /* skip */ }
     });
 
-    // Bundle all unsubscribers — called by stopAgent() or on lifecycle completion
     agentStreamRef.current = {
       close: () => { offAgent(); offCheckpoint(); offLifecycle(); },
     };

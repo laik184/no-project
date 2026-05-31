@@ -91,7 +91,7 @@ export function CheckpointTimelineItem({ data, checkpointNumber, isLatest, proje
               <button
                 onClick={(e) => { e.stopPropagation(); toggle("changes"); }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10.5px] font-medium transition-all"
-                style={panel === "changes" ? { background: "rgba(124,141,255,0.2)", border: "1px solid rgba(124,141,255,0.4)", color: "#7c8dff" } : { background: "rgba(124,141,255,0.07)", border: "1px solid rgba(124,141,255,0.18)", color: "rgba(167,185,255,0.85)" }}
+                style={panel === "changes" ? { background: "rgba(59,130,246,0.18)", border: "1px solid rgba(59,130,246,0.38)", color: "#3B82F6" } : { background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.18)", color: "rgba(147,197,253,0.85)" }}
                 data-testid={`button-changes-${data.checkpointId}`}
               >
                 <GitCompare className="h-3 w-3" /> Changes
