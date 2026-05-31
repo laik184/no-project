@@ -58,3 +58,11 @@ export interface CheckpointListItem {
   deletedFiles: string[];
   createdAt:    string;
 }
+
+/** Emitted on the 'checkpoint' SSE topic when a checkpoint is deleted. */
+export interface CheckpointDeleteEvent {
+  eventType:    'checkpoint.deleted';
+  checkpointId: string;
+  projectId:    number;
+  timestamp:    string;
+}

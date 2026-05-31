@@ -12,6 +12,9 @@ const router = Router();
 /** GET  /api/checkpoints/:projectId */
 router.get('/:projectId',                           (req, res) => checkpointController.list(req, res));
 
+/** POST /api/checkpoints/:projectId — manual checkpoint creation */
+router.post('/:projectId',                          (req, res) => checkpointController.create(req, res));
+
 /** GET  /api/checkpoints/:projectId/recovery/diagnostics */
 router.get('/:projectId/recovery/diagnostics',      (req, res) => checkpointController.diagnostics(req, res));
 
@@ -23,5 +26,8 @@ router.get('/:projectId/:checkpointId',             (req, res) => checkpointCont
 
 /** POST /api/checkpoints/:projectId/:checkpointId/rollback */
 router.post('/:projectId/:checkpointId/rollback',   (req, res) => checkpointController.rollback(req, res));
+
+/** DELETE /api/checkpoints/:projectId/:checkpointId */
+router.delete('/:projectId/:checkpointId',          (req, res) => checkpointController.delete(req, res));
 
 export { router as checkpointRoutes };

@@ -150,6 +150,60 @@ export const chatCheckpointStore = {
     return rows[0] ? rowToCheckpoint(rows[0]) : null;
   },
 
+  /**
+   * Create a manual checkpoint not tied to a specific run.
+   * Used by the "Save" button in CheckpointPanel.
+   */
+  async createManual(projectId: number, label: string): Promise<ChatCheckpoint> {
+    const checkpointId = crypto.randomUUID();
+    const shortLabel   = label.length > 72 ? label.slice(0, 72) + '…' : label;
+    const description  = 'Manual checkpoint saved by user';
+
+    await db.insert(checkpoints).values({
+      checkpointId,
+      projectId,
+      runId:         null,
+      trigger:       'manual',
+      status:        'stable',
+      fileCount:     0,
+      label:         shortLabel,
+      description,
+      createdFiles:  [] as unknown as string[],
+      modifiedFiles: [] as unknown as string[],
+      deletedFiles:  [] as unknown as string[],
+      fileSnapshots: {} as unknown as Record<string, string>,
+    });
+
+    return {
+      id:            checkpointId,
+      runId:         '',
+      projectId,
+      title:         shortLabel,
+      description,
+      trigger:       'manual',
+      filesChanged:  0,
+      createdFiles:  [],
+      modifiedFiles: [],
+      deletedFiles:  [],
+      createdAt:     new Date(),
+    };
+  },
+
+  /**
+   * Permanently delete a checkpoint record.
+   * Returns false if the checkpoint was not found.
+   */
+  async deleteCheckpoint(checkpointId: string): Promise<boolean> {
+    const rows = await db.select({ id: checkpoints.id })
+      .from(checkpoints)
+      .where(eq(checkpoints.checkpointId, checkpointId))
+      .limit(1);
+    if (rows.length === 0) return false;
+
+    await db.delete(checkpoints).where(eq(checkpoints.checkpointId, checkpointId));
+    return true;
+  },
+
   async rollback(checkpointId: string): Promise<RollbackResult> {
     const rows = await db.select()
       .from(checkpoints)

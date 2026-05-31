@@ -2,7 +2,7 @@
  * server/chat/events/checkpoint.events.ts
  * Event factories for checkpoint SSE payloads.
  */
-import type { CheckpointSSEPayload, ChatCheckpoint } from '../types/checkpoint.types.ts';
+import type { CheckpointSSEPayload, ChatCheckpoint, CheckpointDeleteEvent } from '../types/checkpoint.types.ts';
 
 export function makeCheckpointCreatedPayload(
   cp: ChatCheckpoint,
@@ -39,5 +39,17 @@ export function makeCheckpointRollbackPayload(
     createdFiles: [],
     modifiedFiles:[],
     deletedFiles: [],
+  };
+}
+
+export function makeCheckpointDeletedEvent(
+  checkpointId: string,
+  projectId:    number,
+): CheckpointDeleteEvent {
+  return {
+    eventType:    'checkpoint.deleted',
+    checkpointId,
+    projectId,
+    timestamp:    new Date().toISOString(),
   };
 }
