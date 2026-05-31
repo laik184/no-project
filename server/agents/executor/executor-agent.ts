@@ -39,6 +39,12 @@ import { memoryEngine, buildMemoryContext } from '../../memory/index.ts';
 import { executionHistory }       from './memory/execution-history.ts';
 import { failureMemory }          from './memory/failure-memory.ts';
 import { learningStore }          from './learning/learning-store.ts';
+import {
+  dispatch,
+  dispatchAll,
+  dispatchSequential,
+}                                 from '../../tools/registry/tool-dispatcher.ts';
+import type { DispatchOptions }   from '../../tools/registry/tool-dispatcher.ts';
 
 // ── Initialization guard ──────────────────────────────────────────────────────
 
