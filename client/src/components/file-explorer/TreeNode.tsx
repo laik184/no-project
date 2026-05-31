@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import { FileNode } from "./types";
 import { fileIcon } from "./file-icon";
-import { InlineInput, ActionIcon } from "./InlineInput";
+import { InlineInput } from "./InlineInput";
 
 interface TreeNodeProps {
-  node:             FileNode;
-  depth:            number;
-  activeFileName:   string;
-  onSelect:         (node: FileNode) => void;
-  onDelete:         (id: string) => void;
-  onRename:         (id: string, newName: string) => void;
+  node:              FileNode;
+  depth:             number;
+  activeFileName:    string;
+  onSelect:          (node: FileNode) => void;
+  onDelete:          (id: string) => void;
+  onRename:          (id: string, newName: string) => void;
   collapseRevision?: number;
-  showHidden?:      boolean;
+  showHidden?:       boolean;
 }
 
 export function TreeNode({
@@ -23,7 +23,6 @@ export function TreeNode({
   const [renaming, setRenaming] = useState(false);
   const [hovered, setHovered]   = useState(false);
 
-  // Collapse all — reset open when revision bumps
   useEffect(() => {
     if (collapseRevision > 0) setOpen(false);
   }, [collapseRevision]);
@@ -72,16 +71,6 @@ export function TreeNode({
               {node.name}
             </span>
           )}
-          {hovered && !renaming && (
-            <div style={{ display: "flex", gap: 1, marginLeft: "auto", paddingLeft: 4, flexShrink: 0 }}>
-              <ActionIcon onClick={(e) => { e.stopPropagation(); setRenaming(true); }} title="Rename" testId={`rename-${node.name}`}>
-                <Pencil style={{ width: 10, height: 10 }} />
-              </ActionIcon>
-              <ActionIcon onClick={(e) => { e.stopPropagation(); onDelete(node.id); }} title="Delete" danger testId={`delete-${node.name}`}>
-                <Trash2 style={{ width: 10, height: 10 }} />
-              </ActionIcon>
-            </div>
-          )}
         </div>
         {open && visibleChildren.map((child) => (
           <TreeNode
@@ -115,16 +104,6 @@ export function TreeNode({
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {node.name}
         </span>
-      )}
-      {hovered && !renaming && (
-        <div style={{ display: "flex", gap: 1, marginLeft: "auto", paddingLeft: 4, flexShrink: 0 }}>
-          <ActionIcon onClick={(e) => { e.stopPropagation(); setRenaming(true); }} title="Rename" testId={`rename-${node.name}`}>
-            <Pencil style={{ width: 10, height: 10 }} />
-          </ActionIcon>
-          <ActionIcon onClick={(e) => { e.stopPropagation(); onDelete(node.id); }} title="Delete" danger testId={`delete-${node.name}`}>
-            <Trash2 style={{ width: 10, height: 10 }} />
-          </ActionIcon>
-        </div>
       )}
     </div>
   );
