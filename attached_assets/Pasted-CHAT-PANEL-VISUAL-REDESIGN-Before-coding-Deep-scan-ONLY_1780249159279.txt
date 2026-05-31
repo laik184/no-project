@@ -1,0 +1,175 @@
+CHAT_PANEL_VISUAL_REDESIGN
+
+Before coding:
+
+Deep scan ONLY:
+
+client/src/components/chat/
+client/src/components/chat/cards/
+client/src/components/chat/checkpoints/
+client/src/components/panels/
+
+Goal:
+
+Locate exact files rendering:
+
+1. Agent header icon
+2. Agent title text
+3. Agent completion message
+4. Purple chat theme
+5. Message bubble colors
+6. Tool card colors
+7. Status badges
+8. Chat background
+9. Input area styling
+10. Checkpoint card styling
+
+DO NOT GUESS.
+
+Find exact component ownership first.
+
+Create:
+
+CHAT_PANEL_VISUAL_AUDIT.md
+
+Audit must include:
+
+- files scanned
+- component hierarchy
+- color sources
+- icon sources
+- badge sources
+- chat layout ownership
+- card ownership
+- theme ownership
+
+Only after audit:
+
+Implementation Goals
+
+HEADER
+
+Remove:
+
+- oversized glowing purple icon
+- generic "Agent" label
+
+Replace with:
+
+- professional NURAX branding
+- smaller icon
+- cleaner typography
+- workspace appearance
+
+COMPLETION STATE
+
+Replace:
+
+Done — finished "..."
+
+with:
+
+structured completion card
+
+show:
+
+- status
+- files changed
+- actions completed
+- duration
+
+CHAT VISUAL SYSTEM
+
+Remove excessive purple glow.
+
+Replace palette:
+
+Background:
+#0B0F14
+
+Panels:
+#111827
+
+Cards:
+#1A2230
+
+Borders:
+#263244
+
+Primary:
+#3B82F6
+
+Success:
+#22C55E
+
+Warning:
+#F59E0B
+
+Error:
+#EF4444
+
+Text:
+#E5E7EB
+
+Secondary Text:
+#94A3B8
+
+ACTION CARDS
+
+Make:
+
+- flatter
+- cleaner
+- less neon
+- Replit-style spacing
+
+MESSAGE BUBBLES
+
+User:
+dark blue subtle
+
+Agent:
+neutral workspace card
+
+Input:
+modern IDE style
+
+CHECKPOINTS
+
+Use:
+
+- success green
+- subtle borders
+- professional timeline appearance
+
+Rules
+
+- Do not rewrite working logic
+- Styling changes only unless required
+- Preserve SSE
+- Preserve ActionGroup
+- Preserve ActionCardRegistry
+- Preserve PlanningCard
+- Preserve Checkpoint system
+- Preserve TerminalCard
+- Preserve Timeline Search
+- No functionality regressions
+
+After implementation create ONLY:
+
+CHAT_PANEL_VISUAL_REDESIGN_REPORT.md
+
+Report must include:
+
+- files scanned
+- files modified
+- components modified
+- colors replaced
+- icons replaced
+- before vs after hierarchy
+- before vs after color system
+- visual improvements
+- remaining UI inconsistencies
+- recommended next UI phase
+
+No extra report files.
