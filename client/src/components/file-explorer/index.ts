@@ -2,8 +2,10 @@ export type { FileNode, RawTreeNode, ContextMenuState, ClipboardState, FileMeta 
 export { fileIcon, guessLang, emojiIcon }               from "./file-icon";
 export { uid, flattenFiles, deleteNodeById, renameNodeById, addNodeToRoot, makeInitialTree } from "./tree-helpers";
 export { InlineInput, ActionIcon }                      from "./InlineInput";
-export { TreeNode }                                     from "./TreeNode";
+export { RenderNode as TreeNode, RenderNode, InlineCreateRow, INDENT, countDescendantFiles, collectSearchExpanded, timeAgo } from "./TreeNode";
+export type { RenderNodeProps }                         from "./TreeNode";
 export { TreeNodeMenu }                                 from "./TreeNodeMenu";
+export { ExplorerTree }                                 from "./FileTreePanel";
 export { FileTreePanel }                                from "./FileTreePanel";
 export { ContextMenu }                                  from "./ContextMenu";
 export { useFileExplorer }                              from "./use-file-explorer";
