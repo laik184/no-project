@@ -1,84 +1,92 @@
 /**
  * PreviewPlaceholder.tsx
  *
- * Shown inside the iframe area when lifecycle state is "idle" —
- * no project is running yet. Clean waiting screen — NO run button.
- * The AI agent will automatically start the project; the user doesn't
- * need to trigger it manually from here.
+ * Compact browser-style loading indicator shown inside the iframe area
+ * when lifecycle state is "idle". Replaces the full-page placeholder.
  *
- * The crash state has its own restart button in PreviewLifecycleOverlay.
+ * Shows only a thin animated progress bar at the top edge of the frame
+ * and a small centered status chip — no full-page blocking content.
  */
 
-import { useEffect, useRef, useState } from "react";
-import "./placeholder-animations.css";
-
-const DOT_GRID = [
-  { filled: true,  delay: 0.0  },
-  { filled: true,  delay: 0.1  },
-  { filled: false, delay: 0.2  },
-  { filled: true,  delay: 0.15 },
-  { filled: false, delay: 0.05 },
-  { filled: true,  delay: 0.25 },
-  { filled: false, delay: 0.3  },
-  { filled: true,  delay: 0.1  },
-  { filled: true,  delay: 0.2  },
-];
+import { useEffect, useState } from "react";
 
 export function PreviewPlaceholder() {
   const [mounted, setMounted] = useState(false);
-  const [tick, setTick] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
-    intervalRef.current = setInterval(() => setTick(t => t + 1), 1800);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, []);
 
   return (
     <div
-      className={`nph-root ${mounted ? "nph-in" : ""}`}
+      className="preview-idle-shell"
       data-testid="preview-placeholder"
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 20,
+        background: "#0d0d0f",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: mounted ? 1 : 0,
+        transition: "opacity 0.3s ease",
+      }}
     >
-      {/* subtle radial glow */}
-      <div className="nph-glow" />
-
-      {/* Logo grid — animated dots */}
-      <div className="nph-logo-wrap">
-        <div className="nph-dot-grid">
-          {DOT_GRID.map((dot, i) => (
-            <div
-              key={i}
-              className={`nph-dot ${dot.filled ? "nph-dot-filled" : "nph-dot-empty"}`}
-              style={{
-                "--dot-delay": `${dot.delay + (tick % 2 === 0 ? 0 : 0.05)}s`,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
+      {/* Top progress shimmer */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "2px",
+        background: "rgba(255,255,255,0.04)",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          height: "100%",
+          width: "40%",
+          background: "linear-gradient(90deg, transparent, rgba(124,141,255,0.6), transparent)",
+          animation: "idle-shimmer 1.8s ease-in-out infinite",
+        }} />
       </div>
 
-      {/* Heading */}
-      <h2 className="nph-title">Preview will be available soon</h2>
-
-      {/* Hint row */}
-      <div className="nph-hint">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="nph-hint-icon">
-          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.25" />
-          <path d="M5.5 5.5 C5.5 4.5 8.5 4.5 8.5 6.5 C8.5 7.5 7 7.5 7 8.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-          <circle cx="7" cy="10" r="0.75" fill="currentColor" />
-        </svg>
-        <span>Ask the AI agent to run your project</span>
+      {/* Centered status chip */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "6px 14px",
+        borderRadius: "999px",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        color: "rgba(148,163,184,0.5)",
+        fontSize: "11px",
+        fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+        fontWeight: 500,
+        userSelect: "none",
+      }}>
+        <span style={{
+          width: "6px",
+          height: "6px",
+          borderRadius: "50%",
+          background: "rgba(124,141,255,0.4)",
+          animation: "idle-dot-pulse 2s ease-in-out infinite",
+          flexShrink: 0,
+        }} />
+        Waiting for server
       </div>
 
-      {/* Pulse dots at bottom */}
-      <div className="nph-pulse-row">
-        {[0, 1, 2].map(i => (
-          <div key={i} className="nph-pulse-dot" style={{ "--pd-delay": `${i * 0.22}s` } as React.CSSProperties} />
-        ))}
-      </div>
+      <style>{`
+        @keyframes idle-shimmer {
+          0%   { transform: translateX(-150%); }
+          100% { transform: translateX(400%); }
+        }
+        @keyframes idle-dot-pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.3; }
+        }
+      `}</style>
     </div>
   );
 }

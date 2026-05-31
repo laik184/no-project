@@ -6,10 +6,9 @@ import { GridConsolePage } from "@/pages/grid/grid-console-page";
 import { GridPublishingPage } from "@/pages/grid/grid-publishing-page";
 import { FilesModal } from "@/components/modals/files-modal";
 import { URLSharingModal } from "@/components/modals/url-sharing-modal";
-import { DevToolsPanel, ProcessingPulse } from "./PreviewPanel";
+import { DevToolsPanel } from "./PreviewPanel";
 import { usePreviewCapture } from "@/hooks/usePreviewCapture";
 import { BrowserBar } from "./BrowserBar";
-import { PreviewHeader } from "./PreviewHeader";
 import { ErrorPanel } from "./ErrorPanel";
 import { GridToolbar } from "@/pages/grid/GridToolbar";
 import { IframeView } from "./IframeView";
@@ -133,14 +132,6 @@ export default function Preview() {
       >
         {!gridMode ? (
           <>
-            <PreviewHeader
-              crashReason={crashReason}
-              lastAction={lastAction}
-              lastReloadType={lastReloadType}
-              menuOpen={tools.menuOpen}
-              setMenuOpen={tools.setMenuOpen}
-            />
-
             <BrowserBar
               navigationIndexRef={nav.navigationIndexRef}
               navigationHistoryRef={nav.navigationHistoryRef}
@@ -177,8 +168,6 @@ export default function Preview() {
             </BrowserBar>
 
             <main className="flex-1 overflow-hidden bg-black relative flex flex-col">
-              <ProcessingPulse />
-
               <IframeView
                 iframeRef={iframeRef}
                 iframeKey={iframeKey}

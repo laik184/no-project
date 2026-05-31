@@ -382,6 +382,12 @@
   50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
+/* ── Compact idle shimmer (used in PreviewPlaceholder + compact overlay) */
+@keyframes idle-shimmer {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(400%); }
+}
+
 /* ── Iframe fade-in on reload ────────────────────────────────────────── */
 .iframe-fade-in {
   animation: iframe-appear 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;

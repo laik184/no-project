@@ -1,11 +1,14 @@
 /**
- * PreviewLifecycleOverlay.tsx — animated overlay for every preview state.
+ * PreviewLifecycleOverlay.tsx — compact overlay for every preview state.
  *
- * Renders on top of the iframe with smooth enter/exit transitions.
- * Only visible when state !== "ready" && state !== "idle".
+ * Non-error states (building, starting, installing, etc.):
+ *   → Thin top progress bar + small floating status chip
+ *   → No full-page backdrop or blocking content
  *
- * v2: New icons for verifying, hot_reloading, self_healing, debugging, patching.
- *     Self-healing state shows AI progress phases.
+ * Error states (crashed, reconnecting):
+ *   → Full card with backdrop + restart / AI-fix actions
+ *
+ * v3: Compact non-error states — real-browser feel.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -29,6 +32,8 @@ const VISIBLE_STATES = new Set<PreviewLifecycleState>([
   "crashed", "reconnecting",
 ]);
 
+const ERROR_STATES = new Set<PreviewLifecycleState>(["crashed", "reconnecting"]);
+
 // Self-healing phase labels shown sequentially
 const HEAL_PHASES = [
   "Reading crash logs…",
@@ -50,12 +55,11 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRun, onRetry }
     if (VISIBLE_STATES.has(state)) {
       setShow(true);
     } else {
-      timerRef.current = setTimeout(() => setShow(false), 600);
+      timerRef.current = setTimeout(() => setShow(false), 500);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [state]);
 
-  // Cycle heal phases while self_healing
   useEffect(() => {
     if (healRef.current) clearInterval(healRef.current);
     if (state === "self_healing" || state === "debugging" || state === "patching") {
@@ -69,75 +73,29 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRun, onRetry }
 
   if (!show) return null;
 
-  const visible = VISIBLE_STATES.has(state);
-  const isHeal  = state === "self_healing" || state === "debugging" || state === "patching";
-  const isHot   = state === "hot_reloading";
+  const visible  = VISIBLE_STATES.has(state);
+  const isError  = ERROR_STATES.has(state);
+  const isHeal   = state === "self_healing" || state === "debugging" || state === "patching";
+  const isHot    = state === "hot_reloading";
 
-  return (
-    <div
-      className={`preview-lifecycle-overlay ${visible ? "plc-enter" : "plc-exit"}`}
-      style={{ "--plc-color": cfg.color } as React.CSSProperties}
-    >
-      <div className="plc-backdrop" />
-
-      <div className={`plc-card ${isHot ? "plc-card-hot" : ""}`}>
-
-        {/* State icon */}
-        <div className="plc-icon-wrap">
-          {cfg.icon === "spinner"   && <div className="plc-spinner" style={{ borderTopColor: cfg.color }} />}
-          {cfg.icon === "crash"     && <CrashIcon color={cfg.color} />}
-          {cfg.icon === "reconnect" && <ReconnectIcon color={cfg.color} />}
-          {cfg.icon === "verify"    && <VerifyIcon color={cfg.color} />}
-          {cfg.icon === "heal"      && <HealIcon color={cfg.color} />}
-          {cfg.icon === "hotreload" && <HotReloadIcon color={cfg.color} />}
-          {cfg.icon === "debug"     && <DebugIcon color={cfg.color} />}
-          {cfg.icon === "patch"     && <PatchIcon color={cfg.color} />}
-          {!cfg.icon && cfg.showSpinner && <div className="plc-spinner" style={{ borderTopColor: cfg.color }} />}
-        </div>
-
-        {/* Progress bar */}
-        {cfg.showBar && (
-          <div className="plc-progress-track">
-            <div className="plc-progress-bar" style={{ background: cfg.color }} />
+  // ── Error state: full card with backdrop ─────────────────────────────
+  if (isError) {
+    return (
+      <div
+        className={`preview-lifecycle-overlay ${visible ? "plc-enter" : "plc-exit"}`}
+        style={{ "--plc-color": cfg.color } as React.CSSProperties}
+      >
+        <div className="plc-backdrop" />
+        <div className="plc-card">
+          <div className="plc-icon-wrap">
+            {state === "crashed"     && <CrashIcon color={cfg.color} />}
+            {state === "reconnecting"&& <ReconnectIcon color={cfg.color} />}
           </div>
-        )}
-
-        {/* Label */}
-        <div className="plc-label" style={{ color: cfg.color }}>
-          {cfg.label}
-        </div>
-
-        {/* AI self-heal phase steps */}
-        {isHeal ? (
-          <div className="plc-heal-phases">
-            {HEAL_PHASES.map((phase, i) => (
-              <div
-                key={phase}
-                className={`plc-heal-phase ${i === healPhase ? "active" : i < healPhase ? "done" : "pending"}`}
-              >
-                <span className="plc-heal-dot" />
-                {phase}
-              </div>
-            ))}
-          </div>
-        ) : (
+          <div className="plc-label" style={{ color: cfg.color }}>{cfg.label}</div>
           <div className="plc-message">{message}</div>
-        )}
-
-        {/* Crash meta */}
-        {cfg.isError && meta?.exitCode !== undefined && (
-          <div className="plc-meta">Exit code: {String(meta.exitCode)}</div>
-        )}
-
-        {/* Hot reload badge */}
-        {isHot && (
-          <div className="plc-hot-badge" style={{ color: cfg.color }}>
-            CSS-only · no restart needed
-          </div>
-        )}
-
-        {/* Crash actions */}
-        {cfg.isError && (
+          {state === "crashed" && meta?.exitCode !== undefined && (
+            <div className="plc-meta">Exit code: {String(meta.exitCode)}</div>
+          )}
           <div className="plc-actions">
             {onRun && (
               <button className="plc-btn plc-btn-primary" onClick={onRun} data-testid="button-overlay-restart">
@@ -150,46 +108,124 @@ export function PreviewLifecycleOverlay({ state, message, meta, onRun, onRetry }
               </button>
             )}
           </div>
-        )}
+          {onRun && (
+            <button
+              className="plc-btn plc-btn-heal"
+              onClick={onRun}
+              data-testid="button-overlay-ai-fix"
+              style={{ borderColor: "#e879f9", color: "#e879f9" }}
+            >
+              <span style={{ marginRight: 5 }}>✦</span> Ask AI to Fix
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Crashed → ask AI to fix */}
-        {cfg.isError && onRun && (
-          <button
-            className="plc-btn plc-btn-heal"
-            onClick={onRun}
-            data-testid="button-overlay-ai-fix"
-            style={{ borderColor: "#e879f9", color: "#e879f9" }}
-          >
-            <span style={{ marginRight: 5 }}>✦</span> Ask AI to Fix
-          </button>
+  // ── Non-error state: compact top bar + status chip ────────────────────
+  return (
+    <div
+      className={`preview-lifecycle-overlay ${visible ? "plc-enter" : "plc-exit"}`}
+      style={{
+        "--plc-color": cfg.color,
+        pointerEvents: "none",
+        alignItems: "flex-start",
+        justifyContent: "center",
+      } as React.CSSProperties}
+    >
+      {/* Thin top progress bar */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "2px",
+        background: "rgba(255,255,255,0.05)",
+        overflow: "hidden",
+      }}>
+        {cfg.showBar ? (
+          <div
+            className="plc-progress-bar"
+            style={{ background: cfg.color }}
+          />
+        ) : (
+          /* shimmer for states without a real bar */
+          <div style={{
+            height: "100%",
+            width: "35%",
+            background: `linear-gradient(90deg, transparent, ${cfg.color}99, transparent)`,
+            animation: "idle-shimmer 1.6s ease-in-out infinite",
+          }} />
         )}
       </div>
 
-      {/* Particle dots for active non-error states */}
-      {cfg.showSpinner && !cfg.isError && !isHot && (
-        <div className="plc-particles">
-          {[0,1,2,3,4].map(i => (
-            <div
-              key={i}
-              className="plc-particle"
-              style={{
-                "--delay":  `${i * 0.18}s`,
-                "--x":      `${(Math.sin(i * 1.26) * 120).toFixed(0)}px`,
-                "--y":      `${(Math.cos(i * 1.26) * 80).toFixed(0)}px`,
-                background: cfg.color,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-      )}
+      {/* Compact floating status chip — top-center */}
+      <div style={{
+        marginTop: "10px",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "4px 12px",
+        borderRadius: "999px",
+        background: "rgba(9,10,20,0.82)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        border: `1px solid ${cfg.color}33`,
+        boxShadow: `0 0 12px ${cfg.color}22`,
+        animation: "plc-card-in 0.2s cubic-bezier(0.22,1,0.36,1) forwards",
+      }}>
+        {/* Spinner or icon */}
+        {cfg.showSpinner && !isHeal && (
+          <div style={{
+            width: "10px",
+            height: "10px",
+            border: `1.5px solid ${cfg.color}33`,
+            borderTopColor: cfg.color,
+            borderRadius: "50%",
+            animation: "plc-spin 0.7s linear infinite",
+            flexShrink: 0,
+          }} />
+        )}
+        {isHot && <HotDot color={cfg.color} />}
+        {isHeal && <HealDot color={cfg.color} />}
 
-      {/* Hot reload flash ring */}
-      {isHot && <div className="plc-hot-flash" style={{ borderColor: cfg.color }} />}
+        <span style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+          color: cfg.color,
+          letterSpacing: "0.02em",
+        }}>
+          {isHeal ? HEAL_PHASES[healPhase] : cfg.label}
+        </span>
+      </div>
     </div>
   );
 }
 
-// ── Icons ──────────────────────────────────────────────────────────────────────
+// ── Minimal icons ──────────────────────────────────────────────────────────────
+
+function HotDot({ color }: { color: string }) {
+  return (
+    <span style={{
+      width: "8px", height: "8px", borderRadius: "50%",
+      background: color, flexShrink: 0,
+      animation: "plc-dot-pulse 0.6s ease-out",
+      boxShadow: `0 0 6px ${color}`,
+    }} />
+  );
+}
+
+function HealDot({ color }: { color: string }) {
+  return (
+    <span style={{
+      width: "8px", height: "8px", borderRadius: "50%",
+      background: color, flexShrink: 0,
+      animation: "plc-dot-pulse 1s ease-in-out infinite",
+    }} />
+  );
+}
 
 function CrashIcon({ color }: { color: string }) {
   return (
@@ -206,58 +242,6 @@ function ReconnectIcon({ color }: { color: string }) {
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-reconnect-icon">
       <path d="M8 20a12 12 0 1 1 2 6.9" stroke={color} strokeWidth="2.5" strokeLinecap="round" fill="none" />
       <path d="M8 28v-8h8" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
-  );
-}
-
-function VerifyIcon({ color }: { color: string }) {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-verify-icon">
-      <circle cx="20" cy="20" r="17" stroke={color} strokeWidth="2" opacity="0.25" />
-      <circle cx="20" cy="20" r="17" stroke={color} strokeWidth="2" strokeDasharray="107" strokeDashoffset="107"
-        style={{ animation: "plc-verify-draw 1.1s cubic-bezier(0.4,0,0.2,1) forwards" }} />
-      <path d="M13 20.5l5 5 9-10" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        style={{ animation: "plc-check-draw 0.4s 0.9s ease forwards", opacity: 0 }} />
-    </svg>
-  );
-}
-
-function HealIcon({ color }: { color: string }) {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-heal-icon">
-      <circle cx="20" cy="20" r="17" stroke={color} strokeWidth="1.5" opacity="0.2" />
-      <path d="M20 11c-5 0-9 4-9 9s4 9 9 9 9-4 9-9" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none"
-        style={{ animation: "plc-spin 1.4s linear infinite" }} />
-      <path d="M17 20h6M20 17v6" stroke={color} strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function HotReloadIcon({ color }: { color: string }) {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-hotreload-icon">
-      <path d="M20 8 L24 16 L32 16 L26 22 L28 30 L20 26 L12 30 L14 22 L8 16 L16 16 Z"
-        stroke={color} strokeWidth="1.5" fill={`${color}22`} strokeLinejoin="round"
-        style={{ animation: "plc-hotreload-pulse 0.8s ease-out forwards" }} />
-    </svg>
-  );
-}
-
-function DebugIcon({ color }: { color: string }) {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-debug-icon">
-      <circle cx="18" cy="18" r="9" stroke={color} strokeWidth="2" fill="none"
-        style={{ animation: "plc-debug-scan 1.5s ease-in-out infinite" }} />
-      <path d="M25 25 L32 32" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PatchIcon({ color }: { color: string }) {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="plc-patch-icon">
-      <path d="M20 8l3 9h9l-7 5 3 9-8-6-8 6 3-9-7-5h9z" stroke={color} strokeWidth="1.5" fill={`${color}15`}
-        strokeLinejoin="round" style={{ animation: "plc-patch-spin 2s linear infinite" }} />
     </svg>
   );
 }
