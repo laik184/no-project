@@ -18,6 +18,15 @@ export { buildContext, buildSystemContext } from './shared/context-builder.ts';
 export { validateInput, applyDefaults }     from './shared/input-validator.ts';
 export { ok, fail, isOk, isFail, unwrapOrThrow, unwrapOrDefault } from './shared/result-helpers.ts';
 export { toolsLogger }                      from './shared/logger.ts';
+export {
+  toPascalCase,
+  toCamelCase,
+  toKebabCase,
+  toSnakeCase,
+  pluralize,
+  capitalize,
+  truncate,
+} from './shared/string-utils.ts';
 
 // ── Filesystem domain (MIGRATED — fully registered) ──────────────────────────
 export {
@@ -64,5 +73,3 @@ export {
   getTopTools,
 } from './telemetry/index.ts';
 
-// ── Type-safe tool definition helper (Fix #15) ────────────────────────────────
-export { defineTool, defineCodingTool } from './registry/define-tool.ts';
