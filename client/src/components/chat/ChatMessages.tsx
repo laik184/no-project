@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 import { AgentMarkdown } from "@/components/agent/AgentMarkdown";
 import { CheckpointCard } from "@/components/panels/CheckpointCard";
 import { FileDiffCard } from "@/components/diff/FileDiffCard";
-import { ToolGroupLine } from "./ToolGroupLine";
 import { ThinkingBubble, LiveActionBar } from "./LiveActionBar";
 import { QuestionCard } from "./QuestionCard";
+import { ActionGroup } from "./ActionGroup";
+import { PlanningCard } from "./cards/PlanningCard";
 import type { ChatMessage } from "./types";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
@@ -74,8 +75,17 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
         if (msg.role === "question") {
           return <QuestionCard key={i} data={msg.question} onAnswer={onAnswer} />;
         }
+        if (msg.role === "plan") {
+          return <PlanningCard key={i} plan={msg.plan} />;
+        }
         if (msg.role === "tool_group") {
-          return <ToolGroupLine key={i} actions={msg.actions} onOpenFile={onOpenFile} />;
+          return (
+            <ActionGroup
+              key={i}
+              actions={msg.actions}
+              onOpenFile={onOpenFile}
+            />
+          );
         }
         return (
           <div key={i} className={cn("flex gap-2", msg.role === "user" ? "flex-row-reverse" : "flex-row")}>

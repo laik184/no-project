@@ -10,13 +10,30 @@ export interface QuestionData {
   answered?: string;
 }
 
+export type PlanStepStatus = "pending" | "running" | "done" | "error";
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  status: PlanStepStatus;
+}
+
+export interface PlanData {
+  phases: number;
+  complexity?: string;
+  appType?: string;
+  steps: PlanStep[];
+  risks?: string[];
+}
+
 export type ChatMessage =
   | { role: "user";       content: string;            time: string }
   | { role: "agent";      content: string;            time: string; isStreaming?: boolean }
   | { role: "tool_group"; actions: AgentStreamItem[]; time: string }
   | { role: "diff";       diffs: FileDiff[];           time: string }
   | { role: "checkpoint"; checkpoint: CheckpointData; time: string }
-  | { role: "question";   question: QuestionData;     time: string };
+  | { role: "question";   question: QuestionData;     time: string }
+  | { role: "plan";       plan: PlanData;             time: string };
 
 export interface ChatPanelProps {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;

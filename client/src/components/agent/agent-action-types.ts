@@ -33,6 +33,24 @@ export interface AgentStreamItem {
     progress?: number;
     logs?: string;
     file?: string;
+    /** Terminal stdout lines appended live */
+    stdout?: string[];
+    /** Process exit code */
+    exitCode?: number;
+    /** Screenshot / image preview URL */
+    imageUrl?: string;
+    /** List of package names for package cards */
+    packageNames?: string[];
+    /** Number of lines in a file */
+    lineCount?: number;
+    /** External URL (deploy, screenshot, etc.) */
+    url?: string;
+    /** Git commit hash */
+    commitHash?: string;
+    /** Git branch name */
+    branch?: string;
+    /** Numeric duration in ms */
+    durationMs?: number;
   };
 }
 

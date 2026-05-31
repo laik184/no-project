@@ -8,7 +8,7 @@
  * All state updates go through the stable setter references passed in.
  */
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, PlanStep } from "./types";
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
 
@@ -141,6 +141,55 @@ export function buildAgentHandler(deps: AgentHandlerDeps): (raw: unknown) => voi
           break;
         }
 
+        // ── Shell output — appended to inflight terminal item ──────────────
+        case "shell.output": {
+          const { line, runId: evRunId } = e.payload ?? {};
+          if (evRunId && evRunId !== runId) break;
+          if (!line) break;
+          // Find an inflight shell item to append the line to
+          for (const [k, item] of inflight) {
+            const t = String(item.tool ?? "");
+            if (t === "shell.exec" || t === "shell_exec" || t === "console.run") {
+              const prev = item.meta?.stdout ?? [];
+              inflight.set(k, {
+                ...item,
+                meta: { ...item.meta, stdout: [...prev, String(line)] },
+              });
+              break;
+            }
+          }
+          break;
+        }
+
+        // ── Tool completed / error ─────────────────────────────────────────
+        case "tool.completed": {
+          const { tool, durationMs, exitCode } = e.payload ?? {};
+          if (!tool) break;
+          const key = toolKey(tool, e.phase);
+          const cur = inflight.get(key);
+          if (cur) {
+            inflight.set(key, {
+              ...cur,
+              status: "done",
+              meta: { ...cur.meta, ...(durationMs !== undefined ? { durationMs } : {}), ...(exitCode !== undefined ? { exitCode } : {}) },
+            });
+          }
+          break;
+        }
+
+        case "tool.error": {
+          const { tool, error } = e.payload ?? {};
+          if (!tool) break;
+          const key = toolKey(tool, e.phase);
+          const cur = inflight.get(key);
+          inflight.set(key, {
+            ...(cur ?? { type: "action", tool, content: tool }),
+            status: "error" as any,
+            meta: { ...(cur?.meta ?? {}), logs: String(error || "error") },
+          });
+          break;
+        }
+
         // ── Recovery ───────────────────────────────────────────────────────
         case "recovery.started": {
           const { attempt, maxAttempts, errorType } = e.payload ?? {};
@@ -181,13 +230,36 @@ export function buildAgentHandler(deps: AgentHandlerDeps): (raw: unknown) => voi
           const { phases, complexity, appType, phaseList, risks } = e.payload ?? {};
           if (phases && Array.isArray(phaseList) && phaseList.length > 0) {
             flushGroup();
-            const lines = (phaseList as { id: string; title: string }[])
-              .map((p, i) => `${i + 1}. ${p.title}`)
-              .join("\n");
-            const header = `**Execution Plan** · ${phases} phase${phases !== 1 ? "s" : ""} · ${complexity ?? ""}${appType ? ` · ${appType}` : ""}`;
-            const riskLine = Array.isArray(risks) && risks.length ? `\n⚠ ${(risks as string[]).join(", ")}` : "";
-            setMessages((p) => [...p, { role: "agent", content: `${header}\n\n${lines}${riskLine}`, time: "just now" }]);
+            const steps: PlanStep[] = (phaseList as { id: string; title: string }[]).map((p) => ({
+              id:     p.id,
+              title:  p.title,
+              status: "pending",
+            }));
+            setMessages((p) => [...p, {
+              role: "plan",
+              time: "just now",
+              plan: { phases, complexity, appType, steps, risks: Array.isArray(risks) ? risks : [] },
+            }]);
           }
+          break;
+        }
+
+        case "plan.step.update": {
+          const { stepId, status } = e.payload ?? {};
+          if (!stepId || !status) break;
+          setMessages((prev) => prev.map((m) =>
+            m.role === "plan"
+              ? {
+                  ...m,
+                  plan: {
+                    ...m.plan,
+                    steps: m.plan.steps.map((s) =>
+                      s.id === stepId ? { ...s, status } : s,
+                    ),
+                  },
+                }
+              : m,
+          ));
           break;
         }
 
@@ -219,7 +291,7 @@ export function buildAgentHandler(deps: AgentHandlerDeps): (raw: unknown) => voi
         case "phase.failed": {
           const key = toolKey(`phase.${e.phase || "step"}`);
           const cur = inflight.get(key);
-          inflight.set(key, { type: "action", tool: `phase.${e.phase || "step"}`, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error", meta: { logs: String(e.payload?.error || "failed") } });
+          inflight.set(key, { type: "action", tool: `phase.${e.phase || "step"}`, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error" as any, meta: { logs: String(e.payload?.error || "failed") } });
           setActiveAction(null);
           break;
         }
