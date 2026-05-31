@@ -67,11 +67,11 @@ function RenderNode({
   const sq = searchQuery.trim().toLowerCase();
   if (sq && !node.name.toLowerCase().includes(sq) && !isDir) return null;
 
-  const paddingLeft = 8 + depth * INDENT;
+  const paddingLeft = 4 + depth * INDENT;
 
   const rowStyle: React.CSSProperties = {
     display: "flex", alignItems: "center", gap: 4,
-    height: 22, paddingRight: 6, paddingLeft,
+    height: 22, paddingRight: 4, paddingLeft,
     cursor: "pointer", userSelect: "none", fontSize: 12,
     position: "relative",
     borderLeft: active ? "2px solid #3b82f6"
