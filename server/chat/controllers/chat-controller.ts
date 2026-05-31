@@ -1,33 +1,15 @@
 /**
  * chat-controller.ts — Handles /api/chat/* route requests.
  * Request handling only: validate → call orchestrator → return response.
+ *
+ * Run start is handled by run-start.router.ts (POST /api/run).
  */
 import type { Request, Response } from 'express';
-import { chatOrchestrator }    from '../orchestration/chat-orchestrator.ts';
 import { conversationManager } from '../orchestration/conversation-manager.ts';
 import { messageStore }        from '../persistence/message-store.ts';
-import { sendMessageSchema, feedbackSchema, startRunSchema } from '../schemas/chat.schema.ts';
+import { sendMessageSchema, feedbackSchema } from '../schemas/chat.schema.ts';
 
 export const chatController = {
-  /**
-   * POST /api/chat/run — Start a new agent run.
-   */
-  async startRun(req: Request, res: Response): Promise<void> {
-    const parsed = startRunSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ ok: false, errors: parsed.error.flatten() });
-      return;
-    }
-
-    try {
-      const chatRun = await chatOrchestrator.startRun(parsed.data as import('../types/run.types.ts').RunStartPayload);
-      res.status(201).json({ ok: true, data: chatRun });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ ok: false, error: message });
-    }
-  },
-
   /**
    * POST /api/chat/message — Persist a user message outside of a run.
    */

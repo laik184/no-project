@@ -2,16 +2,19 @@
  * attachment.routes.ts — Route registration for /api/chat/attachments/* endpoints.
  * Route registration only — no business logic.
  *
- * Note: multer middleware must be mounted by the parent router or main app
- * before upload routes. This router uses req.file (set by multer).
+ * Multer is scoped here — only applied to POST /upload.
+ * Never rely on a globally mounted multer middleware.
  */
 import { Router } from 'express';
+import multer from 'multer';
 import { attachmentController } from '../controllers/attachment-controller.ts';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = Router();
 
 /** Upload a file attachment (multipart/form-data). */
-router.post('/upload', (req, res) => attachmentController.upload(req, res));
+router.post('/upload', upload.single('file'), (req, res) => attachmentController.upload(req, res));
 
 /** List attachments (by projectId or runId). */
 router.get('/', (req, res) => attachmentController.list(req, res));

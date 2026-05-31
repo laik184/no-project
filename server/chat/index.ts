@@ -2,8 +2,7 @@
  * server/chat/index.ts — Chat module bootstrap and public API.
  *
  * Responsibilities:
- *   - Mount all chat API routes
- *   - Start heartbeat manager
+ *   - Mount all chat API routes (including SSE)
  *   - Export the module's public contract
  *   - Export application-layer facade (chatOrchestrator) consumed by main.ts
  *
@@ -21,10 +20,6 @@ import { heartbeatManager } from './realtime/heartbeat-manager.ts';
 import { websocketManager } from './realtime/websocket-manager.ts';
 import { TOPIC, sseManager as infraSseManager } from '../infrastructure';
 
-// ── Module bootstrap ─────────────────────────────────────────────────────────
-
-heartbeatManager.start();
-
 // ── Chat router ───────────────────────────────────────────────────────────────
 
 export const chatRouter = Router();
@@ -35,52 +30,40 @@ chatRouter.use('/history',     historyRoutes);
 chatRouter.use('/attachments', attachmentRoutes);
 chatRouter.use('/questions',   questionRoutes);
 
-// ── SSE helpers — inline (no external sse.ts in this codebase) ───────────────
+// ── SSE route — mounted at /api/chat/stream ───────────────────────────────────
 
-function setupSseHeaders(res: Response): void {
+/**
+ * GET /api/chat/stream?projectId=N&runId=X&topics=agent,lifecycle
+ * Chat-scoped SSE stream. Delegates to infrastructure SSE manager.
+ * Mounted on chatRouter so effective path is /api/chat/stream.
+ */
+chatRouter.get('/stream', (req: Request, res: Response) => {
+  const projectId = req.query.projectId ? Number(req.query.projectId) : null;
+  const runId     = (req.query.runId as string | undefined);
+
+  const requestedTopics = req.query.topics
+    ? String(req.query.topics).split(',').map((t) => t.trim())
+    : Object.values(TOPIC);
+
+  const topicSet = new Set<string>(requestedTopics);
+
   res.writeHead(200, {
     'Content-Type':  'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection':    'keep-alive',
     'X-Accel-Buffering': 'no',
   });
-  // Flush headers immediately so the client receives them before first event
   res.flushHeaders?.();
-}
 
-// ── SSE router — chat-scoped topics ──────────────────────────────────────────
+  const cleanup = infraSseManager.register(
+    res,
+    topicSet as unknown as ReadonlySet<string>,
+    projectId,
+    runId,
+  );
 
-function buildSseRouter(): Router {
-  const sseRouter = Router();
-
-  /**
-   * GET /api/chat/stream?projectId=N&runId=X&topics=agent,lifecycle
-   * Chat-scoped SSE stream. Delegates to infrastructure SSE manager.
-   */
-  sseRouter.get('/api/chat/stream', (req: Request, res: Response) => {
-    const projectId = req.query.projectId ? Number(req.query.projectId) : null;
-    const runId     = (req.query.runId as string | undefined);
-
-    const requestedTopics = req.query.topics
-      ? String(req.query.topics).split(',').map((t) => t.trim())
-      : Object.values(TOPIC);
-
-    const topicSet = new Set<string>(requestedTopics);
-
-    setupSseHeaders(res);
-
-    const cleanup = infraSseManager.register(
-      res,
-      topicSet as unknown as ReadonlySet<string>,
-      projectId,
-      runId,
-    );
-
-    req.on('close', () => cleanup());
-  });
-
-  return sseRouter;
-}
+  req.on('close', () => cleanup());
+});
 
 // ── Application-layer facade — consumed by main.ts ────────────────────────────
 
@@ -88,8 +71,7 @@ function buildSseRouter(): Router {
  * chatOrchestrator — Application facade.
  *
  * main.ts imports this object and calls:
- *   - buildChatRouter()       → Express Router for /api/chat/*
- *   - buildSseRouter()        → Express Router for /api/chat/stream (SSE)
+ *   - buildChatRouter()       → Express Router for /api/chat/* (includes SSE)
  *   - attachWebSocket(server) → Registers WS handlers on the HTTP server
  *   - startPersistence()      → Starts heartbeat + background services
  *
@@ -99,10 +81,6 @@ function buildSseRouter(): Router {
 export const chatOrchestrator = {
   buildChatRouter(): Router {
     return chatRouter;
-  },
-
-  buildSseRouter(): Router {
-    return buildSseRouter();
   },
 
   attachWebSocket(server: Server): void {
@@ -133,7 +111,6 @@ export const chatOrchestrator = {
   },
 
   startPersistence(): void {
-    // heartbeatManager.start() is idempotent — safe to call again
     heartbeatManager.start();
     console.log('[chat] Module online — heartbeat ✓ SSE facade ✓ WS adapter ✓');
   },

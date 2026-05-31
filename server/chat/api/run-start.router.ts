@@ -2,16 +2,18 @@
  * run-start.router.ts — Top-level /api/run routes.
  *
  * The frontend uses /api/run (not /api/chat/runs) for:
- *   POST /api/run             — start a new agent run
+ *   POST /api/run               — start a new agent run
  *   POST /api/run/:runId/cancel — cancel an active run
+ *   GET  /api/run/active        — list active run IDs
  *
- * This router bridges those paths to the same chatOrchestrator methods
- * used by the /api/chat/runs/* routes.
+ * This is the single source of truth for run lifecycle actions.
+ * All three routes delegate to the same controllers used by /api/chat/runs/*.
  */
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { chatOrchestrator } from '../orchestration/chat-orchestrator.ts';
+import { runController }    from '../controllers/run-controller.ts';
 
 const router = Router();
 
@@ -21,6 +23,12 @@ const startRunSchema = z.object({
   mode:      z.enum(['planned', 'direct', 'auto']).optional(),
   conversationId: z.string().optional(),
 });
+
+/**
+ * GET /api/run/active
+ * List active run IDs. Must be registered before /:runId to avoid param capture.
+ */
+router.get('/active', (req: Request, res: Response) => runController.listActive(req, res));
 
 /**
  * POST /api/run

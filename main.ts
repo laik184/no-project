@@ -1,4 +1,4 @@
-/**
+4/**
  * main.ts — Application entry point
  *
  * Boots all server modules and starts the HTTP server on port 3001.
@@ -7,7 +7,6 @@
 
 import http from 'http';
 import express from 'express';
-import multer from 'multer';
 
 import { bootstrapMemory }          from './server/memory/index.ts';
 import { chatOrchestrator }         from './server/chat/index.ts';
@@ -26,10 +25,6 @@ const PORT = Number(process.env.API_PORT ?? 3001);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Multer — memory storage for file uploads (used by chat attachments)
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
-app.use(upload.single('file'));
-
 // ── Memory platform ───────────────────────────────────────────────────────────
 // Must run before any module that stores to or reads from memoryEngine.
 
@@ -43,9 +38,8 @@ app.get('/health', (_req, res) => {
 
 // ── Mount modules ─────────────────────────────────────────────────────────────
 
-// Chat module: /api/chat/* and SSE at /api/chat/stream
+// Chat module: /api/chat/* (includes SSE at /api/chat/stream)
 app.use('/api/chat',    chatOrchestrator.buildChatRouter());
-app.use('/',            chatOrchestrator.buildSseRouter());
 
 // Console pipeline: /api/console/*
 app.use('/api',         consolePipeline);
@@ -59,7 +53,7 @@ app.use('/api/orchestration', createOrchestrationRouter());
 // Projects: /api/projects/*
 app.use('/api', projectsRouter);
 
-// Run: POST /api/run, POST /api/run/:runId/cancel
+// Run: POST /api/run, POST /api/run/:runId/cancel, GET /api/run/active
 app.use('/api/run', runStartRouter);
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
