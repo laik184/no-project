@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Pencil, Search, FilePlus, FolderPlus, ChevronsUpDown,
   Terminal, Copy, Link2, Download, Trash2,
@@ -6,43 +7,53 @@ import {
 import { FileNode } from "./types";
 
 interface TreeNodeMenuProps {
-  node:       FileNode;
-  path:       string;
-  x:          number;
-  y:          number;
-  onClose:    () => void;
-  onRename:   () => void;
-  onDelete:   () => void;
-  onAddFile?: () => void;
-  onAddFolder?: () => void;
+  node:        FileNode;
+  path:        string;
+  x:           number;
+  y:           number;
+  onClose:     () => void;
+  onRename:    () => void;
+  onDelete:    () => void;
+  onAddFile?:  () => void;
+  onAddFolder?:() => void;
   onCollapse?: () => void;
   onDownload?: () => void;
 }
 
 type ItemDef = {
-  Icon:    React.ElementType;
-  label:   string;
-  onClick: () => void;
-  danger?: boolean;
+  Icon:          React.ElementType;
+  label:         string;
+  onClick:       () => void;
+  danger?:       boolean;
   dividerBefore?: boolean;
+  disabled?:     boolean;
 };
+
+function Divider() {
+  return <div style={{ height: 1, background: "#2a2a2a", margin: "3px 0" }} />;
+}
 
 export function TreeNodeMenu({
   node, path, x, y, onClose, onRename, onDelete,
   onAddFile, onAddFolder, onCollapse, onDownload,
 }: TreeNodeMenuProps) {
-  const ref  = useRef<HTMLDivElement>(null);
+  const ref   = useRef<HTMLDivElement>(null);
   const isDir = node.type === "folder";
 
+  // Close on outside click or Escape
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("keydown",   onKey);
+    // Slight delay so the opener click doesn't immediately close
+    const id = setTimeout(() => {
+      document.addEventListener("mousedown", onDown);
+      document.addEventListener("keydown",   onKey);
+    }, 50);
     return () => {
-      document.removeEventListener("mousedown", handler);
+      clearTimeout(id);
+      document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown",   onKey);
     };
   }, [onClose]);
@@ -64,80 +75,102 @@ export function TreeNodeMenu({
     onClose();
   };
 
-  const fileItems: ItemDef[] = [
-    { Icon: Pencil, label: "Rename",        onClick: () => { onRename(); onClose(); } },
-    { Icon: Copy,   label: "Copy file path", onClick: copyPath, dividerBefore: true },
-    { Icon: Link2,  label: "Copy link",      onClick: copyLink },
-    { Icon: Trash2, label: "Delete",         onClick: () => { onDelete(); onClose(); }, danger: true, dividerBefore: true },
+  // ── All 10 items — folder-only ones hidden for files ──────────────────────
+  const allItems: (ItemDef | "divider")[] = [
+    { Icon: Pencil,         label: "Rename",               onClick: () => { onRename(); onClose(); } },
+    "divider",
+    { Icon: Search,         label: "Search this directory", onClick: searchDir,  disabled: false },
+    { Icon: FilePlus,       label: "Add file",              onClick: () => { onAddFile?.();  onClose(); }, disabled: !isDir },
+    { Icon: FolderPlus,     label: "Add folder",            onClick: () => { onAddFolder?.(); onClose(); }, disabled: !isDir },
+    "divider",
+    { Icon: ChevronsUpDown, label: "Collapse child folders",onClick: () => { onCollapse?.(); onClose(); }, disabled: !isDir },
+    { Icon: Terminal,       label: "Open shell here",       onClick: openShell },
+    "divider",
+    { Icon: Copy,           label: "Copy file path",        onClick: copyPath },
+    { Icon: Link2,          label: "Copy link",             onClick: copyLink },
+    "divider",
+    { Icon: Download,       label: isDir ? "Download folder" : "Download file", onClick: () => { onDownload?.(); onClose(); } },
+    "divider",
+    { Icon: Trash2,         label: "Delete",                onClick: () => { onDelete(); onClose(); }, danger: true },
   ];
 
-  const dirItems: ItemDef[] = [
-    { Icon: Pencil,        label: "Rename",               onClick: () => { onRename(); onClose(); } },
-    { Icon: Search,        label: "Search this directory", onClick: searchDir, dividerBefore: true },
-    { Icon: FilePlus,      label: "Add file",              onClick: () => { onAddFile?.(); onClose(); } },
-    { Icon: FolderPlus,    label: "Add folder",            onClick: () => { onAddFolder?.(); onClose(); } },
-    { Icon: ChevronsUpDown,label: "Collapse child folders",onClick: () => { onCollapse?.(); onClose(); }, dividerBefore: true },
-    { Icon: Terminal,      label: "Open shell here",       onClick: openShell },
-    { Icon: Copy,          label: "Copy file path",        onClick: copyPath,  dividerBefore: true },
-    { Icon: Link2,         label: "Copy link",             onClick: copyLink },
-    { Icon: Download,      label: "Download folder",       onClick: () => { onDownload?.(); onClose(); }, dividerBefore: true },
-    { Icon: Trash2,        label: "Delete",                onClick: () => { onDelete(); onClose(); }, danger: true, dividerBefore: true },
-  ];
+  // Filter out items disabled for files (Add file, Add folder, Collapse)
+  const visibleItems = allItems.filter((item, i, arr) => {
+    if (item === "divider") {
+      // Drop divider if next visible item is also divider or it's at the end
+      const nextItem = arr.slice(i + 1).find(x => x !== "divider");
+      return !!nextItem;
+    }
+    if (!isDir && (item.label === "Add file" || item.label === "Add folder" || item.label === "Collapse child folders")) {
+      return false;
+    }
+    return true;
+  });
 
-  const items = isDir ? dirItems : fileItems;
+  // Position: open upward if near bottom of viewport
+  const ITEM_H  = 30;
+  const DIV_H   = 7;
+  const PAD     = 8;
+  const itemCount = visibleItems.filter(i => i !== "divider").length;
+  const divCount  = visibleItems.filter(i => i === "divider").length;
+  const menuH   = itemCount * ITEM_H + divCount * DIV_H + PAD * 2;
+  const menuW   = 220;
+  const vw      = window.innerWidth;
+  const vh      = window.innerHeight;
 
-  // Clamp to viewport
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const menuW = 210, menuH = items.length * 30 + 16;
-  const left  = Math.min(x, vw - menuW - 8);
-  const top   = Math.min(y, vh - menuH - 8);
+  const left = Math.min(x, vw - menuW - 8);
+  const top  = y + menuH > vh - 8 ? Math.max(8, y - menuH) : y;
 
-  return (
-    <>
-      <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={onClose} />
-      <div
-        ref={ref}
-        style={{
-          position: "fixed", top, left, zIndex: 8001,
-          background: "#1a1a1a", border: "1px solid #2a2a2a",
-          borderRadius: 8, padding: "4px 0",
-          boxShadow: "0 10px 30px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.4)",
-          minWidth: menuW,
-          fontFamily: "'Inter', system-ui, sans-serif",
-        }}
-        data-testid="tree-node-menu"
-      >
-        {items.map(({ Icon, label, onClick, danger, dividerBefore }) => (
-          <div key={label}>
-            {dividerBefore && (
-              <div style={{ height: 1, background: "#242424", margin: "3px 8px" }} />
-            )}
-            <div
-              onClick={onClick}
-              style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "5px 12px", cursor: "pointer", fontSize: 12,
-                color: danger ? "#f87171" : "#b4b4b4",
-                transition: "background .08s, color .08s",
-              }}
-              data-testid={`menu-item-${label.toLowerCase().replace(/\s+/g, "-")}`}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = danger ? "rgba(239,68,68,.12)" : "#252525";
-                el.style.color      = danger ? "#ef4444" : "#f0f0f0";
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = "transparent";
-                el.style.color      = danger ? "#f87171" : "#b4b4b4";
-              }}
-            >
-              <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
-              {label}
-            </div>
+  const menu = (
+    <div
+      ref={ref}
+      style={{
+        position: "fixed", top, left, zIndex: 99999,
+        background: "#1c1c1c", border: "1px solid #2e2e2e",
+        borderRadius: 9, padding: `${PAD}px 0`,
+        boxShadow: "0 16px 40px rgba(0,0,0,.8), 0 4px 12px rgba(0,0,0,.5)",
+        minWidth: menuW, maxHeight: Math.min(menuH + 16, vh - 32),
+        overflowY: "auto",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        userSelect: "none",
+      }}
+      data-testid="tree-node-menu"
+    >
+      {visibleItems.map((item, i) => {
+        if (item === "divider") {
+          return <Divider key={`div-${i}`} />;
+        }
+        const { Icon, label, onClick, danger } = item;
+        return (
+          <div
+            key={label}
+            onClick={onClick}
+            data-testid={`menu-${label.toLowerCase().replace(/\s+/g, "-")}`}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "5px 14px", cursor: "pointer", fontSize: 12,
+              color: danger ? "#f87171" : "#b4b4b4",
+              transition: "background .08s, color .08s",
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = danger ? "rgba(239,68,68,.14)" : "#272727";
+              el.style.color      = danger ? "#ef4444"             : "#f0f0f0";
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "transparent";
+              el.style.color      = danger ? "#f87171" : "#b4b4b4";
+            }}
+          >
+            <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
+            {label}
           </div>
-        ))}
-      </div>
-    </>
+        );
+      })}
+    </div>
   );
+
+  return createPortal(menu, document.body);
 }
