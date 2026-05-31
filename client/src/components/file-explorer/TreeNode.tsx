@@ -4,26 +4,52 @@ import { FileNode } from "./types";
 import { fileIcon } from "./file-icon";
 import { InlineInput } from "./InlineInput";
 import { TreeNodeMenu } from "./TreeNodeMenu";
+import { AIActivityBadge } from "./AIActivityBadge";
+import type { ActivityKind } from "./AIActivityBadge";
+import { GitStatusBadge } from "./use-git-status";
+import type { GitStatus } from "./use-git-status";
+
+const INDENT_W = 16; // px per depth level
 
 interface TreeNodeProps {
-  node:               FileNode;
-  depth:              number;
-  activeFileName:     string;
-  onSelect:           (node: FileNode) => void;
-  onDelete:           (id: string) => void;
-  onRename:           (id: string, newName: string) => void;
-  onCreateInside?:    (type: "file" | "folder", name: string, parentId: string) => void;
-  collapseRevision?:  number;
-  showHidden?:        boolean;
-  path?:              string;
-  focusedId?:         string;
-  onFocus?:           (id: string) => void;
+  node:              FileNode;
+  depth:             number;
+  activeFileName:    string;
+  onSelect:          (node: FileNode) => void;
+  onDelete:          (id: string) => void;
+  onRename:          (id: string, newName: string) => void;
+  onCreateInside?:   (type: "file" | "folder", name: string, parentId: string) => void;
+  collapseRevision?: number;
+  showHidden?:       boolean;
+  path?:             string;
+  focusedId?:        string;
+  onFocus?:          (id: string) => void;
+  // P2 — multi-select
+  isSelected?:       boolean;
+  onMultiSelect?:    (id: string, e: React.MouseEvent) => void;
+  // P2 — drag & drop
+  dragSourceId?:     string | null;
+  dropTargetId?:     string | null;
+  onDragStart?:      (id: string, isDir: boolean) => void;
+  onDragEnter?:      (id: string) => void;
+  onDragEnd?:        () => void;
+  onDrop?:           (sourceId: string, targetId: string) => void;
+  // P2 — AI activity badge
+  aiActivity?:       ActivityKind;
+  // P2 — git status
+  gitStatus?:        GitStatus;
+  // P2 — duplicate
+  onDuplicate?:      (id: string) => void;
 }
 
 export function TreeNode({
   node, depth, activeFileName, onSelect, onDelete, onRename,
   onCreateInside, collapseRevision = 0, showHidden = false, path = "",
   focusedId, onFocus,
+  isSelected = false, onMultiSelect,
+  dragSourceId, dropTargetId, onDragStart, onDragEnter, onDragEnd, onDrop,
+  aiActivity, gitStatus,
+  onDuplicate,
 }: TreeNodeProps) {
   const [open, setOpen]               = useState(depth < 2);
   const [renaming, setRenaming]       = useState(false);
@@ -33,7 +59,12 @@ export function TreeNode({
   const [menu, setMenu]               = useState<{ x: number; y: number } | null>(null);
   const dotBtnRef                     = useRef<HTMLButtonElement>(null);
 
-  const fullPath = path ? `${path}/${node.name}` : node.name;
+  const fullPath    = path ? `${path}/${node.name}` : node.name;
+  const isDir       = node.type === "folder";
+  const isActive    = activeFileName === node.name;
+  const isFocused   = focusedId === node.id;
+  const isDragging  = dragSourceId === node.id;
+  const isDropTgt   = isDir && dropTargetId === node.id;
 
   useEffect(() => {
     if (collapseRevision > 0) setOpen(false);
@@ -49,21 +80,56 @@ export function TreeNode({
     return () => window.removeEventListener("rfe:treepanel-set-expanded", handler);
   }, [node.id]);
 
-  const indent   = 8 + depth * 16;
-  const isActive  = activeFileName === node.name;
-  const isFocused = focusedId === node.id;
-  const isDir     = node.type === "folder";
+  const indent = 8 + depth * INDENT_W;
+
+  // P2 #3 — drag handlers
+  const dragHandlers = {
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed = "move";
+      onDragStart?.(node.id, isDir);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (isDir && dragSourceId && dragSourceId !== node.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+        onDragEnter?.(node.id);
+      }
+    },
+    onDragLeave: (e: React.DragEvent) => { e.stopPropagation(); },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dragSourceId && dragSourceId !== node.id) {
+        onDrop?.(dragSourceId, node.id);
+      }
+    },
+    onDragEnd: (e: React.DragEvent) => { e.stopPropagation(); onDragEnd?.(); },
+  };
 
   const rowStyle: React.CSSProperties = {
     display: "flex", alignItems: "center", gap: 4,
     height: 22, paddingLeft: indent, paddingRight: 4,
-    cursor: "pointer", userSelect: "none", fontSize: 12,
+    cursor: isDragging ? "grabbing" : "pointer",
+    userSelect: "none", fontSize: 12,
+    position: "relative",
     borderLeft: isActive ? "2px solid #3b82f6" : "2px solid transparent",
-    background: isActive ? "#2a2a2a" : isFocused ? "#1e2a3a" : hovered ? "#252525" : "transparent",
+    background: isDropTgt   ? "rgba(59,130,246,.18)"
+      : isDragging          ? "rgba(59,130,246,.04)"
+      : isSelected          ? "rgba(59,130,246,.1)"
+      : isActive            ? "#2a2a2a"
+      : isFocused           ? "#1e2a3a"
+      : hovered             ? "#252525"
+      :                       "transparent",
     color: isActive ? "#f0f0f0" : hovered ? "#d4d4d4" : "#b4b4b4",
     transition: "background .1s, color .1s",
-    outline: isFocused ? "1px solid rgba(59,130,246,.3)" : "none",
+    outline: isDropTgt  ? "1px dashed rgba(59,130,246,.5)"
+      : isFocused       ? "1px solid rgba(59,130,246,.3)"
+      :                   "none",
     outlineOffset: "-1px",
+    opacity: isDragging ? 0.5 : 1,
   };
 
   const openMenu = (e: React.MouseEvent) => {
@@ -91,11 +157,29 @@ export function TreeNode({
     </button>
   );
 
+  // P2 #7 — indent guide lines
+  const indentGuides = Array.from({ length: depth }).map((_, i) => (
+    <span key={i} style={{
+      position: "absolute", left: 8 + i * INDENT_W + 5,
+      top: 0, bottom: 0, width: 1,
+      background: "#1e1e1e", pointerEvents: "none",
+    }} />
+  ));
+
   const visibleChildren = (node.children ?? []).filter(
     (c) => showHidden || !c.name.startsWith(".")
   );
-
   const childCollapse = collapseRevision + localCollapse;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (renaming) return;
+    onFocus?.(node.id);
+    onMultiSelect?.(node.id, e);
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      if (!isDir) onSelect(node);
+      else setOpen(v => !v);
+    }
+  };
 
   if (isDir) {
     return (
@@ -112,10 +196,12 @@ export function TreeNode({
           data-tree-expanded={String(open)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          onClick={() => { onFocus?.(node.id); setOpen((v) => !v); }}
+          onClick={handleClick}
           data-testid={`folder-${node.name}`}
+          {...dragHandlers}
         >
-          <span style={{ color: "#555", flexShrink: 0, display: "flex" }}>
+          {indentGuides}
+          <span style={{ color: "#555", flexShrink: 0, display: "flex", zIndex: 1 }}>
             {open
               ? <ChevronDown  style={{ width: 11, height: 11 }} />
               : <ChevronRight style={{ width: 11, height: 11 }} />}
@@ -132,16 +218,17 @@ export function TreeNode({
               {node.name}
             </span>
           )}
+          {aiActivity && <AIActivityBadge activity={aiActivity} />}
+          {gitStatus && !aiActivity && <GitStatusBadge status={gitStatus} />}
           {dotButton}
         </div>
 
         {open && (
           <div role="group">
-            {/* Inline create row inside this folder */}
             {creatingInside && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 6,
-                paddingLeft: indent + 16 + 4, paddingRight: 6,
+                paddingLeft: indent + INDENT_W + 4, paddingRight: 6,
                 height: 22, background: "#1e1e1e",
               }}>
                 <InlineInput
@@ -162,6 +249,11 @@ export function TreeNode({
                 onCreateInside={onCreateInside}
                 collapseRevision={childCollapse} showHidden={showHidden}
                 focusedId={focusedId} onFocus={onFocus}
+                isSelected={isSelected} onMultiSelect={onMultiSelect}
+                dragSourceId={dragSourceId} dropTargetId={dropTargetId}
+                onDragStart={onDragStart} onDragEnter={onDragEnter}
+                onDragEnd={onDragEnd} onDrop={onDrop}
+                onDuplicate={onDuplicate}
               />
             ))}
           </div>
@@ -176,6 +268,7 @@ export function TreeNode({
             onAddFile={() => { setOpen(true); setCreating("file"); }}
             onAddFolder={() => { setOpen(true); setCreating("folder"); }}
             onCollapse={() => setLocalCollapse(v => v + 1)}
+            onDuplicate={() => onDuplicate?.(node.id)}
             onDownload={async () => {
               const { default: JSZip } = await import("jszip");
               const zip = new JSZip();
@@ -213,10 +306,12 @@ export function TreeNode({
         data-tree-expanded="false"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onClick={() => { if (!renaming) { onFocus?.(node.id); onSelect(node); } }}
+        onClick={handleClick}
         data-testid={`file-${node.name}`}
+        {...dragHandlers}
       >
-        <span style={{ width: 11, flexShrink: 0 }} />
+        {indentGuides}
+        <span style={{ width: 11, flexShrink: 0, zIndex: 1 }} />
         {fileIcon(node.name, "file")}
         {renaming ? (
           <InlineInput
@@ -229,6 +324,8 @@ export function TreeNode({
             {node.name}
           </span>
         )}
+        {aiActivity && <AIActivityBadge activity={aiActivity} />}
+        {gitStatus && !aiActivity && <GitStatusBadge status={gitStatus} />}
         {dotButton}
       </div>
 
@@ -238,6 +335,7 @@ export function TreeNode({
           onClose={() => setMenu(null)}
           onRename={() => setRenaming(true)}
           onDelete={() => { if (window.confirm(`Delete "${node.name}"?`)) onDelete(node.id); }}
+          onDuplicate={() => onDuplicate?.(node.id)}
         />
       )}
     </div>

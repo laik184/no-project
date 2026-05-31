@@ -1,4 +1,4 @@
-type ActivityKind = "creating" | "editing" | "reading" | "analyzing" | "refactoring";
+export type ActivityKind = "creating" | "editing" | "reading" | "analyzing" | "refactoring";
 
 interface AIActivityBadgeProps {
   activity: ActivityKind;

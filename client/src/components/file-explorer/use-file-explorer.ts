@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import type { ActivityKind } from "./AIActivityBadge";
 import { RawTreeNode } from "./types";
-import { optimisticInsertFile, removeOptimisticFile } from "./tree-helpers";
+import { optimisticInsertFile, removeOptimisticFile, duplicateName } from "./tree-helpers";
 import { useRealtimeEvent } from "@/realtime/useRealtimeStream";
 
 interface UseFileExplorerOptions {
@@ -12,15 +13,12 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   const [tree, setTree]                   = useState<RawTreeNode[]>([]);
   const [dirtyFiles, setDirtyFiles]       = useState<Set<string>>(new Set());
   const [aiFiles, setAiFiles]             = useState<Set<string>>(new Set());
+  const [aiActivity, setAiActivity]       = useState<Map<string, ActivityKind>>(new Map());
   const [writingFiles, setWritingFiles]   = useState<Set<string>>(new Set());
   const [writingSizes, setWritingSizes]   = useState<Map<string, number>>(new Map());
   const [focusedPath, setFocusedPath]     = useState<string | null>(null);
   const [hoveredPath, setHoveredPath]     = useState<string | null>(null);
-  // Tracks pending safety-fallback timers keyed by file path so they can be
-  // cancelled when the completion event arrives or on unmount.
   const writingTimers       = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  // Coalesces rapid file.change events so the tree fetch fires once after the
-  // last event rather than N times for N simultaneous writes.
   const treeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadTree = () => {
@@ -79,8 +77,6 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     };
   }, []);
 
-  // Extract the numeric project ID from the sandbox path (e.g. ".data/sandboxes/7" → "7").
-  // This is used to match against FileChangeEvent.projectId which is a number.
   const sandboxId = projectPath
     ? projectPath.split("/").filter(Boolean).pop() ?? projectPath
     : "";
@@ -90,14 +86,15 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     try {
       const d = data as Record<string, unknown>;
       if (d.type === "diff" && (d.diff as any)?.path) {
-        setAiFiles((prev) => new Set(prev).add((d.diff as any).path));
+        const p = (d.diff as any).path as string;
+        setAiFiles((prev) => new Set(prev).add(p));
+        setAiActivity((prev) => { const m = new Map(prev); m.set(p, "editing"); return m; });
         if (!d.projectId || String(d.projectId) === sandboxId) refreshFiles();
       }
     } catch {}
   });
 
   // File-change events — refresh tree and track AI in-flight writes.
-  // d.projectId is a number; sandboxId is the trailing segment of the sandbox path.
   useRealtimeEvent("file", (data) => {
     try {
       const d = data as { projectId?: number; type?: string; path?: string; size?: number };
@@ -105,14 +102,11 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
       if (!mine) return;
 
       if (d.type === "writing" && d.path) {
-        // AI has started writing — mark file as in-flight and record byte size
         setWritingFiles((prev) => new Set(prev).add(d.path!));
+        setAiActivity((prev) => { const m = new Map(prev); m.set(d.path!, "editing"); return m; });
         if (d.size !== undefined) {
           setWritingSizes((prev) => { const n = new Map(prev); n.set(d.path!, d.size!); return n; });
         }
-        // Safety fallback: auto-clear after 15 seconds if the completion event
-        // is missed. Cancel any previous timer for this path to avoid duplicates,
-        // and track the new timer so it can be cancelled on completion or unmount.
         const existingTimer = writingTimers.current.get(d.path!);
         if (existingTimer !== undefined) clearTimeout(existingTimer);
         const timer = setTimeout(() => {
@@ -122,17 +116,12 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
         }, 15_000);
         writingTimers.current.set(d.path!, timer);
       } else {
-        // Write completed (add / change / unlink) — cancel fallback timer,
-        // clear in-flight state, then coalesce the tree refresh so N rapid
-        // writes only trigger one /api/list-files call.
         if (d.path) {
           const t = writingTimers.current.get(d.path!);
           if (t !== undefined) { clearTimeout(t); writingTimers.current.delete(d.path!); }
           setWritingFiles((prev) => { const n = new Set(prev); n.delete(d.path!); return n; });
           setWritingSizes((prev) => { const n = new Map(prev); n.delete(d.path!); return n; });
         }
-        // Debounce: if multiple file-change events arrive within 200ms, only
-        // one tree-fetch is fired (the one after the last event in the burst).
         if (treeRefreshTimerRef.current) clearTimeout(treeRefreshTimerRef.current);
         treeRefreshTimerRef.current = setTimeout(() => {
           treeRefreshTimerRef.current = null;
@@ -158,7 +147,6 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     return () => window.removeEventListener("keydown", handler);
   }, [focusedPath, activeFile]);
 
-  // Cleanup all pending timers on unmount
   useEffect(() => {
     return () => {
       for (const timer of writingTimers.current.values()) clearTimeout(timer);
@@ -190,6 +178,44 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
     });
   };
 
+  /** Move sourcePath into targetFolderPath (rename = move on the filesystem). */
+  const apiMovePath = async (sourcePath: string, targetFolderPath: string) => {
+    const fileName = sourcePath.split("/").pop()!;
+    const newPath  = targetFolderPath ? `${targetFolderPath}/${fileName}` : fileName;
+    if (newPath === sourcePath) return;
+    await apiRenameFile(sourcePath, newPath);
+    refreshFiles(newPath);
+  };
+
+  /** Duplicate a file or folder. Creates a copy with a -copy suffix alongside the original. */
+  const apiDuplicatePath = async (sourcePath: string) => {
+    const segments   = sourcePath.split("/");
+    const fileName   = segments.pop()!;
+    const parentPath = segments.join("/");
+
+    function findSiblingNames(nodes: RawTreeNode[], parts: string[]): string[] {
+      if (!parts.length) return nodes.map(n => n.name);
+      const dir = nodes.find(n => n.name === parts[0] && (n.type === "folder" || n.type === "directory"));
+      return dir?.children ? findSiblingNames(dir.children, parts.slice(1)) : [];
+    }
+
+    const relParts = parentPath ? parentPath.split("/").filter(Boolean) : [];
+    const siblings = findSiblingNames(tree, relParts);
+    const newName  = duplicateName(fileName, siblings);
+    const newPath  = parentPath ? `${parentPath}/${newName}` : newName;
+
+    try {
+      const res = await fetch("/api/duplicate-file", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sourcePath, destPath: newPath }),
+      });
+      if (!res.ok) await apiSaveFile(newPath, "");
+    } catch {
+      await apiSaveFile(newPath, "").catch(console.error);
+    }
+    refreshFiles(newPath);
+  };
+
   const handleRenamePath = async (path: string) => {
     const segments = path.split("/");
     const oldName = segments.pop()!;
@@ -208,9 +234,10 @@ export function useFileExplorer({ projectPath, activeFile }: UseFileExplorerOpti
   };
 
   return {
-    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, focusedPath, hoveredPath,
+    tree, dirtyFiles, aiFiles, aiActivity, writingFiles, writingSizes,
+    focusedPath, hoveredPath,
     setFocusedPath, setHoveredPath,
-    refreshFiles, apiSaveFile,
+    refreshFiles, apiSaveFile, apiMovePath, apiDuplicatePath,
     handleRenamePath, handleDeletePath,
   };
 }

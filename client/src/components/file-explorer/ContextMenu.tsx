@@ -3,13 +3,14 @@ import { FilePlus, FolderPlus, Pencil, Trash2, Copy, FileSymlink, Files } from "
 import { ContextMenuState } from "./types";
 
 interface ContextMenuProps {
-  menu:        ContextMenuState;
-  targetPath?: string;
-  onNewFile:   () => void;
-  onNewFolder: () => void;
-  onRename:    () => void;
-  onDelete:    () => void;
-  onClose?:    () => void;
+  menu:          ContextMenuState;
+  targetPath?:   string;
+  onNewFile:     () => void;
+  onNewFolder:   () => void;
+  onRename:      () => void;
+  onDelete:      () => void;
+  onDuplicate?:  () => void;
+  onClose?:      () => void;
 }
 
 function copyToClipboard(text: string) {
@@ -17,7 +18,7 @@ function copyToClipboard(text: string) {
 }
 
 export function ContextMenu({
-  menu, targetPath = "", onNewFile, onNewFolder, onRename, onDelete, onClose,
+  menu, targetPath = "", onNewFile, onNewFolder, onRename, onDelete, onDuplicate, onClose,
 }: ContextMenuProps) {
   // P1 #5 — ESC dismisses context menu, no memory leaks
   useEffect(() => {
@@ -43,7 +44,7 @@ export function ContextMenu({
     { label: "New File",           Icon: FilePlus,    onClick: onNewFile,                                          testId: "context-new-file"      },
     { label: "New Folder",         Icon: FolderPlus,  onClick: onNewFolder,                                        testId: "context-new-folder"    },
     { label: "Rename",             Icon: Pencil,      onClick: onRename,                                           testId: "context-rename"        },
-    { label: "Duplicate",          Icon: Files,       onClick: () => {},                                           testId: "context-duplicate"     },
+    { label: "Duplicate",          Icon: Files,       onClick: () => { onDuplicate?.(); onClose?.(); },            testId: "context-duplicate"     },
     { label: "Copy Path",          Icon: Copy,        onClick: () => copyToClipboard(targetPath),                  testId: "context-copy-path"     },
     { label: "Copy Relative Path", Icon: FileSymlink, onClick: () => copyToClipboard(relativePath || targetPath),  testId: "context-copy-rel-path" },
     { label: "Delete",             Icon: Trash2,      onClick: onDelete, danger: true,                             testId: "context-delete"        },

@@ -2,31 +2,32 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Pencil, Search, FilePlus, FolderPlus, ChevronsUpDown,
-  Terminal, Copy, Link2, Download, Trash2,
+  Terminal, Copy, Link2, Download, Trash2, Files,
 } from "lucide-react";
 import { FileNode } from "./types";
 
 interface TreeNodeMenuProps {
-  node:        FileNode;
-  path:        string;
-  x:           number;
-  y:           number;
-  onClose:     () => void;
-  onRename:    () => void;
-  onDelete:    () => void;
-  onAddFile?:  () => void;
-  onAddFolder?:() => void;
-  onCollapse?: () => void;
-  onDownload?: () => void;
+  node:         FileNode;
+  path:         string;
+  x:            number;
+  y:            number;
+  onClose:      () => void;
+  onRename:     () => void;
+  onDelete:     () => void;
+  onAddFile?:   () => void;
+  onAddFolder?: () => void;
+  onCollapse?:  () => void;
+  onDownload?:  () => void;
+  onDuplicate?: () => void;
 }
 
 type ItemDef = {
-  Icon:          React.ElementType;
-  label:         string;
-  onClick:       () => void;
-  danger?:       boolean;
+  Icon:           React.ElementType;
+  label:          string;
+  onClick:        () => void;
+  danger?:        boolean;
   dividerBefore?: boolean;
-  disabled?:     boolean;
+  disabled?:      boolean;
 };
 
 function Divider() {
@@ -35,7 +36,7 @@ function Divider() {
 
 export function TreeNodeMenu({
   node, path, x, y, onClose, onRename, onDelete,
-  onAddFile, onAddFolder, onCollapse, onDownload,
+  onAddFile, onAddFolder, onCollapse, onDownload, onDuplicate,
 }: TreeNodeMenuProps) {
   const ref   = useRef<HTMLDivElement>(null);
   const isDir = node.type === "folder";
@@ -46,7 +47,6 @@ export function TreeNodeMenu({
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    // Slight delay so the opener click doesn't immediately close
     const id = setTimeout(() => {
       document.addEventListener("mousedown", onDown);
       document.addEventListener("keydown",   onKey);
@@ -75,29 +75,27 @@ export function TreeNodeMenu({
     onClose();
   };
 
-  // ── All 10 items — folder-only ones hidden for files ──────────────────────
   const allItems: (ItemDef | "divider")[] = [
     { Icon: Pencil,         label: "Rename",               onClick: () => { onRename(); onClose(); } },
+    { Icon: Files,          label: "Duplicate",            onClick: () => { onDuplicate?.(); onClose(); } },
     "divider",
-    { Icon: Search,         label: "Search this directory", onClick: searchDir,  disabled: false },
-    { Icon: FilePlus,       label: "Add file",              onClick: () => { onAddFile?.();  onClose(); }, disabled: !isDir },
+    { Icon: Search,         label: "Search this directory", onClick: searchDir },
+    { Icon: FilePlus,       label: "Add file",              onClick: () => { onAddFile?.();   onClose(); }, disabled: !isDir },
     { Icon: FolderPlus,     label: "Add folder",            onClick: () => { onAddFolder?.(); onClose(); }, disabled: !isDir },
     "divider",
-    { Icon: ChevronsUpDown, label: "Collapse child folders",onClick: () => { onCollapse?.(); onClose(); }, disabled: !isDir },
-    { Icon: Terminal,       label: "Open shell here",       onClick: openShell },
+    { Icon: ChevronsUpDown, label: "Collapse child folders", onClick: () => { onCollapse?.(); onClose(); }, disabled: !isDir },
+    { Icon: Terminal,       label: "Open shell here",        onClick: openShell },
     "divider",
-    { Icon: Copy,           label: "Copy file path",        onClick: copyPath },
-    { Icon: Link2,          label: "Copy link",             onClick: copyLink },
+    { Icon: Copy,           label: "Copy file path",         onClick: copyPath },
+    { Icon: Link2,          label: "Copy link",              onClick: copyLink },
     "divider",
     { Icon: Download,       label: isDir ? "Download folder" : "Download file", onClick: () => { onDownload?.(); onClose(); } },
     "divider",
-    { Icon: Trash2,         label: "Delete",                onClick: () => { onDelete(); onClose(); }, danger: true },
+    { Icon: Trash2,         label: "Delete",                 onClick: () => { onDelete(); onClose(); }, danger: true },
   ];
 
-  // Filter out items disabled for files (Add file, Add folder, Collapse)
   const visibleItems = allItems.filter((item, i, arr) => {
     if (item === "divider") {
-      // Drop divider if next visible item is also divider or it's at the end
       const nextItem = arr.slice(i + 1).find(x => x !== "divider");
       return !!nextItem;
     }
@@ -107,7 +105,6 @@ export function TreeNodeMenu({
     return true;
   });
 
-  // Position: open upward if near bottom of viewport
   const ITEM_H  = 28;
   const DIV_H   = 5;
   const PAD     = 4;
@@ -152,8 +149,7 @@ export function TreeNodeMenu({
               height: ITEM_H,
               color: danger ? "#f87171" : "#b4b4b4",
               transition: "background .08s, color .08s",
-              whiteSpace: "nowrap",
-              boxSizing: "border-box",
+              whiteSpace: "nowrap", boxSizing: "border-box",
             }}
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement;

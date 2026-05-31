@@ -61,6 +61,66 @@ export function addNodeInsideFolder(
   });
 }
 
+/** Generate a unique duplicate name by appending -copy or -copy-N. */
+export function duplicateName(name: string, siblings: string[]): string {
+  const sibSet = new Set(siblings);
+  const dot    = name.lastIndexOf(".");
+  const base   = dot > 0 ? name.slice(0, dot) : name;
+  const ext    = dot > 0 ? name.slice(dot)    : "";
+  let candidate = `${base}-copy${ext}`;
+  let n = 2;
+  while (sibSet.has(candidate)) candidate = `${base}-copy-${n++}${ext}`;
+  return candidate;
+}
+
+/** Return all descendant IDs of a folder (not including the folder itself). */
+export function getDescendantIds(nodes: FileNode[], folderId: string): Set<string> {
+  const ids = new Set<string>();
+  function collect(list: FileNode[]) {
+    for (const n of list) {
+      ids.add(n.id);
+      if (n.children) collect(n.children);
+    }
+  }
+  function findAndCollect(list: FileNode[]) {
+    for (const n of list) {
+      if (n.id === folderId) { if (n.children) collect(n.children); return; }
+      if (n.children) findAndCollect(n.children);
+    }
+  }
+  findAndCollect(nodes);
+  return ids;
+}
+
+/** Move sourceId into targetFolderId (or root if null). Fails silently if sourceId not found. */
+export function moveNode(
+  tree: FileNode[],
+  sourceId: string,
+  targetFolderId: string | null,
+): FileNode[] {
+  let sourceNode: FileNode | null = null;
+  function extract(nodes: FileNode[]): FileNode[] {
+    const out: FileNode[] = [];
+    for (const n of nodes) {
+      if (n.id === sourceId) { sourceNode = n; continue; }
+      out.push(n.children ? { ...n, children: extract(n.children) } : n);
+    }
+    return out;
+  }
+  const extracted = extract(tree);
+  if (!sourceNode) return tree;
+  const src = sourceNode;
+  if (!targetFolderId) return [...extracted, src];
+  function insert(nodes: FileNode[]): FileNode[] {
+    return nodes.map((n) => {
+      if (n.id === targetFolderId && n.type === "folder")
+        return { ...n, children: [src, ...(n.children ?? [])] };
+      return n.children ? { ...n, children: insert(n.children) } : n;
+    });
+  }
+  return insert(extracted);
+}
+
 export function optimisticInsertFile(tree: RawTreeNode[], filePath: string): RawTreeNode[] {
   const parts = filePath.split("/").filter(Boolean);
   const fileName = parts.pop();
