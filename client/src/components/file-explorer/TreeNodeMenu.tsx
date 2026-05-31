@@ -30,7 +30,7 @@ type ItemDef = {
 };
 
 function Divider() {
-  return <div style={{ height: 1, background: "#2a2a2a", margin: "3px 0" }} />;
+  return <div style={{ height: 1, background: "#2a2a2a", margin: "2px 0" }} />;
 }
 
 export function TreeNodeMenu({
@@ -108,13 +108,13 @@ export function TreeNodeMenu({
   });
 
   // Position: open upward if near bottom of viewport
-  const ITEM_H  = 30;
-  const DIV_H   = 7;
-  const PAD     = 8;
+  const ITEM_H  = 28;
+  const DIV_H   = 5;
+  const PAD     = 4;
   const itemCount = visibleItems.filter(i => i !== "divider").length;
   const divCount  = visibleItems.filter(i => i === "divider").length;
   const menuH   = itemCount * ITEM_H + divCount * DIV_H + PAD * 2;
-  const menuW   = 220;
+  const menuW   = 208;
   const vw      = window.innerWidth;
   const vh      = window.innerHeight;
 
@@ -127,9 +127,9 @@ export function TreeNodeMenu({
       style={{
         position: "fixed", top, left, zIndex: 99999,
         background: "#1c1c1c", border: "1px solid #2e2e2e",
-        borderRadius: 9, padding: `${PAD}px 0`,
+        borderRadius: 8, padding: `${PAD}px 0`,
         boxShadow: "0 16px 40px rgba(0,0,0,.8), 0 4px 12px rgba(0,0,0,.5)",
-        minWidth: menuW, maxHeight: Math.min(menuH + 16, vh - 32),
+        minWidth: menuW, maxHeight: Math.min(menuH + 8, vh - 32),
         overflowY: "auto",
         fontFamily: "'Inter', system-ui, sans-serif",
         userSelect: "none",
@@ -147,11 +147,13 @@ export function TreeNodeMenu({
             onClick={onClick}
             data-testid={`menu-${label.toLowerCase().replace(/\s+/g, "-")}`}
             style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "5px 14px", cursor: "pointer", fontSize: 12,
+              display: "flex", alignItems: "center", gap: 9,
+              padding: "5px 12px", cursor: "pointer", fontSize: 13,
+              height: ITEM_H,
               color: danger ? "#f87171" : "#b4b4b4",
               transition: "background .08s, color .08s",
               whiteSpace: "nowrap",
+              boxSizing: "border-box",
             }}
             onMouseEnter={e => {
               const el = e.currentTarget as HTMLElement;
