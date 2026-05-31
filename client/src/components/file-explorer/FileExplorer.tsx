@@ -5,6 +5,7 @@ import { useFileExplorer } from "./use-file-explorer";
 import { useOpenEditors } from "./use-open-editors";
 import { useRecentFiles } from "./use-recent-files";
 import { OpenEditorsPanel } from "./OpenEditorsPanel";
+import { RecentFilesPanel } from "./RecentFilesPanel";
 import { AgentStatusPanel } from "./AgentStatusPanel";
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronDown, FilePlus, FolderPlus, RotateCcw, Search, X } from "lucide-react";
@@ -58,21 +59,22 @@ if (typeof document !== "undefined" && !document.getElementById("__rfe-anim__"))
 interface FileExplorerProps {
   projectPath:    string;
   onSelect?:      (path: string) => void;
-  onFileSelect?:  (path: string) => void; // alias used by unified-grid
+  onFileSelect?:  (path: string) => void;
   activeFile?:    string;
 }
 
 const INDENT = 14;
 
+// ── RenderNode ────────────────────────────────────────────────────────────────
 function RenderNode({
   node, basePath, depth, activeFile, dirtyFiles, aiFiles,
   writingFiles, writingSizes, hoveredPath, setHoveredPath,
-  setFocusedPath, onSelect, onContextMenu, searchQuery,
+  setFocusedPath, focusedPath, onSelect, onContextMenu, searchQuery,
 }: {
   node: RawTreeNode; basePath: string; depth: number;
   activeFile?: string; dirtyFiles: Set<string>; aiFiles: Set<string>;
   writingFiles: Set<string>; writingSizes: Map<string, number>;
-  hoveredPath: string | null;
+  hoveredPath: string | null; focusedPath: string | null;
   setHoveredPath: (p: string | null) => void;
   setFocusedPath: (p: string | null) => void;
   onSelect: (path: string) => void;
@@ -83,16 +85,26 @@ function RenderNode({
   const isDir     = node.type === "folder" || node.type === "directory";
   const full      = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
   const active    = !!activeFile && activeFile === full;
+  const focused   = focusedPath === full;
   const dirty     = dirtyFiles.has(full);
   const ai        = aiFiles.has(full);
   const writing   = writingFiles.has(full);
   const writeSize = writingSizes.get(full);
   const hovered   = hoveredPath === full;
 
+  // P1 #4 — keyboard expand/collapse via custom event (dispatched by keyboard handler)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { path, expanded } = (e as CustomEvent).detail ?? {};
+      if (path === full) setOpen(expanded);
+    };
+    window.addEventListener("rfe:set-expanded", handler);
+    return () => window.removeEventListener("rfe:set-expanded", handler);
+  }, [full]);
+
   const sq = searchQuery.trim().toLowerCase();
   if (sq && !node.name.toLowerCase().includes(sq) && !isDir) return null;
 
-  // Fuzzy search highlight — wraps matching chars in a highlighted span
   const highlightName = (name: string): React.ReactNode => {
     if (!sq) return name;
     const idx = name.toLowerCase().indexOf(sq);
@@ -119,11 +131,14 @@ function RenderNode({
       :                    "2px solid transparent",
     background: writing ? "rgba(59,130,246,.06)"
       : active  ? "#2a2a2a"
+      : focused ? "#1e2a3a"
       : hovered ? "#202020"
       : "transparent",
     color: active ? "#f0f0f0" : "#b4b4b4",
     transition: "background .1s, color .1s",
     fontFamily: "'Inter', system-ui, sans-serif",
+    outline: focused ? "1px solid rgba(59,130,246,.3)" : "none",
+    outlineOffset: "-1px",
   };
 
   if (isDir) {
@@ -131,6 +146,14 @@ function RenderNode({
       <div>
         <div
           style={rowStyle}
+          role="treeitem"
+          aria-expanded={open}
+          aria-selected={active}
+          tabIndex={focused ? 0 : -1}
+          data-tree-row="true"
+          data-tree-path={full}
+          data-tree-type="folder"
+          data-tree-expanded={String(open)}
           onClick={() => { setFocusedPath(full); setOpen(v => !v); onSelect(full); }}
           onContextMenu={(e) => onContextMenu(e, full, true)}
           onMouseEnter={() => setHoveredPath(full)}
@@ -160,14 +183,14 @@ function RenderNode({
           ) : null}
         </div>
         {open && (
-          <div>
+          <div role="group">
             {Array.isArray(node.children) && node.children.map((child) => (
               <RenderNode key={child.name} node={child} basePath={full} depth={depth + 1}
                 activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
                 writingFiles={writingFiles} writingSizes={writingSizes}
                 hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
-                setFocusedPath={setFocusedPath} onSelect={onSelect}
-                onContextMenu={onContextMenu} searchQuery={searchQuery} />
+                focusedPath={focusedPath} setFocusedPath={setFocusedPath}
+                onSelect={onSelect} onContextMenu={onContextMenu} searchQuery={searchQuery} />
             ))}
           </div>
         )}
@@ -178,6 +201,13 @@ function RenderNode({
   return (
     <div
       style={rowStyle}
+      role="treeitem"
+      aria-selected={active}
+      tabIndex={focused ? 0 : -1}
+      data-tree-row="true"
+      data-tree-path={full}
+      data-tree-type="file"
+      data-tree-expanded="false"
       onClick={() => { setFocusedPath(full); onSelect(full); }}
       onContextMenu={(e) => onContextMenu(e, full, false)}
       onMouseEnter={() => setHoveredPath(full)}
@@ -234,20 +264,21 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const [searchQuery, setSearchQuery] = useState("");
   const [creating, setCreating]       = useState<"file" | "folder" | null>(null);
   const [width, setWidth]             = useState(loadWidth);
-  const searchRef  = useRef<HTMLInputElement>(null);
-  const dragRef    = useRef<{ startX: number; startW: number } | null>(null);
-  const handleRef  = useRef<HTMLDivElement>(null);
+  const searchRef    = useRef<HTMLInputElement>(null);
+  const dragRef      = useRef<{ startX: number; startW: number } | null>(null);
+  const handleRef    = useRef<HTMLDivElement>(null);
+  const treeScrollRef = useRef<HTMLDivElement>(null);
 
   const selectHandler = onFileSelect ?? onSelect;
 
   const {
-    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath,
+    tree, dirtyFiles, aiFiles, writingFiles, writingSizes, hoveredPath, focusedPath,
     setHoveredPath, setFocusedPath, refreshFiles, apiSaveFile,
     handleRenamePath, handleDeletePath,
   } = useFileExplorer({ projectPath, activeFile });
 
   const { openFiles, openFile, closeFile, closeAll } = useOpenEditors();
-  const { recordOpen } = useRecentFiles();
+  const { recentFiles, recordOpen } = useRecentFiles();
 
   // ── Sidebar resize ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,6 +310,113 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     document.body.style.cursor = "col-resize";
   };
 
+  // ── P1 #4 — Reveal active file: expand parents + scroll into view ──────────
+  useEffect(() => {
+    if (!activeFile || !projectPath) return;
+    const relative = activeFile.startsWith(projectPath + "/")
+      ? activeFile.slice(projectPath.length + 1)
+      : activeFile;
+    const parts = relative.split("/").filter(Boolean);
+    // Expand every ancestor folder
+    let cur = projectPath;
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur = cur + "/" + parts[i];
+      window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: cur, expanded: true } }));
+    }
+    // After state settles, scroll the active row into view
+    const timer = setTimeout(() => {
+      if (!treeScrollRef.current) return;
+      const el = Array.from(treeScrollRef.current.querySelectorAll("[data-tree-row]"))
+        .find(el => el.getAttribute("data-tree-path") === activeFile) as HTMLElement | undefined;
+      if (el) {
+        el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        setFocusedPath(activeFile);
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [activeFile, projectPath]);
+
+  // ── P1 #2 — Keyboard navigation on the tree container ─────────────────────
+  const handleTreeKeyDown = (e: React.KeyboardEvent) => {
+    const container = treeScrollRef.current;
+    if (!container) return;
+
+    const rows = Array.from(
+      container.querySelectorAll("[data-tree-row]")
+    ) as HTMLElement[];
+    if (!rows.length) return;
+
+    const curIdx = rows.findIndex(el => el.getAttribute("data-tree-path") === focusedPath);
+
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const next = rows[Math.min(rows.length - 1, curIdx + 1)];
+        if (next) {
+          const path = next.getAttribute("data-tree-path")!;
+          setFocusedPath(path);
+          next.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+      case "ArrowUp": {
+        e.preventDefault();
+        const prev = rows[Math.max(0, curIdx - 1)];
+        if (prev) {
+          const path = prev.getAttribute("data-tree-path")!;
+          setFocusedPath(path);
+          prev.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+      case "ArrowRight": {
+        e.preventDefault();
+        const row = rows[curIdx];
+        if (row?.getAttribute("data-tree-type") === "folder" && row.getAttribute("data-tree-expanded") !== "true") {
+          window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: focusedPath, expanded: true } }));
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        e.preventDefault();
+        const row = rows[curIdx];
+        if (row?.getAttribute("data-tree-type") === "folder" && row.getAttribute("data-tree-expanded") === "true") {
+          window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: focusedPath, expanded: false } }));
+        }
+        break;
+      }
+      case "Enter": {
+        e.preventDefault();
+        if (!focusedPath) break;
+        const row = rows[curIdx];
+        if (row?.getAttribute("data-tree-type") === "folder") {
+          const expanded = row.getAttribute("data-tree-expanded") === "true";
+          window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: focusedPath, expanded: !expanded } }));
+        } else {
+          handleSelect(focusedPath);
+        }
+        break;
+      }
+      case " ": {
+        e.preventDefault();
+        if (focusedPath) setFocusedPath(focusedPath);
+        break;
+      }
+      case "Home": {
+        e.preventDefault();
+        const first = rows[0];
+        if (first) { setFocusedPath(first.getAttribute("data-tree-path")!); first.scrollIntoView({ block: "nearest" }); }
+        break;
+      }
+      case "End": {
+        e.preventDefault();
+        const last = rows[rows.length - 1];
+        if (last) { setFocusedPath(last.getAttribute("data-tree-path")!); last.scrollIntoView({ block: "nearest" }); }
+        break;
+      }
+    }
+  };
+
   // ── File select — records open + recent ───────────────────────────────────
   const handleSelect = (path: string) => {
     openFile(path);
@@ -286,7 +424,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     selectHandler?.(path);
   };
 
-  const openCtx = (e: React.MouseEvent, path: string, isDir: boolean) => {
+  const openCtx  = (e: React.MouseEvent, path: string, isDir: boolean) => {
     e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, path, isDir });
   };
   const closeCtx = () => setContextMenu(null);
@@ -308,7 +446,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   };
 
   const { files: fileCount, folders: folderCount } = countTree(tree);
-  const isEmpty    = tree.length === 0;
+  const isEmpty       = tree.length === 0;
   const workspaceName = projectPath
     ? projectPath.split("/").filter(Boolean).pop() ?? "workspace"
     : "workspace";
@@ -318,8 +456,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       style={{
         width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center",
         background: "transparent", border: "none", cursor: "pointer",
-        borderRadius: 3, color: "#3a3a3a", transition: "background .1s, color .1s",
-        flexShrink: 0,
+        borderRadius: 3, color: "#3a3a3a", transition: "background .1s, color .1s", flexShrink: 0,
       }}
       onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; }}
       onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#3a3a3a"; }}
@@ -346,6 +483,13 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         onSelect={(path) => { selectHandler?.(path); }}
         onClose={closeFile}
         onCloseAll={closeAll}
+      />
+
+      {/* ── Recent Files panel ── */}
+      <RecentFilesPanel
+        files={recentFiles}
+        activeFile={activeFile}
+        onSelect={(path) => { handleSelect(path); }}
       />
 
       {/* ── Header ── */}
@@ -387,8 +531,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
             placeholder="Search files…"
             style={{
               flex: 1, background: "transparent", border: "none", outline: "none",
-              fontSize: 12, color: "#c4c4c4", caretColor: "#3b82f6",
-              fontFamily: "inherit",
+              fontSize: 12, color: "#c4c4c4", caretColor: "#3b82f6", fontFamily: "inherit",
             }}
             data-testid="input-explorer-search"
           />
@@ -411,7 +554,14 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       )}
 
       {/* ── Tree / Empty state ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "2px 0" }}>
+      <div
+        ref={treeScrollRef}
+        role="tree"
+        aria-label="File explorer"
+        tabIndex={0}
+        style={{ flex: 1, overflowY: "auto", padding: "2px 0", outline: "none" }}
+        onKeyDown={handleTreeKeyDown}
+      >
         {isEmpty && !creating ? (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
@@ -440,8 +590,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
                     display: "flex", alignItems: "center", gap: 4,
                     padding: "4px 8px", borderRadius: 4, cursor: "pointer",
                     background: "#222", border: "1px solid #2e2e2e",
-                    color: "#666", fontSize: 11, fontFamily: "inherit",
-                    transition: "all .1s",
+                    color: "#666", fontSize: 11, fontFamily: "inherit", transition: "all .1s",
                   }}
                   onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; el.style.borderColor = "#3a3a3a"; }}
                   onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#222"; el.style.color = "#666"; el.style.borderColor = "#2e2e2e"; }}
@@ -457,7 +606,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
               activeFile={activeFile} dirtyFiles={dirtyFiles} aiFiles={aiFiles}
               writingFiles={writingFiles} writingSizes={writingSizes}
               hoveredPath={hoveredPath} setHoveredPath={setHoveredPath}
-              setFocusedPath={setFocusedPath}
+              focusedPath={focusedPath} setFocusedPath={setFocusedPath}
               onSelect={handleSelect}
               onContextMenu={openCtx}
               searchQuery={searchQuery} />
@@ -476,6 +625,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         onNewFolder={() => { closeCtx(); setCreating("folder"); }}
         onRename={async () => { if (contextMenu) { await handleRenamePath(contextMenu.path); closeCtx(); } }}
         onDelete={async () => { if (contextMenu) { await handleDeletePath(contextMenu.path); closeCtx(); } }}
+        onClose={closeCtx}
       />
 
       {/* ── Resize handle ── */}

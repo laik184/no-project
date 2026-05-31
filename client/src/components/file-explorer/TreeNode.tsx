@@ -15,12 +15,15 @@ interface TreeNodeProps {
   onCreateInside?:    (type: "file" | "folder", name: string, parentId: string) => void;
   collapseRevision?:  number;
   showHidden?:        boolean;
-  path?:              string;   // full path to this node, threaded from parent
+  path?:              string;
+  focusedId?:         string;
+  onFocus?:           (id: string) => void;
 }
 
 export function TreeNode({
   node, depth, activeFileName, onSelect, onDelete, onRename,
   onCreateInside, collapseRevision = 0, showHidden = false, path = "",
+  focusedId, onFocus,
 }: TreeNodeProps) {
   const [open, setOpen]               = useState(depth < 2);
   const [renaming, setRenaming]       = useState(false);
@@ -36,18 +39,31 @@ export function TreeNode({
     if (collapseRevision > 0) setOpen(false);
   }, [collapseRevision]);
 
+  // P1 #2 — keyboard expand/collapse via custom event from FileTreePanel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id, expanded } = (e as CustomEvent).detail ?? {};
+      if (id === node.id) setOpen(expanded);
+    };
+    window.addEventListener("rfe:treepanel-set-expanded", handler);
+    return () => window.removeEventListener("rfe:treepanel-set-expanded", handler);
+  }, [node.id]);
+
   const indent   = 8 + depth * 16;
-  const isActive = activeFileName === node.name;
-  const isDir    = node.type === "folder";
+  const isActive  = activeFileName === node.name;
+  const isFocused = focusedId === node.id;
+  const isDir     = node.type === "folder";
 
   const rowStyle: React.CSSProperties = {
     display: "flex", alignItems: "center", gap: 4,
     height: 22, paddingLeft: indent, paddingRight: 4,
     cursor: "pointer", userSelect: "none", fontSize: 12,
     borderLeft: isActive ? "2px solid #3b82f6" : "2px solid transparent",
-    background: isActive ? "#2a2a2a" : hovered ? "#252525" : "transparent",
+    background: isActive ? "#2a2a2a" : isFocused ? "#1e2a3a" : hovered ? "#252525" : "transparent",
     color: isActive ? "#f0f0f0" : hovered ? "#d4d4d4" : "#b4b4b4",
     transition: "background .1s, color .1s",
+    outline: isFocused ? "1px solid rgba(59,130,246,.3)" : "none",
+    outlineOffset: "-1px",
   };
 
   const openMenu = (e: React.MouseEvent) => {
@@ -86,9 +102,17 @@ export function TreeNode({
       <div>
         <div
           style={rowStyle}
+          role="treeitem"
+          aria-expanded={open}
+          aria-selected={isActive}
+          tabIndex={isFocused ? 0 : -1}
+          data-tree-row="true"
+          data-tree-node-id={node.id}
+          data-tree-type="folder"
+          data-tree-expanded={String(open)}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => { onFocus?.(node.id); setOpen((v) => !v); }}
           data-testid={`folder-${node.name}`}
         >
           <span style={{ color: "#555", flexShrink: 0, display: "flex" }}>
@@ -112,7 +136,7 @@ export function TreeNode({
         </div>
 
         {open && (
-          <div>
+          <div role="group">
             {/* Inline create row inside this folder */}
             {creatingInside && (
               <div style={{
@@ -137,6 +161,7 @@ export function TreeNode({
                 onSelect={onSelect} onDelete={onDelete} onRename={onRename}
                 onCreateInside={onCreateInside}
                 collapseRevision={childCollapse} showHidden={showHidden}
+                focusedId={focusedId} onFocus={onFocus}
               />
             ))}
           </div>
@@ -179,9 +204,16 @@ export function TreeNode({
     <div>
       <div
         style={rowStyle}
+        role="treeitem"
+        aria-selected={isActive}
+        tabIndex={isFocused ? 0 : -1}
+        data-tree-row="true"
+        data-tree-node-id={node.id}
+        data-tree-type="file"
+        data-tree-expanded="false"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onClick={() => !renaming && onSelect(node)}
+        onClick={() => { if (!renaming) { onFocus?.(node.id); onSelect(node); } }}
         data-testid={`file-${node.name}`}
       >
         <span style={{ width: 11, flexShrink: 0 }} />

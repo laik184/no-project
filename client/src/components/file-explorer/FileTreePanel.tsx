@@ -35,6 +35,7 @@ function MenuItem({
 }) {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       data-testid={testId}
       style={{
@@ -90,6 +91,21 @@ function buildTreeFromFiles(
   return root;
 }
 
+// ── Flatten tree to ordered id list (only visible / expanded nodes) ────────────
+function flattenVisibleIds(nodes: FileNode[], expandedIds: Set<string>): string[] {
+  const result: string[] = [];
+  const walk = (list: FileNode[]) => {
+    for (const node of list) {
+      result.push(node.id);
+      if (node.type === "folder" && expandedIds.has(node.id) && node.children) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(nodes);
+  return result;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: FileTreePanelProps) {
   const [tree, setTree]                     = useState<FileNode[]>([]);
@@ -99,12 +115,17 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
   const [showMenu, setShowMenu]             = useState(false);
   const [showHidden, setShowHidden]         = useState(false);
   const [collapseRevision, setCollapseRevision] = useState(0);
+  // P1 #2 — keyboard navigation state
+  const [focusedId, setFocusedId]           = useState<string | undefined>(undefined);
+  // Track which folder nodes are expanded for keyboard nav visibility
+  const expandedIdsRef = useRef<Set<string>>(new Set());
 
   const searchRef  = useRef<HTMLInputElement>(null);
   const menuRef    = useRef<HTMLDivElement>(null);
   const uploadRef  = useRef<HTMLInputElement>(null);
+  const treeRef    = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
+  // Close header menu on outside click
   useEffect(() => {
     if (!showMenu) return;
     const handler = (e: MouseEvent) => {
@@ -114,6 +135,18 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showMenu]);
+
+  // Track expanded state changes from TreeNode toggle events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id, expanded } = (e as CustomEvent).detail ?? {};
+      if (!id) return;
+      if (expanded) expandedIdsRef.current.add(id);
+      else expandedIdsRef.current.delete(id);
+    };
+    window.addEventListener("rfe:treepanel-set-expanded", handler);
+    return () => window.removeEventListener("rfe:treepanel-set-expanded", handler);
+  }, []);
 
   const sq = searchQuery.trim().toLowerCase();
   const searchResults = sq
@@ -125,7 +158,7 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
     if (node.type === "file")
       onFileOpen(node.name, node.content ?? "", node.lang ?? guessLang(node.name));
   };
-  const handleDelete    = (id: string)              => setTree((p) => deleteNodeById(p, id));
+  const handleDelete    = (id: string)               => setTree((p) => deleteNodeById(p, id));
   const handleRename    = (id: string, name: string) => setTree((p) => renameNodeById(p, id, name));
 
   const handleCreateInside = (type: "file" | "folder", name: string, parentId: string) => {
@@ -146,12 +179,11 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
     setCreatingFolder(false);
   };
 
-  // Upload folder — reads all selected files and adds to tree
-  const handleUploadFolder = () => { uploadRef.current?.click(); setShowMenu(false); };
-  const handleFolderSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload folder — reads all selected files
+  const handleUploadFolder    = () => { uploadRef.current?.click(); setShowMenu(false); };
+  const handleFolderSelected  = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
-
     const readText = (file: File): Promise<{ path: string; content: string }> =>
       new Promise((resolve) => {
         const reader = new FileReader();
@@ -159,13 +191,12 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
         reader.onerror = () => resolve({ path: file.webkitRelativePath || file.name, content: "" });
         reader.readAsText(file);
       });
-
     const items = await Promise.all(files.map(readText));
     setTree((prev) => [...prev, ...buildTreeFromFiles(items)]);
     e.target.value = "";
   };
 
-  // Download as zip — uses JSZip, includes all files in current tree
+  // Download as zip
   const handleDownloadZip = async () => {
     setShowMenu(false);
     const zip = new JSZip();
@@ -185,21 +216,118 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
     URL.revokeObjectURL(url);
   };
 
-  // Show/hide hidden files (names starting with ".")
   const handleToggleHidden = () => { setShowHidden((v) => !v); setShowMenu(false); };
+  const handleCollapseAll  = () => { setCollapseRevision((v) => v + 1); setShowMenu(false); };
+  const handleCloseFiles   = () => { setShowMenu(false); onClose(); };
 
-  // Collapse all folders
-  const handleCollapseAll = () => { setCollapseRevision((v) => v + 1); setShowMenu(false); };
+  // ── P1 #2 — Keyboard navigation ──────────────────────────────────────────
+  const handleTreeKeyDown = (e: React.KeyboardEvent) => {
+    const visible = flattenVisibleIds(
+      showHidden ? tree : tree.filter(n => !n.name.startsWith(".")),
+      expandedIdsRef.current,
+    );
+    if (!visible.length) return;
 
-  // Close the explorer panel
-  const handleCloseFiles = () => { setShowMenu(false); onClose(); };
+    const curIdx = focusedId ? visible.indexOf(focusedId) : -1;
 
-  // Filtered root nodes for hidden files
-  const visibleTree = showHidden
-    ? tree
-    : tree.filter((n) => !n.name.startsWith("."));
+    const findNode = (id: string): FileNode | undefined => {
+      const walk = (nodes: FileNode[]): FileNode | undefined => {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          if (n.children) { const f = walk(n.children); if (f) return f; }
+        }
+      };
+      return walk(tree);
+    };
 
-  const isEmpty = visibleTree.length === 0 && !creatingFile && !creatingFolder;
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const nextId = visible[Math.min(visible.length - 1, curIdx + 1)];
+        if (nextId) {
+          setFocusedId(nextId);
+          treeRef.current?.querySelector(`[data-tree-node-id="${nextId}"]`)?.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+      case "ArrowUp": {
+        e.preventDefault();
+        const prevId = visible[Math.max(0, curIdx - 1)];
+        if (prevId) {
+          setFocusedId(prevId);
+          treeRef.current?.querySelector(`[data-tree-node-id="${prevId}"]`)?.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+      case "ArrowRight": {
+        e.preventDefault();
+        if (focusedId) {
+          const node = findNode(focusedId);
+          if (node?.type === "folder" && !expandedIdsRef.current.has(focusedId)) {
+            expandedIdsRef.current.add(focusedId);
+            window.dispatchEvent(new CustomEvent("rfe:treepanel-set-expanded", { detail: { id: focusedId, expanded: true } }));
+          }
+        }
+        break;
+      }
+      case "ArrowLeft": {
+        e.preventDefault();
+        if (focusedId) {
+          const node = findNode(focusedId);
+          if (node?.type === "folder" && expandedIdsRef.current.has(focusedId)) {
+            expandedIdsRef.current.delete(focusedId);
+            window.dispatchEvent(new CustomEvent("rfe:treepanel-set-expanded", { detail: { id: focusedId, expanded: false } }));
+          }
+        }
+        break;
+      }
+      case "Enter": {
+        e.preventDefault();
+        if (focusedId) {
+          const node = findNode(focusedId);
+          if (!node) break;
+          if (node.type === "folder") {
+            const expanded = expandedIdsRef.current.has(focusedId);
+            if (expanded) expandedIdsRef.current.delete(focusedId);
+            else          expandedIdsRef.current.add(focusedId);
+            window.dispatchEvent(new CustomEvent("rfe:treepanel-set-expanded", { detail: { id: focusedId, expanded: !expanded } }));
+          } else {
+            handleSelect(node);
+          }
+        }
+        break;
+      }
+      case " ": {
+        e.preventDefault();
+        if (focusedId) {
+          const node = findNode(focusedId);
+          if (node) handleSelect(node);
+        }
+        break;
+      }
+      case "Home": {
+        e.preventDefault();
+        const firstId = visible[0];
+        if (firstId) {
+          setFocusedId(firstId);
+          treeRef.current?.querySelector(`[data-tree-node-id="${firstId}"]`)?.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+      case "End": {
+        e.preventDefault();
+        const lastId = visible[visible.length - 1];
+        if (lastId) {
+          setFocusedId(lastId);
+          treeRef.current?.querySelector(`[data-tree-node-id="${lastId}"]`)?.scrollIntoView({ block: "nearest" });
+        }
+        break;
+      }
+    }
+  };
+
+  const visibleTree = showHidden ? tree : tree.filter((n) => !n.name.startsWith("."));
+  const isEmpty     = visibleTree.length === 0 && !creatingFile && !creatingFolder;
 
   return (
     <div style={{
@@ -207,7 +335,6 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
       background: "#1c1c1c",
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     }}>
-
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -228,7 +355,6 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
         borderBottom: "1px solid #222",
         display: "flex", alignItems: "center", gap: 4,
       }}>
-        {/* Search input */}
         <div style={{
           flex: 1, display: "flex", alignItems: "center", gap: 6,
           padding: "3px 8px", borderRadius: 4,
@@ -260,6 +386,8 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
             onClick={() => setShowMenu((v) => !v)}
             title="More actions"
             data-testid="button-explorer-more"
+            aria-haspopup="menu"
+            aria-expanded={showMenu}
             style={{
               width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
               background: showMenu ? "#2a2a2a" : "transparent",
@@ -274,13 +402,16 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
           </button>
 
           {showMenu && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 5px)", right: 0, zIndex: 200,
-              background: "#1a1a1a", border: "1px solid #2e2e2e",
-              borderRadius: 8, padding: "4px 0",
-              boxShadow: "0 12px 32px rgba(0,0,0,.6)",
-              minWidth: 160,
-            }}>
+            <div
+              role="menu"
+              aria-label="Explorer actions"
+              style={{
+                position: "absolute", top: "calc(100% + 5px)", right: 0, zIndex: 200,
+                background: "#1a1a1a", border: "1px solid #2e2e2e",
+                borderRadius: 8, padding: "4px 0",
+                boxShadow: "0 12px 32px rgba(0,0,0,.6)",
+                minWidth: 160,
+              }}>
               <MenuItem Icon={FilePlus}       label="New file"          testId="menu-new-file"
                 onClick={() => { setCreatingFile(true); setCreatingFolder(false); setShowMenu(false); }} />
               <MenuItem Icon={FolderPlus}     label="New folder"        testId="menu-new-folder"
@@ -294,8 +425,7 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
               <MenuItem
                 Icon={showHidden ? EyeOff : Eye}
                 label={showHidden ? "Hide hidden files" : "Show hidden files"}
-                active={showHidden}
-                testId="menu-toggle-hidden"
+                active={showHidden} testId="menu-toggle-hidden"
                 onClick={handleToggleHidden}
               />
               <MenuItem Icon={ChevronsUpDown} label="Collapse all"      testId="menu-collapse-all"
@@ -336,10 +466,17 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
       )}
 
       {/* ── Tree / Search results / Empty state ── */}
-      <div style={{
-        flex: 1, overflowY: "auto", padding: "2px 0",
-        scrollbarWidth: "thin", scrollbarColor: "#2e2e2e transparent",
-      }}>
+      <div
+        ref={treeRef}
+        role="tree"
+        aria-label="File tree"
+        tabIndex={0}
+        style={{
+          flex: 1, overflowY: "auto", padding: "2px 0", outline: "none",
+          scrollbarWidth: "thin", scrollbarColor: "#2e2e2e transparent",
+        }}
+        onKeyDown={handleTreeKeyDown}
+      >
         {sq ? (
           searchResults.length > 0 ? (
             searchResults.map(({ node, path }) => (
@@ -403,6 +540,7 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
               onSelect={handleSelect} onDelete={handleDelete} onRename={handleRename}
               onCreateInside={handleCreateInside}
               collapseRevision={collapseRevision} showHidden={showHidden}
+              focusedId={focusedId} onFocus={setFocusedId}
             />
           ))
         )}

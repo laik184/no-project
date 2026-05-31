@@ -12,6 +12,7 @@ export { useRecentFiles }                               from "./use-recent-files
 export { useAgentStatus }                               from "./use-agent-status";
 export type { AgentStatus, AgentId, AgentState }        from "./use-agent-status";
 export { OpenEditorsPanel }                             from "./OpenEditorsPanel";
+export { RecentFilesPanel }                             from "./RecentFilesPanel";
 export { AgentStatusPanel }                             from "./AgentStatusPanel";
 export { AIActivityBadge }                              from "./AIActivityBadge";
 export { default as FileExplorer }                      from "./FileExplorer";
