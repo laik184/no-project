@@ -20,7 +20,7 @@ function getExt(path: string): string {
 }
 
 function getLang(path: string): string {
-  return LANG_MAP[getExt(path)] ?? getExt(path).toUpperCase() || "File";
+  return LANG_MAP[getExt(path)] ?? (getExt(path).toUpperCase() || "File");
 }
 
 function getFilename(path: string): string {
