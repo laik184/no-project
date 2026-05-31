@@ -1,26 +1,28 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-  FilePlus, FolderPlus, RotateCcw,
-  Search, X, ChevronDown, ChevronRight,
+  FilePlus, FolderPlus, RotateCcw, Search, X,
+  ChevronDown, ChevronRight, FolderUp,
 } from "lucide-react";
-import { RawTreeNode, ContextMenuState } from "./types";
+import { RawTreeNode, ContextMenuState, ClipboardState, FileMeta } from "./types";
 import { fileIcon } from "./file-icon";
 import { useFileExplorer } from "./use-file-explorer";
 import { countTree, formatBytes } from "./use-file-explorer-utils";
 import { useOpenEditors } from "./use-open-editors";
 import { useRecentFiles } from "./use-recent-files";
+import { usePinnedFiles } from "./use-pinned-files";
+import { PinnedFilesPanel } from "./PinnedFilesPanel";
 import { OpenEditorsPanel } from "./OpenEditorsPanel";
 import { RecentFilesPanel } from "./RecentFilesPanel";
 import { AgentStatusPanel } from "./AgentStatusPanel";
+import { ProjectInsightsPanel } from "./ProjectInsightsPanel";
 import { ContextMenu } from "./ContextMenu";
 import { InlineInput } from "./InlineInput";
 import { AIActivityBadge } from "./AIActivityBadge";
 import type { ActivityKind } from "./AIActivityBadge";
 import { useGitStatus, GitStatusBadge } from "./use-git-status";
 import type { GitStatus } from "./use-git-status";
-import { optimisticInsertFile } from "./tree-helpers";
+import FileHistoryPanel from "./FileHistoryPanel";
 
-// Re-export utilities expected by external callers
 export { countTree, formatBytes } from "./use-file-explorer-utils";
 
 interface FileExplorerProps {
@@ -30,15 +32,52 @@ interface FileExplorerProps {
   activeFile?:  string;
 }
 
-const INDENT     = 14;
-const MIN_W      = 160;
-const MAX_W      = 480;
-const WIDTH_KEY  = "rfe_sidebar_width";
+const INDENT    = 14;
+const MIN_W     = 160;
+const MAX_W     = 480;
+const WIDTH_KEY = "rfe_sidebar_width";
 
 const loadWidth = () => {
   try { const s = localStorage.getItem(WIDTH_KEY); return s ? Math.min(MAX_W, Math.max(MIN_W, parseInt(s, 10))) : 220; }
   catch { return 220; }
 };
+
+function timeAgo(ms: number): string {
+  const d = Date.now() - ms;
+  if (d < 60_000)     return "just now";
+  if (d < 3_600_000)  return `${Math.floor(d / 60_000)}m ago`;
+  if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
+  if (d < 172_800_000) return "yesterday";
+  if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
+  return new Date(ms).toLocaleDateString();
+}
+
+// ── Helper: count all files under a node subtree ────────────────────────────
+function countDescendantFiles(nodes: RawTreeNode[]): number {
+  let n = 0;
+  for (const node of nodes) {
+    if (node.type === "file") n++;
+    else if (node.children) n += countDescendantFiles(node.children);
+  }
+  return n;
+}
+
+// ── Helper: collect folder paths that have matching file descendants ──────────
+function collectSearchExpanded(
+  nodes: RawTreeNode[], basePath: string, sq: string, result: Set<string>,
+): boolean {
+  let anyMatch = false;
+  for (const n of nodes) {
+    const full = basePath ? `${basePath}/${n.name}` : n.name;
+    if (n.type === "file") {
+      if (n.name.toLowerCase().includes(sq)) anyMatch = true;
+    } else if (n.children) {
+      const childMatch = collectSearchExpanded(n.children, full, sq, result);
+      if (childMatch) { result.add(full); anyMatch = true; }
+    }
+  }
+  return anyMatch;
+}
 
 // ── RenderNode ────────────────────────────────────────────────────────────────
 function RenderNode({
@@ -47,6 +86,7 @@ function RenderNode({
   setFocusedPath, focusedPath, onSelect, onContextMenu, searchQuery,
   gitStatusMap, selectedPaths, onMultiSelect,
   dragSourcePath, dropTargetPath, onDragStart, onDragEnter, onDragEnd, onDrop,
+  folderCounts, forcedExpandedPaths, clipboard, onShowMeta, onHideMeta,
 }: {
   node: RawTreeNode; basePath: string; depth: number;
   activeFile?: string; dirtyFiles: Set<string>; aiFiles: Set<string>;
@@ -67,22 +107,32 @@ function RenderNode({
   onDragEnter: (path: string) => void;
   onDragEnd: () => void;
   onDrop: (sourcePath: string, targetPath: string) => void;
+  // P3 new props
+  folderCounts:        Map<string, number>;
+  forcedExpandedPaths: Set<string>;
+  clipboard:           ClipboardState;
+  onShowMeta:          (path: string, x: number, y: number) => void;
+  onHideMeta:          () => void;
 }) {
   const [open, setOpen] = useState(depth < 2);
-  const isDir     = node.type === "folder" || node.type === "directory";
-  const full      = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
-  const active    = !!activeFile && activeFile === full;
-  const focused   = focusedPath === full;
-  const dirty     = dirtyFiles.has(full);
-  const ai        = aiFiles.has(full);
-  const writing   = writingFiles.has(full);
-  const writeSize = writingSizes.get(full);
-  const hovered   = hoveredPath === full;
-  const activity  = aiActivity.get(full);
-  const gitSt     = gitStatusMap.get(full);
+  const isDir       = node.type === "folder" || node.type === "directory";
+  const full        = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
+  const active      = !!activeFile && activeFile === full;
+  const focused     = focusedPath === full;
+  const dirty       = dirtyFiles.has(full);
+  const ai          = aiFiles.has(full);
+  const writing     = writingFiles.has(full);
+  const writeSize   = writingSizes.get(full);
+  const hovered     = hoveredPath === full;
+  const activity    = aiActivity.get(full);
+  const gitSt       = gitStatusMap.get(full);
   const isSelected  = selectedPaths.has(full);
   const isDragging  = dragSourcePath === full;
   const isDropTgt   = isDir && dropTargetPath === full;
+  const isCut       = clipboard?.op === "cut" && clipboard.path === full;
+
+  // P3 #6 — forced expansion for search results
+  const effectiveOpen = isDir && (forcedExpandedPaths.has(full) || open);
 
   // P1 #4 — keyboard expand/collapse via custom event
   useEffect(() => {
@@ -135,10 +185,10 @@ function RenderNode({
     outline: isDropTgt ? "1px dashed rgba(59,130,246,.5)"
       : focused ? "1px solid rgba(59,130,246,.3)" : "none",
     outlineOffset: "-1px",
-    opacity: isDragging ? 0.5 : 1,
+    // P3 #4 — cut files are dimmed
+    opacity: isDragging ? 0.5 : isCut ? 0.4 : 1,
   };
 
-  // Indent guides — same pattern as FileExplorer P1
   const guides = Array.from({ length: depth }).map((_, i) => (
     <span key={i} style={{
       position: "absolute", left: 4 + i * INDENT + 5,
@@ -147,7 +197,6 @@ function RenderNode({
     }} />
   ));
 
-  // P2 drag handlers
   const dragHandlers = {
     draggable: true,
     onDragStart: (e: React.DragEvent) => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; onDragStart(full, isDir); },
@@ -175,7 +224,6 @@ function RenderNode({
     }
   };
 
-  // P2 #1 — AIActivityBadge or writing badge; P2 #2 — git status
   const badge = writing ? (
     <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
   ) : activity ? (
@@ -188,31 +236,40 @@ function RenderNode({
     <GitStatusBadge status={gitSt} />
   ) : null;
 
+  // P3 #8 — folder file count
+  const folderCount = isDir ? folderCounts.get(full) : undefined;
+
   if (isDir) {
     return (
       <div>
         <div
-          style={rowStyle} role="treeitem" aria-expanded={open} aria-selected={active}
+          style={rowStyle} role="treeitem" aria-expanded={effectiveOpen} aria-selected={active}
           tabIndex={focused ? 0 : -1} data-tree-row="true" data-tree-path={full}
-          data-tree-type="folder" data-tree-expanded={String(open)}
+          data-tree-type="folder" data-tree-expanded={String(effectiveOpen)}
           onClick={handleClick}
           onContextMenu={(e) => onContextMenu(e, full, true)}
-          onMouseEnter={() => setHoveredPath(full)}
+          onMouseEnter={() => { setHoveredPath(full); onHideMeta(); }}
           onMouseLeave={() => setHoveredPath(null)}
           data-testid={`folder-${node.name}`}
           {...dragHandlers}
         >
           {guides}
           <span style={{ color: "#4a4a4a", flexShrink: 0, display: "flex", zIndex: 1 }}>
-            {open ? <ChevronDown style={{ width: 11, height: 11 }} /> : <ChevronRight style={{ width: 11, height: 11 }} />}
+            {effectiveOpen ? <ChevronDown style={{ width: 11, height: 11 }} /> : <ChevronRight style={{ width: 11, height: 11 }} />}
           </span>
-          {fileIcon(node.name, "folder", open)}
+          {fileIcon(node.name, "folder", effectiveOpen)}
           <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: hovered || active ? "#d4d4d4" : "#9a9a9a" }}>
             {highlightName(node.name)}
           </span>
+          {/* P3 #8 — folder file count */}
+          {folderCount !== undefined && folderCount > 0 && (
+            <span style={{ fontSize: 9, color: "#2e2e2e", marginLeft: 2, flexShrink: 0 }}>
+              {folderCount}
+            </span>
+          )}
           {badge}
         </div>
-        {open && (
+        {effectiveOpen && (
           <div role="group">
             {Array.isArray(node.children) && node.children.map((child) => (
               <RenderNode key={child.name} node={child} basePath={full} depth={depth + 1}
@@ -224,7 +281,10 @@ function RenderNode({
                 gitStatusMap={gitStatusMap} selectedPaths={selectedPaths} onMultiSelect={onMultiSelect}
                 dragSourcePath={dragSourcePath} dropTargetPath={dropTargetPath}
                 onDragStart={onDragStart} onDragEnter={onDragEnter}
-                onDragEnd={onDragEnd} onDrop={onDrop} />
+                onDragEnd={onDragEnd} onDrop={onDrop}
+                folderCounts={folderCounts} forcedExpandedPaths={forcedExpandedPaths}
+                clipboard={clipboard} onShowMeta={onShowMeta} onHideMeta={onHideMeta}
+              />
             ))}
           </div>
         )}
@@ -239,8 +299,12 @@ function RenderNode({
       data-tree-type="file" data-tree-expanded="false"
       onClick={handleClick}
       onContextMenu={(e) => onContextMenu(e, full, false)}
-      onMouseEnter={() => setHoveredPath(full)}
-      onMouseLeave={() => setHoveredPath(null)}
+      onMouseEnter={(e) => {
+        setHoveredPath(full);
+        // P3 #1/#2 — lazy file metadata fetch
+        onShowMeta(full, e.clientX, e.clientY);
+      }}
+      onMouseLeave={() => { setHoveredPath(null); onHideMeta(); }}
       data-testid={`file-${node.name}`}
       {...dragHandlers}
     >
@@ -276,12 +340,18 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const [searchQuery, setSearchQuery] = useState("");
   const [creating, setCreating]       = useState<"file" | "folder" | null>(null);
   const [width, setWidth]             = useState(loadWidth);
-  // P2 — multi-select
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPath = useRef<string | null>(null);
-  // P2 — drag & drop
   const [dragSourcePath, setDragSourcePath] = useState<string | null>(null);
   const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
+
+  // P3 new state
+  const [clipboard, setClipboard]     = useState<ClipboardState>(null);
+  const [historyFile, setHistoryFile] = useState<string | null>(null);
+  const [metaTooltip, setMetaTooltip] = useState<(FileMeta & { path: string; x: number; y: number }) | null>(null);
+  const metaCache   = useRef<Map<string, FileMeta>>(new Map());
+  const metaTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uploadRef   = useRef<HTMLInputElement>(null);
 
   const searchRef     = useRef<HTMLInputElement>(null);
   const dragRef       = useRef<{ startX: number; startW: number } | null>(null);
@@ -299,8 +369,10 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const { statusMap: gitStatusMap } = useGitStatus();
   const { openFiles, openFile, closeFile, closeAll } = useOpenEditors();
   const { recentFiles, recordOpen } = useRecentFiles();
+  // P3 #3 — pinned files
+  const { pinnedFiles, pinFile, unpinFile, isPinned, clearPinned } = usePinnedFiles();
 
-  // P2 — multi-select handler
+  // P3 multi-select
   const handleMultiSelect = useCallback((path: string, e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {
       setSelectedPaths(prev => {
@@ -323,17 +395,104 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     lastSelectedPath.current = path;
   }, []);
 
-  // P2 — drag & drop
+  // P2 drag & drop
   const handleDragStart = useCallback((path: string, _isDir: boolean) => setDragSourcePath(path), []);
   const handleDragEnter = useCallback((path: string) => setDropTargetPath(path), []);
   const handleDragEnd   = useCallback(() => { setDragSourcePath(null); setDropTargetPath(null); }, []);
   const handleDrop      = useCallback(async (sourcePath: string, targetPath: string) => {
-    setDragSourcePath(null);
-    setDropTargetPath(null);
+    setDragSourcePath(null); setDropTargetPath(null);
     if (sourcePath === targetPath || targetPath.startsWith(sourcePath + "/")) return;
     try { await apiMovePath(sourcePath, targetPath); }
     catch (e) { console.error("[Explorer] Move failed:", e); }
   }, [apiMovePath]);
+
+  // P3 #4 — copy / cut / paste
+  const handleCopy  = useCallback((path: string) => setClipboard({ op: "copy", path }), []);
+  const handleCut   = useCallback((path: string) => setClipboard({ op: "cut",  path }), []);
+  const handlePaste = useCallback(async () => {
+    if (!clipboard || !contextMenu) return;
+    const targetDir = contextMenu.isDir
+      ? contextMenu.path
+      : contextMenu.path.replace(/\/[^/]+$/, "") || (projectPath ?? "");
+    if (clipboard.op === "cut") {
+      try { await apiMovePath(clipboard.path, targetDir); setClipboard(null); }
+      catch (e) { console.error("[Explorer] Paste (cut) failed:", e); }
+    } else {
+      // copy — dispatch event for future backend; optimistic duplicate in same folder
+      window.dispatchEvent(new CustomEvent("explorer:paste", {
+        detail: { op: "copy", src: clipboard.path, dest: targetDir },
+      }));
+      await apiDuplicatePath(clipboard.path).catch(console.error);
+    }
+  }, [clipboard, contextMenu, projectPath, apiMovePath, apiDuplicatePath]);
+
+  // P3 #1/#2 — lazy file metadata tooltip
+  const handleShowMeta = useCallback((path: string, x: number, y: number) => {
+    if (metaTimer.current) clearTimeout(metaTimer.current);
+    metaTimer.current = setTimeout(async () => {
+      metaTimer.current = null;
+      if (metaCache.current.has(path)) {
+        const m = metaCache.current.get(path)!;
+        setMetaTooltip({ path, ...m, x, y });
+        return;
+      }
+      try {
+        const r = await fetch(`/api/files/stat?path=${encodeURIComponent(path)}`);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ok && d.size !== undefined) {
+            const meta: FileMeta = { size: d.size, mtime: d.mtime };
+            metaCache.current.set(path, meta);
+            setMetaTooltip({ path, ...meta, x, y });
+          }
+        }
+      } catch { /* ignore */ }
+    }, 500);
+  }, []);
+
+  const handleHideMeta = useCallback(() => {
+    if (metaTimer.current) { clearTimeout(metaTimer.current); metaTimer.current = null; }
+    setMetaTooltip(null);
+  }, []);
+
+  // P3 #5 — folder upload
+  const handleFolderUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const base = projectPath ?? "";
+    await Promise.all(files.map(async (file) => {
+      const rel  = (file as any).webkitRelativePath || file.name;
+      const full = base ? `${base}/${rel}` : rel;
+      try { await apiSaveFile(full, await file.text()); } catch {}
+    }));
+    refreshFiles();
+    if (e.target) e.target.value = "";
+  }, [projectPath, apiSaveFile, refreshFiles]);
+
+  // P3 #8 — memoized folder file counts
+  const folderCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    function walk(nodes: RawTreeNode[], basePath: string) {
+      for (const n of nodes) {
+        const full = basePath ? `${basePath}/${n.name}` : n.name;
+        if ((n.type === "folder" || n.type === "directory") && n.children) {
+          map.set(full, countDescendantFiles(n.children));
+          walk(n.children, full);
+        }
+      }
+    }
+    walk(tree, projectPath || "");
+    return map;
+  }, [tree, projectPath]);
+
+  // P3 #6 — search auto-expand: compute folder paths containing matches
+  const searchExpandedPaths = useMemo(() => {
+    const sq = searchQuery.trim().toLowerCase();
+    if (!sq) return new Set<string>();
+    const result = new Set<string>();
+    collectSearchExpanded(tree, projectPath || "", sq, result);
+    return result;
+  }, [tree, searchQuery, projectPath]);
 
   // ── Sidebar resize ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -362,7 +521,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     document.body.style.cursor = "col-resize";
   };
 
-  // P1 #4 — Reveal active file: expand parents + scroll into view
+  // P1 #4 / P3 #7 — Reveal + scroll active file; expand parents
   useEffect(() => {
     if (!activeFile || !projectPath) return;
     const relative = activeFile.startsWith(projectPath + "/")
@@ -377,12 +536,15 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       if (!treeScrollRef.current) return;
       const el = Array.from(treeScrollRef.current.querySelectorAll("[data-tree-row]"))
         .find(el => el.getAttribute("data-tree-path") === activeFile) as HTMLElement | undefined;
-      if (el) { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); setFocusedPath(activeFile); }
-    }, 60);
+      if (el) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        setFocusedPath(activeFile);
+      }
+    }, 80);
     return () => clearTimeout(timer);
   }, [activeFile, projectPath]);
 
-  // P1 #2 — Keyboard navigation on the tree container
+  // P1 #2 — Keyboard navigation
   const handleTreeKeyDown = (e: React.KeyboardEvent) => {
     const container = treeScrollRef.current;
     if (!container) return;
@@ -459,6 +621,13 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       style={{ width, display: "flex", flexDirection: "column", position: "relative", background: "#1c1c1c", borderRight: "1px solid #252525", fontFamily: "'Inter', system-ui, -apple-system, sans-serif", fontSize: 12, height: "100%", flexShrink: 0 }}
       onClick={() => { if (contextMenu) closeCtx(); }}
     >
+      {/* P3 #11 — hierarchy: Pinned → Open Editors → Recent → Files → Agents → Insights */}
+      <PinnedFilesPanel
+        files={pinnedFiles} activeFile={activeFile}
+        onSelect={p => handleSelect(p)}
+        onUnpin={unpinFile}
+        onClearAll={clearPinned}
+      />
       <OpenEditorsPanel files={openFiles} activeFile={activeFile} onSelect={p => selectHandler?.(p)} onClose={closeFile} onCloseAll={closeAll} />
       <RecentFilesPanel files={recentFiles} activeFile={activeFile} onSelect={p => handleSelect(p)} />
 
@@ -473,10 +642,22 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
           )}
         </div>
         <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
-          {hdrBtn(FilePlus,   "New File",   () => setCreating("file"))}
-          {hdrBtn(FolderPlus, "New Folder", () => setCreating("folder"))}
-          {hdrBtn(RotateCcw,  "Refresh",    () => refreshFiles())}
+          {hdrBtn(FilePlus,   "New File",       () => setCreating("file"))}
+          {hdrBtn(FolderPlus, "New Folder",     () => setCreating("folder"))}
+          {/* P3 #5 — folder upload */}
+          {hdrBtn(FolderUp,   "Upload Folder",  () => uploadRef.current?.click())}
+          {hdrBtn(RotateCcw,  "Refresh",        () => refreshFiles())}
         </div>
+        {/* Hidden folder input */}
+        <input
+          ref={uploadRef}
+          type="file"
+          // @ts-ignore — webkitdirectory is non-standard
+          webkitdirectory=""
+          multiple
+          onChange={handleFolderUpload}
+          style={{ display: "none" }}
+        />
       </div>
 
       {/* Search */}
@@ -499,7 +680,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         <InlineCreateRow type={creating} onConfirm={creating === "file" ? createFile : createFolder} onCancel={() => setCreating(null)} />
       )}
 
-      {/* Tree / Empty state */}
+      {/* P3 #7 — Tree / Empty state (scroll-to-active works via ref + useEffect above) */}
       <div
         ref={treeScrollRef} role="tree" aria-label="File explorer" tabIndex={0}
         style={{ flex: 1, overflowY: "auto", padding: "2px 0", outline: "none" }}
@@ -540,13 +721,48 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
               gitStatusMap={gitStatusMap} selectedPaths={selectedPaths} onMultiSelect={handleMultiSelect}
               dragSourcePath={dragSourcePath} dropTargetPath={dropTargetPath}
               onDragStart={handleDragStart} onDragEnter={handleDragEnter}
-              onDragEnd={handleDragEnd} onDrop={handleDrop} />
+              onDragEnd={handleDragEnd} onDrop={handleDrop}
+              folderCounts={folderCounts} forcedExpandedPaths={searchExpandedPaths}
+              clipboard={clipboard} onShowMeta={handleShowMeta} onHideMeta={handleHideMeta}
+            />
           ))
         )}
       </div>
 
       <AgentStatusPanel />
 
+      {/* P3 #10 — Project Insights Panel */}
+      <ProjectInsightsPanel
+        tree={tree} aiFiles={aiFiles}
+        writingFiles={writingFiles} dirtyFiles={dirtyFiles}
+      />
+
+      {/* P3 #1/#2 — File metadata tooltip */}
+      {metaTooltip && (
+        <div
+          style={{
+            position: "fixed",
+            top: metaTooltip.y + 14,
+            left: Math.min(metaTooltip.x + 10, window.innerWidth - 160),
+            zIndex: 99999,
+            background: "#151515",
+            border: "1px solid #2a2a2a",
+            borderRadius: 5,
+            padding: "4px 8px",
+            fontSize: 11,
+            color: "#666",
+            pointerEvents: "none",
+            boxShadow: "0 4px 12px rgba(0,0,0,.5)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ color: "#888" }}>{formatBytes(metaTooltip.size)}</span>
+          <span style={{ color: "#333", margin: "0 5px" }}>·</span>
+          <span>{timeAgo(metaTooltip.mtime)}</span>
+        </div>
+      )}
+
+      {/* Context menu with P3 features */}
       <ContextMenu
         menu={contextMenu}
         targetPath={contextMenu?.path ?? ""}
@@ -556,7 +772,47 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         onDelete={async () => { if (contextMenu) { await handleDeletePath(contextMenu.path); closeCtx(); } }}
         onDuplicate={async () => { if (contextMenu) { await apiDuplicatePath(contextMenu.path); } }}
         onClose={closeCtx}
+        onCopy={() => contextMenu && handleCopy(contextMenu.path)}
+        onCut={() => contextMenu && handleCut(contextMenu.path)}
+        onPaste={handlePaste}
+        onPin={() => contextMenu && pinFile(contextMenu.path)}
+        onUnpin={() => contextMenu && unpinFile(contextMenu.path)}
+        onHistory={() => { if (contextMenu) { setHistoryFile(contextMenu.path); closeCtx(); } }}
+        isPinned={contextMenu ? isPinned(contextMenu.path) : false}
+        clipboard={clipboard}
       />
+
+      {/* P3 #9 — File History modal */}
+      {historyFile && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,.72)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setHistoryFile(null)}
+        >
+          <div
+            style={{ background: "#1c1c1c", border: "1px solid #2a2a2a", borderRadius: 10, padding: 20, width: 480, maxHeight: "70vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,.8)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#c4c4c4" }}>File History</div>
+                <div style={{ fontSize: 11, color: "#484848", marginTop: 2 }}>{historyFile.split("/").pop()}</div>
+              </div>
+              <button
+                onClick={() => setHistoryFile(null)}
+                style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 16, lineHeight: 1, borderRadius: 4, padding: "2px 6px" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4c4c4"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}
+              >
+                ✕
+              </button>
+            </div>
+            <FileHistoryPanel
+              projectId={projectPath?.split("/").filter(Boolean).pop() ?? projectPath ?? ""}
+              filePath={historyFile}
+            />
+          </div>
+        </div>
+      )}
 
       <div ref={handleRef} className="rfe-resize-handle" onMouseDown={startResize} data-testid="sidebar-resize-handle" />
     </div>

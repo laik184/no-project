@@ -70,6 +70,13 @@ export class FilesController {
     res.status(status).json(result);
   }
 
+  async statFile(req: Request, res: Response): Promise<void> {
+    const filePath = req.query.path as string;
+    if (!filePath) { res.status(400).json({ ok: false, error: 'path query param required' }); return; }
+    const result = await filesService.stat(filePath);
+    res.status(result.ok ? 200 : 404).json(result);
+  }
+
   healthCheck(_req: Request, res: Response): void {
     res.status(200).json({ ok: true, module: 'files' });
   }

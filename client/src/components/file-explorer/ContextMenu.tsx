@@ -1,6 +1,9 @@
 import { useEffect } from "react";
-import { FilePlus, FolderPlus, Pencil, Trash2, Copy, FileSymlink, Files } from "lucide-react";
-import { ContextMenuState } from "./types";
+import {
+  FilePlus, FolderPlus, Pencil, Trash2, Copy, FileSymlink, Files,
+  Clipboard, Scissors, ClipboardPaste, Pin, PinOff, History,
+} from "lucide-react";
+import { ContextMenuState, ClipboardState } from "./types";
 
 interface ContextMenuProps {
   menu:          ContextMenuState;
@@ -11,6 +14,14 @@ interface ContextMenuProps {
   onDelete:      () => void;
   onDuplicate?:  () => void;
   onClose?:      () => void;
+  onCopy?:       () => void;
+  onCut?:        () => void;
+  onPaste?:      () => void;
+  onPin?:        () => void;
+  onUnpin?:      () => void;
+  onHistory?:    () => void;
+  isPinned?:     boolean;
+  clipboard?:    ClipboardState;
 }
 
 function copyToClipboard(text: string) {
@@ -18,9 +29,11 @@ function copyToClipboard(text: string) {
 }
 
 export function ContextMenu({
-  menu, targetPath = "", onNewFile, onNewFolder, onRename, onDelete, onDuplicate, onClose,
+  menu, targetPath = "", onNewFile, onNewFolder, onRename, onDelete,
+  onDuplicate, onClose,
+  onCopy, onCut, onPaste, onPin, onUnpin, onHistory,
+  isPinned, clipboard,
 }: ContextMenuProps) {
-  // P1 #5 — ESC dismisses context menu, no memory leaks
   useEffect(() => {
     if (!menu) return;
     const handler = (e: KeyboardEvent) => {
@@ -32,32 +45,49 @@ export function ContextMenu({
 
   if (!menu) return null;
 
+  const isDir        = menu.isDir;
   const relativePath = targetPath.replace(/^\.?\/?[^/]+\//, "");
+  const canPaste     = !!clipboard;
 
-  const items: Array<{
+  type Item = {
     label:   string;
     Icon:    React.ElementType;
     onClick: () => void;
     danger?: boolean;
     testId:  string;
-  }> = [
-    { label: "New File",           Icon: FilePlus,    onClick: onNewFile,                                          testId: "context-new-file"      },
-    { label: "New Folder",         Icon: FolderPlus,  onClick: onNewFolder,                                        testId: "context-new-folder"    },
-    { label: "Rename",             Icon: Pencil,      onClick: onRename,                                           testId: "context-rename"        },
-    { label: "Duplicate",          Icon: Files,       onClick: () => { onDuplicate?.(); onClose?.(); },            testId: "context-duplicate"     },
-    { label: "Copy Path",          Icon: Copy,        onClick: () => copyToClipboard(targetPath),                  testId: "context-copy-path"     },
-    { label: "Copy Relative Path", Icon: FileSymlink, onClick: () => copyToClipboard(relativePath || targetPath),  testId: "context-copy-rel-path" },
-    { label: "Delete",             Icon: Trash2,      onClick: onDelete, danger: true,                             testId: "context-delete"        },
+    hidden?: boolean;
+  };
+
+  const items: Item[] = [
+    { label: "New File",   Icon: FilePlus,   onClick: onNewFile,   testId: "context-new-file"   },
+    { label: "New Folder", Icon: FolderPlus, onClick: onNewFolder, testId: "context-new-folder" },
+    { label: "Rename",     Icon: Pencil,     onClick: onRename,    testId: "context-rename"     },
+    { label: "Duplicate",  Icon: Files,      onClick: () => { onDuplicate?.(); onClose?.(); }, testId: "context-duplicate" },
+    { label: "Copy Path",          Icon: Copy,        onClick: () => { copyToClipboard(targetPath); onClose?.(); },                   testId: "context-copy-path"     },
+    { label: "Copy Relative Path", Icon: FileSymlink, onClick: () => { copyToClipboard(relativePath || targetPath); onClose?.(); },   testId: "context-copy-rel-path" },
+    { label: "Copy File",  Icon: Clipboard,      onClick: () => { onCopy?.();  onClose?.(); }, testId: "context-copy-file",  hidden: isDir },
+    { label: "Cut File",   Icon: Scissors,       onClick: () => { onCut?.();   onClose?.(); }, testId: "context-cut-file",   hidden: isDir },
+    { label: "Paste Here", Icon: ClipboardPaste, onClick: () => { onPaste?.(); onClose?.(); }, testId: "context-paste",      hidden: !canPaste },
+    { label: isPinned ? "Unpin File" : "Pin File", Icon: isPinned ? PinOff : Pin, onClick: () => { isPinned ? onUnpin?.() : onPin?.(); onClose?.(); }, testId: "context-pin", hidden: isDir },
+    { label: "View History", Icon: History,  onClick: () => { onHistory?.(); onClose?.(); }, testId: "context-history", hidden: isDir },
+    { label: "Delete",     Icon: Trash2,     onClick: onDelete, danger: true, testId: "context-delete" },
   ];
 
-  const dividerBefore = new Set([2, items.length - 1]);
+  const visible = items.filter(it => !it.hidden);
+
+  const dividerBefore = new Set<number>();
+  dividerBefore.add(2);
+  const copyFileIdx = visible.findIndex(i => i.testId === "context-copy-file");
+  if (copyFileIdx !== -1) dividerBefore.add(copyFileIdx);
+  const pinIdx = visible.findIndex(i => i.testId === "context-pin");
+  if (pinIdx !== -1) dividerBefore.add(pinIdx);
+  const historyIdx = visible.findIndex(i => i.testId === "context-history");
+  if (historyIdx !== -1 && historyIdx !== pinIdx + 1) dividerBefore.add(historyIdx);
+  dividerBefore.add(visible.length - 1);
 
   return (
     <>
-      {/* Backdrop — catches outside clicks */}
       <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} />
-
-      {/* Menu */}
       <div
         role="menu"
         aria-label="File context menu"
@@ -66,12 +96,12 @@ export function ContextMenu({
           background: "#1a1a1a", border: "1px solid #2a2a2a",
           borderRadius: 7, padding: "3px",
           boxShadow: "0 8px 28px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.4)",
-          minWidth: 172,
+          minWidth: 186,
           fontFamily: "'Inter', system-ui, sans-serif",
         }}
         data-testid="context-menu"
       >
-        {items.map(({ label, Icon, onClick, danger, testId }, i) => (
+        {visible.map(({ label, Icon, onClick, danger, testId }, i) => (
           <div key={label}>
             {dividerBefore.has(i) && (
               <div style={{ height: 1, background: "#252525", margin: "2px 3px" }} />
@@ -98,6 +128,12 @@ export function ContextMenu({
             >
               <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />
               {label}
+              {label === "Cut File" && clipboard?.op === "cut" && clipboard.path === targetPath && (
+                <span style={{ fontSize: 9, color: "#555", marginLeft: "auto" }}>✓</span>
+              )}
+              {label === "Copy File" && clipboard?.op === "copy" && clipboard.path === targetPath && (
+                <span style={{ fontSize: 9, color: "#555", marginLeft: "auto" }}>✓</span>
+              )}
             </div>
           </div>
         ))}

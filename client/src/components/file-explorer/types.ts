@@ -20,3 +20,13 @@ export type ContextMenuState = {
   path: string;
   isDir: boolean;
 } | null;
+
+export type ClipboardState = {
+  op:   "copy" | "cut";
+  path: string;
+} | null;
+
+export type FileMeta = {
+  size:  number;
+  mtime: number;
+};

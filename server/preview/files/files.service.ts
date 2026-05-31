@@ -148,6 +148,18 @@ export class FilesService {
     });
   }
 
+  async stat(filePath: string): Promise<{ ok: boolean; size?: number; mtime?: number; error?: string }> {
+    try {
+      const root   = path.resolve(this.config.rootPath);
+      const target = path.resolve(root, filePath.replace(/^\//, ''));
+      this.assertSafePath(target);
+      const st = fs.statSync(target);
+      return { ok: true, size: st.size, mtime: st.mtimeMs };
+    } catch (e: any) {
+      return { ok: false, error: e.message };
+    }
+  }
+
   private isExcluded(name: string): boolean {
     return this.config.excludePatterns.some(p => name === p || name.startsWith('.'));
   }
