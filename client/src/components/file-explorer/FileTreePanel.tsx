@@ -68,12 +68,6 @@ export function FileTreePanel({ onFileOpen, onClose, activeFileName = "" }: File
           Explorer
         </span>
         <div style={{ display: "flex", gap: 1 }}>
-          <ActionIcon onClick={() => { setCreatingFile(true); setCreatingFolder(false); }} title="New File" testId="button-new-file">
-            <FilePlus style={{ width: 13, height: 13 }} />
-          </ActionIcon>
-          <ActionIcon onClick={() => { setCreatingFolder(true); setCreatingFile(false); }} title="New Folder" testId="button-new-folder">
-            <FolderPlus style={{ width: 13, height: 13 }} />
-          </ActionIcon>
           <ActionIcon onClick={onClose} title="Close Explorer" testId="button-close-file-explorer">
             <X style={{ width: 13, height: 13 }} />
           </ActionIcon>
