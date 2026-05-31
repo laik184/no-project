@@ -8,14 +8,16 @@
  *
  * No business logic here.
  */
-import { Router }       from 'express';
-import type { Server }  from 'http';
+import { Router }              from 'express';
+import type { Application }   from 'express';
+import type { Server }        from 'http';
 import type { Request, Response } from 'express';
 import { chatRoutes }       from './api/chat.routes.ts';
 import { runRoutes }        from './api/run.routes.ts';
 import { historyRoutes }    from './api/history.routes.ts';
 import { attachmentRoutes } from './api/attachment.routes.ts';
 import { questionRoutes }   from './api/question.routes.ts';
+import { runStartRouter }   from './api/run-start.router.ts';
 import { heartbeatManager } from './realtime/heartbeat-manager.ts';
 import { websocketManager } from './realtime/websocket-manager.ts';
 import { TOPIC, sseManager as infraSseManager } from '../infrastructure';
@@ -70,50 +72,56 @@ chatRouter.get('/stream', (req: Request, res: Response) => {
 /**
  * chatOrchestrator — Application facade.
  *
- * main.ts imports this object and calls:
- *   - buildChatRouter()       → Express Router for /api/chat/* (includes SSE)
- *   - attachWebSocket(server) → Registers WS handlers on the HTTP server
- *   - startPersistence()      → Starts heartbeat + background services
+ * main.ts imports this object and calls (in order):
+ *   - mountRoutes(app)    → Registers /api/chat/* and /api/run/* on the Express app
+ *   - bootstrap(server)   → Attaches WS handler + starts heartbeat (after server creation)
  *
  * Internal orchestration logic lives in orchestration/chat-orchestrator.ts.
  * This facade only wires external I/O.
  */
 export const chatOrchestrator = {
-  buildChatRouter(): Router {
-    return chatRouter;
+  /**
+   * Mount all chat HTTP routes onto the given Express app.
+   * Must be called BEFORE http.createServer(app).
+   *   /api/chat/* — chat REST + SSE stream
+   *   /api/run/*  — run start / cancel / active
+   */
+  mountRoutes(app: Application): void {
+    app.use('/api/chat', chatRouter);
+    app.use('/api/run',  runStartRouter);
   },
 
-  attachWebSocket(server: Server): void {
+  /**
+   * Attach WebSocket upgrade handler and start background services.
+   * Must be called AFTER http.createServer(app).
+   */
+  bootstrap(server: Server): void {
     server.on('upgrade', (request, socket, head) => {
       const url      = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
       const pathname = url.pathname;
 
-      // Only handle /ws/chat/* — other WS paths are owned by other modules
       if (!pathname.startsWith('/ws/chat')) return;
 
       const projectId = Number(url.searchParams.get('projectId') ?? '0');
-      if (!projectId) {
-        socket.destroy();
-        return;
-      }
+      if (!projectId) { socket.destroy(); return; }
 
-      // Dynamic import to avoid circular dependency at module load time
       import('ws').then(({ WebSocketServer }) => {
         const wss = new WebSocketServer({ noServer: true });
         wss.handleUpgrade(request, socket, head, (ws) => {
           websocketManager.register(projectId, ws as any);
           wss.emit('connection', ws, request);
         });
-      }).catch(() => {
-        socket.destroy();
-      });
+      }).catch(() => { socket.destroy(); });
     });
-  },
 
-  startPersistence(): void {
     heartbeatManager.start();
     console.log('[chat] Module online — heartbeat ✓ SSE facade ✓ WS adapter ✓');
   },
+
+  // ── Legacy aliases (kept for backward compatibility) ─────────────────────
+  buildChatRouter(): Router { return chatRouter; },
+  attachWebSocket(server: Server): void { this.bootstrap(server); },
+  startPersistence(): void { heartbeatManager.start(); },
 };
 
 // ── Public API re-exports ─────────────────────────────────────────────────────
@@ -130,7 +138,7 @@ export { attachmentManager }     from './attachments/attachment-manager.ts';
 export { timelineManager }       from './timeline/timeline-manager.ts';
 export { chatStore }             from './persistence/chat-store.ts';
 export { eventPublisher }        from './realtime/event-publisher.ts';
-export { runStartRouter }        from './api/run-start.router.ts';
+export { runStartRouter }; // imported at top; re-exported for external consumers
 
 // ── Type re-exports ───────────────────────────────────────────────────────────
 
