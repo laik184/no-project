@@ -12,8 +12,8 @@ function operationLabel(tool: string): string {
 }
 
 export function PackageCard({ item }: PackageCardProps) {
-  const tool     = String(item.tool ?? "package.install");
-  const opLabel  = operationLabel(tool);
+  const tool      = String(item.tool ?? "package.install");
+  const opLabel   = operationLabel(tool);
   const isRunning = item.status === "running";
   const isError   = (item.status as string) === "error";
   const isDone    = item.status === "done";
@@ -25,20 +25,20 @@ export function PackageCard({ item }: PackageCardProps) {
 
   return (
     <div className="rounded-lg px-3 py-2.5" data-testid="package-card"
-      style={{ background: "rgba(251,146,60,0.04)", border: "1px solid rgba(251,146,60,0.15)" }}>
+      style={{ background: "#111827", border: "1px solid #1f2937" }}>
 
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.2)" }}>
-          <Package style={{ width: 12, height: 12, color: "#fb923c" }} />
+          style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.22)" }}>
+          <Package style={{ width: 12, height: 12, color: "#f97316" }} />
         </div>
         <span className="text-[11px] font-medium flex-1" style={{ color: "rgba(203,213,225,0.85)" }}>
           {opLabel} packages
         </span>
         <div className="flex-shrink-0">
-          {isRunning && <Loader2 className="animate-spin" style={{ width: 13, height: 13, color: "#fb923c" }} />}
-          {isDone    && <CheckCircle2 style={{ width: 13, height: 13, color: "#4ade80" }} />}
-          {isError   && <XCircle style={{ width: 13, height: 13, color: "#f87171" }} />}
+          {isRunning && <Loader2 className="animate-spin" style={{ width: 12, height: 12, color: "#f97316" }} />}
+          {isDone    && <CheckCircle2 style={{ width: 12, height: 12, color: "#22c55e" }} />}
+          {isError   && <XCircle     style={{ width: 12, height: 12, color: "#ef4444" }} />}
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export function PackageCard({ item }: PackageCardProps) {
           {packages.map((pkg, i) => (
             <span key={i}
               className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-              style={{ background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.15)", color: "rgba(251,146,60,0.8)" }}>
+              style={{ background: "rgba(148,163,184,0.06)", border: "1px solid #1f2937", color: "rgba(148,163,184,0.65)" }}>
               {pkg}
             </span>
           ))}
@@ -55,15 +55,11 @@ export function PackageCard({ item }: PackageCardProps) {
       )}
 
       <div className="flex items-center gap-2 mt-1.5">
-        <span className="text-[9.5px]" style={{ color: "rgba(100,116,139,0.5)" }}>
+        <span className="text-[9.5px]" style={{ color: "rgba(100,116,139,0.45)" }}>
           {packages.length > 0 ? `${packages.length} package${packages.length !== 1 ? "s" : ""}` : "—"}
         </span>
-        {isDone && (
-          <span className="text-[9.5px]" style={{ color: "#4ade80" }}>· ✓ Complete</span>
-        )}
-        {isError && (
-          <span className="text-[9.5px]" style={{ color: "#f87171" }}>· ✗ Failed</span>
-        )}
+        {isDone  && <span className="text-[9.5px]" style={{ color: "#22c55e" }}>· ✓ Complete</span>}
+        {isError && <span className="text-[9.5px]" style={{ color: "#ef4444" }}>· ✗ Failed</span>}
       </div>
     </div>
   );

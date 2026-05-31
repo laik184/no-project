@@ -1,32 +1,40 @@
 /**
- * ActionSummaryBar — compact header row for a group of actions.
- * Phase 9: shows running/failed/done counts + duration badges.
+ * ActionSummaryBar — professional Replit-style action strip.
+ * Shows tool icons in contained icon wells, action count, and status badges.
  */
-import { Brain } from "lucide-react";
+import { Brain, ChevronDown, Loader2 } from "lucide-react";
 import { TOOL_ICON_MAP, TOOL_COLOR_MAP } from "../tool-maps";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
 interface ActionSummaryBarProps {
-  actions:  AgentStreamItem[];
+  actions:   AgentStreamItem[];
   expanded?: boolean;
   onToggle?: () => void;
 }
 
-function CountBadge({ count, color, label }: { count: number; color: string; label: string }) {
+function StatusBadge({ count, variant, label }: { count: number; variant: "running" | "error" | "done"; label: string }) {
   if (count === 0) return null;
+  const styles = {
+    running: { bg: "rgba(59,130,246,0.1)",  border: "rgba(59,130,246,0.25)",  color: "#3b82f6"  },
+    error:   { bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.25)",   color: "#ef4444"  },
+    done:    { bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.25)",   color: "#22c55e"  },
+  }[variant];
   return (
-    <span className="text-[9px] font-mono px-1 py-0.5 rounded"
-      style={{ background: `${color}10`, border: `1px solid ${color}22`, color: `${color}bb` }}
-      title={`${count} ${label}`}>
-      {count} {label[0]}
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+      style={{ background: styles.bg, border: `1px solid ${styles.border}`, color: styles.color }}>
+      {variant === "running" && (
+        <Loader2 style={{ width: 8, height: 8 }} className="animate-spin" />
+      )}
+      {count} {label}
     </span>
   );
 }
 
 export function ActionSummaryBar({ actions, expanded, onToggle }: ActionSummaryBarProps) {
-  const running  = actions.filter((a) => a.status === "running").length;
-  const failed   = actions.filter((a) => (a.status as string) === "error").length;
-  const done     = actions.filter((a) => a.status === "done").length;
+  const running = actions.filter((a) => a.status === "running").length;
+  const failed  = actions.filter((a) => (a.status as string) === "error").length;
+  const done    = actions.filter((a) => a.status === "done").length;
 
   const durations = actions
     .map((a) => a.meta?.durationMs)
@@ -38,7 +46,7 @@ export function ActionSummaryBar({ actions, expanded, onToggle }: ActionSummaryB
   for (const a of actions) {
     const t = a.tool ?? "analysis.think";
     if (!seen.has(String(t))) { seen.add(String(t)); iconTools.push(String(t)); }
-    if (iconTools.length >= 5) break;
+    if (iconTools.length >= 4) break;
   }
 
   const hasCounts = running > 0 || failed > 0 || done > 0;
@@ -46,41 +54,66 @@ export function ActionSummaryBar({ actions, expanded, onToggle }: ActionSummaryB
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-1.5 w-full text-left rounded-lg px-2.5 py-1.5 transition-colors hover:bg-white/[0.03]"
-      style={{ background: "#111827", border: "1px solid #263244" }}
+      className="group flex items-center gap-2 w-full text-left rounded-lg px-2.5 py-2 transition-colors hover:bg-white/[0.04]"
+      style={{ background: "#111827", border: "1px solid #1f2937" }}
       data-testid="action-summary-bar">
 
-      <div className="flex items-center gap-1">
+      {/* Icon wells */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {iconTools.map((tool, i) => {
           const Icon  = TOOL_ICON_MAP[tool] ?? Brain;
-          const color = TOOL_COLOR_MAP[tool] ?? "#3B82F6";
-          return <Icon key={i} style={{ width: 11, height: 11, color, flexShrink: 0, strokeWidth: 1.6 }} />;
+          const color = TOOL_COLOR_MAP[tool] ?? "#3b82f6";
+          return (
+            <div key={i}
+              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+              style={{ background: `${color}14`, border: `1px solid ${color}28` }}>
+              <Icon style={{ width: 10, height: 10, color, strokeWidth: 1.75 }} />
+            </div>
+          );
         })}
-        {actions.length > 5 && (
-          <span className="text-[9px]" style={{ color: "rgba(100,116,139,0.45)" }}>
-            +{actions.length - 5}
-          </span>
+        {actions.length > 4 && (
+          <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(148,163,184,0.06)", border: "1px solid rgba(148,163,184,0.12)" }}>
+            <span className="text-[8px] font-mono" style={{ color: "rgba(148,163,184,0.5)" }}>
+              +{actions.length - 4}
+            </span>
+          </div>
         )}
       </div>
 
-      <span style={{ color: "rgba(100,116,139,0.25)", fontSize: 10, userSelect: "none" }}>·</span>
+      <div className="w-px h-3.5 flex-shrink-0" style={{ background: "#1f2937" }} />
 
-      <span className="text-[11px] flex-1" style={{ color: "#94A3B8" }}>
+      {/* Action count */}
+      <span className="text-[11px] font-medium flex-1" style={{ color: "#94a3b8" }}>
         {actions.length} action{actions.length !== 1 ? "s" : ""}
       </span>
 
+      {/* Status badges */}
       {hasCounts && (
         <div className="flex items-center gap-1">
-          <CountBadge count={running} color="#3B82F6" label="running" />
-          <CountBadge count={failed}  color="#EF4444" label="failed"  />
-          <CountBadge count={done}    color="#22C55E" label="done"    />
+          <StatusBadge count={running} variant="running" label="running" />
+          <StatusBadge count={failed}  variant="error"   label="failed"  />
+          <StatusBadge count={done}    variant="done"    label="done"    />
         </div>
       )}
 
+      {/* Duration */}
       {totalMs > 0 && (
-        <span className="text-[9px] font-mono" style={{ color: "rgba(100,116,139,0.4)" }}>
+        <span className="text-[9px] font-mono flex-shrink-0" style={{ color: "rgba(100,116,139,0.45)" }}>
           {totalMs >= 1000 ? `${(totalMs / 1000).toFixed(1)}s` : `${totalMs}ms`}
         </span>
+      )}
+
+      {/* Chevron */}
+      {onToggle && (
+        <ChevronDown
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200"
+          style={{
+            width: 12, height: 12,
+            color: "rgba(148,163,184,0.5)",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s, opacity 0.15s",
+          }} />
       )}
     </button>
   );

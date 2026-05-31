@@ -1,6 +1,6 @@
 /**
- * GitCard — Phase 3 (T3): backend now wires commitHash, branch, filesChanged
- * into entry.meta. Display them here.
+ * GitCard — renders git.* tool actions.
+ * Neutral dark workspace theme.
  */
 import { GitBranch, GitCommit, FileCode } from "lucide-react";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
@@ -33,16 +33,16 @@ export function GitCard({ item }: GitCardProps) {
       className="rounded-lg flex items-center gap-2.5 px-3 py-2"
       data-testid="git-card"
       style={{
-        background: "rgba(134,239,172,0.04)",
-        border:     "1px solid rgba(134,239,172,0.14)",
+        background: "#111827",
+        border:     "1px solid #1f2937",
         animation:  "card-enter 0.22s cubic-bezier(0.22,1,0.36,1) both",
       }}>
 
       <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: "rgba(134,239,172,0.1)", border: "1px solid rgba(134,239,172,0.2)" }}>
+        style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.18)" }}>
         {hash
-          ? <GitCommit style={{ width: 13, height: 13, color: "#86efac" }} />
-          : <GitBranch style={{ width: 13, height: 13, color: "#86efac" }} />}
+          ? <GitCommit style={{ width: 13, height: 13, color: "#22c55e" }} />
+          : <GitBranch style={{ width: 13, height: 13, color: "#22c55e" }} />}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -52,26 +52,26 @@ export function GitCard({ item }: GitCardProps) {
           </span>
           {branch && (
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{ background: "rgba(134,239,172,0.1)", border: "1px solid rgba(134,239,172,0.2)", color: "rgba(134,239,172,0.8)" }}>
+              style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.18)", color: "rgba(134,239,172,0.75)" }}>
               {branch}
             </span>
           )}
           {shortHash && (
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{ background: "rgba(134,239,172,0.07)", border: "1px solid rgba(134,239,172,0.15)", color: "rgba(134,239,172,0.6)" }}>
+              style={{ background: "rgba(148,163,184,0.06)", border: "1px solid #1f2937", color: "rgba(148,163,184,0.55)" }}>
               {shortHash}
             </span>
           )}
           {filesChanged !== undefined && filesChanged > 0 && (
             <span className="flex items-center gap-0.5 text-[9px] flex-shrink-0"
-              style={{ color: "rgba(134,239,172,0.6)" }}>
+              style={{ color: "rgba(100,116,139,0.55)" }}>
               <FileCode style={{ width: 9, height: 9 }} />
               {filesChanged}
             </span>
           )}
         </div>
         <span className="text-[9.5px] truncate block mt-0.5"
-          style={{ color: "rgba(100,116,139,0.55)" }}>
+          style={{ color: "rgba(100,116,139,0.5)" }}>
           {message ?? item.content}
         </span>
       </div>

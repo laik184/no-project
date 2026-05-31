@@ -1,9 +1,9 @@
 /**
- * TerminalCard — Phase 3 (T6): terminal output replay button added.
- * Replay animates stdout lines sequentially with per-line delay.
+ * TerminalCard — terminal output with replay button.
+ * Neutral dark workspace theme — lime only on prompt text.
  */
 import { useState, useRef, useEffect, useCallback } from "react";
-import { TerminalSquare, Copy, CheckCircle2, XCircle, Clock, Play, Square } from "lucide-react";
+import { Terminal, Copy, CheckCircle2, XCircle, Clock, Play, Square } from "lucide-react";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
 function exitBadge(code: number) {
@@ -11,9 +11,9 @@ function exitBadge(code: number) {
   return (
     <span className="flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded"
       style={{
-        background: ok ? "rgba(74,222,128,0.1)"  : "rgba(248,113,113,0.1)",
-        color:      ok ? "#4ade80"               : "#f87171",
-        border:     `1px solid ${ok ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`,
+        background: ok ? "rgba(34,197,94,0.1)"  : "rgba(239,68,68,0.1)",
+        color:      ok ? "#22c55e"              : "#ef4444",
+        border:     `1px solid ${ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
       }}>
       {ok ? <CheckCircle2 style={{ width: 9, height: 9 }} /> : <XCircle style={{ width: 9, height: 9 }} />}
       exit {code}
@@ -21,7 +21,7 @@ function exitBadge(code: number) {
   );
 }
 
-const REPLAY_LINE_DELAY_MS = 55; // ms per line
+const REPLAY_LINE_DELAY_MS = 55;
 
 interface TerminalCardProps {
   item: AgentStreamItem;
@@ -29,25 +29,22 @@ interface TerminalCardProps {
 
 export function TerminalCard({ item }: TerminalCardProps) {
   const [copied,      setCopied]      = useState(false);
-  const [replayLines, setReplayLines] = useState<string[] | null>(null); // null = not replaying
-  const outputRef  = useRef<HTMLDivElement>(null);
-  const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [replayLines, setReplayLines] = useState<string[] | null>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
+  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const command    = (item.meta?.file as string | undefined) ?? item.content;
-  const allStdout  = (item.meta?.stdout as string[] | undefined)
+  const command   = (item.meta?.file as string | undefined) ?? item.content;
+  const allStdout = (item.meta?.stdout as string[] | undefined)
     ?? (item.meta?.logs ? String(item.meta.logs).split("\n") : []);
   const exitCode   = item.meta?.exitCode   as number | undefined;
   const durationMs = item.meta?.durationMs as number | undefined;
 
-  // Use replay lines when replaying, otherwise full stdout
   const visibleLines = replayLines ?? allStdout;
 
-  // Auto-scroll on new lines
   useEffect(() => {
     outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight, behavior: "smooth" });
   }, [visibleLines.length]);
 
-  // Clean up interval on unmount
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const stopReplay = useCallback(() => {
@@ -65,7 +62,6 @@ export function TerminalCard({ item }: TerminalCardProps) {
       if (idx >= allStdout.length) {
         clearInterval(timerRef.current!);
         timerRef.current = null;
-        // Leave replayLines set so the full output stays visible; reset after brief pause
         setTimeout(() => setReplayLines(null), 800);
       }
     }, REPLAY_LINE_DELAY_MS);
@@ -85,20 +81,20 @@ export function TerminalCard({ item }: TerminalCardProps) {
       className="rounded-lg overflow-hidden"
       data-testid="terminal-card"
       style={{
-        background: "rgba(163,230,53,0.04)",
-        border:     "1px solid rgba(163,230,53,0.14)",
+        background: "#111827",
+        border:     "1px solid #1f2937",
         animation:  "card-enter 0.22s cubic-bezier(0.22,1,0.36,1) both",
       }}>
 
       {/* Command header */}
       <div className="flex items-center gap-2 px-3 py-2"
-        style={{ borderBottom: "1px solid rgba(163,230,53,0.09)" }}>
+        style={{ borderBottom: "1px solid #1f2937" }}>
         <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.2)" }}>
-          <TerminalSquare style={{ width: 12, height: 12, color: "#a3e635" }} />
+          style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.22)" }}>
+          <Terminal style={{ width: 12, height: 12, color: "#f59e0b" }} />
         </div>
-        <span className="flex-1 text-[11px] font-mono truncate" style={{ color: "rgba(163,230,53,0.9)" }}>
-          <span style={{ color: "rgba(163,230,53,0.4)" }}>$ </span>{command}
+        <span className="flex-1 text-[11px] font-mono truncate" style={{ color: "rgba(203,213,225,0.85)" }}>
+          <span style={{ color: "rgba(100,116,139,0.5)" }}>$ </span>{command}
         </span>
       </div>
 
@@ -108,7 +104,7 @@ export function TerminalCard({ item }: TerminalCardProps) {
           ref={outputRef}
           className="overflow-y-auto text-[9.5px] font-mono leading-relaxed px-3 py-2"
           style={{
-            maxHeight: 140, background: "rgba(0,0,0,0.35)",
+            maxHeight: 140, background: "#0b0f14",
             color: "rgba(148,163,184,0.75)", whiteSpace: "pre-wrap", overflowX: "hidden",
           }}>
           {visibleLines.map((line, i) => (
@@ -116,30 +112,27 @@ export function TerminalCard({ item }: TerminalCardProps) {
               {line}
             </div>
           ))}
-          {/* Blinking cursor during replay */}
           {isReplaying && (
-            <span style={{ animation: "blink 0.8s step-end infinite", color: "#a3e635" }}>▋</span>
+            <span style={{ animation: "blink 0.8s step-end infinite", color: "#f59e0b" }}>▋</span>
           )}
         </div>
       )}
 
       {/* Footer */}
-      <div className="flex items-center gap-2 px-3 py-1.5">
+      <div className="flex items-center gap-2 px-3 py-1.5" style={{ borderTop: visibleLines.length > 0 ? "1px solid #1f2937" : "none" }}>
         {exitCode !== undefined && exitBadge(exitCode)}
         {durationMs !== undefined && (
-          <span className="flex items-center gap-1 text-[9px]" style={{ color: "rgba(100,116,139,0.5)" }}>
+          <span className="flex items-center gap-1 text-[9px]" style={{ color: "rgba(100,116,139,0.45)" }}>
             <Clock style={{ width: 9, height: 9 }} />
             {durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`}
           </span>
         )}
         <div className="flex-1" />
-
-        {/* T6 — Replay button (shown when output exists and not currently running) */}
         {allStdout.length > 0 && item.status !== "running" && (
           <button
             onClick={isReplaying ? stopReplay : startReplay}
             className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/[0.06]"
-            style={{ color: isReplaying ? "#f87171" : "rgba(163,230,53,0.6)" }}
+            style={{ color: isReplaying ? "#ef4444" : "rgba(148,163,184,0.45)" }}
             data-testid="button-terminal-replay"
             title={isReplaying ? "Stop replay" : "Replay output"}>
             {isReplaying
@@ -148,12 +141,11 @@ export function TerminalCard({ item }: TerminalCardProps) {
             {isReplaying ? "Stop" : "Replay"}
           </button>
         )}
-
         {allStdout.length > 0 && (
           <button
             onClick={handleCopy}
             className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/[0.06]"
-            style={{ color: copied ? "#4ade80" : "rgba(100,116,139,0.5)" }}
+            style={{ color: copied ? "#22c55e" : "rgba(100,116,139,0.45)" }}
             data-testid="button-terminal-copy">
             <Copy style={{ width: 9, height: 9 }} />
             {copied ? "Copied!" : "Copy"}

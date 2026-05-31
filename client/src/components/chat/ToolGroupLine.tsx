@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, ChevronDown, CheckCircle2, ExternalLink, Wrench, BookOpen, Bot, FolderOpen, Copy, Zap, FileText } from "lucide-react";
+import { Brain, ChevronDown, CheckCircle2, ExternalLink, Wrench, BookOpen, Bot, FolderOpen, Copy, Zap, FileText, Loader2, XCircle } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -20,6 +20,12 @@ interface ToolGroupLineProps {
   onOpenFile?: (path: string) => void;
 }
 
+function StatusIcon({ status }: { status: AgentStreamItem["status"] }) {
+  if (status === "running") return <Loader2 className="animate-spin flex-shrink-0" style={{ width: 11, height: 11, color: "#3b82f6" }} />;
+  if ((status as string) === "error") return <XCircle className="flex-shrink-0" style={{ width: 11, height: 11, color: "#ef4444" }} />;
+  return <CheckCircle2 className="flex-shrink-0" style={{ width: 11, height: 11, color: "#22c55e" }} />;
+}
+
 export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
   const [expanded, setExpanded] = useState(false);
   const isSingle = actions.length === 1;
@@ -29,49 +35,64 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
       <style>{TOOL_GROUP_STYLES}</style>
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1.5 w-full text-left group rounded-md px-1 py-0.5 -mx-1 transition-colors hover:bg-white/[0.03]"
+        className="flex items-center gap-2 w-full text-left group rounded-md px-1.5 py-1 -mx-1 transition-colors hover:bg-white/[0.03]"
         data-testid="button-tool-group-toggle"
       >
-        {actions.slice(0, 5).map((action, idx) => {
-          const tool  = action.tool ?? "analysis.think";
-          const Icon  = TOOL_ICON_MAP[tool] ?? Brain;
-          const color = TOOL_COLOR_MAP[tool] ?? "#a78bfa";
-          return (
-            <Icon key={idx} className="flex-shrink-0 transition-opacity group-hover:opacity-80"
-              style={{ width: 13, height: 13, color, strokeWidth: 1.6 }} title={tool} />
-          );
-        })}
-        <span style={{ color: "rgba(100,116,139,0.2)", fontSize: 10, userSelect: "none" }}>·</span>
-        <span className="text-[11px] leading-none flex-1 truncate" style={{ color: "rgba(100,116,139,0.6)" }}>
+        {/* Icon wells */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {actions.slice(0, 4).map((action, idx) => {
+            const tool  = action.tool ?? "analysis.think";
+            const Icon  = TOOL_ICON_MAP[tool] ?? Brain;
+            const color = TOOL_COLOR_MAP[tool] ?? "#3b82f6";
+            return (
+              <div key={idx}
+                className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                style={{ background: `${color}12`, border: `1px solid ${color}22` }}>
+                <Icon style={{ width: 10, height: 10, color, strokeWidth: 1.75 }} title={tool} />
+              </div>
+            );
+          })}
+        </div>
+
+        <span className="text-[11px] leading-none flex-1 truncate" style={{ color: "rgba(148,163,184,0.65)" }}>
           {isSingle ? actions[0].content : `${actions.length} actions`}
         </span>
-        <ChevronDown className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200"
-          style={{ width: 11, height: 11, color: "rgba(100,116,139,0.5)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }} />
+
+        {isSingle && <StatusIcon status={actions[0].status} />}
+
+        <ChevronDown
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200"
+          style={{
+            width: 11, height: 11,
+            color: "rgba(100,116,139,0.5)",
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+          }} />
       </button>
 
       {expanded && (
-        <div className="tg-expand-in mt-1.5 rounded-xl overflow-hidden"
-          style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}
+        <div
+          className="tg-expand-in mt-1.5 rounded-lg overflow-hidden"
+          style={{ background: "#111827", border: "1px solid #1f2937" }}
           data-testid="tool-group-detail-panel">
           {actions.map((action, idx) => {
             const tool   = action.tool ?? "analysis.think";
             const Icon   = TOOL_ICON_MAP[tool] ?? Brain;
-            const color  = TOOL_COLOR_MAP[tool] ?? "#a78bfa";
+            const color  = TOOL_COLOR_MAP[tool] ?? "#3b82f6";
             const isLast = idx === actions.length - 1;
             return (
               <div key={idx} className="flex items-start gap-2.5 px-3 py-2.5"
-                style={{ borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.045)" }}>
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: `${color}15`, border: `1px solid ${color}28` }}>
-                  <Icon style={{ width: 12, height: 12, color, strokeWidth: 1.75 }} />
+                style={{ borderBottom: isLast ? "none" : "1px solid #1f2937" }}>
+                <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: `${color}12`, border: `1px solid ${color}22` }}>
+                  <Icon style={{ width: 11, height: 11, color, strokeWidth: 1.75 }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button type="button"
-                          className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded flex-shrink-0 hover:opacity-100 transition-opacity cursor-pointer outline-none focus:ring-1 focus:ring-white/20"
-                          style={{ background: `${color}12`, border: `1px solid ${color}25`, color: `${color}bb` }}
+                          className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded flex-shrink-0 transition-opacity cursor-pointer outline-none focus:ring-1 focus:ring-white/20"
+                          style={{ background: "rgba(148,163,184,0.08)", border: "1px solid rgba(148,163,184,0.15)", color: "rgba(148,163,184,0.7)" }}
                           data-testid={`button-tool-chip-${tool}`} onClick={(e) => e.stopPropagation()}>
                           {tool}
                         </button>
@@ -107,14 +128,14 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <span className="text-[11px] font-medium truncate flex-1" style={{ color: "rgba(203,213,225,0.8)" }}>
+                    <span className="text-[11px] font-medium truncate flex-1" style={{ color: "rgba(203,213,225,0.85)" }}>
                       {action.content}
                     </span>
-                    <CheckCircle2 className="flex-shrink-0 ml-auto" style={{ width: 12, height: 12, color: "rgba(74,222,128,0.75)" }} />
+                    <StatusIcon status={action.status} />
                   </div>
                   {action.meta?.logs && (
-                    <div className="mt-2 rounded-md px-2.5 py-2 text-[9.5px] font-mono leading-relaxed"
-                      style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${color}18`, borderLeft: `2px solid ${color}50`, color: "rgba(148,163,184,0.7)", whiteSpace: "pre-wrap" }}>
+                    <div className="mt-1.5 rounded-md px-2.5 py-2 text-[9.5px] font-mono leading-relaxed"
+                      style={{ background: "#0b0f14", border: "1px solid #1f2937", borderLeft: `2px solid ${color}40`, color: "rgba(148,163,184,0.7)", whiteSpace: "pre-wrap" }}>
                       {action.meta.logs}
                     </div>
                   )}
@@ -123,7 +144,7 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
                       <DropdownMenuTrigger asChild>
                         <button type="button"
                           className="mt-1.5 flex items-center gap-1 text-[9.5px] font-mono w-full text-left rounded px-1 -mx-1 hover:bg-white/[0.04] transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-white/20"
-                          style={{ color: `${color}88` }} data-testid={`button-file-path-${idx}`} onClick={(e) => e.stopPropagation()}>
+                          style={{ color: "rgba(100,116,139,0.6)" }} data-testid={`button-file-path-${idx}`} onClick={(e) => e.stopPropagation()}>
                           <span>→</span><span className="truncate">{action.meta.file}</span>
                           <ExternalLink className="h-2.5 w-2.5 ml-auto opacity-60 flex-shrink-0" />
                         </button>

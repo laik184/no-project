@@ -12,18 +12,18 @@ function operationLabel(tool: string): string {
 }
 
 export function DatabaseCard({ item }: DatabaseCardProps) {
-  const tool      = String(item.tool ?? "db.push");
-  const opLabel   = operationLabel(tool);
-  const isRunning = item.status === "running";
-  const isDone    = item.status === "done";
+  const tool       = String(item.tool ?? "db.push");
+  const opLabel    = operationLabel(tool);
+  const isRunning  = item.status === "running";
+  const isDone     = item.status === "done";
   const durationMs = item.meta?.durationMs;
 
   return (
     <div className="rounded-lg flex items-center gap-2.5 px-3 py-2" data-testid="database-card"
-      style={{ background: "rgba(52,211,153,0.04)", border: "1px solid rgba(52,211,153,0.14)" }}>
+      style={{ background: "#111827", border: "1px solid #1f2937" }}>
 
       <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)" }}>
+        style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.18)" }}>
         <Database style={{ width: 13, height: 13, color: "#34d399" }} />
       </div>
 
@@ -33,10 +33,10 @@ export function DatabaseCard({ item }: DatabaseCardProps) {
             {opLabel}
           </span>
           {isRunning && <Loader2 className="animate-spin" style={{ width: 11, height: 11, color: "#34d399" }} />}
-          {isDone    && <CheckCircle2 style={{ width: 11, height: 11, color: "#4ade80" }} />}
+          {isDone    && <CheckCircle2 style={{ width: 11, height: 11, color: "#22c55e" }} />}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[9.5px] truncate" style={{ color: "rgba(100,116,139,0.55)" }}>
+          <span className="text-[9.5px] truncate" style={{ color: "rgba(100,116,139,0.5)" }}>
             {item.content}
           </span>
           {durationMs !== undefined && (
