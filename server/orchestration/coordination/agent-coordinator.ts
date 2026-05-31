@@ -24,7 +24,7 @@ import { runFilesystemAgent }     from '../../agents/filesystem/index.ts';
 import { runPlannerCycle }        from '../../agents/planner/index.ts';
 import { runSupervisorCycle }     from '../../agents/supervisor/index.ts';
 import { executeTerminalSession } from '../../agents/terminal/index.ts';
-import { runVerification }        from '../../agents/verifier/verifier-agent.ts';
+import { runVerification }        from '../../agents/verifier/index.ts';
 
 import type { AgentType, Phase, PhaseResult } from '../types/orchestration.types.ts';
 import type { ToolExecutionContext }           from './dispatcher-client.ts';
