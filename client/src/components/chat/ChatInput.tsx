@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, MousePointer2, Mic, ArrowUp, Paperclip, ImageIcon, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -238,37 +238,54 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                     {MODES.map((m) => {
                       const isActive = mode === m.id;
                       return (
-                        <button
-                          key={m.id}
-                          onClick={() => { setMode(m.id); setShowModeMenu(false); }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11.5px] font-medium transition-all"
-                          style={{
-                            background: isActive ? "#1A3050" : "#111827",
-                            border: `1px solid ${isActive ? "#2563EB" : "#1E2D3D"}`,
-                            color: isActive ? "#E5E7EB" : "#64748B",
-                          }}
-                        >
-                          <DotsGrid size={9} />
-                          <span>{m.label}</span>
-                          {m.badge && (
-                            <span
-                              className="text-[9px] font-bold px-1 py-0.5 rounded-sm flex items-center gap-0.5"
-                              style={{ background: "#7C3AED", color: "#E9D5FF" }}
+                        <div key={m.id} className="flex-1 relative group">
+                          {/* Tooltip above */}
+                          <div
+                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none
+                              opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50"
+                            style={{ width: 276 }}
+                          >
+                            <div
+                              className="text-[11px] leading-relaxed px-3 py-2 rounded-lg"
+                              style={{
+                                background: "#0D1117",
+                                border: "1px solid #1E2D3D",
+                                color: "#94A3B8",
+                                boxShadow: "0 -4px 16px rgba(0,0,0,0.5)",
+                              }}
                             >
-                              + {m.badge}
-                            </span>
-                          )}
-                        </button>
+                              {m.description}
+                            </div>
+                            {/* Arrow */}
+                            <div
+                              className="absolute left-1/2 -translate-x-1/2 -bottom-[5px] w-2.5 h-2.5 rotate-45"
+                              style={{ background: "#0D1117", borderRight: "1px solid #1E2D3D", borderBottom: "1px solid #1E2D3D" }}
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => { setMode(m.id); setShowModeMenu(false); }}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11.5px] font-medium transition-all"
+                            style={{
+                              background: isActive ? "#1A3050" : "#111827",
+                              border: `1px solid ${isActive ? "#2563EB" : "#1E2D3D"}`,
+                              color: isActive ? "#E5E7EB" : "#64748B",
+                            }}
+                          >
+                            <DotsGrid size={9} />
+                            <span>{m.label}</span>
+                            {m.badge && (
+                              <span
+                                className="text-[9px] font-bold px-1 py-0.5 rounded-sm flex items-center gap-0.5"
+                                style={{ background: "#7C3AED", color: "#E9D5FF" }}
+                              >
+                                + {m.badge}
+                              </span>
+                            )}
+                          </button>
+                        </div>
                       );
                     })}
-                  </div>
-
-                  {/* Description */}
-                  <div
-                    className="px-4 pb-3.5 text-[11px] leading-relaxed"
-                    style={{ color: "#64748B", borderTop: "1px solid #1E2D3D", paddingTop: 10 }}
-                  >
-                    {currentMode.description}
                   </div>
                 </div>
               )}
