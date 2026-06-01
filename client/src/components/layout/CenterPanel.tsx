@@ -7,7 +7,7 @@ import Preview from "@/pages/preview/index";
 import { DatabasePanel } from "@/components/panels/DatabasePanel";
 import { ConsolePanel } from "@/components/console";
 import { PublishingPanel, AuthPanel } from "@/components/panels/PublishingPanel";
-import { FileTreePanel } from "@/components/file-explorer";
+import { FileExplorer, guessLang } from "@/components/file-explorer";
 import { GitPanel } from "./GitPanel";
 import { CheckpointPanel }     from "@/components/panels/CheckpointPanel";
 import { BrowserSessionPanel } from "@/components/panels/BrowserSessionPanel";
@@ -184,6 +184,27 @@ export function CenterPanel({
     } catch {}
     setConflictPath(null);
   }, [conflictPath, tabs]);
+
+  const [explorerProjectPath, setExplorerProjectPath] = useState("");
+
+  useEffect(() => {
+    const projectId = Number(localStorage.getItem("nura.projectId") || "1") || 1;
+    fetch(`/api/projects/${projectId}`)
+      .then(r => r.json())
+      .then((d: { ok: boolean; data?: { sandboxPath?: string | null } }) => {
+        const p = d?.data?.sandboxPath;
+        setExplorerProjectPath(p || "/tmp/nurax-sandbox");
+      })
+      .catch(() => setExplorerProjectPath("/tmp/nurax-sandbox"));
+  }, []);
+
+  const handleExplorerFileSelect = useCallback(async (path: string) => {
+    try {
+      const res = await fetch(`/api/read-file?filePath=${encodeURIComponent(path)}`);
+      const data = await res.json() as { ok: boolean; content?: string };
+      if (data.ok) openFileTab(path, data.content ?? "", guessLang(path));
+    } catch {}
+  }, [openFileTab]);
 
   const [wordWrap, setWordWrap] = useState(true);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -516,10 +537,10 @@ export function CenterPanel({
           style={{ width: showFileExplorer ? 240 : 0, borderLeft: showFileExplorer ? "1px solid rgba(255,255,255,0.07)" : "none" }}
         >
           {showFileExplorer && (
-            <FileTreePanel
-              activeFileName={activeFileName}
-              onFileOpen={(name, content, lang) => openFileTab(name, content, lang)}
-              onClose={() => setShowFileExplorer(false)}
+            <FileExplorer
+              projectPath={explorerProjectPath}
+              activeFile={activeFilePath}
+              onFileSelect={handleExplorerFileSelect}
             />
           )}
         </div>
