@@ -10,9 +10,17 @@ import type { FileEntry, FileStat } from '../types/index.ts';
 import { isExcluded } from '../guards/index.ts';
 import { FE_CONFIG }  from '../config/index.ts';
 
+/** Minimal record yielded by walkFiles. */
+export interface FileWalkRecord {
+  readonly absPath: string;
+  readonly relPath: string;
+  readonly size:    number;
+  readonly mtime:   number;
+}
+
 class FilesystemRepository {
 
-  /** Returns stat info for any path. never throws — returns exists:false instead. */
+  /** Returns stat info for any path. Never throws — returns exists:false instead. */
   stat(absPath: string): FileStat {
     try {
       const s = fs.statSync(absPath);
@@ -101,11 +109,40 @@ class FilesystemRepository {
     return result;
   }
 
-  /** Reads siblings of absPath (entries in the same parent directory, files only). */
+  /** Reads siblings of absPath (entries in the same parent directory). */
   siblingNames(absPath: string): string[] {
     const dir = path.dirname(absPath);
     if (!this.exists(dir)) return [];
     return fs.readdirSync(dir);
+  }
+
+  /**
+   * Recursively walks all FILES (not directories) under absRoot, applying the
+   * module's exclude and showHidden rules. Yields one FileWalkRecord per file.
+   * This is the only method services may use for recursive filesystem traversal.
+   */
+  *walkFiles(absRoot: string, sandboxRoot: string): Generator<FileWalkRecord> {
+    const cfg = FE_CONFIG;
+    let dirents: fs.Dirent[];
+    try {
+      dirents = fs.readdirSync(absRoot, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const e of dirents) {
+      if (isExcluded(e.name, cfg.excludePatterns)) continue;
+      if (!cfg.showHidden && e.name.startsWith('.')) continue;
+
+      const abs = path.join(absRoot, e.name);
+      if (e.isDirectory()) {
+        yield* this.walkFiles(abs, sandboxRoot);
+      } else {
+        const s = this.stat(abs);
+        const rel = path.relative(sandboxRoot, abs).split(path.sep).join('/');
+        yield { absPath: abs, relPath: rel, size: s.size, mtime: s.mtime };
+      }
+    }
   }
 }
 

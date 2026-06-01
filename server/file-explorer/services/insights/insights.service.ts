@@ -1,61 +1,49 @@
 /**
  * server/file-explorer/services/insights/insights.service.ts
  * Aggregates project-level statistics from the sandbox tree.
+ * Uses filesystemRepository.walkFiles() — no direct fs access.
  */
 
-import fs   from 'fs';
-import path from 'path';
-import { FE_CONFIG }    from '../../config/index.ts';
-import { isExcluded }   from '../../guards/index.ts';
-import { getExtension } from '../../utils/index.ts';
+import { FE_CONFIG }             from '../../config/index.ts';
+import { filesystemRepository }  from '../../repositories/index.ts';
+import { getExtension }          from '../../utils/index.ts';
 import type { InsightsResponse } from '../../contracts/index.ts';
 import type { ProjectInsights }  from '../../types/index.ts';
 
-interface FileRecord { filePath: string; size: number; mtime: number; }
-
-function* walk(dir: string): Generator<FileRecord> {
-  const cfg = FE_CONFIG;
-  let entries: fs.Dirent[];
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
-  catch { return; }
-
-  for (const e of entries) {
-    if (isExcluded(e.name, cfg.excludePatterns)) continue;
-    if (!cfg.showHidden && e.name.startsWith('.')) continue;
-    const abs = path.join(dir, e.name);
-    if (e.isDirectory()) { yield* walk(abs); }
-    else {
-      const s = fs.statSync(abs);
-      yield { filePath: path.relative(cfg.sandboxRoot, abs).split(path.sep).join('/'), size: s.size, mtime: s.mtimeMs };
-    }
-  }
-}
+interface FileRecord { relPath: string; size: number; mtime: number; }
 
 class InsightsService {
 
-  /** Builds a ProjectInsights object by walking the entire sandbox. */
+  /**
+   * Builds a ProjectInsights object by walking the entire sandbox.
+   * No direct fs access — delegates to filesystemRepository.walkFiles().
+   */
   getInsights(): InsightsResponse {
     try {
       const byExt: Record<string, number> = {};
       const allFiles: FileRecord[] = [];
 
-      for (const f of walk(FE_CONFIG.sandboxRoot)) {
-        allFiles.push(f);
-        const ext = getExtension(f.filePath.split('/').pop() ?? '') || 'other';
+      for (const record of filesystemRepository.walkFiles(FE_CONFIG.sandboxRoot, FE_CONFIG.sandboxRoot)) {
+        allFiles.push({ relPath: record.relPath, size: record.size, mtime: record.mtime });
+        const ext = getExtension(record.relPath.split('/').pop() ?? '') || 'other';
         byExt[ext] = (byExt[ext] ?? 0) + 1;
       }
 
-      const totalSizeBytes = allFiles.reduce((s, f) => s + f.size, 0);
-      const largestFiles   = [...allFiles].sort((a, b) => b.size - a.size).slice(0, 10)
-                              .map(f => ({ path: f.filePath, size: f.size }));
-      const recentlyChanged = [...allFiles].sort((a, b) => b.mtime - a.mtime).slice(0, 10)
-                              .map(f => ({ path: f.filePath, mtime: f.mtime }));
+      const totalSizeBytes  = allFiles.reduce((s, f) => s + f.size, 0);
+      const largestFiles    = [...allFiles]
+        .sort((a, b) => b.size - a.size)
+        .slice(0, 10)
+        .map(f => ({ path: f.relPath, size: f.size }));
+      const recentlyChanged = [...allFiles]
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 10)
+        .map(f => ({ path: f.relPath, mtime: f.mtime }));
 
       const insights: ProjectInsights = {
-        totalFiles:    allFiles.length,
-        totalFolders:  0,
+        totalFiles:      allFiles.length,
+        totalFolders:    0,
         totalSizeBytes,
-        byExtension:   byExt,
+        byExtension:     byExt,
         largestFiles,
         recentlyChanged,
       };

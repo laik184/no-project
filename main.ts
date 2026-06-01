@@ -17,6 +17,12 @@ import { initOrchestration, createOrchestrationRouter } from './server/orchestra
 import projectsRouter                                 from './server/projects/projects.router.ts';
 import { seedDefaultProject }                         from './server/infrastructure/seed.ts';
 import { TOPIC, sseManager }                          from './server/infrastructure/index.ts';
+import {
+  fileExplorerRouter,
+  startFileWatcher,
+  startDirectoryWatcher,
+  subscribeToAgentFileEvents,
+} from './server/file-explorer/index.ts';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +92,10 @@ app.use('/api/orchestration', createOrchestrationRouter());
 // Projects: /api/projects/*
 app.use('/api', projectsRouter);
 
+// File Explorer: /api/file-explorer/*
+// Also registers legacy aliases (/api/file-explorer/list-files, etc.)
+app.use('/api/file-explorer', fileExplorerRouter);
+
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
 const server = http.createServer(app);
@@ -97,11 +107,17 @@ chatOrchestrator.bootstrap(server);
 
 initOrchestration();
 
+// Bridge agent file-change events → TOPIC.FILE SSE fan-out
+subscribeToAgentFileEvents();
+
 // Seed DB then start listening
 seedDefaultProject()
   .then(() => {
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`[server] API server listening on port ${PORT}`);
+      // Start sandbox filesystem watchers (fire-and-forget)
+      startFileWatcher().catch((err) => console.error('[file-watcher] Failed to start:', err));
+      startDirectoryWatcher().catch((err) => console.error('[dir-watcher] Failed to start:', err));
     });
   })
   .catch((err) => {
