@@ -15,10 +15,10 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinking, isAgentTyping, onSend, onStop }: ChatInputProps) {
-  const [showPopup, setShowPopup]       = useState(false);
+  const [showPopup, setShowPopup]         = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
-  const [model, setModel]               = useState("Economy");
-  const [planMode, setPlanMode]         = useState(false);
+  const [model, setModel]                 = useState("Economy");
+  const [planMode, setPlanMode]           = useState(false);
   const popupRef     = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const isBusy = isAgentThinking || isAgentTyping;
@@ -49,15 +49,17 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
   };
 
   return (
-    <div className="px-3 pb-3 pt-2 flex-shrink-0">
+    /* Outer wrapper: reduced vertical padding (was px-3 pb-3 pt-2) */
+    <div className="px-3 pb-2 pt-1 flex-shrink-0">
+      {/* Container: rounded-xl (was rounded-2xl) */}
       <div
-        className="rounded-2xl overflow-visible transition-all duration-200"
+        className="rounded-xl overflow-visible transition-all duration-200"
         style={{
           background: "#1a1f2e",
           border: isBusy ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        {/* Textarea */}
+        {/* Textarea: pt-2 pb-0.5 (was pt-3 pb-1), minHeight 34 (was 46), maxHeight 120 (was 140) */}
         <textarea
           ref={chatInputRef}
           value={chatInput}
@@ -66,24 +68,25 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
           placeholder={isBusy ? (isAgentThinking ? "Agent is working…" : "Agent is responding…") : "Make, test, iterate..."}
           disabled={isBusy}
           rows={1}
-          className="w-full bg-transparent px-4 pt-3 pb-1 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ minHeight: 46, maxHeight: 140 }}
+          className="w-full bg-transparent px-4 pt-2 pb-0.5 text-[13px] text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ minHeight: 34, maxHeight: 120 }}
           data-testid="input-chat"
         />
 
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-2.5 pb-2.5 pt-0.5">
+        {/* Toolbar: pb-1.5 pt-0.5 (was pb-2.5 pt-0.5) */}
+        <div className="flex items-center justify-between px-2 pb-1.5 pt-0.5">
 
-          {/* Left: + and cursor icon */}
-          <div className="flex items-center gap-1">
-            {/* + popup */}
+          {/* Left: + and cursor icon — gap-0.5 (was gap-1) */}
+          <div className="flex items-center gap-0.5">
+
+            {/* + popup — w-6 h-6 (was w-7 h-7) */}
             <div ref={popupRef} className="relative">
               <button
                 onClick={() => setShowPopup((v) => !v)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
+                className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
                 data-testid="button-chat-add"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
               </button>
               {showPopup && (
                 <div
@@ -115,26 +118,26 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               )}
             </div>
 
-            {/* Cursor/selection icon */}
+            {/* Cursor/selection icon — w-6 h-6 (was w-7 h-7) */}
             <button
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
+              className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
               title="Select context"
             >
-              <MousePointer2 className="h-3.5 w-3.5" />
+              <MousePointer2 className="h-3 w-3" />
             </button>
           </div>
 
-          {/* Right: model selector, plan toggle, mic, send */}
-          <div className="flex items-center gap-1.5">
+          {/* Right: model selector, plan toggle, mic, divider, send — gap-1 (was gap-1.5) */}
+          <div className="flex items-center gap-1">
 
-            {/* Economy model selector */}
+            {/* Economy model selector — h-6 (was h-7) */}
             <div ref={modelMenuRef} className="relative">
               <button
                 onClick={() => setShowModelMenu((v) => !v)}
-                className="flex items-center gap-1.5 px-2 h-7 rounded-lg text-[11px] font-medium transition-colors hover:bg-white/6"
+                className="flex items-center gap-1 px-1.5 h-6 rounded-md text-[11px] font-medium transition-colors hover:bg-white/6"
                 style={{ color: "#94A3B8", border: "1px solid rgba(255,255,255,0.08)" }}
               >
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
                   <circle cx="2.5" cy="2.5" r="1.2" fill="currentColor" />
                   <circle cx="6"   cy="2.5" r="1.2" fill="currentColor" />
                   <circle cx="9.5" cy="2.5" r="1.2" fill="currentColor" />
@@ -146,7 +149,7 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                   <circle cx="9.5" cy="9.5" r="1.2" fill="currentColor" />
                 </svg>
                 <span>{model}</span>
-                <ChevronDown className="h-2.5 w-2.5" />
+                <ChevronDown className="h-2 w-2" />
               </button>
               {showModelMenu && (
                 <div
@@ -168,10 +171,10 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               )}
             </div>
 
-            {/* Plan toggle */}
+            {/* Plan toggle — h-6 (was h-7), dot w-3 h-3 (was w-3.5 h-3.5) */}
             <button
               onClick={() => setPlanMode((v) => !v)}
-              className="flex items-center gap-1.5 px-2 h-7 rounded-lg text-[11px] font-medium transition-all"
+              className="flex items-center gap-1 px-1.5 h-6 rounded-md text-[11px] font-medium transition-all"
               style={{
                 color: planMode ? "#E5E7EB" : "#94A3B8",
                 border: `1px solid ${planMode ? "rgba(59,130,246,0.4)" : "rgba(255,255,255,0.08)"}`,
@@ -180,7 +183,7 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               title="Plan mode"
             >
               <div
-                className="w-3.5 h-3.5 rounded-full border flex-shrink-0 transition-all"
+                className="w-3 h-3 rounded-full border flex-shrink-0 transition-all"
                 style={{
                   borderColor: planMode ? "#3B82F6" : "rgba(255,255,255,0.3)",
                   background: planMode ? "#3B82F6" : "transparent",
@@ -189,22 +192,22 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               <span>Plan</span>
             </button>
 
-            {/* Mic */}
+            {/* Mic — w-6 h-6 (was w-7 h-7) */}
             <button
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
+              className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors"
               title="Voice input"
             >
-              <Mic className="h-3.5 w-3.5" />
+              <Mic className="h-3 w-3" />
             </button>
 
             {/* Divider */}
-            <div className="w-px h-4 flex-shrink-0 mx-0.5" style={{ background: "rgba(255,255,255,0.1)" }} />
+            <div className="w-px h-3.5 flex-shrink-0 mx-0.5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
-            {/* Send / Stop */}
+            {/* Send / Stop — w-7 h-7 (was w-8 h-8) */}
             {isBusy ? (
               <button
                 onClick={onStop}
-                className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
                 style={{ background: "rgba(239,68,68,0.85)" }}
                 data-testid="button-stop-agent-input"
               >
@@ -215,19 +218,19 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                 onClick={onSend}
                 disabled={!chatInput.trim()}
                 className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                  "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
                   chatInput.trim()
-                    ? "text-white hover:opacity-90 active:scale-95 shadow-lg"
+                    ? "text-white hover:opacity-90 active:scale-95"
                     : "text-muted-foreground/30 cursor-not-allowed"
                 )}
                 style={
                   chatInput.trim()
-                    ? { background: "linear-gradient(135deg, #3B82F6, #2563EB)", boxShadow: "0 0 12px rgba(59,130,246,0.4)" }
+                    ? { background: "linear-gradient(135deg, #3B82F6, #2563EB)", boxShadow: "0 0 10px rgba(59,130,246,0.35)" }
                     : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }
                 }
                 data-testid="button-chat-send"
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
