@@ -52,7 +52,7 @@ export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
       {show && (
         <div
           className="absolute bottom-full right-0 mb-2 z-50"
-          style={{ width: 300, background: "#0D1117", border: "1px solid #1E2D3D", borderRadius: 14, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)" }}
+          style={{ width: 220, height: 72, background: "#0D1117", border: "1px solid #1E2D3D", borderRadius: 10, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", overflow: "hidden" }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
