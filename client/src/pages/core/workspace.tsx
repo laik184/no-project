@@ -20,7 +20,6 @@ import {
   Smartphone,
   Monitor,
   Bot,
-  Sparkles,
   Home,
   X,
   ExternalLink,
@@ -333,19 +332,6 @@ export default function Workspace() {
             </button>
           </div>
 
-          {/* Center: project name */}
-          <div className="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-            <div
-              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #7c8dff 0%, #a78bfa 100%)" }}
-            >
-              <Sparkles className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-sm font-semibold text-foreground/90 max-w-[220px] truncate" data-testid="text-project-name">
-              {projectName}
-            </span>
-          </div>
-
           {/* Right: actions */}
           <div className="flex items-center gap-2">
             <button
@@ -360,8 +346,8 @@ export default function Workspace() {
               onClick={() => addToolTab("Publishing", "__publishing__")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
               style={{
-                background: "linear-gradient(135deg, #7c8dff 0%, #a78bfa 100%)",
-                boxShadow: "0 0 16px rgba(124,141,255,0.35)",
+                background: "linear-gradient(135deg, #0065FF 0%, #0052CC 100%)",
+                boxShadow: "0 0 16px rgba(0,101,255,0.35)",
               }}
               data-testid="button-publish"
             >
