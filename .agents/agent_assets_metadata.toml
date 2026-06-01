@@ -336,3 +336,9 @@ id = "nHqRd4N77R7eiFFH3mYyg"
 uri = "file://FILE_EXPLORER_MASTER_REPORT.md"
 type = "text"
 title = "FILE EXPLORER MASTER REPORT — X10 Deep Scan"
+
+[[outputs]]
+id = "7Jm8eqsEw7AYefgPHgtZR"
+uri = "file://FILE_EXPLORER_COMPLETE_XRAY_REPORT.md"
+type = "text"
+title = "File Explorer — Complete Architectural X-Ray Report"
