@@ -2,9 +2,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Search, X, FolderPlus, FilePlus } from "lucide-react";
 import { RawTreeNode, ContextMenuState, ClipboardState, FileMeta } from "./types";
 import { RenderNode, InlineCreateRow, countDescendantFiles, collectSearchExpanded, timeAgo } from "./TreeNode";
+import type { RenderNodeProps } from "./TreeNode";
 import { formatBytes } from "./use-file-explorer-utils";
 import type { ActivityKind } from "./AIActivityBadge";
 import type { GitStatus } from "./use-git-status";
+
+type MenuAction = Parameters<RenderNodeProps["onRowMenuAction"]>[0];
 
 export interface ExplorerTreeProps {
   tree: RawTreeNode[]; projectPath: string; activeFile?: string;
@@ -20,8 +23,10 @@ export interface ExplorerTreeProps {
   apiMovePath: (src: string, dest: string) => Promise<void>;
   apiDuplicatePath: (path: string) => Promise<void>;
   contextMenu: ContextMenuState;
-  /** Clipboard state managed by the parent — drives cut-file opacity in tree rows. */
   clipboard: ClipboardState;
+  onRename: (path: string) => void;
+  onDelete: (path: string) => void;
+  onNewIn: (dir: string, type: "file" | "folder") => void;
 }
 
 export function ExplorerTree({
@@ -29,6 +34,7 @@ export function ExplorerTree({
   hoveredPath, setHoveredPath, focusedPath, setFocusedPath,
   onSelect, onContextMenu, gitStatusMap, creating, setCreating,
   onCreateFile, onCreateFolder, apiMovePath, contextMenu, clipboard,
+  onRename, onDelete, onNewIn,
 }: ExplorerTreeProps) {
   const [searchQuery, setSearchQuery]       = useState("");
   const [selectedPaths, setSelectedPaths]   = useState<Set<string>>(new Set());
@@ -83,6 +89,79 @@ export function ExplorerTree({
     if (metaTimer.current) { clearTimeout(metaTimer.current); metaTimer.current = null; }
     setMetaTooltip(null);
   }, []);
+
+  const handleRowMenuAction = useCallback(async (action: MenuAction, path: string, isDir: boolean) => {
+    switch (action) {
+      case "rename":
+        onRename(path);
+        break;
+
+      case "delete":
+        onDelete(path);
+        break;
+
+      case "new-file":
+        onNewIn(isDir ? path : path.replace(/\/[^/]+$/, "") || projectPath, "file");
+        break;
+
+      case "new-folder":
+        onNewIn(isDir ? path : path.replace(/\/[^/]+$/, "") || projectPath, "folder");
+        break;
+
+      case "collapse": {
+        const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-tree-type="folder"][data-tree-path]'));
+        for (const row of rows) {
+          const p = row.getAttribute("data-tree-path")!;
+          if (p !== path && p.startsWith(path + "/")) {
+            window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: p, expanded: false } }));
+          }
+        }
+        break;
+      }
+
+      case "open-shell":
+        window.dispatchEvent(new CustomEvent("terminal:cd", { detail: { path: isDir ? path : path.replace(/\/[^/]+$/, "") || projectPath } }));
+        break;
+
+      case "search-dir": {
+        const dir = isDir ? path : path.replace(/\/[^/]+$/, "") || projectPath;
+        setSearchQuery(dir.split("/").pop() ?? "");
+        window.dispatchEvent(new CustomEvent("rfe:set-expanded", { detail: { path: dir, expanded: true } }));
+        setTimeout(() => {
+          const el = treeScrollRef.current?.querySelector(`[data-tree-path="${dir}"]`) as HTMLElement | null;
+          if (el) { el.scrollIntoView({ block: "nearest" }); setFocusedPath(dir); }
+        }, 60);
+        break;
+      }
+
+      case "copy-path":
+        try { await navigator.clipboard.writeText(path); } catch { /* ignore */ }
+        break;
+
+      case "copy-link":
+        try { await navigator.clipboard.writeText(`${window.location.origin}/${path}`); } catch { /* ignore */ }
+        break;
+
+      case "download": {
+        if (isDir) {
+          window.open(`/api/file-explorer/download?projectPath=${encodeURIComponent(path)}`, "_blank");
+        } else {
+          try {
+            const res  = await fetch(`/api/read-file?filePath=${encodeURIComponent(path)}`);
+            const data = await res.json();
+            if (data.content !== undefined) {
+              const blob = new Blob([data.content], { type: "text/plain" });
+              const url  = URL.createObjectURL(blob);
+              const a    = document.createElement("a");
+              a.href = url; a.download = path.split("/").pop() ?? "file"; a.click();
+              URL.revokeObjectURL(url);
+            }
+          } catch { /* ignore */ }
+        }
+        break;
+      }
+    }
+  }, [onRename, onDelete, onNewIn, projectPath, setFocusedPath]);
 
   const folderCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -200,6 +279,7 @@ export function ExplorerTree({
               onDragStart={handleDragStart} onDragEnter={handleDragEnter} onDragEnd={handleDragEnd} onDrop={handleDrop}
               folderCounts={folderCounts} forcedExpandedPaths={searchExpandedPaths}
               clipboard={clipboard} onShowMeta={handleShowMeta} onHideMeta={handleHideMeta}
+              onRowMenuAction={handleRowMenuAction}
             />
           ))
         )}

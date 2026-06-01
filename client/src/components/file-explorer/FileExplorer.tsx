@@ -35,9 +35,10 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const [historyFile, setHistoryFile] = useState<string | null>(null);
   const [clipboard, setClipboard]     = useState<ClipboardState>(null);
 
-  const dragRef    = useRef<{ startX: number; startW: number } | null>(null);
-  const handleRef  = useRef<HTMLDivElement>(null);
-  const uploadRef  = useRef<HTMLInputElement>(null);
+  const dragRef        = useRef<{ startX: number; startW: number } | null>(null);
+  const handleRef      = useRef<HTMLDivElement>(null);
+  const uploadRef      = useRef<HTMLInputElement>(null);
+  const creatingInDir  = useRef<string | null>(null);
 
   const selectHandler = onFileSelect ?? onSelect;
 
@@ -89,17 +90,26 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
 
   // ── File creation ─────────────────────────────────────────────────────────
   const createFile = async (name: string) => {
-    const base = contextMenu?.isDir === false ? contextMenu.path.replace(/\/[^/]+$/, "") : contextMenu?.path ?? projectPath ?? "";
+    const base = creatingInDir.current
+      ?? (contextMenu?.isDir === false ? contextMenu.path.replace(/\/[^/]+$/, "") : contextMenu?.path)
+      ?? projectPath ?? "";
     const full = (base ? base + "/" : (projectPath ? projectPath + "/" : "")) + name;
     try { await apiSaveFile(full, ""); refreshFiles(full); } catch {}
     setCreating(null);
+    creatingInDir.current = null;
   };
 
   const createFolder = async (name: string) => {
-    const base = contextMenu?.path ?? projectPath ?? "";
+    const base = creatingInDir.current ?? contextMenu?.path ?? projectPath ?? "";
     try { await apiSaveFile((base ? base + "/" : "") + name + "/.keep", ""); refreshFiles(); } catch {}
     setCreating(null);
+    creatingInDir.current = null;
   };
+
+  const handleNewIn = useCallback((dir: string, type: "file" | "folder") => {
+    creatingInDir.current = dir;
+    setCreating(type);
+  }, []);
 
   const handleFolderUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -186,6 +196,9 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         apiMovePath={apiMovePath} apiDuplicatePath={apiDuplicatePath}
         contextMenu={contextMenu}
         clipboard={clipboard}
+        onRename={path => { handleRenamePath(path); }}
+        onDelete={path => { handleDeletePath(path); }}
+        onNewIn={handleNewIn}
       />
 
       <AgentStatusPanel />
