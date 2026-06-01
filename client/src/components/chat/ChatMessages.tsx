@@ -16,7 +16,8 @@ const COLLAPSE_THRESHOLD = 120;
 
 function UserMessageBubble({ content, index }: { content: string; index: number }) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = content.length > COLLAPSE_THRESHOLD;
+  const safeContent = content ?? "";
+  const isLong = safeContent.length > COLLAPSE_THRESHOLD;
 
   // Short message — plain bubble (existing style)
   if (!isLong) {
@@ -26,13 +27,13 @@ function UserMessageBubble({ content, index }: { content: string; index: number 
         style={{ background: "#1A2230", border: "1px solid #263244", color: "#E5E7EB" }}
         data-testid={`message-user-${index}`}
       >
-        {content}
+        {safeContent}
       </div>
     );
   }
 
   // Long message — collapsible file-style card
-  const preview = content.slice(0, COLLAPSE_THRESHOLD).trimEnd();
+  const preview = safeContent.slice(0, COLLAPSE_THRESHOLD).trimEnd();
 
   return (
     <div
@@ -48,14 +49,14 @@ function UserMessageBubble({ content, index }: { content: string; index: number 
         <FileText className="h-3 w-3 flex-shrink-0" style={{ color: "#3B82F6" }} />
         <span className="text-[10px] font-medium" style={{ color: "#64748B" }}>Message</span>
         <span className="ml-auto text-[10px]" style={{ color: "#475569" }}>
-          {content.split(/\s+/).filter(Boolean).length} words
+          {safeContent.split(/\s+/).filter(Boolean).length} words
         </span>
       </div>
 
       {/* Content area */}
       <div className="px-3 py-2.5" style={{ color: "#CBD5E1" }}>
         <p className="leading-relaxed whitespace-pre-wrap break-words">
-          {expanded ? content : (
+          {expanded ? safeContent : (
             <>
               {preview}
               <span style={{ color: "#475569" }}>…</span>
