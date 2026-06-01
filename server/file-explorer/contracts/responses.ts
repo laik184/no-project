@@ -83,6 +83,29 @@ export interface ClipboardResponse extends BaseResponse {
   readonly clipboard?: ClipboardEntry | null;
 }
 
+/** Response from POST /file/undo — restores the previous file version. */
+export interface UndoResponse extends BaseResponse {
+  readonly restored?: boolean;
+}
+
+/**
+ * Response from POST /file/conflict-check.
+ * conflict:true means the server has a newer version than baseVersionId.
+ */
+export interface ConflictCheckResponse extends BaseResponse {
+  readonly conflict:         boolean;
+  readonly currentVersionId?: string;
+}
+
+/**
+ * Flat metadata response for the legacy /files/stat endpoint.
+ * Frontend expects { ok, size, mtime } at the top level (not nested under meta).
+ */
+export interface MetadataFlatResponse extends BaseResponse {
+  readonly size?:  number;
+  readonly mtime?: number;
+}
+
 export interface HealthResponse extends BaseResponse {
   readonly module:      string;
   readonly sandboxRoot: string;

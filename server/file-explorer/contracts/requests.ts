@@ -62,3 +62,16 @@ export interface HistoryRequest {
   projectId: string;
   filePath:  string;
 }
+
+/** Undo the last write — restore the most recent history snapshot. */
+export interface UndoRequest {
+  projectId: string;
+  filePath:  string;
+}
+
+/** Check whether the client's known version is still current. */
+export interface ConflictCheckRequest {
+  projectId:     string;
+  filePath:      string;
+  baseVersionId: string | null;
+}

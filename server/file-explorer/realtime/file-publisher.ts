@@ -39,6 +39,15 @@ export function publishUploaded(path: string, projectId = 0, size?: number): voi
   publish(buildEvent('uploaded', path, projectId, undefined, size));
 }
 
+/**
+ * Emitted while an AI agent is streaming content into a file.
+ * The frontend uses this to show a live "writing…" spinner on the file row.
+ * Call repeatedly as bytes arrive; the frontend auto-clears after 15 s of silence.
+ */
+export function publishWriting(path: string, projectId = 0, size?: number): void {
+  publish(buildEvent('writing', path, projectId, undefined, size));
+}
+
 function buildEvent(
   type:      FileEventKind,
   path:      string,

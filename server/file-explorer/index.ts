@@ -9,12 +9,17 @@
  */
 
 // ── Router ────────────────────────────────────────────────────────────────────
-export { fileExplorerRouter }          from './routes/index.ts';
+// fileExplorerRouter: canonical /api/file-explorer/* routes
+// legacyFileRouter  : flat /api/* aliases the frontend currently calls
+export { fileExplorerRouter, legacyFileRouter } from './routes/index.ts';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 export { startFileWatcher, stopFileWatcher }           from './watchers/index.ts';
 export { startDirectoryWatcher, stopDirectoryWatcher } from './watchers/index.ts';
 export { subscribeToAgentFileEvents }                  from './realtime/index.ts';
+
+// ── Realtime publishers (for use by the agent execution layer) ─────────────────
+export { publishWriting } from './realtime/index.ts';
 
 // ── Types (consumers may import for typing purposes) ──────────────────────────
 export type {

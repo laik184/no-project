@@ -19,6 +19,7 @@ import { seedDefaultProject }                         from './server/infrastruct
 import { TOPIC, sseManager }                          from './server/infrastructure/index.ts';
 import {
   fileExplorerRouter,
+  legacyFileRouter,
   startFileWatcher,
   startDirectoryWatcher,
   subscribeToAgentFileEvents,
@@ -92,9 +93,15 @@ app.use('/api/orchestration', createOrchestrationRouter());
 // Projects: /api/projects/*
 app.use('/api', projectsRouter);
 
-// File Explorer: /api/file-explorer/*
-// Also registers legacy aliases (/api/file-explorer/list-files, etc.)
+// File Explorer: /api/file-explorer/* (canonical REST routes)
 app.use('/api/file-explorer', fileExplorerRouter);
+
+// File Explorer legacy aliases — serve the exact URLs the frontend calls:
+//   GET  /api/list-files, /api/read-file, /api/files/stat, /api/file/history
+//   POST /api/save-file, /api/rename-file, /api/delete-file,
+//        /api/duplicate-file, /api/file/undo, /api/file/conflict-check
+// Must be mounted AFTER /api/file-explorer so the canonical routes take priority.
+app.use('/api', legacyFileRouter);
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 

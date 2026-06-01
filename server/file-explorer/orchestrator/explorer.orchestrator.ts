@@ -25,6 +25,7 @@ import type {
   TreeResponse, ReadResponse, WriteResponse, CreateResponse,
   RenameResponse, DeleteResponse, DuplicateResponse, UploadResponse,
   SearchResponse, MetadataResponse, HistoryResponse, InsightsResponse,
+  UndoResponse, ConflictCheckResponse,
 } from '../contracts/index.ts';
 
 class ExplorerOrchestrator {
@@ -98,6 +99,48 @@ class ExplorerOrchestrator {
 
   getInsights(): InsightsResponse {
     return insightsService.getInsights();
+  }
+
+  /**
+   * Restores the file to its most recent history snapshot (undo the last write).
+   * The current state is snapshotted before restoring so redo is possible.
+   */
+  undoFile(filePath: string): UndoResponse {
+    try {
+      const histResult = historyService.getHistory(filePath);
+      if (!histResult.ok || histResult.history.length === 0) {
+        return { ok: false, restored: false, error: 'No history available to undo' };
+      }
+      const lastEntry = histResult.history[0];
+      const restore   = historyService.restoreVersion(filePath, lastEntry.id);
+      if (restore.ok) {
+        fileEventsService.onModified(filePath, 0);
+        return { ok: true, restored: true };
+      }
+      return { ok: false, restored: false, error: restore.error };
+    } catch (err) {
+      return { ok: false, restored: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * Checks whether the client's baseVersionId is still the latest history entry.
+   * Returns conflict:true if the server has a newer version.
+   * baseVersionId=null means the client has never saved → no conflict.
+   */
+  conflictCheck(filePath: string, baseVersionId: string | null): ConflictCheckResponse {
+    try {
+      if (!baseVersionId) return { ok: true, conflict: false };
+      const histResult = historyService.getHistory(filePath);
+      if (!histResult.ok) {
+        return { ok: false, conflict: false, error: histResult.error };
+      }
+      const currentId = histResult.history[0]?.id;
+      const conflict  = histResult.history.length > 0 && currentId !== baseVersionId;
+      return { ok: true, conflict, currentVersionId: currentId };
+    } catch (err) {
+      return { ok: false, conflict: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 }
 

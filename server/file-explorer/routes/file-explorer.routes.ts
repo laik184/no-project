@@ -55,3 +55,35 @@ router.post('/duplicate-file',  (req, res) => ctrl.duplicateEntry(req, res));
 router.get ('/files/stat',      (req, res) => ctrl.getMetadata(req, res));
 
 export { router as fileExplorerRouter };
+
+// ── Legacy flat-prefix router ─────────────────────────────────────────────────
+// Mount this at `/api` in main.ts to serve the URLs the frontend actually calls.
+// Frontend calls: /api/list-files, /api/save-file, /api/rename-file,
+//                 /api/delete-file, /api/duplicate-file, /api/files/stat,
+//                 /api/file/history, /api/file/undo, /api/file/conflict-check
+// These are separate from the canonical /api/file-explorer/* routes.
+
+const legacy = Router();
+
+// File tree (matches: GET /api/list-files?projectPath=…)
+legacy.get('/list-files',     (req, res) => ctrl.getTree(req, res));
+// Read file
+legacy.get('/read-file',      (req, res) => ctrl.readFile(req, res));
+// Write / create (frontend uses save-file for both new and existing files)
+legacy.post('/save-file',     (req, res) => ctrl.writeFile(req, res));
+// Rename / move
+legacy.post('/rename-file',   (req, res) => ctrl.renameEntry(req, res));
+// Delete
+legacy.post('/delete-file',   (req, res) => ctrl.deleteEntry(req, res));
+// Duplicate
+legacy.post('/duplicate-file',(req, res) => ctrl.duplicateEntry(req, res));
+// Metadata — accepts ?path= and returns flat { ok, size, mtime }
+legacy.get('/files/stat',     (req, res) => ctrl.getMetadataFlat(req, res));
+// File history — GET /api/file/history?projectId=…&filePath=…
+legacy.get('/file/history',   (req, res) => ctrl.getHistory(req, res));
+// Undo last write — POST /api/file/undo { projectId, filePath }
+legacy.post('/file/undo',         (req, res) => ctrl.undoFile(req, res));
+// Conflict check — POST /api/file/conflict-check { projectId, filePath, baseVersionId }
+legacy.post('/file/conflict-check', (req, res) => ctrl.conflictCheck(req, res));
+
+export { legacy as legacyFileRouter };

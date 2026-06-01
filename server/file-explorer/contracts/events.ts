@@ -9,7 +9,8 @@ export type FileEventKind =
   | 'modified'
   | 'deleted'
   | 'renamed'
-  | 'uploaded';
+  | 'uploaded'
+  | 'writing';   // agent is actively streaming content into the file
 
 /** Payload published to TOPIC.FILE on every file mutation. */
 export interface FileExplorerEvent {

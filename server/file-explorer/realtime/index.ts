@@ -7,4 +7,5 @@ export {
   publishDeleted,
   publishRenamed,
   publishUploaded,
+  publishWriting,
 } from './file-publisher.ts';

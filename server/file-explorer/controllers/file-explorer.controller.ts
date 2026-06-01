@@ -117,6 +117,38 @@ class FileExplorerController {
   health(_req: Request, res: Response): void {
     res.json({ ok: true, module: 'file-explorer', sandboxRoot: FE_CONFIG.sandboxRoot, uptime: process.uptime() });
   }
+
+  /**
+   * Legacy /files/stat handler.
+   * Accepts ?path= (not ?filePath=) and returns a FLAT { ok, size, mtime } envelope
+   * rather than the nested { ok, meta: {...} } shape used by the canonical endpoint.
+   */
+  getMetadataFlat(req: Request, res: Response): void {
+    const filePath = ((req.query.path ?? req.query.filePath) as string | undefined)?.trim();
+    if (!filePath) { res.status(400).json({ ok: false, error: 'path is required' }); return; }
+    const result = explorerOrchestrator.getMetadata(filePath);
+    if (!result.ok) { res.status(404).json({ ok: false, error: result.error }); return; }
+    res.json({ ok: true, size: result.meta?.size, mtime: result.meta?.mtime });
+  }
+
+  /** POST /file/undo — restore the most recent history snapshot for a file. */
+  undoFile(req: Request, res: Response): void {
+    const { filePath } = req.body as Record<string, string>;
+    if (!filePath?.trim()) { res.status(400).json({ ok: false, error: 'filePath is required' }); return; }
+    res.json(explorerOrchestrator.undoFile(filePath));
+  }
+
+  /**
+   * POST /file/conflict-check — check whether the server has advanced beyond
+   * the client's last known history version (baseVersionId).
+   */
+  conflictCheck(req: Request, res: Response): void {
+    const { filePath, baseVersionId } = req.body as { filePath?: string; baseVersionId?: string | null };
+    if (!filePath?.trim()) {
+      res.status(400).json({ ok: false, conflict: false, error: 'filePath is required' }); return;
+    }
+    res.json(explorerOrchestrator.conflictCheck(filePath, baseVersionId ?? null));
+  }
 }
 
 export const fileExplorerController = new FileExplorerController();
