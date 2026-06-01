@@ -357,6 +357,37 @@ export function buildAgentHandler(deps: AgentHandlerDeps): (raw: unknown) => voi
           break;
         }
       }
+
+      // ── Run lifecycle events ────────────────────────────────────────────
+      // These are published with a 'type' field (not 'eventType') via eventPublisher.
+      const lifeCycleType = (e as unknown as { type?: string }).type;
+      switch (lifeCycleType) {
+        case "run.started":
+          setIsAgentThinking(true);
+          setActiveAction({ type: "action", tool: "analysis.think", content: "Starting…", status: "running" });
+          break;
+
+        case "run.completed":
+          setIsAgentThinking(false);
+          setIsAgentTyping(false);
+          setActiveAction(null);
+          break;
+
+        case "run.failed": {
+          const errMsg = (e as unknown as { error?: string }).error;
+          setIsAgentThinking(false);
+          setIsAgentTyping(false);
+          setActiveAction(null);
+          if (errMsg) {
+            setMessages((p) => [...p, {
+              role: "agent" as const,
+              content: `Something went wrong: ${errMsg}`,
+              time: "just now",
+            }]);
+          }
+          break;
+        }
+      }
     } catch { /* malformed SSE payload — skip silently */ }
   };
 }

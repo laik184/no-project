@@ -15,6 +15,8 @@
  */
 import crypto from 'crypto';
 import { orchestrate, runManager } from '../../orchestration/index.ts';
+import { routeIntent, isChatMode } from '../intent/intent-router.ts';
+import { runChatAgent }            from '../../agents/chat/chat-agent.ts';
 import { conversationManager } from './conversation-manager.ts';
 import { sessionManager }      from './session-manager.ts';
 import { turnManager }         from './turn-manager.ts';
@@ -119,43 +121,56 @@ export const chatOrchestrator = {
     const loaded   = await contextLoader.loadForRun(runId);
     buildContext(loaded.messages, memCtxStr ? `${sysPayload.content}\n\n${memCtxStr}` : sysPayload.content);
 
-    // 11. Trigger orchestration engine asynchronously.
-    //     HTTP response returns immediately with the ChatRun.
-    //     Orchestration runs in background; completeRun/failRun close the lifecycle.
-    //     Stream is opened HERE (after orchestration) so the thinking state persists
-    //     throughout the agent run and the token stream starts only when LLM responds.
-    void orchestrate({
-      orchestrationId: crypto.randomUUID(),
-      runId,
-      projectId:       String(projectId),
-      sandboxRoot,
-      goal,
-    }).then(async (result) => {
-      // Open stream right before LLM summary — this emits agent.stream.start to the
-      // frontend, clearing the thinking state and showing the streaming cursor.
-      streamManager.open(runId, projectId);
+    // 11. Route intent → Chat Agent (conversation/explain) OR Orchestration Engine (build/fix/modify/debug).
+    //     Both paths are fire-and-forget. HTTP response returns immediately with ChatRun.
+    const intent = routeIntent(goal);
+    console.log(`[chat-orchestrator] intent=${intent.mode} confidence=${intent.confidence} — "${goal.slice(0, 60)}"`);
 
-      // Stream LLM summary to the user while the stream is still open.
-      // streamRunSummary appends tokens via streamManager.append() before
-      // completeRun() closes the stream and assembles the final message.
-      const streamed = await streamRunSummary(runId, goal, result);
+    if (isChatMode(intent.mode)) {
+      // ── Chat Agent path (conversation / explain) ────────────────────────────
+      // Planner, Executor, and Verifier are NOT called.
+      // runChatAgent opens the stream, streams tokens, closes stream, then returns.
+      void runChatAgent({
+        runId,
+        projectId,
+        goal,
+        intentMode: intent.mode,
+        context:    memCtxStr || undefined,
+      }).then(async (result) => {
+        await chatOrchestrator.completeRun(runId, projectId, result.response, result.tokens, goal);
+      }).catch(async (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        await chatOrchestrator.failRun(runId, projectId, msg);
+      });
+    } else {
+      // ── Orchestration Engine path (build / fix / modify / debug) ───────────
+      // Unchanged from original: Planner → Executor → Verifier.
+      // Stream is opened AFTER orchestration completes so the thinking state
+      // persists throughout the agent run.
+      void orchestrate({
+        orchestrationId: crypto.randomUUID(),
+        runId,
+        projectId:       String(projectId),
+        sandboxRoot,
+        goal,
+      }).then(async (result) => {
+        streamManager.open(runId, projectId);
+        const streamed = await streamRunSummary(runId, goal, result);
+        const fallback = streamed ||
+          (result.ok
+            ? `Completed in ${result.durationMs}ms (${result.workflowsCompleted}/${result.workflowsTotal} workflows)`
+            : (result.error ?? 'Orchestration failed'));
 
-      // Use streamed content as the fallback (completeRun picks up
-      // assembled stream content automatically via streamManager.close).
-      const fallback = streamed ||
-        (result.ok
-          ? `Completed in ${result.durationMs}ms (${result.workflowsCompleted}/${result.workflowsTotal} workflows)`
-          : (result.error ?? 'Orchestration failed'));
-
-      if (result.ok) {
-        await chatOrchestrator.completeRun(runId, projectId, fallback, undefined, goal);
-      } else {
-        await chatOrchestrator.failRun(runId, projectId, result.error ?? 'Orchestration failed');
-      }
-    }).catch(async (err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      await chatOrchestrator.failRun(runId, projectId, msg);
-    });
+        if (result.ok) {
+          await chatOrchestrator.completeRun(runId, projectId, fallback, undefined, goal);
+        } else {
+          await chatOrchestrator.failRun(runId, projectId, result.error ?? 'Orchestration failed');
+        }
+      }).catch(async (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        await chatOrchestrator.failRun(runId, projectId, msg);
+      });
+    }
 
     return {
       runId,
