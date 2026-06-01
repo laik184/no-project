@@ -22,7 +22,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgentsButton } from "@/components/agent/AgentsHub";
 import type { Project } from "@shared/schema";
 
 const categories = [
@@ -165,7 +164,6 @@ export default function Home() {
                 })()}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <AgentsButton size="md" />
                 <button
                   onClick={handleSend}
                   disabled={!input.trim()}
