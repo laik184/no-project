@@ -342,3 +342,9 @@ id = "7Jm8eqsEw7AYefgPHgtZR"
 uri = "file://FILE_EXPLORER_COMPLETE_XRAY_REPORT.md"
 type = "text"
 title = "File Explorer — Complete Architectural X-Ray Report"
+
+[[outputs]]
+id = "sTYGYIdnug-4k7TLBcyl-"
+uri = "file://SERVER_FILE_EXPLORER_BLUEPRINT.md"
+type = "text"
+title = "Server File Explorer — Backend Blueprint + Implementation Prompt"
