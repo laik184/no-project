@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
-  Send,
+  ArrowUp,
   RefreshCw,
   ArrowRight,
   ArrowLeft,
@@ -167,11 +167,19 @@ export default function Home() {
                 <button
                   onClick={handleSend}
                   disabled={!input.trim()}
-                  className={cn("w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200", input.trim() ? "bg-gradient-to-br from-[#7c8dff] to-[#a78bfa] text-white hover:opacity-90" : "bg-white/5 text-muted-foreground/50 cursor-not-allowed")}
-                  style={input.trim() ? { boxShadow: "0 0 16px rgba(124,141,255,0.45)" } : {}}
+                  className={cn(
+                    "rounded-lg flex items-center justify-center transition-all duration-200",
+                    input.trim() ? "text-white hover:opacity-90 active:scale-95" : "text-muted-foreground/30 cursor-not-allowed"
+                  )}
+                  style={{
+                    width: 25, height: 25,
+                    ...(input.trim()
+                      ? { background: "linear-gradient(135deg, #3B82F6, #2563EB)", boxShadow: "0 0 10px rgba(59,130,246,0.35)" }
+                      : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" })
+                  }}
                   data-testid="button-send"
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  <ArrowUp className="h-3 w-3" />
                 </button>
               </div>
             </div>

@@ -51,8 +51,8 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
           {isBusy ? (
             <button
               onClick={onStop}
-              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
-              style={{ background: "rgba(239,68,68,0.85)" }}
+              className="rounded-lg flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
+              style={{ width: 25, height: 25, background: "rgba(239,68,68,0.85)" }}
               data-testid="button-stop-agent-input"
             >
               <Square className="h-3 w-3 fill-white text-white" />
@@ -62,17 +62,18 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               onClick={onSend}
               disabled={!chatInput.trim()}
               className={cn(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
+                "rounded-lg flex items-center justify-center transition-all duration-200",
                 chatInput.trim() ? "text-white hover:opacity-90 active:scale-95" : "text-muted-foreground/30 cursor-not-allowed"
               )}
-              style={
-                chatInput.trim()
+              style={{
+                width: 25, height: 25,
+                ...(chatInput.trim()
                   ? { background: "linear-gradient(135deg, #3B82F6, #2563EB)", boxShadow: "0 0 10px rgba(59,130,246,0.35)" }
-                  : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }
-              }
+                  : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" })
+              }}
               data-testid="button-chat-send"
             >
-              <ArrowUp className="h-3.5 w-3.5" />
+              <ArrowUp className="h-3 w-3" />
             </button>
           )}
         </div>
