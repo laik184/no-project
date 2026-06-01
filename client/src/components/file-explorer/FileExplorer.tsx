@@ -3,12 +3,8 @@ import { FilePlus, FolderPlus, RotateCcw, FolderUp } from "lucide-react";
 import { ContextMenuState, ClipboardState } from "./types";
 import { useFileExplorer } from "./use-file-explorer";
 import { countTree, formatBytes } from "./use-file-explorer-utils";
-import { useOpenEditors } from "./use-open-editors";
-import { useRecentFiles } from "./use-recent-files";
 import { usePinnedFiles } from "./use-pinned-files";
 import { PinnedFilesPanel } from "./PinnedFilesPanel";
-import { OpenEditorsPanel } from "./OpenEditorsPanel";
-import { RecentFilesPanel } from "./RecentFilesPanel";
 import { AgentStatusPanel } from "./AgentStatusPanel";
 import { ProjectInsightsPanel } from "./ProjectInsightsPanel";
 import { ContextMenu } from "./ContextMenu";
@@ -49,11 +45,9 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   } = useFileExplorer({ projectPath: projectPath ?? "", activeFile });
 
   const { statusMap: gitStatusMap } = useGitStatus();
-  const { openFiles, openFile, closeFile, closeAll } = useOpenEditors();
-  const { recentFiles, recordOpen }                  = useRecentFiles();
   const { pinnedFiles, pinFile, unpinFile, isPinned, clearPinned } = usePinnedFiles();
 
-  const handleSelect = (path: string) => { openFile(path); recordOpen(path); selectHandler?.(path); };
+  const handleSelect = (path: string) => { selectHandler?.(path); };
   const openCtx      = (e: React.MouseEvent, path: string, isDir: boolean) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, path, isDir }); };
   const closeCtx     = () => setContextMenu(null);
 
@@ -150,9 +144,6 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     document.body.style.cursor = "col-resize";
   };
 
-  const { files: fileCount, folders: folderCount } = countTree(tree);
-  const workspaceName = projectPath ? projectPath.split("/").filter(Boolean).pop() ?? "workspace" : "workspace";
-
   const hdrBtn = (Icon: React.ElementType, title: string, onClick: () => void) => (
     <button key={title} title={title} onClick={onClick}
       style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", cursor: "pointer", borderRadius: 3, color: "#606060", transition: "background .1s, color .1s", flexShrink: 0 }}
@@ -166,15 +157,9 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       onClick={() => { if (contextMenu) closeCtx(); }}>
 
       <PinnedFilesPanel files={pinnedFiles} activeFile={activeFile} onSelect={handleSelect} onUnpin={unpinFile} onClearAll={clearPinned} />
-      <OpenEditorsPanel files={openFiles} activeFile={activeFile} onSelect={p => selectHandler?.(p)} onClose={closeFile} onCloseAll={closeAll} />
-      <RecentFilesPanel files={recentFiles} activeFile={activeFile} onSelect={handleSelect} />
 
-      {/* ── Header ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px 0 8px", height: 32, flexShrink: 0, borderBottom: "1px solid #252525" }}>
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#4a4a4a", textTransform: "uppercase", letterSpacing: ".08em" }}>Files</span>
-          {projectPath && <span style={{ fontSize: 9, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={projectPath}>{workspaceName} · {fileCount}f {folderCount}d</span>}
-        </div>
+      {/* ── Toolbar ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 4px", height: 32, flexShrink: 0, borderBottom: "1px solid #252525" }}>
         <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
           {hdrBtn(FilePlus,   "New File",       () => setCreating("file"))}
           {hdrBtn(FolderPlus, "New Folder",     () => setCreating("folder"))}
