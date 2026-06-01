@@ -125,15 +125,6 @@ export function ChatPanel({ inputRef, currentAction, onOpenFile }: ChatPanelProp
             onSend={handleSend}
             onStop={stopAgent}
           />
-          <ChatInput
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            chatInputRef={internalInputRef}
-            isAgentThinking={isAgentThinking}
-            isAgentTyping={isAgentTyping}
-            onSend={handleSend}
-            onStop={stopAgent}
-          />
         </>
       )}
     </div>
