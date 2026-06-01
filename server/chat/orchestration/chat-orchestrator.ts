@@ -144,9 +144,19 @@ export const chatOrchestrator = {
       });
     } else {
       // ── Orchestration Engine path (build / fix / modify / debug) ───────────
-      // Unchanged from original: Planner → Executor → Verifier.
-      // Stream is opened AFTER orchestration completes so the thinking state
-      // persists throughout the agent run.
+      // Sequence: Think → Plan → Execute → Verify
+      // Emit analysis.think FIRST so the frontend shows the thinking state
+      // before the orchestration engine starts executing.
+      eventPublisher.publish({
+        eventType: 'agent.tool_start',
+        runId,
+        projectId,
+        tool:      'analysis.think',
+        content:   'Analyzing request and planning approach…',
+        status:    'running',
+        meta:      { agentSource: 'orchestrator' },
+      });
+
       void orchestrate({
         orchestrationId: crypto.randomUUID(),
         runId,

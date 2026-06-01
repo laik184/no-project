@@ -66,8 +66,8 @@ export function ActionSummaryBar({ actions, expanded, onToggle }: ActionSummaryB
           return (
             <div key={i}
               className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ background: `${color}14`, border: `1px solid ${color}28` }}>
-              <Icon style={{ width: 10, height: 10, color, strokeWidth: 1.75 }} />
+              style={{ background: `${color}30`, border: `1px solid ${color}60` }}>
+              <Icon style={{ width: 11, height: 11, color, strokeWidth: 2 }} />
             </div>
           );
         })}

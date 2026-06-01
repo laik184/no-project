@@ -47,8 +47,8 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
             return (
               <div key={idx}
                 className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
-                style={{ background: `${color}12`, border: `1px solid ${color}22` }}>
-                <Icon style={{ width: 10, height: 10, color, strokeWidth: 1.75 }} title={tool} />
+                style={{ background: `${color}30`, border: `1px solid ${color}60` }}>
+                <Icon style={{ width: 11, height: 11, color, strokeWidth: 2 }} title={tool} />
               </div>
             );
           })}
@@ -83,8 +83,8 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
               <div key={idx} className="flex items-start gap-2.5 px-3 py-2.5"
                 style={{ borderBottom: isLast ? "none" : "1px solid #1f2937" }}>
                 <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: `${color}12`, border: `1px solid ${color}22` }}>
-                  <Icon style={{ width: 11, height: 11, color, strokeWidth: 1.75 }} />
+                  style={{ background: `${color}30`, border: `1px solid ${color}60` }}>
+                  <Icon style={{ width: 12, height: 12, color, strokeWidth: 2 }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -92,7 +92,7 @@ export function ToolGroupLine({ actions, onOpenFile }: ToolGroupLineProps) {
                       <DropdownMenuTrigger asChild>
                         <button type="button"
                           className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded flex-shrink-0 transition-opacity cursor-pointer outline-none focus:ring-1 focus:ring-white/20"
-                          style={{ background: "rgba(148,163,184,0.08)", border: "1px solid rgba(148,163,184,0.15)", color: "rgba(148,163,184,0.7)" }}
+                          style={{ background: `${color}18`, border: `1px solid ${color}45`, color }}
                           data-testid={`button-tool-chip-${tool}`} onClick={(e) => e.stopPropagation()}>
                           {tool}
                         </button>

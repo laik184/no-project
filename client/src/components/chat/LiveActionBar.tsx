@@ -59,7 +59,7 @@ export function LiveActionBar({ action }: { action: AgentStreamItem }) {
     <div className="la-enter flex gap-2 items-start" data-testid="live-action-bar">
       <style>{LIVE_ACTION_CSS}</style>
       <div className="relative w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
-        style={{ background: `${color}12`, border: "1px solid #1f2937" }}>
+        style={{ background: `${color}30`, border: `1px solid ${color}60` }}>
         {anim === "ping" && (
           <span className="absolute rounded-full"
             style={{ width: 18, height: 18, background: color, opacity: 0.12, animation: "la-ping 1.1s ease-out infinite" }} />
