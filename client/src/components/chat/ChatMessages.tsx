@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Bot, MessageSquarePlus, CheckCircle2, XCircle, Ban, Cpu } from "lucide-react";
+import { Bot, MessageSquarePlus, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentMarkdown } from "@/components/agent/AgentMarkdown";
 import { CheckpointCard } from "@/components/panels/CheckpointCard";
@@ -8,7 +8,7 @@ import { ThinkingBubble, LiveActionBar } from "./LiveActionBar";
 import { QuestionCard } from "./QuestionCard";
 import { ActionGroup } from "./ActionGroup";
 import { PlanningCard } from "./cards/PlanningCard";
-import type { ChatMessage, CompletionData } from "./types";
+import type { ChatMessage } from "./types";
 import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
 interface ChatMessagesProps {
@@ -23,72 +23,6 @@ interface ChatMessagesProps {
   onSelectPrompt: (prompt: string) => void;
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
-}
-
-function CompletionCard({ data }: { data: CompletionData }) {
-  const isOk        = data.status === "completed";
-  const isCancelled = data.status === "cancelled";
-
-  const statusColor = isOk ? "#22C55E" : isCancelled ? "#F59E0B" : "#EF4444";
-  const StatusIcon  = isOk ? CheckCircle2 : isCancelled ? Ban : XCircle;
-  const statusLabel = isOk ? "Completed" : isCancelled ? "Cancelled" : "Failed";
-
-  return (
-    <div className="rounded-xl overflow-hidden" data-testid="completion-card"
-      style={{ background: "#111827", border: `1px solid ${isOk ? "rgba(34,197,94,0.2)" : isCancelled ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)"}` }}>
-
-      {/* Header */}
-      <div className="flex items-center gap-2.5 px-3 py-2.5"
-        style={{ borderBottom: "1px solid #263244" }}>
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: `${statusColor}14`, border: `1px solid ${statusColor}30` }}>
-          <StatusIcon style={{ width: 12, height: 12, color: statusColor }} />
-        </div>
-        <span className="text-[11.5px] font-semibold flex-1 truncate" style={{ color: "#E5E7EB" }}>
-          {statusLabel}
-        </span>
-        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
-          style={{ background: "#1A2230", border: "1px solid #263244", color: "#94A3B8" }}>
-          {formatDuration(data.durationMs)}
-        </span>
-      </div>
-
-      {/* Goal */}
-      <div className="px-3 py-2" style={{ borderBottom: "1px solid #263244" }}>
-        <p className="text-[10px] font-medium mb-0.5" style={{ color: "#94A3B8" }}>Task</p>
-        <p className="text-[11px] leading-snug" style={{ color: "#E5E7EB" }}>
-          {data.goal.length > 100 ? `${data.goal.slice(0, 100)}…` : data.goal}
-        </p>
-      </div>
-
-      {/* Stats row */}
-      <div className="flex items-center divide-x px-0" style={{ borderColor: "#263244" }}>
-        <div className="flex-1 flex flex-col items-center py-2 gap-0.5">
-          <span className="text-[14px] font-semibold tabular-nums" style={{ color: "#E5E7EB" }}>
-            {data.filesChanged}
-          </span>
-          <span className="text-[9px]" style={{ color: "#94A3B8" }}>files changed</span>
-        </div>
-        <div className="flex-1 flex flex-col items-center py-2 gap-0.5" style={{ borderLeft: "1px solid #263244" }}>
-          <span className="text-[14px] font-semibold tabular-nums" style={{ color: "#E5E7EB" }}>
-            {data.actionsCompleted}
-          </span>
-          <span className="text-[9px]" style={{ color: "#94A3B8" }}>actions</span>
-        </div>
-        <div className="flex-1 flex flex-col items-center py-2 gap-0.5" style={{ borderLeft: "1px solid #263244" }}>
-          <span className="text-[14px] font-semibold tabular-nums" style={{ color: statusColor }}>
-            {statusLabel}
-          </span>
-          <span className="text-[9px]" style={{ color: "#94A3B8" }}>status</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeAction, showNewChatScreen, suggestedPrompts, onOpenFile, onAnswer, onSelectPrompt }: ChatMessagesProps) {
   const endRef = useRef<HTMLDivElement>(null);
@@ -144,9 +78,6 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
         }
         if (msg.role === "plan") {
           return <PlanningCard key={i} plan={msg.plan} />;
-        }
-        if (msg.role === "completion") {
-          return <CompletionCard key={i} data={msg.completion} />;
         }
         if (msg.role === "tool_group") {
           return (
