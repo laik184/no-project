@@ -34,10 +34,25 @@ export function collectSearchExpanded(nodes: RawTreeNode[], basePath: string, sq
   let anyMatch = false;
   for (const n of nodes) {
     const full = basePath ? `${basePath}/${n.name}` : n.name;
-    if (n.type === "file") { if (n.name.toLowerCase().includes(sq)) anyMatch = true; }
-    else if (n.children) { const childMatch = collectSearchExpanded(n.children, full, sq, result); if (childMatch) { result.add(full); anyMatch = true; } }
+    if (n.type === "file") {
+      if (n.name.toLowerCase().includes(sq)) anyMatch = true;
+    } else if (n.children) {
+      const childMatch = collectSearchExpanded(n.children, full, sq, result);
+      if (childMatch) { result.add(full); anyMatch = true; }
+    }
   }
   return anyMatch;
+}
+
+/** Returns true if any descendant file name matches the query. */
+function hasMatchingDescendant(nodes: RawTreeNode[], sq: string): boolean {
+  for (const n of nodes) {
+    if (n.name.toLowerCase().includes(sq)) return true;
+    if ((n.type === "folder" || n.type === "directory") && n.children) {
+      if (hasMatchingDescendant(n.children, sq)) return true;
+    }
+  }
+  return false;
 }
 
 export function InlineCreateRow({ type, onConfirm, onCancel }: { type: "file" | "folder"; onConfirm: (name: string) => void; onCancel: () => void }) {
@@ -66,7 +81,13 @@ export interface RenderNodeProps {
   clipboard: ClipboardState; onShowMeta: (path: string, x: number, y: number) => void; onHideMeta: () => void;
 }
 
-export function RenderNode({ node, basePath, depth, activeFile, dirtyFiles, aiFiles, aiActivity, writingFiles, writingSizes, hoveredPath, setHoveredPath, setFocusedPath, focusedPath, onSelect, onContextMenu, searchQuery, gitStatusMap, selectedPaths, onMultiSelect, dragSourcePath, dropTargetPath, onDragStart, onDragEnter, onDragEnd, onDrop, folderCounts, forcedExpandedPaths, clipboard, onShowMeta, onHideMeta }: RenderNodeProps) {
+export function RenderNode({
+  node, basePath, depth, activeFile, dirtyFiles, aiFiles, aiActivity, writingFiles, writingSizes,
+  hoveredPath, setHoveredPath, setFocusedPath, focusedPath, onSelect, onContextMenu,
+  searchQuery, gitStatusMap, selectedPaths, onMultiSelect,
+  dragSourcePath, dropTargetPath, onDragStart, onDragEnter, onDragEnd, onDrop,
+  folderCounts, forcedExpandedPaths, clipboard, onShowMeta, onHideMeta,
+}: RenderNodeProps) {
   const [open, setOpen] = useState(depth < 2);
   const isDir      = node.type === "folder" || node.type === "directory";
   const full       = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
@@ -86,19 +107,38 @@ export function RenderNode({ node, basePath, depth, activeFile, dirtyFiles, aiFi
   const effectiveOpen = isDir && (forcedExpandedPaths.has(full) || open);
 
   useEffect(() => {
-    const handler = (e: Event) => { const { path, expanded } = (e as CustomEvent).detail ?? {}; if (path === full) setOpen(expanded); };
+    const handler = (e: Event) => {
+      const { path, expanded } = (e as CustomEvent).detail ?? {};
+      if (path === full) setOpen(expanded);
+    };
     window.addEventListener("rfe:set-expanded", handler);
     return () => window.removeEventListener("rfe:set-expanded", handler);
   }, [full]);
 
-  const sq = searchQuery.trim().toLowerCase();
-  if (sq && !node.name.toLowerCase().includes(sq) && !isDir) return null;
+  // ── Search filter ──────────────────────────────────────────────────────────
+  // For files: hide if name doesn't match.
+  // For folders: hide if neither the folder name nor any descendant matches.
+  const sq = searchQuery;
+  if (sq) {
+    const nameMatches = node.name.toLowerCase().includes(sq);
+    if (!isDir) {
+      if (!nameMatches) return null;
+    } else {
+      if (!nameMatches && !hasMatchingDescendant(node.children ?? [], sq)) return null;
+    }
+  }
 
   const highlightName = (name: string): React.ReactNode => {
     if (!sq) return name;
     const idx = name.toLowerCase().indexOf(sq);
     if (idx === -1) return name;
-    return (<>{name.slice(0, idx)}<span style={{ color: "#fbbf24", fontWeight: 600 }}>{name.slice(idx, idx + sq.length)}</span>{name.slice(idx + sq.length)}</>);
+    return (
+      <>
+        {name.slice(0, idx)}
+        <span style={{ color: "#fbbf24", fontWeight: 600 }}>{name.slice(idx, idx + sq.length)}</span>
+        {name.slice(idx + sq.length)}
+      </>
+    );
   };
 
   const paddingLeft = 4 + depth * INDENT;
@@ -107,9 +147,12 @@ export function RenderNode({ node, basePath, depth, activeFile, dirtyFiles, aiFi
     cursor: isDragging ? "grabbing" : "pointer", userSelect: "none", fontSize: 12, position: "relative",
     borderLeft: active ? "2px solid #3b82f6" : writing ? "2px solid #60a5fa" : dirty ? "2px solid #f59e0b" : "2px solid transparent",
     background: isDropTgt ? "rgba(59,130,246,.18)" : isDragging ? "rgba(59,130,246,.04)" : isSelected ? "rgba(59,130,246,.1)" : writing ? "rgba(59,130,246,.06)" : active ? "#2a2a2a" : focused ? "#1e2a3a" : hovered ? "#202020" : "transparent",
-    color: active ? "#f0f0f0" : "#b4b4b4", transition: "background .1s, color .1s", fontFamily: "'Inter', system-ui, sans-serif",
+    color: active ? "#f0f0f0" : "#b4b4b4",
+    transition: "background .1s, color .1s",
+    fontFamily: "'Inter', system-ui, sans-serif",
     outline: isDropTgt ? "1px dashed rgba(59,130,246,.5)" : focused ? "1px solid rgba(59,130,246,.3)" : "none",
-    outlineOffset: "-1px", opacity: isDragging ? 0.5 : isCut ? 0.4 : 1,
+    outlineOffset: "-1px",
+    opacity: isDragging ? 0.5 : isCut ? 0.4 : 1,
   };
 
   const guides = Array.from({ length: depth }).map((_, i) => (
@@ -118,42 +161,82 @@ export function RenderNode({ node, basePath, depth, activeFile, dirtyFiles, aiFi
 
   const dragHandlers = {
     draggable: true,
-    onDragStart: (e: React.DragEvent) => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; onDragStart(full, isDir); },
-    onDragOver:  (e: React.DragEvent) => { if (isDir && dragSourcePath && dragSourcePath !== full && !full.startsWith(dragSourcePath + "/")) { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; onDragEnter(full); } },
+    onDragStart: (e: React.DragEvent) => {
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed = "move";
+      onDragStart(full, isDir);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (isDir && dragSourcePath && dragSourcePath !== full && !full.startsWith(dragSourcePath + "/")) {
+        e.preventDefault(); e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+        onDragEnter(full);
+      }
+    },
     onDragLeave: (e: React.DragEvent) => e.stopPropagation(),
-    onDrop: (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (dragSourcePath && dragSourcePath !== full) onDrop(dragSourcePath, full); },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault(); e.stopPropagation();
+      if (dragSourcePath && dragSourcePath !== full) onDrop(dragSourcePath, full);
+    },
     onDragEnd: (e: React.DragEvent) => { e.stopPropagation(); onDragEnd(); },
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    if (e.ctrlKey || e.metaKey || e.shiftKey) { onMultiSelect(full, e); }
-    else { setFocusedPath(full); onMultiSelect(full, e); if (!isDir) onSelect(full); else setOpen(v => !v); }
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      onMultiSelect(full, e);
+    } else {
+      setFocusedPath(full);
+      onMultiSelect(full, e);
+      if (!isDir) onSelect(full);
+      else setOpen(v => !v);
+    }
   };
 
   const badge = writing ? (
     <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
-  ) : activity ? <AIActivityBadge activity={activity} /> : ai ? <AIActivityBadge activity="editing" />
+  ) : activity ? <AIActivityBadge activity={activity} />
+    : ai ? <AIActivityBadge activity="editing" />
     : dirty ? <span title="Modified" style={{ fontSize: 9, padding: "0 3px", borderRadius: 2, background: "rgba(245,158,11,.15)", color: "#f59e0b", flexShrink: 0, letterSpacing: .2 }}>M</span>
-    : gitSt ? <GitStatusBadge status={gitSt} /> : null;
+    : gitSt ? <GitStatusBadge status={gitSt} />
+    : null;
 
   const folderCount = isDir ? folderCounts.get(full) : undefined;
-  const sharedProps = { style: rowStyle, onClick: handleClick, "data-tree-row": "true", "data-tree-path": full, ...dragHandlers };
+  const sharedProps = {
+    style: rowStyle,
+    onClick: handleClick,
+    "data-tree-row": "true",
+    "data-tree-path": full,
+    ...dragHandlers,
+  };
 
   if (isDir) {
     return (
       <div>
-        <div {...sharedProps} role="treeitem" aria-expanded={effectiveOpen} aria-selected={active}
-          tabIndex={focused ? 0 : -1} data-tree-type="folder" data-tree-expanded={String(effectiveOpen)}
+        <div
+          {...sharedProps}
+          role="treeitem"
+          aria-expanded={effectiveOpen}
+          aria-selected={active}
+          tabIndex={focused ? 0 : -1}
+          data-tree-type="folder"
+          data-tree-expanded={String(effectiveOpen)}
           onContextMenu={e => onContextMenu(e, full, true)}
-          onMouseEnter={() => { setHoveredPath(full); onHideMeta(); }} onMouseLeave={() => setHoveredPath(null)}
-          data-testid={`folder-${node.name}`}>
+          onMouseEnter={() => { setHoveredPath(full); onHideMeta(); }}
+          onMouseLeave={() => setHoveredPath(null)}
+          data-testid={`folder-${node.name}`}
+        >
           {guides}
           <span style={{ color: "#4a4a4a", flexShrink: 0, display: "flex", zIndex: 1 }}>
             {effectiveOpen ? <ChevronDown style={{ width: 11, height: 11 }} /> : <ChevronRight style={{ width: 11, height: 11 }} />}
           </span>
           {fileIcon(node.name, "folder", effectiveOpen)}
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: hovered || active ? "#d4d4d4" : "#9a9a9a" }}>{highlightName(node.name)}</span>
-          {folderCount !== undefined && folderCount > 0 && <span style={{ fontSize: 9, color: "#2e2e2e", marginLeft: 2, flexShrink: 0 }}>{folderCount}</span>}
+          {/* minWidth:0 ensures text truncates instead of expanding the container */}
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: hovered || active ? "#d4d4d4" : "#9a9a9a" }}>
+            {highlightName(node.name)}
+          </span>
+          {folderCount !== undefined && folderCount > 0 && (
+            <span style={{ fontSize: 9, color: "#3e3e3e", marginLeft: 2, flexShrink: 0 }}>{folderCount}</span>
+          )}
           {badge}
         </div>
         {effectiveOpen && (
@@ -179,16 +262,25 @@ export function RenderNode({ node, basePath, depth, activeFile, dirtyFiles, aiFi
   }
 
   return (
-    <div {...sharedProps} role="treeitem" aria-selected={active}
-      tabIndex={focused ? 0 : -1} data-tree-type="file" data-tree-expanded="false"
+    <div
+      {...sharedProps}
+      role="treeitem"
+      aria-selected={active}
+      tabIndex={focused ? 0 : -1}
+      data-tree-type="file"
+      data-tree-expanded="false"
       onContextMenu={e => onContextMenu(e, full, false)}
       onMouseEnter={e => { setHoveredPath(full); onShowMeta(full, e.clientX, e.clientY); }}
       onMouseLeave={() => { setHoveredPath(null); onHideMeta(); }}
-      data-testid={`file-${node.name}`}>
+      data-testid={`file-${node.name}`}
+    >
       {guides}
       <span style={{ width: 11, flexShrink: 0, zIndex: 1 }} />
       {fileIcon(node.name, "file")}
-      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{highlightName(node.name)}</span>
+      {/* minWidth:0 ensures long file names truncate instead of overflowing */}
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {highlightName(node.name)}
+      </span>
       {badge}
     </div>
   );

@@ -20,14 +20,20 @@ export interface ExplorerTreeProps {
   apiMovePath: (src: string, dest: string) => Promise<void>;
   apiDuplicatePath: (path: string) => Promise<void>;
   contextMenu: ContextMenuState;
+  /** Clipboard state managed by the parent — drives cut-file opacity in tree rows. */
+  clipboard: ClipboardState;
 }
 
-export function ExplorerTree({ tree, projectPath, activeFile, dirtyFiles, aiFiles, aiActivity, writingFiles, writingSizes, hoveredPath, setHoveredPath, focusedPath, setFocusedPath, onSelect, onContextMenu, gitStatusMap, creating, setCreating, onCreateFile, onCreateFolder, apiMovePath, apiDuplicatePath, contextMenu }: ExplorerTreeProps) {
+export function ExplorerTree({
+  tree, projectPath, activeFile, dirtyFiles, aiFiles, aiActivity, writingFiles, writingSizes,
+  hoveredPath, setHoveredPath, focusedPath, setFocusedPath,
+  onSelect, onContextMenu, gitStatusMap, creating, setCreating,
+  onCreateFile, onCreateFolder, apiMovePath, contextMenu, clipboard,
+}: ExplorerTreeProps) {
   const [searchQuery, setSearchQuery]       = useState("");
   const [selectedPaths, setSelectedPaths]   = useState<Set<string>>(new Set());
   const [dragSourcePath, setDragSourcePath] = useState<string | null>(null);
   const [dropTargetPath, setDropTargetPath] = useState<string | null>(null);
-  const [clipboard, setClipboard]           = useState<ClipboardState>(null);
   const [metaTooltip, setMetaTooltip]       = useState<(FileMeta & { path: string; x: number; y: number }) | null>(null);
   const treeScrollRef   = useRef<HTMLDivElement>(null);
   const metaCache       = useRef<Map<string, FileMeta>>(new Map());
@@ -54,15 +60,6 @@ export function ExplorerTree({ tree, projectPath, activeFile, dirtyFiles, aiFile
     if (src !== dest && !dest.startsWith(src + "/")) await apiMovePath(src, dest).catch(console.error);
   }, [apiMovePath]);
 
-  const handleCopy  = useCallback((path: string) => setClipboard({ op: "copy", path }), []);
-  const handleCut   = useCallback((path: string) => setClipboard({ op: "cut",  path }), []);
-  const handlePaste = useCallback(async () => {
-    if (!clipboard || !contextMenu) return;
-    const dir = contextMenu.isDir ? contextMenu.path : contextMenu.path.replace(/\/[^/]+$/, "") || projectPath;
-    if (clipboard.op === "cut") { await apiMovePath(clipboard.path, dir).catch(console.error); setClipboard(null); }
-    else { await apiDuplicatePath(clipboard.path).catch(console.error); }
-  }, [clipboard, contextMenu, projectPath, apiMovePath, apiDuplicatePath]);
-
   const handleShowMeta = useCallback((path: string, x: number, y: number) => {
     if (metaTimer.current) clearTimeout(metaTimer.current);
     metaTimer.current = setTimeout(async () => {
@@ -70,7 +67,14 @@ export function ExplorerTree({ tree, projectPath, activeFile, dirtyFiles, aiFile
       if (metaCache.current.has(path)) { setMetaTooltip({ path, ...metaCache.current.get(path)!, x, y }); return; }
       try {
         const r = await fetch(`/api/files/stat?path=${encodeURIComponent(path)}`);
-        if (r.ok) { const d = await r.json(); if (d.ok && d.size !== undefined) { const m = { size: d.size, mtime: d.mtime }; metaCache.current.set(path, m); setMetaTooltip({ path, ...m, x, y }); } }
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ok && d.size !== undefined) {
+            const m = { size: d.size, mtime: d.mtime };
+            metaCache.current.set(path, m);
+            setMetaTooltip({ path, ...m, x, y });
+          }
+        }
       } catch { /* ignore */ }
     }, 500);
   }, []);
@@ -134,30 +138,44 @@ export function ExplorerTree({ tree, projectPath, activeFile, dirtyFiles, aiFile
 
   const sq = searchQuery.trim().toLowerCase();
 
+  // Clamp tooltip so it never clips at the bottom of the viewport
+  const tipY = metaTooltip
+    ? Math.min(metaTooltip.y + 14, window.innerHeight - 52)
+    : 0;
+  const tipX = metaTooltip
+    ? Math.min(metaTooltip.x + 10, window.innerWidth - 170)
+    : 0;
+
   return (
     <>
+      {/* ── Search bar ── */}
       <div style={{ padding: "4px 6px", flexShrink: 0, borderBottom: "1px solid #1e1e1e" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "2px 6px", borderRadius: 4, background: "#141414", border: "1px solid #232323" }}>
-          <Search style={{ width: 11, height: 11, color: "#363636", flexShrink: 0 }} />
+          <Search style={{ width: 11, height: 11, color: "#484848", flexShrink: 0 }} />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search files…"
-            style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#c4c4c4", caretColor: "#3b82f6", fontFamily: "inherit" }}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#c4c4c4", caretColor: "#3b82f6", fontFamily: "inherit", minWidth: 0 }}
             data-testid="input-explorer-search" />
-          {searchQuery && <button onClick={() => setSearchQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#3a3a3a", display: "flex", padding: 0 }}><X style={{ width: 10, height: 10 }} /></button>}
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#484848", display: "flex", padding: 0, flexShrink: 0 }}>
+              <X style={{ width: 10, height: 10 }} />
+            </button>
+          )}
         </div>
       </div>
 
       {creating && <InlineCreateRow type={creating} onConfirm={creating === "file" ? onCreateFile : onCreateFolder} onCancel={() => setCreating(null)} />}
 
+      {/* ── Tree scroll area ── */}
       <div ref={treeScrollRef} role="tree" aria-label="File explorer" tabIndex={0}
         style={{ flex: 1, overflowY: "auto", padding: "2px 0", outline: "none" }} onKeyDown={handleKeyDown}>
         {tree.length === 0 && !creating ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 12px 14px", gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 6, background: "#202020", border: "1px solid #2a2a2a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <FolderPlus style={{ width: 13, height: 13, color: "#3a3a3a" }} />
+              <FolderPlus style={{ width: 13, height: 13, color: "#4a4a4a" }} />
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 12, color: "#555", fontWeight: 500, marginBottom: 4 }}>No files yet</div>
-              <div style={{ fontSize: 11, color: "#363636", lineHeight: 1.5 }}>Create a file or folder<br />to get started</div>
+              <div style={{ fontSize: 12, color: "#666", fontWeight: 500, marginBottom: 4 }}>No files yet</div>
+              <div style={{ fontSize: 11, color: "#484848", lineHeight: 1.5 }}>Create a file or folder<br />to get started</div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               {([{ label: "New file", Icon: FilePlus, t: "file" }, { label: "New folder", Icon: FolderPlus, t: "folder" }] as const).map(({ label, Icon, t }) => (
@@ -187,8 +205,14 @@ export function ExplorerTree({ tree, projectPath, activeFile, dirtyFiles, aiFile
         )}
       </div>
 
+      {/* ── File meta tooltip — viewport-clamped ── */}
       {metaTooltip && (
-        <div style={{ position: "fixed", top: metaTooltip.y + 14, left: Math.min(metaTooltip.x + 10, window.innerWidth - 160), zIndex: 99999, background: "#151515", border: "1px solid #2a2a2a", borderRadius: 5, padding: "4px 8px", fontSize: 11, color: "#666", pointerEvents: "none", boxShadow: "0 4px 12px rgba(0,0,0,.5)", whiteSpace: "nowrap" }}>
+        <div style={{
+          position: "fixed", top: tipY, left: tipX, zIndex: 9999,
+          background: "#151515", border: "1px solid #2a2a2a", borderRadius: 5,
+          padding: "4px 8px", fontSize: 11, color: "#666",
+          pointerEvents: "none", boxShadow: "0 4px 12px rgba(0,0,0,.5)", whiteSpace: "nowrap",
+        }}>
           <span style={{ color: "#888" }}>{formatBytes(metaTooltip.size)}</span>
           <span style={{ color: "#333", margin: "0 5px" }}>·</span>
           <span>{timeAgo(metaTooltip.mtime)}</span>
@@ -205,7 +229,7 @@ interface FileTreePanelProps {
   activeFileName?: string;
 }
 
-export function FileTreePanel({ onClose, activeFileName = "" }: FileTreePanelProps) {
+export function FileTreePanel({ onClose }: FileTreePanelProps) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#1c1c1c", fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", height: 36, flexShrink: 0, borderBottom: "1px solid #252525" }}>
@@ -215,7 +239,7 @@ export function FileTreePanel({ onClose, activeFileName = "" }: FileTreePanelPro
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#555"; }}>✕</button>
       </div>
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 11, color: "#333" }}>Use the main file explorer in the sidebar</span>
+        <span style={{ fontSize: 11, color: "#484848" }}>Use the main file explorer in the sidebar</span>
       </div>
     </div>
   );

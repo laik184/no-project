@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FilePlus, FolderPlus, RotateCcw, FolderUp } from "lucide-react";
 import { ContextMenuState, ClipboardState } from "./types";
 import { useFileExplorer } from "./use-file-explorer";
@@ -33,6 +33,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const [creating, setCreating]       = useState<"file" | "folder" | null>(null);
   const [width, setWidth]             = useState(loadWidth);
   const [historyFile, setHistoryFile] = useState<string | null>(null);
+  const [clipboard, setClipboard]     = useState<ClipboardState>(null);
 
   const dragRef    = useRef<{ startX: number; startW: number } | null>(null);
   const handleRef  = useRef<HTMLDivElement>(null);
@@ -55,6 +56,38 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
   const openCtx      = (e: React.MouseEvent, path: string, isDir: boolean) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, path, isDir }); };
   const closeCtx     = () => setContextMenu(null);
 
+  // ── Clipboard handlers ────────────────────────────────────────────────────
+  const handleCopyFile = useCallback((path: string) => setClipboard({ op: "copy", path }), []);
+  const handleCutFile  = useCallback((path: string) => setClipboard({ op: "cut",  path }), []);
+
+  const handlePaste = useCallback(async () => {
+    if (!clipboard || !contextMenu) return;
+    const dir = contextMenu.isDir
+      ? contextMenu.path
+      : contextMenu.path.replace(/\/[^/]+$/, "") || projectPath || "";
+
+    if (clipboard.op === "cut") {
+      await apiMovePath(clipboard.path, dir).catch(console.error);
+      setClipboard(null);
+    } else {
+      const fileName = clipboard.path.split("/").pop()!;
+      const destPath = dir ? `${dir}/${fileName}` : fileName;
+      try {
+        const res = await fetch("/api/duplicate-file", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sourcePath: clipboard.path, destPath }),
+        });
+        if (!res.ok) {
+          console.error("[file-explorer] Paste copy failed:", await res.text());
+        }
+      } catch (e) {
+        console.error("[file-explorer] Paste copy error:", e);
+      }
+      window.dispatchEvent(new Event("file-refresh"));
+    }
+  }, [clipboard, contextMenu, projectPath, apiMovePath]);
+
+  // ── File creation ─────────────────────────────────────────────────────────
   const createFile = async (name: string) => {
     const base = contextMenu?.isDir === false ? contextMenu.path.replace(/\/[^/]+$/, "") : contextMenu?.path ?? projectPath ?? "";
     const full = (base ? base + "/" : (projectPath ? projectPath + "/" : "")) + name;
@@ -81,6 +114,7 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
     if (e.target) e.target.value = "";
   }, [projectPath, apiSaveFile, refreshFiles]);
 
+  // ── Resize handle ─────────────────────────────────────────────────────────
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragRef.current) return;
@@ -111,9 +145,9 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
 
   const hdrBtn = (Icon: React.ElementType, title: string, onClick: () => void) => (
     <button key={title} title={title} onClick={onClick}
-      style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", cursor: "pointer", borderRadius: 3, color: "#3a3a3a", transition: "background .1s, color .1s", flexShrink: 0 }}
-      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#b4b4b4"; }}
-      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#3a3a3a"; }}
+      style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", cursor: "pointer", borderRadius: 3, color: "#606060", transition: "background .1s, color .1s", flexShrink: 0 }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "#2a2a2a"; el.style.color = "#c4c4c4"; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "transparent"; el.style.color = "#606060"; }}
     ><Icon style={{ width: 12, height: 12 }} /></button>
   );
 
@@ -125,10 +159,11 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
       <OpenEditorsPanel files={openFiles} activeFile={activeFile} onSelect={p => selectHandler?.(p)} onClose={closeFile} onCloseAll={closeAll} />
       <RecentFilesPanel files={recentFiles} activeFile={activeFile} onSelect={handleSelect} />
 
+      {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px 0 8px", height: 32, flexShrink: 0, borderBottom: "1px solid #252525" }}>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: "#4a4a4a", textTransform: "uppercase", letterSpacing: ".08em" }}>Files</span>
-          {projectPath && <span style={{ fontSize: 9, color: "#303030", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={projectPath}>{workspaceName} · {fileCount}f {folderCount}d</span>}
+          {projectPath && <span style={{ fontSize: 9, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={projectPath}>{workspaceName} · {fileCount}f {folderCount}d</span>}
         </div>
         <div style={{ display: "flex", gap: 1, flexShrink: 0 }}>
           {hdrBtn(FilePlus,   "New File",       () => setCreating("file"))}
@@ -150,36 +185,39 @@ export default function FileExplorer({ projectPath, onSelect, onFileSelect, acti
         onCreateFile={createFile} onCreateFolder={createFolder}
         apiMovePath={apiMovePath} apiDuplicatePath={apiDuplicatePath}
         contextMenu={contextMenu}
+        clipboard={clipboard}
       />
 
       <AgentStatusPanel />
       <ProjectInsightsPanel tree={tree} aiFiles={aiFiles} writingFiles={writingFiles} dirtyFiles={dirtyFiles} />
 
+      {/* ── Context Menu ── */}
       <ContextMenu
         menu={contextMenu} targetPath={contextMenu?.path ?? ""}
         onNewFile={() => { closeCtx(); setCreating("file"); }}
         onNewFolder={() => { closeCtx(); setCreating("folder"); }}
         onRename={async () => { if (contextMenu) { await handleRenamePath(contextMenu.path); closeCtx(); } }}
         onDelete={async () => { if (contextMenu) { await handleDeletePath(contextMenu.path); closeCtx(); } }}
-        onDuplicate={async () => { if (contextMenu) { await apiDuplicatePath(contextMenu.path); } }}
+        onDuplicate={async () => { if (contextMenu) { await apiDuplicatePath(contextMenu.path); closeCtx(); } }}
         onClose={closeCtx}
-        onCopy={() => contextMenu && setContextMenu(prev => prev)}
-        onCut={() => contextMenu && setContextMenu(prev => prev)}
-        onPaste={() => {}}
+        onCopy={() => { if (contextMenu) { handleCopyFile(contextMenu.path); closeCtx(); } }}
+        onCut={() => { if (contextMenu) { handleCutFile(contextMenu.path); closeCtx(); } }}
+        onPaste={async () => { await handlePaste(); closeCtx(); }}
         onPin={() => contextMenu && pinFile(contextMenu.path)}
         onUnpin={() => contextMenu && unpinFile(contextMenu.path)}
         onHistory={() => { if (contextMenu) { setHistoryFile(contextMenu.path); closeCtx(); } }}
         isPinned={contextMenu ? isPinned(contextMenu.path) : false}
-        clipboard={null}
+        clipboard={clipboard}
       />
 
+      {/* ── File History Modal ── */}
       {historyFile && (
         <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,.72)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setHistoryFile(null)}>
           <div style={{ background: "#1c1c1c", border: "1px solid #2a2a2a", borderRadius: 10, padding: 20, width: 480, maxHeight: "70vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,.8)" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#c4c4c4" }}>File History</div>
-                <div style={{ fontSize: 11, color: "#484848", marginTop: 2 }}>{historyFile.split("/").pop()}</div>
+                <div style={{ fontSize: 11, color: "#585858", marginTop: 2 }}>{historyFile.split("/").pop()}</div>
               </div>
               <button onClick={() => setHistoryFile(null)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 16, lineHeight: 1, borderRadius: 4, padding: "2px 6px" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#c4c4c4"; }}
