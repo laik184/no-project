@@ -110,10 +110,7 @@ export const chatOrchestrator = {
       meta:     { runId, projectId, conversationId: conversation.conversationId, agentSource: 'chat' },
     }).catch(console.error);
 
-    // 9. Open stream
-    streamManager.open(runId, projectId);
-
-    // 9b. Recall memory context to enrich orchestration context
+    // 9. Recall memory context to enrich orchestration context
     const memCtxStr = await buildMemoryContextString(goal, {
       categories: ['conversation', 'decision', 'architecture', 'reflection'],
     });
@@ -125,6 +122,8 @@ export const chatOrchestrator = {
     // 11. Trigger orchestration engine asynchronously.
     //     HTTP response returns immediately with the ChatRun.
     //     Orchestration runs in background; completeRun/failRun close the lifecycle.
+    //     Stream is opened HERE (after orchestration) so the thinking state persists
+    //     throughout the agent run and the token stream starts only when LLM responds.
     void orchestrate({
       orchestrationId: crypto.randomUUID(),
       runId,
@@ -132,6 +131,10 @@ export const chatOrchestrator = {
       sandboxRoot,
       goal,
     }).then(async (result) => {
+      // Open stream right before LLM summary — this emits agent.stream.start to the
+      // frontend, clearing the thinking state and showing the streaming cursor.
+      streamManager.open(runId, projectId);
+
       // Stream LLM summary to the user while the stream is still open.
       // streamRunSummary appends tokens via streamManager.append() before
       // completeRun() closes the stream and assembles the final message.

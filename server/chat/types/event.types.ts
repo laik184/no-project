@@ -24,23 +24,23 @@ export interface ChatEvent {
 }
 
 export interface StreamStartedEvent {
-  type:      string;
+  eventType: 'agent.stream.start';
   runId:     string;
   projectId: number;
   ts:        number;
 }
 
 export interface StreamTokenEvent {
-  type:      string;
+  eventType: 'agent.token';
+  payload:   { token: string };
   runId:     string;
   projectId: number;
-  token:     string;
   seqIndex:  number;
   ts:        number;
 }
 
 export interface StreamEndedEvent {
-  type:         string;
+  eventType:   'agent.stream.end';
   runId:        string;
   projectId:    number;
   totalTokens:  number;

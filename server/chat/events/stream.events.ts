@@ -1,9 +1,11 @@
 /**
  * stream.events.ts — Token stream event factories.
  * Pure factories — no side effects.
+ *
+ * Event shape uses `eventType` (not `type`) to match the frontend
+ * agent-event-handler switch block expectations.
  */
 import type { StreamStartedEvent, StreamTokenEvent, StreamEndedEvent } from '../types/event.types.ts';
-import { CHAT_EVENT } from '../constants/event.constants.ts';
 
 let _seqCounter = 0;
 
@@ -13,7 +15,7 @@ export function nextSeq(): number {
 }
 
 export function makeStreamStartedEvent(runId: string, projectId: number): StreamStartedEvent {
-  return { type: CHAT_EVENT.STREAM_STARTED, runId, projectId, ts: Date.now() };
+  return { eventType: 'agent.stream.start', runId, projectId, ts: Date.now() };
 }
 
 export function makeStreamTokenEvent(
@@ -22,10 +24,10 @@ export function makeStreamTokenEvent(
   token:     string,
 ): StreamTokenEvent {
   return {
-    type:      CHAT_EVENT.STREAM_TOKEN,
+    eventType: 'agent.token',
+    payload:   { token },
     runId,
     projectId,
-    token,
     seqIndex:  nextSeq(),
     ts:        Date.now(),
   };
@@ -37,5 +39,5 @@ export function makeStreamEndedEvent(
   totalTokens: number,
   durationMs:  number,
 ): StreamEndedEvent {
-  return { type: CHAT_EVENT.STREAM_ENDED, runId, projectId, totalTokens, durationMs, ts: Date.now() };
+  return { eventType: 'agent.stream.end', runId, projectId, totalTokens, durationMs, ts: Date.now() };
 }
