@@ -348,3 +348,9 @@ id = "sTYGYIdnug-4k7TLBcyl-"
 uri = "file://SERVER_FILE_EXPLORER_BLUEPRINT.md"
 type = "text"
 title = "Server File Explorer — Backend Blueprint + Implementation Prompt"
+
+[[outputs]]
+id = "73eqbEAfle0nzjRhGzF4X"
+uri = "file://FILESYSTEM_AUDIT_REPORT.md"
+type = "text"
+title = "Filesystem Toolchain Deep Scan Audit Report"
