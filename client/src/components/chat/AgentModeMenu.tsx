@@ -24,8 +24,7 @@ interface AgentModeMenuProps {
 }
 
 export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
-  const [show,    setShow]    = useState(false);
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [show, setShow] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,16 +50,26 @@ export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
 
       {show && (
         <div
-          className="absolute bottom-full right-0 mb-2 z-50"
-          style={{ width: 220, height: 72, background: "#0D1117", border: "1px solid #1E2D3D", borderRadius: 10, boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", overflow: "hidden" }}
+          className="absolute bottom-full right-0 mb-2 z-50 flex flex-col justify-between"
+          style={{
+            width: 220,
+            height: 72,
+            background: "#0D1117",
+            border: "1px solid #1E2D3D",
+            borderRadius: 10,
+            boxShadow: "0 -8px 40px rgba(0,0,0,0.6)",
+            overflow: "hidden",
+            padding: "8px 10px 8px 10px",
+            boxSizing: "border-box",
+          }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-            <span className="text-[12px] font-semibold" style={{ color: "#94A3B8" }}>Agent modes</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Agent modes</span>
             <div className="flex items-center gap-1">
-              <span className="text-[10px]" style={{ color: "#475569" }}>Cycle</span>
+              <span className="text-[9px]" style={{ color: "#475569" }}>Cycle</span>
               {["Ctrl", "Shift", "I"].map((k) => (
-                <span key={k} className="text-[9px] px-1 py-0.5 rounded"
+                <span key={k} className="text-[8px] px-1 rounded"
                   style={{ background: "#1A2230", border: "1px solid #263244", color: "#64748B", fontFamily: "monospace" }}>
                   {k}
                 </span>
@@ -68,44 +77,33 @@ export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
             </div>
           </div>
 
-          {/* Shared description tooltip — fades in on pill hover */}
-          <div className="px-3">
-            <div className="pointer-events-none transition-opacity duration-150" style={{ opacity: hovered ? 1 : 0 }}>
-              <div className="text-[11px] leading-relaxed px-3 py-2 rounded-lg mb-2"
-                style={{ background: "#111827", border: "1px solid #1E2D3D", color: "#94A3B8", boxShadow: "0 -4px 16px rgba(0,0,0,0.4)" }}>
-                {(MODES.find((m) => m.id === hovered) ?? MODES.find((m) => m.id === mode))?.description}
-              </div>
-            </div>
-
-            {/* Mode pills */}
-            <div className="flex items-center gap-2 pb-3">
-              {MODES.map((m) => {
-                const isActive = mode === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => { onSelect(m.id); setShow(false); }}
-                    onMouseEnter={() => setHovered(m.id)}
-                    onMouseLeave={() => setHovered(null)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11.5px] font-medium transition-all"
-                    style={{
-                      background: isActive ? "#1A3050" : "#111827",
-                      border: `1px solid ${isActive ? "#2563EB" : "#1E2D3D"}`,
-                      color:  isActive ? "#E5E7EB" : "#64748B",
-                    }}
-                  >
-                    <DotsGrid size={9} />
-                    <span>{m.label}</span>
-                    {m.badge && (
-                      <span className="text-[9px] font-bold px-1 py-0.5 rounded-sm flex items-center gap-0.5"
-                        style={{ background: "#7C3AED", color: "#E9D5FF" }}>
-                        + {m.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Mode pills */}
+          <div className="flex items-center gap-1.5">
+            {MODES.map((m) => {
+              const isActive = mode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => { onSelect(m.id); setShow(false); }}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-lg text-[10.5px] font-medium transition-all"
+                  style={{
+                    height: 30,
+                    background: isActive ? "#1A3050" : "#111827",
+                    border: `1px solid ${isActive ? "#2563EB" : "#1E2D3D"}`,
+                    color:  isActive ? "#E5E7EB" : "#64748B",
+                  }}
+                >
+                  <DotsGrid size={8} />
+                  <span>{m.label}</span>
+                  {m.badge && (
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm flex items-center gap-0.5"
+                      style={{ background: "#7C3AED", color: "#E9D5FF" }}>
+                      + {m.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
