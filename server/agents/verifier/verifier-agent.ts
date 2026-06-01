@@ -14,6 +14,7 @@
  * No spawn. No exec. No shell. No fetch. No direct tool execution.
  */
 
+import { existsSync } from 'fs';
 import type { VerifierInput, VerifierOutput, VerificationPhase } from './types/verifier.types.ts';
 import { buildVerifierContext }         from './core/verifier-context.ts';
 import { runVerifier }                  from './execution/verification-runner.ts';
@@ -104,6 +105,26 @@ export async function runVerification(req: VerifierInput): Promise<VerifierOutpu
         count: regressions.length,
       });
     }
+  }
+
+  // ── 2b. Sandbox existence check ───────────────────────────────────────────
+  // If the sandbox root doesn't exist, verification is a no-op (non-fatal).
+  // This happens when AGENT_PROJECT_ROOT is unset and .sandbox hasn't been
+  // written to yet — verifier tools would fail immediately with ENOENT.
+  const sandboxPath = req.sandboxRoot ?? '.sandbox';
+  if (!existsSync(sandboxPath)) {
+    verifierLogger.warn(runId, 'Sandbox not found — skipping verification (non-fatal)', {
+      sandboxRoot: sandboxPath,
+      hint: 'Set AGENT_PROJECT_ROOT to a writable path or let the executor write files first',
+    });
+    return {
+      ok:         true,
+      runId,
+      phases,
+      steps:      [],
+      durationMs: 0,
+      errors:     [],
+    };
   }
 
   // ── 3. Build execution context ────────────────────────────────────────────

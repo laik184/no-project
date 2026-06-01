@@ -91,21 +91,6 @@ export async function buildTaskList(
     if (deps) task.dependencies = deps;
   }
 
-  // Always include a plan-finalise task at the end
-  tasks.push({
-    id:           makeTaskId('finalize'),
-    label:        'Finalize execution plan',
-    description:  `Validate and seal the execution plan for: ${normalised}`,
-    phase:        tasks.length,
-    priority:     'high',
-    dependencies: tasks.map((t) => t.id),
-    toolName:     'create_execution_plan',
-    input:        { goal: normalised, projectId, taskCount: tasks.length },
-    timeoutMs:    30_000,
-    retryLimit:   1,
-    estimatedMs:  2_000,
-  });
-
   void projectId;
   return tasks;
 }

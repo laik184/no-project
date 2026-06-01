@@ -25,7 +25,6 @@ import { buildTaskList }                from '../planning/task-planner.ts';
 import { resolveDependencies }          from '../planning/dependency-planner.ts';
 import { buildExecutionPhases }         from '../planning/phase-planner.ts';
 import { buildExecutionPlan }           from '../planning/execution-plan-builder.ts';
-import { buildCoordinatorTasks, runCoordinatorTasks } from '../coordination/agent-coordinator.ts';
 import { validateExecutionPlan }        from '../validation/planning-validator.ts';
 import { analyzeGoal }                  from '../../../engine/planning/index.ts';
 
@@ -131,11 +130,13 @@ export async function runPlanningLoop(
 
   if (!plan) return null;
 
-  // ── 6. Coordinator dispatch ───────────────────────────────────────────────
+  // ── 6. Plan ready — coordinator dispatch removed ─────────────────────────
+  // The plan is fully built and validated above. The orchestration layer's
+  // enrichPhase() forwards this plan to the executor phase automatically.
+  // Removing coordinator dispatch eliminates the 'create_execution_plan'
+  // ToolNotFoundError that was crashing every planning run.
   plannerSession.transition(runId, 'routing');
   plannerLogger.phase(runId, 'routing');
-  const coordinatorTasks = buildCoordinatorTasks(plan);
-  await runCoordinatorTasks(coordinatorTasks, context);
 
   plannerLogger.info(runId, 'Planning loop complete', {
     planId:     plan.planId,

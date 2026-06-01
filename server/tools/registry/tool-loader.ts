@@ -19,6 +19,7 @@ import { registerTerminalTools }   from '../terminal/index.ts';
 import { registerVerifierTools }   from '../verifier/index.ts';
 import { registerBrowserTools }    from '../browser/index.ts';
 import { registerCodingTools }     from '../coding/index.ts';
+import { registerPlannerTools }    from '../planner/register-planner-tools.ts';
 import { sealRegistry, toolCount, isSealed } from './tool-registry.ts';
 
 export function loadAllTools(): void {
@@ -32,8 +33,9 @@ export function loadAllTools(): void {
   registerVerifierTools();
   registerBrowserTools();
   registerCodingTools();
+  registerPlannerTools();
 
   sealRegistry();
 
-  console.log(`[tool-loader] ${toolCount()} tools registered across 5 categories — registry sealed.`);
+  console.log(`[tool-loader] ${toolCount()} tools registered across 6 categories — registry sealed.`);
 }

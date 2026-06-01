@@ -21,6 +21,7 @@ import { allSnapshots, getStuckOrchestrations } from './monitoring/orchestration
 import { getEscalations }                  from './lifecycle/escalation-manager.ts';
 import { toErrorMessage, newOrchestrationId } from './utils/orchestration-utils.ts';
 import { buildMemoryContext, memoryEngine } from '../memory/index.ts';
+import { runStartupDiagnostics }           from '../startup/health-diagnostics.ts';
 
 // ── Initialization state ──────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ let _initialized = false;
 export function initOrchestrator(): void {
   if (_initialized) return;
   _initialized = true;
+  runStartupDiagnostics();
   console.log('[orchestrator] Initialized — orchestration layer ready.');
 }
 

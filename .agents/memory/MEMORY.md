@@ -11,3 +11,4 @@
 - [Memory runtime gaps](memory-runtime-gaps.md) — RESOLVED: startup hydration, agent recall, graph wiring all complete; business/feedback/revenue/prediction stores are disk-backed (no hydration needed).
 - [Company Brain completion](company-brain-completion.md) — hydration.types+memory-loader+memory-hydrator+hydration-manager in bootstrap/; memory-context-builder in context/; hydrate() on 3 executor stores; recall in Executor/Verifier/CoderX/Planner+graph.
 - [Agent memory ownership audit](agent-memory-audit.md) — 17 files audited; 3 deleted (orphaned facades); 14 KEEP_LOCAL; 3 already BRIDGE to platform; no MIGRATE candidates remain.
+- [Agent runtime blockers recovery](agent-runtime-recovery.md) — 6 blockers fixed: coordinator dispatch removed from planning-loop (create_execution_plan was never registered); PlanTask→ExecutionTask transform added in orchestration agent-coordinator; verifier sandbox guard; LLM streaming via chat-responder.

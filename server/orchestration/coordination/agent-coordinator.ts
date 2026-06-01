@@ -28,6 +28,41 @@ import { runVerification }        from '../../agents/verifier/index.ts';
 
 import type { AgentType, Phase, PhaseResult } from '../types/orchestration.types.ts';
 import type { ToolExecutionContext }           from './dispatcher-client.ts';
+import type { ExecutionTask }                 from '../../agents/executor/types/executor.types.ts';
+
+// ── PlanTask → ExecutionTask transformation ───────────────────────────────────
+// The planner's PlanTask uses different field names than the executor expects.
+// This normalisation runs once per orchestration cycle for the executor phase.
+
+type ExecutionTaskKind = 'terminal' | 'filesystem' | 'coding' | 'verify' | 'browser';
+
+function normalizeTaskKind(raw: string): ExecutionTaskKind {
+  const toolMatch = raw.match(/^execute_(.+?)_task$/);
+  const key       = toolMatch ? (toolMatch[1] ?? raw) : raw;
+  const VALID     = new Set<string>(['terminal', 'filesystem', 'coding', 'verify', 'browser']);
+  if (VALID.has(key)) return key as ExecutionTaskKind;
+  const MAP: Record<string, ExecutionTaskKind> = {
+    frontend: 'coding', backend:  'coding', api:     'coding',
+    database: 'coding', auth:     'coding', component: 'coding',
+    crud:     'coding', build:    'terminal', test:  'verify',
+    testing:  'verify', runtime:  'verify', planning:  'coding',
+    finalize: 'coding', general:  'coding',
+  };
+  return MAP[key] ?? 'coding';
+}
+
+function planTaskToExecutionTask(t: Record<string, unknown>): ExecutionTask {
+  const taskId  = String(t.taskId ?? t.id ?? `task-${Date.now()}`);
+  const rawKind = String(t.kind ?? t.category ?? t.toolName ?? 'coding');
+  return {
+    taskId,
+    kind:        normalizeTaskKind(rawKind),
+    description: String(t.description ?? t.title ?? t.label ?? taskId),
+    input:       ((t.input as Record<string, unknown>) ?? {}),
+    dependsOn:   ((t.dependsOn ?? t.dependencies) as string[] | undefined),
+    optional:    t.optional as boolean | undefined,
+  };
+}
 
 // ── Phase dispatch — direct agent invocation ──────────────────────────────────
 
@@ -100,30 +135,31 @@ async function invokeAgent(
       });
 
     case 'executor': {
-      const providedPlan = input.plan as {
-        planId: string; tasks: unknown[];
-      } | undefined;
       const goal        = (input.goal as string | undefined) ?? '';
       const mode        = (input.mode as string | undefined) ?? 'execute';
       const effectiveGoal = mode !== 'execute' ? `${mode}: ${goal}` : goal;
-      // Use the planner-generated plan when available.
-      // The synthetic plan is an emergency fallback only — it fires when the
-      // planner phase did not produce a plan (e.g. planning was skipped or failed).
-      const plan = providedPlan ?? {
-        planId: `auto-${runId}`,
-        tasks: [{
-          taskId:      `task-${runId}`,
-          kind:        'coding',
-          description: effectiveGoal || 'Execute the requested goal',
-          input: {
-            goal:        effectiveGoal || goal,
-            mode,
-            runId,
-            projectId,
-            sandboxRoot,
-          },
-        }],
+
+      // Transform planner PlanTask[] → ExecutionTask[] to fix type contract:
+      //   PlanTask.id          → ExecutionTask.taskId
+      //   PlanTask.category    → ExecutionTask.kind  (normalised to TaskKind)
+      //   PlanTask.description → ExecutionTask.description
+      // Without this transform, execution-validator rejects every planner-built plan.
+      const rawPlan  = input.plan as { planId?: string; tasks?: unknown[] } | undefined;
+      const rawTasks = (rawPlan?.tasks ?? []) as Record<string, unknown>[];
+      const mapped   = rawTasks.length > 0 ? rawTasks.map(planTaskToExecutionTask) : [];
+
+      // Synthetic fallback plan — used when planner phase was skipped or failed.
+      const syntheticTask: ExecutionTask = {
+        taskId:      `task-${runId}`,
+        kind:        'coding',
+        description: effectiveGoal || 'Execute the requested goal',
+        input:       { goal: effectiveGoal || goal, mode, runId, projectId, sandboxRoot },
       };
+
+      const plan = (rawPlan && mapped.length > 0)
+        ? { planId: rawPlan.planId ?? `plan-${runId}`, tasks: mapped }
+        : { planId: `auto-${runId}`, tasks: [syntheticTask] };
+
       return runExecutorAgent({
         runId,
         projectId,

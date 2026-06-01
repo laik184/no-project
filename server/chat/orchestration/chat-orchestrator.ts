@@ -36,7 +36,8 @@ import { bus }                         from '../../infrastructure/index.ts';
 import type { RunStartPayload, RunCancelResult } from '../types/run.types.ts';
 import type { ChatRun } from '../types/run.types.ts';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
-import { runWriter } from '../persistence/run-writer.ts';
+import { runWriter }        from '../persistence/run-writer.ts';
+import { streamRunSummary } from '../llm/chat-responder.ts';
 
 export class ChatOrchestratorError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -131,11 +132,20 @@ export const chatOrchestrator = {
       sandboxRoot,
       goal,
     }).then(async (result) => {
-      const content = result.ok
-        ? `Run complete — ${result.workflowsCompleted}/${result.workflowsTotal} workflows in ${result.durationMs}ms`
-        : (result.error ?? 'Orchestration failed');
+      // Stream LLM summary to the user while the stream is still open.
+      // streamRunSummary appends tokens via streamManager.append() before
+      // completeRun() closes the stream and assembles the final message.
+      const streamed = await streamRunSummary(runId, goal, result);
+
+      // Use streamed content as the fallback (completeRun picks up
+      // assembled stream content automatically via streamManager.close).
+      const fallback = streamed ||
+        (result.ok
+          ? `Completed in ${result.durationMs}ms (${result.workflowsCompleted}/${result.workflowsTotal} workflows)`
+          : (result.error ?? 'Orchestration failed'));
+
       if (result.ok) {
-        await chatOrchestrator.completeRun(runId, projectId, content, undefined, goal);
+        await chatOrchestrator.completeRun(runId, projectId, fallback, undefined, goal);
       } else {
         await chatOrchestrator.failRun(runId, projectId, result.error ?? 'Orchestration failed');
       }
