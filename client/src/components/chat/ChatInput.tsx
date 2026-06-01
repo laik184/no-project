@@ -49,6 +49,7 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [mode, setMode]               = useState("Economy");
   const [planMode, setPlanMode]       = useState(false);
+  const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const popupRef    = useRef<HTMLDivElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const isBusy = isAgentThinking || isAgentTyping;
@@ -233,39 +234,36 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                     </div>
                   </div>
 
-                  {/* Mode pills row */}
-                  <div className="flex items-center gap-2 px-3 pb-3">
-                    {MODES.map((m) => {
-                      const isActive = mode === m.id;
-                      return (
-                        <div key={m.id} className="flex-1 relative group">
-                          {/* Tooltip above */}
-                          <div
-                            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none
-                              opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50"
-                            style={{ width: 276 }}
-                          >
-                            <div
-                              className="text-[11px] leading-relaxed px-3 py-2 rounded-lg"
-                              style={{
-                                background: "#0D1117",
-                                border: "1px solid #1E2D3D",
-                                color: "#94A3B8",
-                                boxShadow: "0 -4px 16px rgba(0,0,0,0.5)",
-                              }}
-                            >
-                              {m.description}
-                            </div>
-                            {/* Arrow */}
-                            <div
-                              className="absolute left-1/2 -translate-x-1/2 -bottom-[5px] w-2.5 h-2.5 rotate-45"
-                              style={{ background: "#0D1117", borderRight: "1px solid #1E2D3D", borderBottom: "1px solid #1E2D3D" }}
-                            />
-                          </div>
+                  {/* Shared tooltip — centered over the full pills row */}
+                  <div className="relative px-3">
+                    <div
+                      className="pointer-events-none transition-opacity duration-150"
+                      style={{ opacity: hoveredMode ? 1 : 0 }}
+                    >
+                      <div
+                        className="text-[11px] leading-relaxed px-3 py-2 rounded-lg mb-2"
+                        style={{
+                          background: "#111827",
+                          border: "1px solid #1E2D3D",
+                          color: "#94A3B8",
+                          boxShadow: "0 -4px 16px rgba(0,0,0,0.4)",
+                        }}
+                      >
+                        {(MODES.find((m) => m.id === hoveredMode) ?? MODES.find((m) => m.id === mode))?.description}
+                      </div>
+                    </div>
 
+                    {/* Mode pills row */}
+                    <div className="flex items-center gap-2 pb-3">
+                      {MODES.map((m) => {
+                        const isActive = mode === m.id;
+                        return (
                           <button
+                            key={m.id}
                             onClick={() => { setMode(m.id); setShowModeMenu(false); }}
-                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11.5px] font-medium transition-all"
+                            onMouseEnter={() => setHoveredMode(m.id)}
+                            onMouseLeave={() => setHoveredMode(null)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11.5px] font-medium transition-all"
                             style={{
                               background: isActive ? "#1A3050" : "#111827",
                               border: `1px solid ${isActive ? "#2563EB" : "#1E2D3D"}`,
@@ -283,9 +281,9 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                               </span>
                             )}
                           </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
