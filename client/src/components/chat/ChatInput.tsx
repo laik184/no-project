@@ -197,11 +197,14 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
               <Mic className="h-3.5 w-3.5" />
             </button>
 
+            {/* Divider */}
+            <div className="w-px h-4 flex-shrink-0 mx-0.5" style={{ background: "rgba(255,255,255,0.1)" }} />
+
             {/* Send / Stop */}
             {isBusy ? (
               <button
                 onClick={onStop}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+                className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
                 style={{ background: "rgba(239,68,68,0.85)" }}
                 data-testid="button-stop-agent-input"
               >
@@ -212,15 +215,19 @@ export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinki
                 onClick={onSend}
                 disabled={!chatInput.trim()}
                 className={cn(
-                  "w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-200",
+                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
                   chatInput.trim()
-                    ? "text-white hover:opacity-90 active:scale-95"
-                    : "text-muted-foreground/40 cursor-not-allowed"
+                    ? "text-white hover:opacity-90 active:scale-95 shadow-lg"
+                    : "text-muted-foreground/30 cursor-not-allowed"
                 )}
-                style={chatInput.trim() ? { background: "#2563EB" } : { background: "rgba(255,255,255,0.06)" }}
+                style={
+                  chatInput.trim()
+                    ? { background: "linear-gradient(135deg, #3B82F6, #2563EB)", boxShadow: "0 0 12px rgba(59,130,246,0.4)" }
+                    : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }
+                }
                 data-testid="button-chat-send"
               >
-                <ArrowUp className="h-3.5 w-3.5" />
+                <ArrowUp className="h-4 w-4" />
               </button>
             )}
           </div>
