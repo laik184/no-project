@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/structure.service.ts
+ * server/file-explorer/services/structure.service.ts
  *
  * Service layer for ASCII tree and folder-structure operations on the agent sandbox.
  * Tool → StructureService → lib/folders/folder-structure (repository/infra layer)
@@ -12,7 +12,7 @@ import {
   getFolderStructure,
   type FolderStructureOptions,
   type TreeNode,
-} from '../lib/folders/folder-structure.ts';
+} from '../../tools/filesystem/lib/folders/folder-structure.ts';
 
 export type { FolderStructureOptions, TreeNode };
 

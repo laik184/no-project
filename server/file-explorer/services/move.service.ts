@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/move.service.ts
+ * server/file-explorer/services/move.service.ts
  *
  * Service layer for all move/rename operations on the agent sandbox.
  * Tool → MoveService → lib/files/{file-mover,file-renamer} + lib/folders/{folder-mover,folder-renamer}
@@ -11,25 +11,25 @@ import {
   moveFile,
   type MoveOptions,
   type MoveResult,
-} from '../lib/files/file-mover.ts';
+} from '../../tools/filesystem/lib/files/file-mover.ts';
 
 import {
   renameFile,
   type RenameOptions,
   type RenameResult,
-} from '../lib/files/file-renamer.ts';
+} from '../../tools/filesystem/lib/files/file-renamer.ts';
 
 import {
   moveFolder,
   type MoveFolderOptions,
   type MoveFolderResult,
-} from '../lib/folders/folder-mover.ts';
+} from '../../tools/filesystem/lib/folders/folder-mover.ts';
 
 import {
   renameFolder,
   type RenameFolderOptions,
   type RenameFolderResult,
-} from '../lib/folders/folder-renamer.ts';
+} from '../../tools/filesystem/lib/folders/folder-renamer.ts';
 
 export type {
   MoveOptions,

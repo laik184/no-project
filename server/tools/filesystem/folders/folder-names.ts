@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { folderToolService } from '../services/index.ts';
+import { folderToolService } from '../../../file-explorer/services/index.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const folderNamesTool: ToolDefinition = {

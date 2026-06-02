@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/write.service.ts
+ * server/file-explorer/services/write.service.ts
  *
  * Service layer for all write/edit/patch operations on the agent sandbox.
  * Tool → WriteService → lib/files/{file-writer,file-editor,patch-file} (repository/infra layer)
@@ -13,7 +13,7 @@ import {
   ensureFile,
   type WriteOptions,
   type WriteResult,
-} from '../lib/files/file-writer.ts';
+} from '../../tools/filesystem/lib/files/file-writer.ts';
 
 import {
   appendToFile,
@@ -24,14 +24,14 @@ import {
   type ReplaceLineOptions,
   type InsertAtOptions,
   type ReplaceAllOptions,
-} from '../lib/files/file-editor.ts';
+} from '../../tools/filesystem/lib/files/file-editor.ts';
 
 import {
   patchFile,
   patchFileAll,
   type PatchOptions,
   type PatchResult,
-} from '../lib/files/patch-file.ts';
+} from '../../tools/filesystem/lib/files/patch-file.ts';
 
 export type {
   WriteOptions,

@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/folder.service.ts
+ * server/file-explorer/services/folder.service.ts
  *
  * Service layer for all folder read/create operations on the agent sandbox.
  * Tool → FolderService → lib/folders/{folder-reader,folder-creator} (repository/infra layer)
@@ -14,14 +14,14 @@ import {
   readSubfolderEntries,
   type ReadFolderOptions,
   type FolderEntry,
-} from '../lib/folders/folder-reader.ts';
+} from '../../tools/filesystem/lib/folders/folder-reader.ts';
 
 import {
   createFolder,
   createFolders,
   type CreateFolderOptions,
   type CreateFolderResult,
-} from '../lib/folders/folder-creator.ts';
+} from '../../tools/filesystem/lib/folders/folder-creator.ts';
 
 export type { ReadFolderOptions, FolderEntry, CreateFolderOptions, CreateFolderResult };
 

@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/search.service.ts
+ * server/file-explorer/services/search.service.ts
  *
  * Service layer for all search operations on the agent sandbox.
  * Tool → SearchService → lib/search/{text-search,regex-search,file-search} (repository/infra layer)
@@ -12,14 +12,14 @@ import {
   formatTextSearchResults,
   type TextSearchOptions,
   type TextSearchResult,
-} from '../lib/search/text-search.ts';
+} from '../../tools/filesystem/lib/search/text-search.ts';
 
 import {
   searchRegex,
   formatRegexResults,
   type RegexSearchOptions,
   type RegexSearchResult,
-} from '../lib/search/regex-search.ts';
+} from '../../tools/filesystem/lib/search/regex-search.ts';
 
 import {
   findByName,
@@ -27,7 +27,7 @@ import {
   findByPattern,
   type FileSearchOptions,
   type FileSearchResult,
-} from '../lib/search/file-search.ts';
+} from '../../tools/filesystem/lib/search/file-search.ts';
 
 export type {
   TextSearchOptions,

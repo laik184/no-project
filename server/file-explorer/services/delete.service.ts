@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/delete.service.ts
+ * server/file-explorer/services/delete.service.ts
  *
  * Service layer for all delete operations on the agent sandbox.
  * Tool → DeleteService → lib/files/file-deleter + lib/folders/folder-deleter (repository/infra layer)
@@ -12,13 +12,13 @@ import {
   deleteMultipleFiles,
   type DeleteOptions,
   type DeleteResult,
-} from '../lib/files/file-deleter.ts';
+} from '../../tools/filesystem/lib/files/file-deleter.ts';
 
 import {
   deleteFolder,
   type DeleteFolderOptions,
   type DeleteFolderResult,
-} from '../lib/folders/folder-deleter.ts';
+} from '../../tools/filesystem/lib/folders/folder-deleter.ts';
 
 export type { DeleteOptions, DeleteResult, DeleteFolderOptions, DeleteFolderResult };
 

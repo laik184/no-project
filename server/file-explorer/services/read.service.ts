@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/read.service.ts
+ * server/file-explorer/services/read.service.ts
  *
  * Service layer for all read operations on the agent sandbox.
  * Tool → ReadService → lib/files/file-reader (repository/infra layer)
@@ -16,7 +16,7 @@ import {
   type ReadOptions,
   type ReadLinesOptions,
   type FileMetadata,
-} from '../lib/files/file-reader.ts';
+} from '../../tools/filesystem/lib/files/file-reader.ts';
 
 export type { ReadOptions, ReadLinesOptions, FileMetadata };
 

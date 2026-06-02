@@ -1,5 +1,5 @@
 /**
- * server/tools/filesystem/services/clone.service.ts
+ * server/file-explorer/services/clone.service.ts
  *
  * Service layer for all clone/copy operations on the agent sandbox.
  * Tool → CloneService → lib/files/file-cloner + lib/folders/folder-cloner (repository/infra layer)
@@ -11,13 +11,13 @@ import {
   cloneFile,
   type CloneOptions,
   type CloneResult,
-} from '../lib/files/file-cloner.ts';
+} from '../../tools/filesystem/lib/files/file-cloner.ts';
 
 import {
   cloneFolder,
   type CloneFolderOptions,
   type CloneFolderResult,
-} from '../lib/folders/folder-cloner.ts';
+} from '../../tools/filesystem/lib/folders/folder-cloner.ts';
 
 export type { CloneOptions, CloneResult, CloneFolderOptions, CloneFolderResult };
 

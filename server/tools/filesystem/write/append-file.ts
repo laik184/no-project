@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from '../services/index.ts';
+import { writeToolService } from '../../../file-explorer/services/index.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const appendFileTool: ToolDefinition = {
