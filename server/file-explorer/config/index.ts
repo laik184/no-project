@@ -1,2 +1,1 @@
-export { FE_CONFIG } from './explorer.config.ts';
-export type { ExplorerConfig } from './explorer.config.ts';
+export * from '../../shared/file-explorer-core/config/index.ts';

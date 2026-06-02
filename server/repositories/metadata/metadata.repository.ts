@@ -4,7 +4,7 @@
  * Invalidated whenever a file mutation occurs.
  */
 
-import type { FileStat } from '../types/index.ts';
+import type { FileStat } from '../../shared/file-explorer-core/types/index.ts';
 
 const MAX_CACHE = 512;
 

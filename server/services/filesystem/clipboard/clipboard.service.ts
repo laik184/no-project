@@ -4,8 +4,8 @@
  * Paste delegates to duplicate or rename service accordingly.
  */
 
-import type { ClipboardEntry, ClipboardOp } from '../../file-explorer/types/index.ts';
-import type { ClipboardResponse }           from '../../file-explorer/contracts/index.ts';
+import type { ClipboardEntry, ClipboardOp } from '../../shared/file-explorer-core/types/index.ts';
+import type { ClipboardResponse }           from '../../shared/file-explorer-core/contracts/index.ts';
 import { duplicateService }  from '../duplicate/index.ts';
 import { renameService }     from '../rename/index.ts';
 import path from 'path';

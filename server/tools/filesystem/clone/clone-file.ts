@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { cloneToolService } from '../../../services/filesystem/index.ts';
+import { cloneToolService } from '../../../services/filesystem/tools.index.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const cloneFileTool: ToolDefinition = {

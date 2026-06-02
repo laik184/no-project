@@ -3,10 +3,10 @@
  * Handles multipart file upload, preserving relative paths from originalname.
  */
 
-import { resolveSafe }          from '../../file-explorer/guards/index.ts';
-import { filesystemRepository } from '../../file-explorer/repositories/index.ts';
+import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository } from '../../repositories/index.ts';
 import { toUploadedFile }       from '../../file-explorer/mappers/index.ts';
-import type { UploadResponse }  from '../../file-explorer/contracts/index.ts';
+import type { UploadResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
 
 class UploadService {
 

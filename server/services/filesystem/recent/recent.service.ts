@@ -3,7 +3,7 @@
  * Tracks recently opened files.
  */
 
-import { recentRepository } from '../../file-explorer/repositories/index.ts';
+import { recentRepository } from '../../repositories/index.ts';
 
 interface RecentResult { ok: boolean; files: string[]; error?: string; }
 

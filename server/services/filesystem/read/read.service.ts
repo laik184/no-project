@@ -3,11 +3,11 @@
  * Reads file content with encoding detection, binary guard, and size guard.
  */
 
-import { FE_CONFIG }              from '../../file-explorer/config/index.ts';
-import { resolveSafe }            from '../../file-explorer/guards/index.ts';
-import { filesystemRepository }   from '../../file-explorer/repositories/index.ts';
-import { hasBinaryContent, decodeBuffer } from '../../file-explorer/utils/index.ts';
-import type { ReadResponse }      from '../../file-explorer/contracts/index.ts';
+import { FE_CONFIG }              from '../../shared/file-explorer-core/config/index.ts';
+import { resolveSafe }            from '../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository }   from '../../repositories/index.ts';
+import { hasBinaryContent, decodeBuffer } from '../../shared/file-explorer-core/utils/index.ts';
+import type { ReadResponse }      from '../../shared/file-explorer-core/contracts/index.ts';
 
 class ReadService {
 

@@ -14,7 +14,7 @@ import {
   type ReadOptions,
   type ReadLinesOptions,
   type FileMetadata,
-} from '../../../tools/filesystem/lib/files/file-reader.ts';
+} from '../../../../tools/filesystem/lib/files/file-reader.ts';
 
 export type { ReadOptions, ReadLinesOptions, FileMetadata };
 

@@ -9,25 +9,25 @@ import {
   moveFile,
   type MoveOptions,
   type MoveResult,
-} from '../../../tools/filesystem/lib/files/file-mover.ts';
+} from '../../../../tools/filesystem/lib/files/file-mover.ts';
 
 import {
   renameFile,
   type RenameOptions,
   type RenameResult,
-} from '../../../tools/filesystem/lib/files/file-renamer.ts';
+} from '../../../../tools/filesystem/lib/files/file-renamer.ts';
 
 import {
   moveFolder,
   type MoveFolderOptions,
   type MoveFolderResult,
-} from '../../../tools/filesystem/lib/folders/folder-mover.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-mover.ts';
 
 import {
   renameFolder,
   type RenameFolderOptions,
   type RenameFolderResult,
-} from '../../../tools/filesystem/lib/folders/folder-renamer.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-renamer.ts';
 
 export type {
   MoveOptions, MoveResult,

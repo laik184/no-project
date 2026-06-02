@@ -5,7 +5,7 @@
 
 import fs   from 'fs';
 import path from 'path';
-import { FE_CONFIG } from '../config/index.ts';
+import { FE_CONFIG } from '../../shared/file-explorer-core/config/index.ts';
 
 const MAX_RECENT = 20;
 const STORE_PATH = path.join(FE_CONFIG.sandboxRoot, '.nura', 'recent.json');

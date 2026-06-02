@@ -3,11 +3,11 @@
  * Creates a new file or folder in the sandbox.
  */
 
-import { resolveSafe }          from '../../file-explorer/guards/index.ts';
-import { filesystemRepository } from '../../file-explorer/repositories/index.ts';
-import { FE_CONFIG }            from '../../file-explorer/config/index.ts';
-import { toRelative }           from '../../file-explorer/utils/index.ts';
-import type { CreateResponse }  from '../../file-explorer/contracts/index.ts';
+import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository } from '../../repositories/index.ts';
+import { FE_CONFIG }            from '../../shared/file-explorer-core/config/index.ts';
+import { toRelative }           from '../../shared/file-explorer-core/utils/index.ts';
+import type { CreateResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
 
 class CreateService {
 

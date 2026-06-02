@@ -6,9 +6,9 @@
 
 import fs   from 'fs';
 import path from 'path';
-import type { HistoryEntry } from '../types/index.ts';
-import { FE_CONFIG }  from '../config/index.ts';
-import { makeHistoryId } from '../utils/index.ts';
+import type { HistoryEntry } from '../../shared/file-explorer-core/types/index.ts';
+import { FE_CONFIG }  from '../../shared/file-explorer-core/config/index.ts';
+import { makeHistoryId } from '../../shared/file-explorer-core/utils/index.ts';
 
 const MAX_ENTRIES = FE_CONFIG.maxHistoryEntries;
 

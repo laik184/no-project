@@ -3,7 +3,7 @@
  * Manages pinned (bookmarked) file paths.
  */
 
-import { pinnedRepository } from '../../file-explorer/repositories/index.ts';
+import { pinnedRepository } from '../../repositories/index.ts';
 
 interface PinnedResult { ok: boolean; files: string[]; error?: string; }
 

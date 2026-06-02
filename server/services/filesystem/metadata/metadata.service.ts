@@ -3,14 +3,14 @@
  * Returns rich metadata for a single file (language, encoding, line count, etc.).
  */
 
-import { resolveSafe }            from '../../file-explorer/guards/index.ts';
-import { filesystemRepository }   from '../../file-explorer/repositories/index.ts';
-import { metadataRepository }     from '../../file-explorer/repositories/index.ts';
-import { decodeBuffer, countLines, hasBinaryContent } from '../../file-explorer/utils/index.ts';
-import { getExtension, guessLanguage }                from '../../file-explorer/utils/index.ts';
-import { toRelative }             from '../../file-explorer/utils/index.ts';
-import { FE_CONFIG }              from '../../file-explorer/config/index.ts';
-import type { MetadataResponse }  from '../../file-explorer/contracts/index.ts';
+import { resolveSafe }            from '../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository }   from '../../repositories/index.ts';
+import { metadataRepository }     from '../../repositories/index.ts';
+import { decodeBuffer, countLines, hasBinaryContent } from '../../shared/file-explorer-core/utils/index.ts';
+import { getExtension, guessLanguage }                from '../../shared/file-explorer-core/utils/index.ts';
+import { toRelative }             from '../../shared/file-explorer-core/utils/index.ts';
+import { FE_CONFIG }              from '../../shared/file-explorer-core/config/index.ts';
+import type { MetadataResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
 
 class MetadataService {
 

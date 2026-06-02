@@ -19,11 +19,3 @@ export { insightsService } from "./insights/index.ts";
 export { dependencyAnalysisService } from "./dependency-analysis/index.ts";
 export { scannerService } from "./scanner/index.ts";
 
-export { readToolService }      from './read/tool.service.ts';
-export { writeToolService }     from './write/tool.service.ts';
-export { deleteToolService }    from './delete/tool.service.ts';
-export { cloneToolService }     from './clone/clone.service.ts';
-export { moveToolService }      from './move/move.service.ts';
-export { folderToolService }    from './folder/folder.service.ts';
-export { searchToolService }    from './search/tool.service.ts';
-export { structureToolService } from './structure/structure.service.ts';

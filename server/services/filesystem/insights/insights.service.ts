@@ -4,11 +4,11 @@
  * Uses filesystemRepository.walkFiles() — no direct fs access.
  */
 
-import { FE_CONFIG }             from '../../file-explorer/config/index.ts';
-import { filesystemRepository }  from '../../file-explorer/repositories/index.ts';
-import { getExtension }          from '../../file-explorer/utils/index.ts';
-import type { InsightsResponse } from '../../file-explorer/contracts/index.ts';
-import type { ProjectInsights }  from '../../file-explorer/types/index.ts';
+import { FE_CONFIG }             from '../../shared/file-explorer-core/config/index.ts';
+import { filesystemRepository }  from '../../repositories/index.ts';
+import { getExtension }          from '../../shared/file-explorer-core/utils/index.ts';
+import type { InsightsResponse } from '../../shared/file-explorer-core/contracts/index.ts';
+import type { ProjectInsights }  from '../../shared/file-explorer-core/types/index.ts';
 
 interface FileRecord { relPath: string; size: number; mtime: number; }
 

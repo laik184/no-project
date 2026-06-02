@@ -4,11 +4,11 @@
  * Uses filesystemRepository.walkFiles() — no direct fs access.
  */
 
-import { FE_CONFIG }            from '../../file-explorer/config/index.ts';
-import { resolveSafe }          from '../../file-explorer/guards/index.ts';
-import { filesystemRepository } from '../../file-explorer/repositories/index.ts';
-import { hasBinaryContent, decodeBuffer } from '../../file-explorer/utils/index.ts';
-import type { SearchResponse, SearchMatch } from '../../file-explorer/contracts/index.ts';
+import { FE_CONFIG }            from '../../shared/file-explorer-core/config/index.ts';
+import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository } from '../../repositories/index.ts';
+import { hasBinaryContent, decodeBuffer } from '../../shared/file-explorer-core/utils/index.ts';
+import type { SearchResponse, SearchMatch } from '../../shared/file-explorer-core/contracts/index.ts';
 
 const MAX_FILE_SEARCH_BYTES = 512 * 1024; // 512 KB per file
 

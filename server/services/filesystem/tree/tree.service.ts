@@ -4,12 +4,12 @@
  */
 
 import path from 'path';
-import { FE_CONFIG }          from '../../file-explorer/config/index.ts';
-import { resolveSafe }        from '../../file-explorer/guards/index.ts';
+import { FE_CONFIG }          from '../../shared/file-explorer-core/config/index.ts';
+import { resolveSafe }        from '../../shared/file-explorer-core/guards/index.ts';
 import { buildTreeFromDir }   from '../../file-explorer/mappers/index.ts';
-import { countNodes }         from '../../file-explorer/utils/index.ts';
-import type { TreeResponse }  from '../../file-explorer/contracts/index.ts';
-import type { RawTreeNode }   from '../../file-explorer/types/index.ts';
+import { countNodes }         from '../../shared/file-explorer-core/utils/index.ts';
+import type { TreeResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
+import type { RawTreeNode }   from '../../shared/file-explorer-core/types/index.ts';
 
 class TreeService {
 

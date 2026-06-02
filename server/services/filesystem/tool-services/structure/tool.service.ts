@@ -10,7 +10,7 @@ import {
   getFolderStructure,
   type FolderStructureOptions,
   type TreeNode,
-} from '../../../tools/filesystem/lib/folders/folder-structure.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-structure.ts';
 
 export type { FolderStructureOptions, TreeNode };
 

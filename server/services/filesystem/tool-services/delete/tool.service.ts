@@ -10,13 +10,13 @@ import {
   deleteMultipleFiles,
   type DeleteOptions,
   type DeleteResult,
-} from '../../../tools/filesystem/lib/files/file-deleter.ts';
+} from '../../../../tools/filesystem/lib/files/file-deleter.ts';
 
 import {
   deleteFolder,
   type DeleteFolderOptions,
   type DeleteFolderResult,
-} from '../../../tools/filesystem/lib/folders/folder-deleter.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-deleter.ts';
 
 export type { DeleteOptions, DeleteResult, DeleteFolderOptions, DeleteFolderResult };
 

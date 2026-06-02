@@ -1,4 +1,1 @@
-export * from './file.types.ts';
-export * from './tree.types.ts';
-export * from './history.types.ts';
-export * from './metadata.types.ts';
+export * from '../../shared/file-explorer-core/types/index.ts';

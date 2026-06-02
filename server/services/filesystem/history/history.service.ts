@@ -3,10 +3,10 @@
  * Manages file version history (snapshot before each save).
  */
 
-import { historyRepository }  from '../../file-explorer/repositories/index.ts';
+import { historyRepository }  from '../../repositories/index.ts';
 import { readService }        from '../read/index.ts';
 import { writeService }       from '../write/index.ts';
-import type { HistoryResponse } from '../../file-explorer/contracts/index.ts';
+import type { HistoryResponse } from '../../shared/file-explorer-core/contracts/index.ts';
 
 class HistoryService {
 

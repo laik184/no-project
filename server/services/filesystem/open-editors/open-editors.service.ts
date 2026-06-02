@@ -3,7 +3,7 @@
  * Tracks which files are currently open in the editor.
  */
 
-import { editorsRepository } from '../../file-explorer/repositories/index.ts';
+import { editorsRepository } from '../../repositories/index.ts';
 
 interface EditorsResult { ok: boolean; files: string[]; error?: string; }
 

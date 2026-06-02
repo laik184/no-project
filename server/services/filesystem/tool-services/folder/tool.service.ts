@@ -12,14 +12,14 @@ import {
   readSubfolderEntries,
   type ReadFolderOptions,
   type FolderEntry,
-} from '../../../tools/filesystem/lib/folders/folder-reader.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-reader.ts';
 
 import {
   createFolder,
   createFolders,
   type CreateFolderOptions,
   type CreateFolderResult,
-} from '../../../tools/filesystem/lib/folders/folder-creator.ts';
+} from '../../../../tools/filesystem/lib/folders/folder-creator.ts';
 
 export type { ReadFolderOptions, FolderEntry, CreateFolderOptions, CreateFolderResult };
 
