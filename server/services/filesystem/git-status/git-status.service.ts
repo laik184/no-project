@@ -11,7 +11,7 @@
  */
 
 import { FE_CONFIG }     from '../../shared/file-explorer-core/config/index.ts';
-import { gitRepository } from '../../repositories/file-system/index.ts';
+import { gitRepository } from '../../repositories/filesystem/index.ts';
 
 export type GitStatusCode = 'M' | 'A' | 'D' | 'R' | '??' | 'UU' | string;
 

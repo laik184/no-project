@@ -1,0 +1,151 @@
+You are a Senior Backend Architect.
+
+TASK
+
+Apply ONLY the repository import standard described below.
+
+DO NOT perform any other refactor.
+
+DO NOT move files.
+
+DO NOT rename files.
+
+DO NOT create new services.
+
+DO NOT create new repositories.
+
+DO NOT change logic.
+
+DO NOT change APIs.
+
+DO NOT change runtime behavior.
+
+DO NOT change exports.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TARGET RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every service inside:
+
+server/services/filesystem/**
+
+must import repositories ONLY from:
+
+server/repositories/filesystem/index.ts
+
+Example:
+
+✅ Correct
+
+read.service.ts
+↓
+server/repositories/filesystem/index.ts
+
+write.service.ts
+↓
+server/repositories/filesystem/index.ts
+
+delete.service.ts
+↓
+server/repositories/filesystem/index.ts
+
+rename.service.ts
+↓
+server/repositories/filesystem/index.ts
+
+tree.service.ts
+↓
+server/repositories/filesystem/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPOSITORY BARREL RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File:
+
+server/repositories/filesystem/index.ts
+
+must be the SINGLE PUBLIC ENTRY POINT for repositories.
+
+Services must NOT import:
+
+server/repositories/filesystem/filesystem.repository.ts
+
+server/repositories/filesystem/git.repository.ts
+
+server/repositories/filesystem/history.repository.ts
+
+server/repositories/filesystem/metadata.repository.ts
+
+directly.
+
+Instead:
+
+✅ Import ONLY:
+
+server/repositories/filesystem/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan all files:
+
+server/services/filesystem/**/*.ts
+
+Find every repository import.
+
+Generate report:
+
+- file path
+- current import
+- required import
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update imports so every service uses:
+
+server/repositories/filesystem/index.ts
+
+Do not modify any implementation.
+
+Do not modify any method.
+
+Do not modify any logic.
+
+Do not modify exports.
+
+Only update import statements.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After changes verify:
+
+1. All services import repositories through the barrel.
+
+2. No service imports repository files directly.
+
+3. TypeScript build remains unchanged.
+
+4. Runtime behavior remains unchanged.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide:
+
+1. Files updated
+
+2. Imports updated
+
+3. Remaining direct repository imports
+
+4. Verification result
+
+Do not perform any work outside this repository import standard.

@@ -5,7 +5,7 @@
  */
 
 import { FE_CONFIG }             from '../../shared/file-explorer-core/config/index.ts';
-import { filesystemRepository }  from '../../repositories/file-system/index.ts';
+import { filesystemRepository }  from '../../repositories/filesystem/index.ts';
 import { getExtension }          from '../../shared/file-explorer-core/utils/index.ts';
 import type { InsightsResponse } from '../../shared/file-explorer-core/contracts/index.ts';
 import type { ProjectInsights }  from '../../shared/file-explorer-core/types/index.ts';

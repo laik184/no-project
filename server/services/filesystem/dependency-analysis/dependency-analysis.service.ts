@@ -18,7 +18,7 @@
 import path from 'path';
 import { FE_CONFIG }            from '../../shared/file-explorer-core/config/index.ts';
 import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository } from '../../repositories/file-system/index.ts';
+import { filesystemRepository } from '../../repositories/filesystem/index.ts';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
