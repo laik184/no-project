@@ -1,12 +1,16 @@
 /**
  * server/tools/filesystem/structure/scan-extension.ts
  * Tool: fs_scan_by_extension
+ *
+ * Delegates ALL business logic to scannerService.
+ * This tool owns: input validation, context bridging.
+ * This tool does NOT own: filesystem traversal, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { scanFilesByExtension } from '../lib/folders/folder-scanner.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { scannerService }                            from '../../../file-explorer/services/scanner/index.ts';
 
 export const scanExtensionTool: ToolDefinition = {
   name:        'fs_scan_by_extension',
@@ -20,12 +24,12 @@ export const scanExtensionTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
-    const path       = assertInputPath(input.path, 'path');
+  handler: async (input, _ctx: ToolExecutionContext) => {
+    const relPath    = assertInputPath(input.path, 'path');
     const extensions = input.extensions as string[];
     if (!Array.isArray(extensions) || extensions.length === 0) {
       throw new Error('"extensions" must be a non-empty array');
     }
-    return scanFilesByExtension(ctx.sandboxRoot, path, extensions);
+    return scannerService.scanExtension(extensions, relPath);
   },
 };

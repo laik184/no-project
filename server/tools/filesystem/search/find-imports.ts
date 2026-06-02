@@ -1,12 +1,16 @@
 /**
  * server/tools/filesystem/search/find-imports.ts
  * Tool: fs_find_imports
+ *
+ * Delegates ALL business logic to dependencyAnalysisService.
+ * This tool owns: input validation, context bridging.
+ * This tool does NOT own: filesystem I/O, parsing, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { findImports } from '../lib/search/dependency-search.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { dependencyAnalysisService }                 from '../../../file-explorer/services/dependency-analysis/index.ts';
 
 export const findImportsTool: ToolDefinition = {
   name:        'fs_find_imports',
@@ -19,8 +23,8 @@ export const findImportsTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
-    const path = assertInputPath(input.path, 'path');
-    return findImports({ sandboxRoot: ctx.sandboxRoot, path });
+  handler: async (input, _ctx: ToolExecutionContext) => {
+    const relPath = assertInputPath(input.path, 'path');
+    return dependencyAnalysisService.findImports(relPath);
   },
 };

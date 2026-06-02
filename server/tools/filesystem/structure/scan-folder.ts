@@ -1,12 +1,16 @@
 /**
  * server/tools/filesystem/structure/scan-folder.ts
  * Tool: fs_scan_folder
+ *
+ * Delegates ALL business logic to scannerService.
+ * This tool owns: input validation, context bridging.
+ * This tool does NOT own: filesystem traversal, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { scanFolder } from '../lib/folders/folder-scanner.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { scannerService }                            from '../../../file-explorer/services/scanner/index.ts';
 
 export const scanFolderTool: ToolDefinition = {
   name:        'fs_scan_folder',
@@ -22,11 +26,11 @@ export const scanFolderTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
-    const path          = assertInputPath(input.path, 'path');
-    const maxDepth      = (input.maxDepth      as number)   ?? 10;
-    const includeHidden = (input.includeHidden as boolean)  ?? false;
-    const extensions    = (input.extensions    as string[]) ?? undefined;
-    return scanFolder({ sandboxRoot: ctx.sandboxRoot, path, maxDepth, includeHidden, extensions });
+  handler: async (input, _ctx: ToolExecutionContext) => {
+    const relPath       = assertInputPath(input.path, 'path');
+    const maxDepth      = (input.maxDepth      as number  ) ?? 10;
+    const includeHidden = (input.includeHidden as boolean ) ?? false;
+    const extensions    = (input.extensions    as string[]) ?? [];
+    return scannerService.scanFolder(relPath, { maxDepth, includeHidden, extensions });
   },
 };
