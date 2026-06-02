@@ -1,10 +1,8 @@
 /**
- * server/file-explorer/services/read.service.ts
+ * server/file-explorer/services/read/tool.service.ts
  *
- * Service layer for all read operations on the agent sandbox.
- * Tool → ReadService → lib/files/file-reader (repository/infra layer)
- *
- * No tool may import lib/files/file-reader.ts directly.
+ * Tool-facing service for agent sandbox read operations.
+ * Tool → readToolService → lib/files/file-reader (infra layer)
  */
 
 import {
@@ -16,11 +14,11 @@ import {
   type ReadOptions,
   type ReadLinesOptions,
   type FileMetadata,
-} from '../../tools/filesystem/lib/files/file-reader.ts';
+} from '../../../tools/filesystem/lib/files/file-reader.ts';
 
 export type { ReadOptions, ReadLinesOptions, FileMetadata };
 
-class ReadService {
+class ReadToolService {
   read(opts: ReadOptions): Promise<string> {
     return readFile(opts);
   }
@@ -42,4 +40,4 @@ class ReadService {
   }
 }
 
-export const readToolService = new ReadService();
+export const readToolService = new ReadToolService();
