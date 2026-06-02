@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { cloneFolder } from '../lib/folders/folder-cloner.ts';
+import { cloneToolService } from '../services/index.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const cloneFolderTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const cloneFolderTool: ToolDefinition = {
     const sourcePath      = assertInputPath(input.sourcePath,      'sourcePath');
     const destinationPath = assertInputPath(input.destinationPath, 'destinationPath');
     const overwrite       = (input.overwrite as boolean) ?? false;
-    return cloneFolder({ sandboxRoot: ctx.sandboxRoot, sourcePath, destinationPath, overwrite });
+    return cloneToolService.cloneFolder({ sandboxRoot: ctx.sandboxRoot, sourcePath, destinationPath, overwrite });
   },
 };

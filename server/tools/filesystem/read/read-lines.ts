@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { readLines } from '../lib/files/file-reader.ts';
+import { readToolService } from '../services/index.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const readLinesTool: ToolDefinition = {
@@ -27,6 +27,6 @@ export const readLinesTool: ToolDefinition = {
     const to   = input.to   as number;
     if (!Number.isInteger(from) || from < 1) throw new Error('"from" must be a positive integer');
     if (!Number.isInteger(to)   || to < from) throw new Error('"to" must be >= "from"');
-    return readLines({ sandboxRoot: ctx.sandboxRoot, path, from, to });
+    return readToolService.readLines({ sandboxRoot: ctx.sandboxRoot, path, from, to });
   },
 };

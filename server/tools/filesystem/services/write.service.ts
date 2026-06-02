@@ -1,0 +1,85 @@
+/**
+ * server/tools/filesystem/services/write.service.ts
+ *
+ * Service layer for all write/edit/patch operations on the agent sandbox.
+ * Tool → WriteService → lib/files/{file-writer,file-editor,patch-file} (repository/infra layer)
+ *
+ * No tool may import lib/files/file-writer.ts, file-editor.ts, or patch-file.ts directly.
+ */
+
+import {
+  writeFile,
+  writeFileIfAbsent,
+  ensureFile,
+  type WriteOptions,
+  type WriteResult,
+} from '../lib/files/file-writer.ts';
+
+import {
+  appendToFile,
+  replaceLine,
+  insertAt,
+  replaceAll,
+  type AppendOptions,
+  type ReplaceLineOptions,
+  type InsertAtOptions,
+  type ReplaceAllOptions,
+} from '../lib/files/file-editor.ts';
+
+import {
+  patchFile,
+  patchFileAll,
+  type PatchOptions,
+  type PatchResult,
+} from '../lib/files/patch-file.ts';
+
+export type {
+  WriteOptions,
+  WriteResult,
+  AppendOptions,
+  ReplaceLineOptions,
+  InsertAtOptions,
+  ReplaceAllOptions,
+  PatchOptions,
+  PatchResult,
+};
+
+class WriteService {
+  write(opts: WriteOptions): Promise<WriteResult> {
+    return writeFile(opts);
+  }
+
+  writeIfAbsent(opts: Omit<WriteOptions, 'overwrite'>): Promise<WriteResult> {
+    return writeFileIfAbsent(opts);
+  }
+
+  ensure(opts: WriteOptions): Promise<WriteResult> {
+    return ensureFile(opts);
+  }
+
+  append(opts: AppendOptions): Promise<void> {
+    return appendToFile(opts);
+  }
+
+  replaceLine(opts: ReplaceLineOptions): Promise<void> {
+    return replaceLine(opts);
+  }
+
+  insertAt(opts: InsertAtOptions): Promise<void> {
+    return insertAt(opts);
+  }
+
+  replaceAll(opts: ReplaceAllOptions): Promise<number> {
+    return replaceAll(opts);
+  }
+
+  patch(opts: PatchOptions): Promise<PatchResult> {
+    return patchFile(opts);
+  }
+
+  patchAll(opts: PatchOptions): Promise<PatchResult> {
+    return patchFileAll(opts);
+  }
+}
+
+export const writeToolService = new WriteService();

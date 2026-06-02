@@ -4,3 +4,4 @@ export { recentRepository }     from './recent.repository.ts';
 export { pinnedRepository }     from './pinned.repository.ts';
 export { editorsRepository }    from './editors.repository.ts';
 export { metadataRepository }   from './metadata.repository.ts';
+export { gitRepository }        from './git.repository.ts';

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchText } from '../lib/search/text-search.ts';
+import { searchToolService } from '../services/index.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const searchTextTool: ToolDefinition = {
@@ -29,6 +29,6 @@ export const searchTextTool: ToolDefinition = {
     const maxDepth      = (input.maxDepth      as number)   ?? 10;
     const caseSensitive = (input.caseSensitive as boolean)  ?? false;
     const extensions    = (input.extensions    as string[]) ?? undefined;
-    return searchText({ sandboxRoot: ctx.sandboxRoot, path, query, maxDepth, caseSensitive, extensions });
+    return searchToolService.searchText({ sandboxRoot: ctx.sandboxRoot, path, query, maxDepth, caseSensitive, extensions });
   },
 };

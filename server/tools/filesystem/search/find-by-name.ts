@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { findByName } from '../lib/search/file-search.ts';
+import { searchToolService } from '../services/index.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const findByNameTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const findByNameTool: ToolDefinition = {
     const path     = assertInputPath(input.path, 'path');
     const name     = assertInputString(input.name, 'name');
     const maxDepth = (input.maxDepth as number) ?? 10;
-    return findByName({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, name);
+    return searchToolService.findByName({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, name);
   },
 };

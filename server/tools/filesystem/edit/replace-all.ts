@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { replaceAll } from '../lib/files/file-editor.ts';
+import { writeToolService } from '../services/index.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const replaceAllTool: ToolDefinition = {
@@ -25,7 +25,7 @@ export const replaceAllTool: ToolDefinition = {
     const path        = assertInputPath(input.path, 'path');
     const search      = assertInputString(input.search, 'search');
     const replacement = assertInputString(input.replacement, 'replacement');
-    const count = await replaceAll({ sandboxRoot: ctx.sandboxRoot, path, search, replacement });
+    const count = await writeToolService.replaceAll({ sandboxRoot: ctx.sandboxRoot, path, search, replacement });
     return { replaced: count, path };
   },
 };

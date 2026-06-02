@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { createFolder } from '../lib/folders/folder-creator.ts';
+import { folderToolService } from '../services/index.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const createFolderTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const createFolderTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const recursive = (input.recursive as boolean) ?? true;
-    return createFolder({ sandboxRoot: ctx.sandboxRoot, path, recursive });
+    return folderToolService.createFolder({ sandboxRoot: ctx.sandboxRoot, path, recursive });
   },
 };
