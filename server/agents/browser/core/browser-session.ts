@@ -6,7 +6,7 @@
  * All browser orchestration sits ABOVE this layer.
  */
 
-import { chromium, type Browser, type Page } from 'playwright';
+import type { Browser, Page } from 'playwright';
 import type { BrowserLaunchOptions }          from '../types/browser.types.ts';
 import { generateSessionId }                  from '../utils/browser-utils.ts';
 import { recordSessionOpened, recordSessionClosed, recordSessionCrashed }
@@ -32,6 +32,7 @@ export async function launchBrowserSession(
   const headless   = opts.headless   ?? true;
   const timeoutMs  = opts.timeoutMs  ?? 30_000;
 
+  const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless });
 
   const context = await browser.newContext({

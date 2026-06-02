@@ -11,8 +11,6 @@
 import crypto             from 'crypto';
 import fs                 from 'fs/promises';
 import path               from 'path';
-import { execFile }       from 'child_process';
-import { promisify }      from 'util';
 import { eq, and, gte }   from 'drizzle-orm';
 import { db }             from '../../infrastructure/index.ts';
 import { safeWriteFile, safeDeleteFile } from '../../infrastructure/index.ts';
@@ -23,10 +21,9 @@ import type {
   ChatCheckpoint, CheckpointTrigger, RollbackResult,
 } from '../types/checkpoint.types.ts';
 import { captureWorkspaceSnapshot } from './workspace-scanner.ts';
-import { getProjectDir } from '../../infrastructure/index.ts';
+import { getProjectDir, captureGitSha } from '../../infrastructure/index.ts';
 
-const SANDBOX      = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
-const execFileAsync = promisify(execFile);
+const SANDBOX = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,23 +50,6 @@ async function readSandboxFile(filePath: string): Promise<string | null> {
     const full = path.resolve(SANDBOX, filePath.replace(/^\//, ''));
     return await fs.readFile(full, 'utf8');
   } catch { return null; }
-}
-
-/**
- * Attempt to capture the current git commit SHA in a directory.
- * Returns null if git is unavailable or not a git repo.
- */
-async function captureGitSha(dir: string): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
-      cwd: dir,
-      timeout: 3000,
-    });
-    const sha = stdout.trim();
-    return sha.length >= 7 ? sha.slice(0, 64) : null;
-  } catch {
-    return null;
-  }
 }
 
 // ── store ─────────────────────────────────────────────────────────────────────

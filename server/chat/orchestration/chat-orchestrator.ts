@@ -16,7 +16,7 @@
 import crypto from 'crypto';
 import { orchestrate, runManager } from '../../orchestration/index.ts';
 import { routeIntent, isChatMode } from '../intent/intent-router.ts';
-import { runChatAgent }            from '../../agents/chat/chat-agent.ts';
+import { runChatAgent, type StreamWriter } from '../../agents/chat/chat-agent.ts';
 import { conversationManager } from './conversation-manager.ts';
 import { sessionManager }      from './session-manager.ts';
 import { turnManager }         from './turn-manager.ts';
@@ -129,14 +129,21 @@ export const chatOrchestrator = {
     if (isChatMode(intent.mode)) {
       // ── Chat Agent path (conversation / explain) ────────────────────────────
       // Planner, Executor, and Verifier are NOT called.
-      // runChatAgent opens the stream, streams tokens, closes stream, then returns.
+      // chat-orchestrator owns the stream lifecycle; it injects a StreamWriter
+      // into runChatAgent so the agent never imports the chat layer.
+      streamManager.open(runId, projectId);
+      const writer: StreamWriter = {
+        append:   (token) => streamManager.append(runId, token),
+        close:    ()      => streamManager.close(runId),
+        isActive: ()      => streamManager.isActive(runId),
+      };
       void runChatAgent({
         runId,
         projectId,
         goal,
         intentMode: intent.mode,
         context:    memCtxStr || undefined,
-      }).then(async (result) => {
+      }, writer).then(async (result) => {
         await chatOrchestrator.completeRun(runId, projectId, result.response, result.tokens, goal);
       }).catch(async (err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);

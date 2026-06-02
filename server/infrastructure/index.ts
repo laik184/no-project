@@ -37,3 +37,6 @@ export { getProjectDir, getNuraDir } from './sandbox/sandbox.util.ts';
 
 // ── Safe Filesystem Operations ────────────────────────────────────────────────
 export { safeWriteFile, safeDeleteFile, safeBackup } from './checkpoints/safe-fs.util.ts';
+
+// ── Git Operations ────────────────────────────────────────────────────────────
+export { captureGitSha } from './checkpoints/git-runner.ts';
