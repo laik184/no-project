@@ -95,3 +95,13 @@ export { folderEntriesTool }    from './folders/folder-entries.ts';
 export { folderNamesTool }      from './folders/folder-names.ts';
 export { subfolderEntriesTool } from './folders/subfolder-entries.ts';
 export { fileEntriesTool }      from './folders/file-entries.ts';
+
+// ── Tool services (agent-facing service layer) ────────────────────────────────
+export { cloneToolService }     from './clone/tool.service.ts';
+export { deleteToolService }    from './delete/tool.service.ts';
+export { folderToolService }    from './folder/tool.service.ts';
+export { moveToolService }      from './move/tool.service.ts';
+export { readToolService }      from './read/tool.service.ts';
+export { searchToolService }    from './search/tool.service.ts';
+export { structureToolService } from './structure/tool.service.ts';
+export { writeToolService }     from './write/tool.service.ts';

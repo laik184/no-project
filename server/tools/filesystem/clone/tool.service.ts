@@ -9,13 +9,13 @@ import {
   cloneFile,
   type CloneOptions,
   type CloneResult,
-} from '../../../../tools/filesystem/lib/files/file-cloner.ts';
+} from '../lib/files/file-cloner.ts';
 
 import {
   cloneFolder,
   type CloneFolderOptions,
   type CloneFolderResult,
-} from '../../../../tools/filesystem/lib/folders/folder-cloner.ts';
+} from '../lib/folders/folder-cloner.ts';
 
 export type { CloneOptions, CloneResult, CloneFolderOptions, CloneFolderResult };
 

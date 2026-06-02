@@ -10,14 +10,14 @@ import {
   formatTextSearchResults,
   type TextSearchOptions,
   type TextSearchResult,
-} from '../../../../tools/filesystem/lib/search/text-search.ts';
+} from '../lib/search/text-search.ts';
 
 import {
   searchRegex,
   formatRegexResults,
   type RegexSearchOptions,
   type RegexSearchResult,
-} from '../../../../tools/filesystem/lib/search/regex-search.ts';
+} from '../lib/search/regex-search.ts';
 
 import {
   findByName,
@@ -25,7 +25,7 @@ import {
   findByPattern,
   type FileSearchOptions,
   type FileSearchResult,
-} from '../../../../tools/filesystem/lib/search/file-search.ts';
+} from '../lib/search/file-search.ts';
 
 export type {
   TextSearchOptions, TextSearchResult,

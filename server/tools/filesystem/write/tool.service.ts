@@ -11,7 +11,7 @@ import {
   ensureFile,
   type WriteOptions,
   type WriteResult,
-} from '../../../../tools/filesystem/lib/files/file-writer.ts';
+} from '../lib/files/file-writer.ts';
 
 import {
   appendToFile,
@@ -22,14 +22,14 @@ import {
   type ReplaceLineOptions,
   type InsertAtOptions,
   type ReplaceAllOptions,
-} from '../../../../tools/filesystem/lib/files/file-editor.ts';
+} from '../lib/files/file-editor.ts';
 
 import {
   patchFile,
   patchFileAll,
   type PatchOptions,
   type PatchResult,
-} from '../../../../tools/filesystem/lib/files/patch-file.ts';
+} from '../lib/files/patch-file.ts';
 
 export type {
   WriteOptions, WriteResult,
