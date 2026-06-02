@@ -360,3 +360,9 @@ id = "HglZulQ8s5t6pe0uBTO6S"
 uri = "file://ARCHITECTURE_ANALYSIS.md"
 type = "text"
 title = "Architecture Analysis Report (Phases 11–16)"
+
+[[outputs]]
+id = "tpljarY70V5u3cfLRsGik"
+uri = "file://FILESYSTEM_ARCHITECTURE_REPORT.md"
+type = "text"
+title = "Filesystem Architecture Report"
