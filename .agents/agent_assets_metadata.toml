@@ -354,3 +354,9 @@ id = "73eqbEAfle0nzjRhGzF4X"
 uri = "file://FILESYSTEM_AUDIT_REPORT.md"
 type = "text"
 title = "Filesystem Toolchain Deep Scan Audit Report"
+
+[[outputs]]
+id = "HglZulQ8s5t6pe0uBTO6S"
+uri = "file://ARCHITECTURE_ANALYSIS.md"
+type = "text"
+title = "Architecture Analysis Report (Phases 11–16)"
