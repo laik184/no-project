@@ -5,8 +5,8 @@
 
 import path from 'path';
 import { resolveSafe }              from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository }     from '../../repositories/index.ts';
-import { metadataRepository }       from '../../repositories/index.ts';
+import { filesystemRepository }     from '../../repositories/file-system/index.ts';
+import { metadataRepository }       from '../../repositories/file-system/index.ts';
 import { duplicateName, toRelative } from '../../shared/file-explorer-core/utils/index.ts';
 import { FE_CONFIG }                from '../../shared/file-explorer-core/config/index.ts';
 import type { DuplicateResponse }   from '../../shared/file-explorer-core/contracts/index.ts';

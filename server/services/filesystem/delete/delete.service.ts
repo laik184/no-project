@@ -4,8 +4,8 @@
  */
 
 import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository } from '../../repositories/index.ts';
-import { metadataRepository }   from '../../repositories/index.ts';
+import { filesystemRepository } from '../../repositories/file-system/index.ts';
+import { metadataRepository }   from '../../repositories/file-system/index.ts';
 import type { DeleteResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
 
 class DeleteService {
