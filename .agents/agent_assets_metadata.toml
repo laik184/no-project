@@ -366,3 +366,9 @@ id = "tpljarY70V5u3cfLRsGik"
 uri = "file://FILESYSTEM_ARCHITECTURE_REPORT.md"
 type = "text"
 title = "Filesystem Architecture Report"
+
+[[outputs]]
+id = "kQ7vsIY-Ygc5nae9NsLjf"
+uri = "file://FORENSIC_AUDIT_REPORT.md"
+type = "text"
+title = "Forensic Architecture Audit Report"
