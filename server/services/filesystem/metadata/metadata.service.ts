@@ -4,8 +4,8 @@
  */
 
 import { resolveSafe }            from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository }   from '../../repositories/filesystem/index.ts';
-import { metadataRepository }     from '../../repositories/filesystem/index.ts';
+import { filesystemRepository }   from '../../repositories/file-system/index.ts';
+import { metadataRepository }     from '../../repositories/file-system/index.ts';
 import { decodeBuffer, countLines, hasBinaryContent } from '../../shared/file-explorer-core/utils/index.ts';
 import { getExtension, guessLanguage }                from '../../shared/file-explorer-core/utils/index.ts';
 import { toRelative }             from '../../shared/file-explorer-core/utils/index.ts';

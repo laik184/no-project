@@ -4,7 +4,7 @@
  */
 
 import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository } from '../../repositories/filesystem/index.ts';
+import { filesystemRepository } from '../../repositories/file-system/index.ts';
 import { FE_CONFIG }            from '../../shared/file-explorer-core/config/index.ts';
 import { toRelative }           from '../../shared/file-explorer-core/utils/index.ts';
 import type { CreateResponse }  from '../../shared/file-explorer-core/contracts/index.ts';
