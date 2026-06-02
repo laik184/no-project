@@ -7,7 +7,7 @@
 
 export type { FileStat }      from '../lib/utils/filesystem-utils.ts';
 export type { FolderEntry }   from '../lib/folders/folder-reader.ts';
-export type { ScanEntry, ScanResult, ScanWithFiltersOptions } from '../../../file-explorer/services/scanner/index.ts';
+export type { ScanEntry, ScanResult, ScanWithFiltersOptions } from '../../../services/filesystem/scanner/index.ts';
 export type { TreeNode }      from '../lib/folders/folder-structure.ts';
 export type { WriteResult }   from '../lib/files/file-writer.ts';
 export type { PatchResult }   from '../lib/files/patch-file.ts';
@@ -23,5 +23,5 @@ export type { CreateFolderResult }   from '../lib/folders/folder-creator.ts';
 export type { TextSearchResult, TextMatch } from '../lib/search/text-search.ts';
 export type { RegexSearchResult, RegexMatch } from '../lib/search/regex-search.ts';
 export type { FileSearchResult }     from '../lib/search/file-search.ts';
-export type { ImportEntry, ExportEntry, UsageEntry } from '../../../file-explorer/services/dependency-analysis/index.ts';
+export type { ImportEntry, ExportEntry, UsageEntry } from '../../../services/filesystem/dependency-analysis/index.ts';
 export type { FileMetadata }         from '../lib/files/file-reader.ts';

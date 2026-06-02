@@ -10,7 +10,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { dependencyAnalysisService }                 from '../../../file-explorer/services/dependency-analysis/index.ts';
+import { dependencyAnalysisService }                 from '../../../services/filesystem/dependency-analysis/index.ts';
 
 export const findSymbolUsagesTool: ToolDefinition = {
   name:        'fs_find_symbol_usages',

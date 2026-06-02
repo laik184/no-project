@@ -10,7 +10,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath }                           from '../validation/operation-validator.ts';
-import { scannerService }                            from '../../../file-explorer/services/scanner/index.ts';
+import { scannerService }                            from '../../../services/filesystem/scanner/index.ts';
 
 export const scanFolderTool: ToolDefinition = {
   name:        'fs_scan_folder',
