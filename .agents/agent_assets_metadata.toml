@@ -372,3 +372,9 @@ id = "kQ7vsIY-Ygc5nae9NsLjf"
 uri = "file://FORENSIC_AUDIT_REPORT.md"
 type = "text"
 title = "Forensic Architecture Audit Report"
+
+[[outputs]]
+id = "jz0YzmDt8Oh079_xqHOsb"
+uri = "file://ARCHITECTURE_FIXES_REPORT.md"
+type = "text"
+title = "Architecture Fixes Report"
