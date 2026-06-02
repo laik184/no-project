@@ -378,3 +378,9 @@ id = "jz0YzmDt8Oh079_xqHOsb"
 uri = "file://ARCHITECTURE_FIXES_REPORT.md"
 type = "text"
 title = "Architecture Fixes Report"
+
+[[outputs]]
+id = "ynGYB_Qr2XaHnGXkXhW1Y"
+uri = "file://SESSION_REPORT.md"
+type = "text"
+title = "Session Report"
