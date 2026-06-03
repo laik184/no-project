@@ -26,9 +26,6 @@ import {
   insightsService,
   gitStatusService,
 } from '../../services/filesystem/index.ts';
-import { historyRepository } from '../../repositories/file-system/index.ts';
-import { gitRepository }     from '../../repositories/file-system/index.ts';
-import { FE_CONFIG }         from '../config/index.ts';
 
 class ExplorerOrchestrator {
 
@@ -83,7 +80,7 @@ class ExplorerOrchestrator {
 
   getGitStatus(): { ok: boolean; status: Record<string, string>; isRepo: boolean; error?: string } {
     const result = gitStatusService.getStatus();
-    const isRepo = gitRepository.isGitRepo(FE_CONFIG.sandboxRoot);
+    const isRepo = gitStatusService.isGitRepo();
     return {
       ok:     result.ok,
       status: result.status,
@@ -102,7 +99,7 @@ class ExplorerOrchestrator {
    */
   undoFile(filePath: string): UndoResponse {
     try {
-      const history = historyRepository.getHistory(filePath);
+      const { history } = historyService.getHistory(filePath);
       if (history.length === 0) {
         return { ok: false, restored: false, error: 'No history available for this file' };
       }
@@ -124,7 +121,7 @@ class ExplorerOrchestrator {
    */
   conflictCheck(filePath: string, baseVersionId: string | null): ConflictCheckResponse {
     try {
-      const history = historyRepository.getHistory(filePath);
+      const { history } = historyService.getHistory(filePath);
       const currentVersionId = history[0]?.id;
       if (!baseVersionId || !currentVersionId) {
         return { ok: true, conflict: false, currentVersionId };

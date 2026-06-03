@@ -30,6 +30,13 @@ class GitStatusService {
   getStatus(): GitStatusResult {
     return gitRepository.getStatus(FE_CONFIG.sandboxRoot);
   }
+
+  /**
+   * Returns true if the configured sandbox root is inside a git repository.
+   */
+  isGitRepo(): boolean {
+    return gitRepository.isGitRepo(FE_CONFIG.sandboxRoot);
+  }
 }
 
 export const gitStatusService = new GitStatusService();
