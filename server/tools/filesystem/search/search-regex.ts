@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchToolService } from '../../../services/filesystem/tools.index.ts';
+import { searchRegex } from '../lib/search/regex-search.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const searchRegexTool: ToolDefinition = {
@@ -29,6 +29,6 @@ export const searchRegexTool: ToolDefinition = {
     const flags      = (input.flags      as string)   ?? 'g';
     const maxDepth   = (input.maxDepth   as number)   ?? 10;
     const extensions = (input.extensions as string[]) ?? undefined;
-    return searchToolService.searchRegex({ sandboxRoot: ctx.sandboxRoot, path, pattern, flags, maxDepth, extensions });
+    return searchRegex({ sandboxRoot: ctx.sandboxRoot, path, pattern, flags, maxDepth, extensions });
   },
 };

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { structureToolService } from '../../../services/filesystem/tools.index.ts';
+import { getFolderStructure } from '../lib/folders/folder-structure.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const folderStructureTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const folderStructureTool: ToolDefinition = {
     const path          = assertInputPath(input.path, 'path');
     const maxDepth      = (input.maxDepth      as number)  ?? 8;
     const includeHidden = (input.includeHidden as boolean) ?? false;
-    return structureToolService.folderStructure({ sandboxRoot: ctx.sandboxRoot, path, maxDepth, includeHidden });
+    return getFolderStructure({ sandboxRoot: ctx.sandboxRoot, path, maxDepth, includeHidden });
   },
 };

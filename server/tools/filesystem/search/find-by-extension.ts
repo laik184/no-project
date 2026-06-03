@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchToolService } from '../../../services/filesystem/tools.index.ts';
+import { findByExtension } from '../lib/search/file-search.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const findByExtensionTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const findByExtensionTool: ToolDefinition = {
     const path      = assertInputPath(input.path, 'path');
     const extension = assertInputString(input.extension, 'extension');
     const maxDepth  = (input.maxDepth as number) ?? 10;
-    return searchToolService.findByExtension({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, extension);
+    return findByExtension({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, extension);
   },
 };

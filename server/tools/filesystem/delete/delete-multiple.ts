@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteToolService } from '../../../services/filesystem/tools.index.ts';
+import { deleteMultipleFiles } from '../lib/files/file-deleter.ts';
 
 const MAX_BATCH = 100;
 
@@ -28,6 +28,6 @@ export const deleteMultipleTool: ToolDefinition = {
     if (paths.length > MAX_BATCH) {
       throw new Error(`Cannot delete more than ${MAX_BATCH} files at once`);
     }
-    return deleteToolService.deleteFiles(ctx.sandboxRoot, paths);
+    return deleteMultipleFiles(ctx.sandboxRoot, paths);
   },
 };

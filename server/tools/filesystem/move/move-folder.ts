@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { moveToolService } from '../../../services/filesystem/tools.index.ts';
+import { moveFolder } from '../lib/folders/folder-mover.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const moveFolderTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const moveFolderTool: ToolDefinition = {
     const sourcePath     = assertInputPath(input.sourcePath,     'sourcePath');
     const destinationDir = assertInputPath(input.destinationDir, 'destinationDir');
     const newName        = input.newName as string | undefined;
-    return moveToolService.moveFolder({ sandboxRoot: ctx.sandboxRoot, sourcePath, destinationDir, newName });
+    return moveFolder({ sandboxRoot: ctx.sandboxRoot, sourcePath, destinationDir, newName });
   },
 };

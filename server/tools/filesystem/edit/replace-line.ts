@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from '../../../services/filesystem/tools.index.ts';
+import { replaceLine } from '../lib/files/file-editor.ts';
 import { assertInputPath, assertInputString, validateLineNumber } from '../validation/operation-validator.ts';
 
 export const replaceLineTool: ToolDefinition = {
@@ -27,7 +27,7 @@ export const replaceLineTool: ToolDefinition = {
     const lineResult = validateLineNumber(input.lineNumber, 'lineNumber');
     if (!lineResult.valid) throw new Error(lineResult.error!);
     const lineNumber = input.lineNumber as number;
-    await writeToolService.replaceLine({ sandboxRoot: ctx.sandboxRoot, path, lineNumber, newContent });
+    await replaceLine({ sandboxRoot: ctx.sandboxRoot, path, lineNumber, newContent });
     return { replaced: true, path, lineNumber };
   },
 };

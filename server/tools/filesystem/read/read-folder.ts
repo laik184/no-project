@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { folderToolService } from '../../../services/filesystem/tools.index.ts';
+import { readFolder } from '../lib/folders/folder-reader.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const readFolderTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const readFolderTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path          = assertInputPath(input.path, 'path');
     const includeHidden = (input.includeHidden as boolean) ?? false;
-    return folderToolService.readFolder({ sandboxRoot: ctx.sandboxRoot, path, includeHidden });
+    return readFolder({ sandboxRoot: ctx.sandboxRoot, path, includeHidden });
   },
 };

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from '../../../services/filesystem/tools.index.ts';
+import { appendToFile } from '../lib/files/file-editor.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const appendFileTool: ToolDefinition = {
@@ -25,7 +25,7 @@ export const appendFileTool: ToolDefinition = {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
     const newline = (input.newline as boolean) ?? true;
-    await writeToolService.append({ sandboxRoot: ctx.sandboxRoot, path, content, newline });
+    await appendToFile({ sandboxRoot: ctx.sandboxRoot, path, content, newline });
     return { appended: true, path };
   },
 };

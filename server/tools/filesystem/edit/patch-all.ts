@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from '../../../services/filesystem/tools.index.ts';
+import { patchFileAll } from '../lib/files/patch-file.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const patchAllTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const patchAllTool: ToolDefinition = {
     const path      = assertInputPath(input.path, 'path');
     const oldString = assertInputString(input.oldString, 'oldString');
     const newString = assertInputString(input.newString, 'newString');
-    return writeToolService.patchAll({ sandboxRoot: ctx.sandboxRoot, path, oldString, newString });
+    return patchFileAll({ sandboxRoot: ctx.sandboxRoot, path, oldString, newString });
   },
 };
