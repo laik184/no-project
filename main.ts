@@ -11,10 +11,7 @@ import type { Request, Response } from 'express';
 
 import { bootstrapMemory }                            from './server/memory/index.ts';
 import { chatOrchestrator }                           from './server/chat/index.ts';
-import consolePipeline                                from './server/console/index.ts';
-import previewPipeline                                from './server/preview/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import projectsRouter                                 from './server/projects/projects.router.ts';
 import { seedDefaultProject }                         from './server/infrastructure/seed.ts';
 import { TOPIC, sseManager }                          from './server/infrastructure/index.ts';
 import {
@@ -81,17 +78,8 @@ app.get('/api/realtime', (req: Request, res: Response) => {
 // Chat module: /api/chat/* (SSE at /api/chat/stream) + /api/run/*
 chatOrchestrator.mountRoutes(app);
 
-// Console pipeline: /api/console/*
-app.use('/api', consolePipeline);
-
-// Preview pipeline: /api/preview/*, /api/run-project, /api/files/*, etc.
-app.use('/api', previewPipeline);
-
 // Orchestration: /api/orchestration/*
 app.use('/api/orchestration', createOrchestrationRouter());
-
-// Projects: /api/projects/*
-app.use('/api', projectsRouter);
 
 // File Explorer: /api/file-explorer/* (canonical REST routes)
 app.use('/api/file-explorer', fileExplorerRouter);
