@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { scannerService }                            from '../../../services/filesystem/index.ts';
 
 export const findByExtensionTool: ToolDefinition = {
   name:        'fs_find_by_extension',
@@ -21,10 +21,14 @@ export const findByExtensionTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const extension = assertInputString(input.extension, 'extension');
     const maxDepth  = (input.maxDepth as number) ?? 10;
-    return searchToolService.findByExtension({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, extension);
+    const ext       = extension.startsWith('.') ? extension : `.${extension}`;
+
+    const result = scannerService.scanExtension([ext], path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to scan by extension');
+    return result.entries;
   },
 };

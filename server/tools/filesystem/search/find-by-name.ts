@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { searchToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { scannerService }                            from '../../../services/filesystem/index.ts';
 
 export const findByNameTool: ToolDefinition = {
   name:        'fs_find_by_name',
@@ -21,10 +21,13 @@ export const findByNameTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path     = assertInputPath(input.path, 'path');
     const name     = assertInputString(input.name, 'name');
     const maxDepth = (input.maxDepth as number) ?? 10;
-    return searchToolService.findByName({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, name);
+
+    const result = scannerService.scanFolder(path, { maxDepth });
+    if (!result.ok) throw new Error(result.error ?? 'Failed to scan folder');
+    return result.entries.filter(e => e.name === name);
   },
 };

@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { createService }                             from '../../../services/filesystem/index.ts';
 
 export const ensureFileTool: ToolDefinition = {
   name:        'fs_ensure_file',
@@ -20,9 +20,13 @@ export const ensureFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
-    return writeToolService.ensure({ sandboxRoot: ctx.sandboxRoot, path, content });
+    const result  = createService.createEntry(path, false, content);
+    const created = result.ok;
+    const alreadyExists = !result.ok && (result.error?.includes('Already exists') ?? false);
+    if (!result.ok && !alreadyExists) throw new Error(result.error ?? 'Failed to ensure file');
+    return { ensured: true, path, created };
   },
 };

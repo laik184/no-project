@@ -4,8 +4,8 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteToolService } from './tool.service.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { deleteService }                             from '../../../services/filesystem/index.ts';
 
 const MAX_BATCH = 100;
 
@@ -20,7 +20,7 @@ export const deleteMultipleTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const paths = input.paths as string[];
     if (!Array.isArray(paths) || paths.length === 0) {
       throw new Error('"paths" must be a non-empty array');
@@ -28,6 +28,9 @@ export const deleteMultipleTool: ToolDefinition = {
     if (paths.length > MAX_BATCH) {
       throw new Error(`Cannot delete more than ${MAX_BATCH} files at once`);
     }
-    return deleteToolService.deleteFiles(ctx.sandboxRoot, paths);
+    return paths.map(p => {
+      const r = deleteService.delete(p);
+      return { path: p, deleted: r.ok, error: r.ok ? undefined : r.error };
+    });
   },
 };

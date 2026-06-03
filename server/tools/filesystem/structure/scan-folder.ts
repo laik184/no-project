@@ -1,10 +1,6 @@
 /**
  * server/tools/filesystem/structure/scan-folder.ts
  * Tool: fs_scan_folder
- *
- * Delegates ALL business logic to scannerService.
- * This tool owns: input validation, context bridging.
- * This tool does NOT own: filesystem traversal, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -27,10 +23,13 @@ export const scanFolderTool: ToolDefinition = {
   retry:       RETRY_ONCE,
 
   handler: async (input, _ctx: ToolExecutionContext) => {
-    const relPath       = assertInputPath(input.path, 'path');
+    const path          = assertInputPath(input.path, 'path');
     const maxDepth      = (input.maxDepth      as number  ) ?? 10;
     const includeHidden = (input.includeHidden as boolean ) ?? false;
     const extensions    = (input.extensions    as string[]) ?? [];
-    return scannerService.scanFolder(relPath, { maxDepth, includeHidden, extensions });
+
+    const result = scannerService.scanFolder(path, { maxDepth, includeHidden, extensions });
+    if (!result.ok) throw new Error(result.error ?? 'Failed to scan folder');
+    return result;
   },
 };

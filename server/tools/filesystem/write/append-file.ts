@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { readService, writeService, createService }  from '../../../services/filesystem/index.ts';
 
 export const appendFileTool: ToolDefinition = {
   name:        'fs_append_file',
@@ -21,11 +21,23 @@ export const appendFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
     const newline = (input.newline as boolean) ?? true;
-    await writeToolService.append({ sandboxRoot: ctx.sandboxRoot, path, content, newline });
+
+    const existing = readService.readFile(path);
+
+    if (!existing.ok) {
+      const create = createService.createEntry(path, false, content);
+      if (!create.ok) throw new Error(create.error ?? 'Failed to create file');
+      return { appended: true, path };
+    }
+
+    const separator   = newline && !(existing.content ?? '').endsWith('\n') ? '\n' : '';
+    const newContent  = (existing.content ?? '') + separator + content;
+    const writeResult = writeService.saveFile(path, newContent);
+    if (!writeResult.ok) throw new Error(writeResult.error ?? 'Failed to append to file');
     return { appended: true, path };
   },
 };

@@ -1,10 +1,6 @@
 /**
  * server/tools/filesystem/structure/scan-extension.ts
  * Tool: fs_scan_by_extension
- *
- * Delegates ALL business logic to scannerService.
- * This tool owns: input validation, context bridging.
- * This tool does NOT own: filesystem traversal, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -25,11 +21,13 @@ export const scanExtensionTool: ToolDefinition = {
   retry:       RETRY_ONCE,
 
   handler: async (input, _ctx: ToolExecutionContext) => {
-    const relPath    = assertInputPath(input.path, 'path');
+    const path       = assertInputPath(input.path, 'path');
     const extensions = input.extensions as string[];
     if (!Array.isArray(extensions) || extensions.length === 0) {
       throw new Error('"extensions" must be a non-empty array');
     }
-    return scannerService.scanExtension(extensions, relPath);
+    const result = scannerService.scanExtension(extensions, path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to scan by extension');
+    return result;
   },
 };

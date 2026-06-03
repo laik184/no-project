@@ -3,10 +3,11 @@
  * Tool: fs_move_file
  */
 
+import path                                          from 'node:path';
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { moveToolService } from './tool.service.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { renameService }                             from '../../../services/filesystem/index.ts';
 
 export const moveFileTool: ToolDefinition = {
   name:        'fs_move_file',
@@ -21,10 +22,14 @@ export const moveFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const sourcePath     = assertInputPath(input.sourcePath,     'sourcePath');
     const destinationDir = assertInputPath(input.destinationDir, 'destinationDir');
-    const newName        = input.newName as string | undefined;
-    return moveToolService.moveFile({ sandboxRoot: ctx.sandboxRoot, sourcePath, destinationDir, newName });
+    const newName        = (input.newName as string | undefined) ?? path.basename(sourcePath);
+    const destPath       = path.join(destinationDir, newName);
+
+    const result = renameService.rename(sourcePath, destPath);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to move file');
+    return { moved: true, from: sourcePath, to: destPath };
   },
 };

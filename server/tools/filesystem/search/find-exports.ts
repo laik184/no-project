@@ -1,10 +1,6 @@
 /**
  * server/tools/filesystem/search/find-exports.ts
  * Tool: fs_find_exports
- *
- * Delegates ALL business logic to dependencyAnalysisService.
- * This tool owns: input validation, context bridging.
- * This tool does NOT own: filesystem I/O, parsing, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -24,7 +20,9 @@ export const findExportsTool: ToolDefinition = {
   retry:       RETRY_ONCE,
 
   handler: async (input, _ctx: ToolExecutionContext) => {
-    const relPath = assertInputPath(input.path, 'path');
-    return dependencyAnalysisService.findExports(relPath);
+    const path   = assertInputPath(input.path, 'path');
+    const result = dependencyAnalysisService.findExports(path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to find exports');
+    return { results: result.results, total: result.total };
   },
 };

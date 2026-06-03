@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { readToolService } from './tool.service.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { metadataService }                           from '../../../services/filesystem/index.ts';
 
 export const fileMetadataTool: ToolDefinition = {
   name:        'fs_file_metadata',
@@ -19,8 +19,10 @@ export const fileMetadataTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
-    const path = assertInputPath(input.path, 'path');
-    return readToolService.metadata({ sandboxRoot: ctx.sandboxRoot, path });
+  handler: async (input, _ctx: ToolExecutionContext) => {
+    const path   = assertInputPath(input.path, 'path');
+    const result = metadataService.getMeta(path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to get metadata');
+    return result.meta;
   },
 };

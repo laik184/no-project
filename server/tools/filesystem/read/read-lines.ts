@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { readToolService } from './tool.service.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { readService }                               from '../../../services/filesystem/index.ts';
 
 export const readLinesTool: ToolDefinition = {
   name:        'fs_read_lines',
@@ -21,12 +21,17 @@ export const readLinesTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path = assertInputPath(input.path, 'path');
     const from = input.from as number;
     const to   = input.to   as number;
     if (!Number.isInteger(from) || from < 1) throw new Error('"from" must be a positive integer');
     if (!Number.isInteger(to)   || to < from) throw new Error('"to" must be >= "from"');
-    return readToolService.readLines({ sandboxRoot: ctx.sandboxRoot, path, from, to });
+
+    const result = readService.readFile(path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to read file');
+
+    const lines = (result.content ?? '').split('\n');
+    return lines.slice(from - 1, to);
   },
 };

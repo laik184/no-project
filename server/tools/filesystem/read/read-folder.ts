@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { folderToolService } from '../folder/tool.service.ts';
-import { assertInputPath } from '../validation/operation-validator.ts';
+import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath }                           from '../validation/operation-validator.ts';
+import { scannerService }                            from '../../../services/filesystem/index.ts';
 
 export const readFolderTool: ToolDefinition = {
   name:        'fs_read_folder',
@@ -20,9 +20,11 @@ export const readFolderTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path          = assertInputPath(input.path, 'path');
     const includeHidden = (input.includeHidden as boolean) ?? false;
-    return folderToolService.readFolder({ sandboxRoot: ctx.sandboxRoot, path, includeHidden });
+    const result = scannerService.scanFolder(path, { maxDepth: 1, includeHidden });
+    if (!result.ok) throw new Error(result.error ?? 'Failed to read folder');
+    return result.entries;
   },
 };

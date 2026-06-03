@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { readService, createService }                from '../../../services/filesystem/index.ts';
 
 export const writeIfAbsentTool: ToolDefinition = {
   name:        'fs_write_if_absent',
@@ -20,9 +20,15 @@ export const writeIfAbsentTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
-    return writeToolService.writeIfAbsent({ sandboxRoot: ctx.sandboxRoot, path, content });
+
+    const existing = readService.readFile(path);
+    if (existing.ok) return { written: false, path, skipped: true };
+
+    const result = createService.createEntry(path, false, content);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to write file');
+    return { written: true, path, skipped: false };
   },
 };

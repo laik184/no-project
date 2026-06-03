@@ -4,9 +4,9 @@
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeToolService } from '../write/tool.service.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString, validateLineNumber } from '../validation/operation-validator.ts';
+import { readService, writeService }                 from '../../../services/filesystem/index.ts';
 
 export const replaceLineTool: ToolDefinition = {
   name:        'fs_replace_line',
@@ -21,13 +21,22 @@ export const replaceLineTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
+  handler: async (input, _ctx: ToolExecutionContext) => {
     const path       = assertInputPath(input.path, 'path');
     const newContent = assertInputString(input.newContent, 'newContent');
     const lineResult = validateLineNumber(input.lineNumber, 'lineNumber');
     if (!lineResult.valid) throw new Error(lineResult.error!);
     const lineNumber = input.lineNumber as number;
-    await writeToolService.replaceLine({ sandboxRoot: ctx.sandboxRoot, path, lineNumber, newContent });
+
+    const read = readService.readFile(path);
+    if (!read.ok) throw new Error(read.error ?? 'Failed to read file');
+
+    const lines = (read.content ?? '').split('\n');
+    if (lineNumber > lines.length) throw new Error(`Line ${lineNumber} does not exist (file has ${lines.length} lines)`);
+
+    lines[lineNumber - 1] = newContent;
+    const write = writeService.saveFile(path, lines.join('\n'));
+    if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { replaced: true, path, lineNumber };
   },
 };

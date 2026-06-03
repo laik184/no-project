@@ -1,10 +1,6 @@
 /**
  * server/tools/filesystem/search/find-symbol-usages.ts
  * Tool: fs_find_symbol_usages
- *
- * Delegates ALL business logic to dependencyAnalysisService.
- * This tool owns: input validation, context bridging.
- * This tool does NOT own: filesystem I/O, parsing, result shaping.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -25,8 +21,10 @@ export const findSymbolUsagesTool: ToolDefinition = {
   retry:       RETRY_ONCE,
 
   handler: async (input, _ctx: ToolExecutionContext) => {
-    const relPath = assertInputPath(input.path,    'path');
-    const symbol  = assertInputString(input.symbol, 'symbol');
-    return dependencyAnalysisService.findSymbolUsages(symbol, relPath);
+    const path   = assertInputPath(input.path,     'path');
+    const symbol = assertInputString(input.symbol, 'symbol');
+    const result = dependencyAnalysisService.findSymbolUsages(symbol, path);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to find symbol usages');
+    return { results: result.results, total: result.total };
   },
 };

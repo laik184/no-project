@@ -3,10 +3,11 @@
  * Tool: fs_rename_folder
  */
 
+import path                                          from 'node:path';
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
-import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { moveToolService } from './tool.service.ts';
-import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
+import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
+import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { renameService }                             from '../../../services/filesystem/index.ts';
 
 export const renameFolderTool: ToolDefinition = {
   name:        'fs_rename_folder',
@@ -20,9 +21,13 @@ export const renameFolderTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, ctx: ToolExecutionContext) => {
-    const path    = assertInputPath(input.path, 'path');
-    const newName = assertInputString(input.newName, 'newName');
-    return moveToolService.renameFolder({ sandboxRoot: ctx.sandboxRoot, path, newName });
+  handler: async (input, _ctx: ToolExecutionContext) => {
+    const folderPath = assertInputPath(input.path, 'path');
+    const newName    = assertInputString(input.newName, 'newName');
+    const destPath   = path.join(path.dirname(folderPath), newName);
+
+    const result = renameService.rename(folderPath, destPath);
+    if (!result.ok) throw new Error(result.error ?? 'Failed to rename folder');
+    return { renamed: true, from: folderPath, to: destPath };
   },
 };
