@@ -384,3 +384,9 @@ id = "ynGYB_Qr2XaHnGXkXhW1Y"
 uri = "file://SESSION_REPORT.md"
 type = "text"
 title = "Session Report"
+
+[[outputs]]
+id = "NCG2GA5E2403RkBAEg8rV"
+uri = "file://INFRASTRUCTURE_IMPORT_REPORT.md"
+type = "text"
+title = "Infrastructure Import Deep Scan Report"
