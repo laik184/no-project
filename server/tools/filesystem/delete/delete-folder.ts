@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteFolder } from '../lib/folders/folder-deleter.ts';
+import { deleteToolService } from './tool.service.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const deleteFolderTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const deleteFolderTool: ToolDefinition = {
     const path      = assertInputPath(input.path, 'path');
     const mustExist = (input.mustExist as boolean) ?? false;
     const force     = (input.force     as boolean) ?? true;
-    return deleteFolder({ sandboxRoot: ctx.sandboxRoot, path, mustExist, force });
+    return deleteToolService.deleteFolder({ sandboxRoot: ctx.sandboxRoot, path, mustExist, force });
   },
 };

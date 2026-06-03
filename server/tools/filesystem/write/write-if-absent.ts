@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeFileIfAbsent } from '../lib/files/file-writer.ts';
+import { writeToolService } from './tool.service.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const writeIfAbsentTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const writeIfAbsentTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
-    return writeFileIfAbsent({ sandboxRoot: ctx.sandboxRoot, path, content });
+    return writeToolService.writeIfAbsent({ sandboxRoot: ctx.sandboxRoot, path, content });
   },
 };

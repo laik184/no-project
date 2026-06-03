@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { findByPattern } from '../lib/search/file-search.ts';
+import { searchToolService } from './tool.service.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const findByPatternTool: ToolDefinition = {
@@ -28,6 +28,6 @@ export const findByPatternTool: ToolDefinition = {
     const flags    = (input.flags    as string) ?? 'i';
     const maxDepth = (input.maxDepth as number) ?? 10;
     const regex    = new RegExp(pattern, flags);
-    return findByPattern({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, regex);
+    return searchToolService.findByPattern({ sandboxRoot: ctx.sandboxRoot, path, maxDepth }, regex);
   },
 };

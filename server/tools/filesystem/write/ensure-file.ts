@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { ensureFile } from '../lib/files/file-writer.ts';
+import { writeToolService } from './tool.service.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const ensureFileTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const ensureFileTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
-    return ensureFile({ sandboxRoot: ctx.sandboxRoot, path, content });
+    return writeToolService.ensure({ sandboxRoot: ctx.sandboxRoot, path, content });
   },
 };

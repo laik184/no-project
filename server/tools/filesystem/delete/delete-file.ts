@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { deleteFileFromSandbox } from '../lib/files/file-deleter.ts';
+import { deleteToolService } from './tool.service.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const deleteFileTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const deleteFileTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const mustExist = (input.mustExist as boolean) ?? false;
-    return deleteFileFromSandbox({ sandboxRoot: ctx.sandboxRoot, path, mustExist });
+    return deleteToolService.deleteFile({ sandboxRoot: ctx.sandboxRoot, path, mustExist });
   },
 };

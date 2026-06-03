@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { getFileMetadata } from '../lib/files/file-reader.ts';
+import { readToolService } from './tool.service.ts';
 import { assertInputPath } from '../validation/operation-validator.ts';
 
 export const fileMetadataTool: ToolDefinition = {
@@ -21,6 +21,6 @@ export const fileMetadataTool: ToolDefinition = {
 
   handler: async (input, ctx: ToolExecutionContext) => {
     const path = assertInputPath(input.path, 'path');
-    return getFileMetadata({ sandboxRoot: ctx.sandboxRoot, path });
+    return readToolService.metadata({ sandboxRoot: ctx.sandboxRoot, path });
   },
 };

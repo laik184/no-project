@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { writeFile } from '../lib/files/file-writer.ts';
+import { writeToolService } from './tool.service.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const writeFileTool: ToolDefinition = {
@@ -25,6 +25,6 @@ export const writeFileTool: ToolDefinition = {
     const path      = assertInputPath(input.path, 'path');
     const content   = assertInputString(input.content, 'content');
     const overwrite = (input.overwrite as boolean) ?? true;
-    return writeFile({ sandboxRoot: ctx.sandboxRoot, path, content, overwrite });
+    return writeToolService.write({ sandboxRoot: ctx.sandboxRoot, path, content, overwrite });
   },
 };

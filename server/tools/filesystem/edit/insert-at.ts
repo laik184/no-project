@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { insertAt } from '../lib/files/file-editor.ts';
+import { writeToolService } from '../write/tool.service.ts';
 import { assertInputPath, assertInputString, validateLineNumber } from '../validation/operation-validator.ts';
 
 export const insertAtTool: ToolDefinition = {
@@ -27,7 +27,7 @@ export const insertAtTool: ToolDefinition = {
     const lineResult = validateLineNumber(input.lineNumber, 'lineNumber');
     if (!lineResult.valid) throw new Error(lineResult.error!);
     const lineNumber = input.lineNumber as number;
-    await insertAt({ sandboxRoot: ctx.sandboxRoot, path, lineNumber, content });
+    await writeToolService.insertAt({ sandboxRoot: ctx.sandboxRoot, path, lineNumber, content });
     return { inserted: true, path, lineNumber };
   },
 };

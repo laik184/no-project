@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { renameFile } from '../lib/files/file-renamer.ts';
+import { moveToolService } from './tool.service.ts';
 import { assertInputPath, assertInputString } from '../validation/operation-validator.ts';
 
 export const renameFileTool: ToolDefinition = {
@@ -23,6 +23,6 @@ export const renameFileTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const newName = assertInputString(input.newName, 'newName');
-    return renameFile({ sandboxRoot: ctx.sandboxRoot, path, newName });
+    return moveToolService.renameFile({ sandboxRoot: ctx.sandboxRoot, path, newName });
   },
 };

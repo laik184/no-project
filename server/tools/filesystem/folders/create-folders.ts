@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT } from '../../registry/tool-metadata.ts';
-import { createFolders } from '../lib/folders/folder-creator.ts';
+import { folderToolService } from '../folder/tool.service.ts';
 
 export const createFoldersTool: ToolDefinition = {
   name:        'fs_create_folders',
@@ -23,6 +23,6 @@ export const createFoldersTool: ToolDefinition = {
     if (!Array.isArray(paths) || paths.length === 0) {
       throw new Error('"paths" must be a non-empty array');
     }
-    return createFolders(ctx.sandboxRoot, paths);
+    return folderToolService.createFolders(ctx.sandboxRoot, paths);
   },
 };
