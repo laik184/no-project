@@ -15,8 +15,7 @@
  */
 import crypto from 'crypto';
 import { orchestrate, runManager } from '../../orchestration/index.ts';
-import { routeIntent, isChatMode } from '../intent/intent-router.ts';
-import { runChatAgent, type StreamWriter } from '../../agents/chat/chat-agent.ts';
+import { routeIntent } from '../intent/intent-router.ts';
 import { conversationManager } from './conversation-manager.ts';
 import { sessionManager }      from './session-manager.ts';
 import { turnManager }         from './turn-manager.ts';
@@ -121,50 +120,26 @@ export const chatOrchestrator = {
     const loaded   = await contextLoader.loadForRun(runId);
     buildContext(loaded.messages, memCtxStr ? `${sysPayload.content}\n\n${memCtxStr}` : sysPayload.content);
 
-    // 11. Route intent → Chat Agent (conversation/explain) OR Orchestration Engine (build/fix/modify/debug).
-    //     Both paths are fire-and-forget. HTTP response returns immediately with ChatRun.
+    // 11. Route intent → Orchestration Engine (build/fix/modify/debug/conversation/explain).
+    //     Fire-and-forget. HTTP response returns immediately with ChatRun.
     const intent = routeIntent(goal);
     console.log(`[chat-orchestrator] intent=${intent.mode} confidence=${intent.confidence} — "${goal.slice(0, 60)}"`);
 
-    if (isChatMode(intent.mode)) {
-      // ── Chat Agent path (conversation / explain) ────────────────────────────
-      // Planner, Executor, and Verifier are NOT called.
-      // chat-orchestrator owns the stream lifecycle; it injects a StreamWriter
-      // into runChatAgent so the agent never imports the chat layer.
-      streamManager.open(runId, projectId);
-      const writer: StreamWriter = {
-        append:   (token) => streamManager.append(runId, token),
-        close:    ()      => streamManager.close(runId),
-        isActive: ()      => streamManager.isActive(runId),
-      };
-      void runChatAgent({
-        runId,
-        projectId,
-        goal,
-        intentMode: intent.mode,
-        context:    memCtxStr || undefined,
-      }, writer).then(async (result) => {
-        await chatOrchestrator.completeRun(runId, projectId, result.response, result.tokens, goal);
-      }).catch(async (err: unknown) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        await chatOrchestrator.failRun(runId, projectId, msg);
-      });
-    } else {
-      // ── Orchestration Engine path (build / fix / modify / debug) ───────────
-      // Sequence: Think → Plan → Execute → Verify
-      // Emit analysis.think FIRST so the frontend shows the thinking state
-      // before the orchestration engine starts executing.
-      eventPublisher.publish({
-        eventType: 'agent.tool_start',
-        runId,
-        projectId,
-        tool:      'analysis.think',
-        content:   'Analyzing request and planning approach…',
-        status:    'running',
-        meta:      { agentSource: 'orchestrator' },
-      });
+    // ── Orchestration Engine path ───────────────────────────────────────────
+    // Sequence: Think → Plan → Execute → Verify
+    // Emit analysis.think FIRST so the frontend shows the thinking state
+    // before the orchestration engine starts executing.
+    eventPublisher.publish({
+      eventType: 'agent.tool_start',
+      runId,
+      projectId,
+      tool:      'analysis.think',
+      content:   'Analyzing request and planning approach…',
+      status:    'running',
+      meta:      { agentSource: 'orchestrator' },
+    });
 
-      void orchestrate({
+    void orchestrate({
         orchestrationId: crypto.randomUUID(),
         runId,
         projectId:       String(projectId),
@@ -187,7 +162,6 @@ export const chatOrchestrator = {
         const msg = err instanceof Error ? err.message : String(err);
         await chatOrchestrator.failRun(runId, projectId, msg);
       });
-    }
 
     return {
       runId,
