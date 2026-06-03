@@ -40,3 +40,6 @@ export { safeWriteFile, safeDeleteFile, safeBackup } from './checkpoints/safe-fs
 
 // ── Git Operations ────────────────────────────────────────────────────────────
 export { captureGitSha } from './checkpoints/git-runner.ts';
+
+// ── Seed ──────────────────────────────────────────────────────────────────────
+export { seedDefaultProject } from './seed.ts';

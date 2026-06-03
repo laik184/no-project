@@ -12,8 +12,7 @@ import type { Request, Response } from 'express';
 import { bootstrapMemory }                            from './server/memory/index.ts';
 import { chatOrchestrator }                           from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { seedDefaultProject }                         from './server/infrastructure/seed.ts';
-import { TOPIC, sseManager }                          from './server/infrastructure/index.ts';
+import { seedDefaultProject, TOPIC, sseManager }      from './server/infrastructure/index.ts';
 import {
   fileExplorerRouter,
   legacyFileRouter,
