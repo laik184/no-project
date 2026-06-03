@@ -390,3 +390,9 @@ id = "NCG2GA5E2403RkBAEg8rV"
 uri = "file://INFRASTRUCTURE_IMPORT_REPORT.md"
 type = "text"
 title = "Infrastructure Import Deep Scan Report"
+
+[[outputs]]
+id = "fi7fRPWFgQqDkvZdlOKGZ"
+uri = "file://INFRASTRUCTURE_COMPLIANCE_REPORT_v2.md"
+type = "text"
+title = "Infrastructure Compliance Report v2"
