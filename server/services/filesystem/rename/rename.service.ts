@@ -3,10 +3,10 @@
  * Renames or moves a file or folder.
  */
 
-import { resolveSafe }           from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository }  from '../../repositories/file-system/index.ts';
-import { metadataRepository }    from '../../repositories/file-system/index.ts';
-import type { RenameResponse }   from '../../shared/file-explorer-core/contracts/index.ts';
+import { resolveSafe }           from '../../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository }  from '../../../repositories/file-system/index.ts';
+import { metadataRepository }    from '../../../repositories/file-system/index.ts';
+import type { RenameResponse }   from '../../../shared/file-explorer-core/contracts/index.ts';
 
 class RenameService {
 

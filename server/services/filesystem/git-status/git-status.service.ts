@@ -10,8 +10,8 @@
  * This service must NOT import child_process directly.
  */
 
-import { FE_CONFIG }     from '../../shared/file-explorer-core/config/index.ts';
-import { gitRepository } from '../../repositories/file-system/index.ts';
+import { FE_CONFIG }     from '../../../shared/file-explorer-core/config/index.ts';
+import { gitRepository } from '../../../repositories/file-system/index.ts';
 
 export type GitStatusCode = 'M' | 'A' | 'D' | 'R' | '??' | 'UU' | string;
 

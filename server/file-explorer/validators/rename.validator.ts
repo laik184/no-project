@@ -4,10 +4,10 @@
  */
 
 import type { RenameRequest } from '../contracts/index.ts';
-import type { ValidationResult } from './create.validator.ts';
+import type { ValidationError, ValidationResult } from './create.validator.ts';
 
 export function validateRename(body: unknown): ValidationResult {
-  const errors = [];
+  const errors: ValidationError[] = [];
   if (!body || typeof body !== 'object') {
     return { ok: false, errors: [{ field: 'body', message: 'Request body is required' }] };
   }

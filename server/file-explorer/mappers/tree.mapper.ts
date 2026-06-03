@@ -6,7 +6,7 @@
 
 import path from 'path';
 import type { RawTreeNode, TreeBuildOptions } from '../types/index.ts';
-import { filesystemRepository } from '../repositories/index.ts';
+import { filesystemRepository } from '../../repositories/file-system/index.ts';
 import { isExcluded }           from '../guards/index.ts';
 import { sortNodes }             from '../utils/index.ts';
 

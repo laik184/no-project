@@ -3,10 +3,10 @@
  * Writes file content with optional clientMtime conflict detection.
  */
 
-import { resolveSafe }          from '../../shared/file-explorer-core/guards/index.ts';
-import { filesystemRepository } from '../../repositories/file-system/index.ts';
-import { metadataRepository }   from '../../repositories/file-system/index.ts';
-import type { WriteResponse }   from '../../shared/file-explorer-core/contracts/index.ts';
+import { resolveSafe }          from '../../../shared/file-explorer-core/guards/index.ts';
+import { filesystemRepository } from '../../../repositories/file-system/index.ts';
+import { metadataRepository }   from '../../../repositories/file-system/index.ts';
+import type { WriteResponse }   from '../../../shared/file-explorer-core/contracts/index.ts';
 
 class WriteService {
 

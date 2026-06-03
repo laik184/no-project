@@ -3,9 +3,9 @@
  * Creates a zip archive of the sandbox (or a sub-path) for download.
  */
 
-import { FE_CONFIG }   from '../../shared/file-explorer-core/config/index.ts';
-import { resolveSafe } from '../../shared/file-explorer-core/guards/index.ts';
-import { zipDirectory } from '../../shared/file-explorer-core/utils/index.ts';
+import { FE_CONFIG }   from '../../../shared/file-explorer-core/config/index.ts';
+import { resolveSafe } from '../../../shared/file-explorer-core/guards/index.ts';
+import { zipDirectory } from '../../../shared/file-explorer-core/utils/index.ts';
 
 interface DownloadResult {
   ok:       boolean;

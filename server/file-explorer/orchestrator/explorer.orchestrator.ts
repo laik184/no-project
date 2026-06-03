@@ -1,6 +1,7 @@
 /**
  * server/file-explorer/orchestrator/explorer.orchestrator.ts
- * Stub orchestrator — all service imports removed.
+ * Orchestrator — wires HTTP layer to the real filesystem services.
+ * No business logic here; all work is delegated to services.
  */
 
 import type {
@@ -9,71 +10,133 @@ import type {
   SearchResponse, MetadataResponse, HistoryResponse, InsightsResponse,
   UndoResponse, ConflictCheckResponse,
 } from '../contracts/index.ts';
+import {
+  treeService,
+  readService,
+  writeService,
+  createService,
+  renameService,
+  deleteService,
+  duplicateService,
+  uploadService,
+  downloadService,
+  searchService,
+  metadataService,
+  historyService,
+  insightsService,
+  gitStatusService,
+} from '../../services/filesystem/index.ts';
+import { historyRepository } from '../../repositories/file-system/index.ts';
+import { gitRepository }     from '../../repositories/file-system/index.ts';
+import { FE_CONFIG }         from '../config/index.ts';
 
 class ExplorerOrchestrator {
 
-  getTree(_projectPath?: string, _showHidden?: boolean): TreeResponse {
-    return { ok: false, error: 'Not implemented', tree: [] };
+  getTree(projectPath?: string, _showHidden?: boolean): TreeResponse {
+    return treeService.getTree(projectPath);
   }
 
-  readFile(_filePath: string): ReadResponse {
-    return { ok: false, error: 'Not implemented' };
+  readFile(filePath: string): ReadResponse {
+    return readService.readFile(filePath);
   }
 
-  writeFile(_filePath: string, _content: string, _clientMtime?: number): WriteResponse {
-    return { ok: false, error: 'Not implemented' };
+  writeFile(filePath: string, content: string, clientMtime?: number): WriteResponse {
+    historyService.snapshotBeforeWrite(filePath);
+    return writeService.saveFile(filePath, content, clientMtime);
   }
 
-  createEntry(_filePath: string, _isFolder = false, _content = ''): CreateResponse {
-    return { ok: false, error: 'Not implemented' };
+  createEntry(filePath: string, isFolder = false, content = ''): CreateResponse {
+    return createService.createEntry(filePath, isFolder, content);
   }
 
-  renameEntry(_oldPath: string, _newPath: string): RenameResponse {
-    return { ok: false, error: 'Not implemented' };
+  renameEntry(oldPath: string, newPath: string): RenameResponse {
+    return renameService.rename(oldPath, newPath);
   }
 
-  deleteEntry(_targetPath: string): DeleteResponse {
-    return { ok: false, error: 'Not implemented' };
+  deleteEntry(targetPath: string): DeleteResponse {
+    return deleteService.delete(targetPath);
   }
 
-  duplicateEntry(_sourcePath: string, _destPath?: string): DuplicateResponse {
-    return { ok: false, error: 'Not implemented' };
+  duplicateEntry(sourcePath: string, destPath?: string): DuplicateResponse {
+    return duplicateService.duplicate(sourcePath, destPath);
   }
 
-  uploadFiles(_files: Express.Multer.File[]): UploadResponse {
-    return { ok: false, uploaded: [], failed: [], error: 'Not implemented' };
+  uploadFiles(files: Express.Multer.File[]): UploadResponse {
+    return uploadService.upload(files);
   }
 
-  async downloadZip(_projectPath?: string): Promise<{ ok: boolean; buffer?: Buffer; filename: string; mimeType: string; error?: string }> {
-    return { ok: false, filename: 'project.zip', mimeType: 'application/zip', error: 'Not implemented' };
+  async downloadZip(projectPath?: string): Promise<{ ok: boolean; buffer?: Buffer; filename: string; mimeType: string; error?: string }> {
+    return downloadService.download(projectPath);
   }
 
-  search(_q: string, _projectPath?: string, _caseSensitive?: boolean): SearchResponse {
-    return { ok: false, error: 'Not implemented', matches: [], total: 0 };
+  search(q: string, projectPath?: string, caseSensitive?: boolean): SearchResponse {
+    return searchService.search(q, projectPath, caseSensitive);
   }
 
-  getMetadata(_filePath: string): MetadataResponse {
-    return { ok: false, error: 'Not implemented' };
+  getMetadata(filePath: string): MetadataResponse {
+    return metadataService.getMeta(filePath);
   }
 
-  getHistory(_filePath: string): HistoryResponse {
-    return { ok: false, error: 'Not implemented', history: [], total: 0 };
+  getHistory(filePath: string): HistoryResponse {
+    return historyService.getHistory(filePath);
   }
 
   getGitStatus(): { ok: boolean; status: Record<string, string>; isRepo: boolean; error?: string } {
-    return { ok: false, status: {}, isRepo: false, error: 'Not implemented' };
+    const result = gitStatusService.getStatus();
+    const isRepo = gitRepository.isGitRepo(FE_CONFIG.sandboxRoot);
+    return {
+      ok:     result.ok,
+      status: result.status,
+      isRepo,
+      error:  result.error,
+    };
   }
 
   getInsights(): InsightsResponse {
-    return { ok: false, error: 'Not implemented' };
+    return insightsService.getInsights();
   }
 
-  undoFile(_filePath: string): UndoResponse {
-    return { ok: false, restored: false, error: 'Not implemented' };
+  /**
+   * Restores the most recent history snapshot for the file.
+   * Snapshots the current state before restoring so undo is itself undoable.
+   */
+  undoFile(filePath: string): UndoResponse {
+    try {
+      const history = historyRepository.getHistory(filePath);
+      if (history.length === 0) {
+        return { ok: false, restored: false, error: 'No history available for this file' };
+      }
+      const previous = history[0];
+      historyService.snapshotBeforeWrite(filePath);
+      const saved = writeService.saveFile(filePath, previous.content);
+      if (!saved.ok) {
+        return { ok: false, restored: false, error: saved.error };
+      }
+      return { ok: true, restored: true };
+    } catch (err) {
+      return { ok: false, restored: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
-  conflictCheck(_filePath: string, _baseVersionId: string | null): ConflictCheckResponse {
-    return { ok: false, conflict: false, error: 'Not implemented' };
+  /**
+   * Checks whether the server history has advanced past the client's last known version.
+   * conflict:true means the file was modified since the client last synced.
+   */
+  conflictCheck(filePath: string, baseVersionId: string | null): ConflictCheckResponse {
+    try {
+      const history = historyRepository.getHistory(filePath);
+      const currentVersionId = history[0]?.id;
+      if (!baseVersionId || !currentVersionId) {
+        return { ok: true, conflict: false, currentVersionId };
+      }
+      return {
+        ok:               true,
+        conflict:         baseVersionId !== currentVersionId,
+        currentVersionId,
+      };
+    } catch (err) {
+      return { ok: false, conflict: false, error: err instanceof Error ? err.message : String(err) };
+    }
   }
 }
 

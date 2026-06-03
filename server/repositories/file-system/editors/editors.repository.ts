@@ -5,7 +5,7 @@
 
 import fs   from 'fs';
 import path from 'path';
-import { FE_CONFIG } from '../../shared/file-explorer-core/config/index.ts';
+import { FE_CONFIG } from '../../../shared/file-explorer-core/config/index.ts';
 
 const MAX_EDITORS = 24;
 const STORE_PATH  = path.join(FE_CONFIG.sandboxRoot, '.nura', 'editors.json');

@@ -6,9 +6,9 @@
 
 import fs   from 'fs';
 import path from 'path';
-import type { FileEntry, FileStat } from '../../shared/file-explorer-core/types/index.ts';
-import { isExcluded } from '../../shared/file-explorer-core/guards/index.ts';
-import { FE_CONFIG }  from '../../shared/file-explorer-core/config/index.ts';
+import type { FileEntry, FileStat } from '../../../shared/file-explorer-core/types/index.ts';
+import { isExcluded } from '../../../shared/file-explorer-core/guards/index.ts';
+import { FE_CONFIG }  from '../../../shared/file-explorer-core/config/index.ts';
 
 /** Minimal record yielded by walkFiles. */
 export interface FileWalkRecord {
