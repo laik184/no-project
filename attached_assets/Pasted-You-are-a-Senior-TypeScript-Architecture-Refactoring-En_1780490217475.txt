@@ -1,0 +1,147 @@
+You are a Senior TypeScript Architecture Refactoring Engineer.
+
+TASK
+
+Fix ONLY the infrastructure import violations identified in the scan report.
+
+Do NOT perform any other refactor.
+
+Do NOT move files.
+
+Do NOT rename files.
+
+Do NOT create new files.
+
+Do NOT delete files.
+
+Do NOT modify logic.
+
+Do NOT modify exports.
+
+Do NOT modify runtime behavior.
+
+Do NOT modify function signatures.
+
+Do NOT modify types.
+
+Only standardize infrastructure imports.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The ONLY public entry point for infrastructure is:
+
+server/infrastructure/index.ts
+
+All consumers must import infrastructure exports from:
+
+server/infrastructure/index.ts
+
+Direct imports from internal infrastructure subpaths are forbidden.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILES TO FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 
+
+server/orchestration/events/event-publisher.ts
+
+2. 
+
+server/orchestration/distributed/run-scoped-orchestrator.ts
+
+3. 
+
+server/orchestration/distributed/parallel-orchestration-fabric.ts
+
+4. 
+
+server/orchestration/distributed/multi-run-recovery.ts
+
+5. 
+
+server/orchestration/agents/verification-bridge.ts
+
+6. 
+
+server/tools/terminal/process/process-started.ts
+
+7. 
+
+server/tools/terminal/process/process-exited.ts
+
+8. 
+
+server/agents/browser/events/browser-bus-bridge.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CURRENT IMPORTS (WRONG)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Examples:
+
+import { bus } from '../../infrastructure/events/bus.ts';
+
+import { bus } from '../../../infrastructure/events/bus.ts';
+
+These imports bypass the public infrastructure contract.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED IMPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace only the import path.
+
+Examples:
+
+import { bus } from '../../infrastructure/index.ts';
+
+import { bus } from '../../../infrastructure/index.ts';
+
+Use the correct relative path for each file.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After changes verify:
+
+1. No file imports:
+
+server/infrastructure/events/bus.ts
+
+directly.
+
+2. All infrastructure consumers import through:
+
+server/infrastructure/index.ts
+
+3. No runtime logic changed.
+
+4. No TypeScript types changed.
+
+5. No exports changed.
+
+6. No new files created.
+
+7. No files deleted.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide:
+
+1. Files updated
+
+2. Old import path
+
+3. New import path
+
+4. Remaining infrastructure sub-path imports (if any)
+
+5. Final compliance result
+
+Only perform the import-path fixes listed above.

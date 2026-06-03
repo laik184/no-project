@@ -8,7 +8,7 @@
  */
 
 import { parallelOrchestrationFabric } from './parallel-orchestration-fabric.ts';
-import { bus } from '../../infrastructure/events/bus.ts';
+import { bus } from '../../infrastructure/index.ts';
 
 // ── Recovery strategies ───────────────────────────────────────────────────────
 

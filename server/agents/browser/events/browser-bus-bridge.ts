@@ -6,7 +6,7 @@
  * Converts BrowserLifecyclePayload → BrowserSessionEvent for the bus.
  */
 
-import { bus }           from '../../../infrastructure/events/bus.ts';
+import { bus }           from '../../../infrastructure/index.ts';
 import { browserBus }    from './browser-events.ts';
 import type { BrowserLifecyclePayload } from './browser-events.ts';
 

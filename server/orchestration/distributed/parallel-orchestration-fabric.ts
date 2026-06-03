@@ -9,7 +9,7 @@
 
 import { RunScopedOrchestrator } from './run-scoped-orchestrator.ts';
 import type { RunPhase } from './run-scoped-orchestrator.ts';
-import { bus } from '../../infrastructure/events/bus.ts';
+import { bus } from '../../infrastructure/index.ts';
 
 // ── Capacity config ───────────────────────────────────────────────────────────
 

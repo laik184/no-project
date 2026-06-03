@@ -6,7 +6,7 @@
  * Orchestration-only — no tool execution, no filesystem access.
  */
 
-import { bus } from '../../infrastructure/events/bus.ts';
+import { bus } from '../../infrastructure/index.ts';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

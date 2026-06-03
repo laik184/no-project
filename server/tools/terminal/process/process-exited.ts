@@ -1,4 +1,4 @@
-import { bus } from '../../../infrastructure/events/bus.ts';
+import { bus } from '../../../infrastructure/index.ts';
 
 export function emitProcessExited(runId: string, pid: number, exitCode: number): void {
   bus.emit(exitCode !== 0 ? 'process.crashed' : 'process.stopped', {

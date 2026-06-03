@@ -8,7 +8,7 @@
  * Orchestration-only — no tool execution, no filesystem access.
  */
 
-import { bus } from '../../infrastructure/events/bus.ts';
+import { bus } from '../../infrastructure/index.ts';
 import { now } from '../utils/orchestration-utils.ts';
 import { ORCH_EVENTS } from './orchestration-events.ts';
 import type {
