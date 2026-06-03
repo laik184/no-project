@@ -27,6 +27,7 @@ import { runCodingLoop }           from './execution/coding-loop.ts';
 import { executionMonitor }        from './monitoring/execution-monitor.ts';
 import { toErrorMessage }          from './utils/coding-utils.ts';
 import { memoryEngine, buildMemoryContext } from '../../memory/index.ts';
+import type { DispatchOptions }            from '../../tools/registry/tool-dispatcher.ts';
 
 // ── Default loop options ──────────────────────────────────────────────────────
 

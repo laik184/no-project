@@ -18,6 +18,7 @@ import { getAgentMetrics }                         from './telemetry/browser-met
 import { toErrorMessage }                          from './utils/browser-utils.ts';
 import type { FlowStep }                           from './types/navigation.types.ts';
 import { memoryEngine, buildMemoryContext }         from '../../memory/index.ts';
+import type { DispatchOptions }                    from '../../tools/registry/tool-dispatcher.ts';
 
 // ── Agent input ───────────────────────────────────────────────────────────────
 
