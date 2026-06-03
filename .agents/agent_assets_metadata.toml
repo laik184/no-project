@@ -396,3 +396,9 @@ id = "fi7fRPWFgQqDkvZdlOKGZ"
 uri = "file://INFRASTRUCTURE_COMPLIANCE_REPORT_v2.md"
 type = "text"
 title = "Infrastructure Compliance Report v2"
+
+[[outputs]]
+id = "GiyfIQStenomPUM9LLKbs"
+uri = "file://INFRASTRUCTURE_COMPLIANCE_REPORT.md"
+type = "text"
+title = "Infrastructure Import Compliance Report"
