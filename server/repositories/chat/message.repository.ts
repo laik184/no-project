@@ -4,7 +4,7 @@
  * Repository pattern over chat_messages table.
  */
 import { desc, eq } from 'drizzle-orm';
-import { db } from '../../infrastructure';
+import { db } from '../../infrastructure/index.ts';
 import { chatMessages } from '../../../shared/schema.ts';
 import type {
   ChatMessageRecord,

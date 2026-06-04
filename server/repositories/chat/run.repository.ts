@@ -4,7 +4,7 @@
  * Repository pattern over agent_runs table (read + write).
  */
 import { eq, and, desc } from 'drizzle-orm';
-import { db } from '../../infrastructure';
+import { db } from '../../infrastructure/index.ts';
 import { agentRuns } from '../../../shared/schema.ts';
 import type { ChatRun, RunStatus } from '../../chat/types/run.types.ts';
 

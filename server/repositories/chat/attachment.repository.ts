@@ -5,7 +5,7 @@
  * Single import point for attachment persistence — chat/persistence/ uses this.
  */
 import { eq } from 'drizzle-orm';
-import { db } from '../../infrastructure';
+import { db } from '../../infrastructure/index.ts';
 import { chatUploads } from '../../../shared/schema.ts';
 
 export interface AttachmentRecord {

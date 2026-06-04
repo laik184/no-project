@@ -1,0 +1,166 @@
+DEEP SCAN — REPOSITORIES → INFRASTRUCTURE OWNERSHIP AUDIT
+
+TARGET:
+
+server/repositories/**
+
+GOAL:
+
+Scan all repository files and determine exactly which repositories should import:
+
+server/infrastructure/index.ts
+
+and which repositories should NOT.
+
+Do not modify code before audit is complete.
+
+==================================================
+PHASE 1 — FULL REPOSITORY SCAN
+
+Scan:
+
+server/repositories/**/*.ts
+
+For every repository file collect:
+
+- File path
+- Current imports
+- Current exports
+- Consumers
+- Uses db?
+- Uses bus?
+- Uses sseManager?
+- Uses runtimeManager?
+- Uses filesystem utilities?
+- Uses infrastructure exports indirectly?
+- Direct infrastructure dependency required?
+
+Generate:
+
+REPOSITORY_INFRASTRUCTURE_AUDIT.md
+
+==================================================
+PHASE 2 — INFRASTRUCTURE USAGE DETECTION
+
+Check every repository:
+
+Does it use:
+
+- db
+- bus
+- sseManager
+- runtimeManager
+- processRegistry
+- safeWriteFile
+- safeDeleteFile
+- safeBackup
+- getProjectDir
+- getNuraDir
+- captureGitSha
+
+If YES:
+
+Determine exact symbol required.
+
+==================================================
+PHASE 3 — ARCHITECTURE RULES
+
+Repositories MAY import:
+
+server/infrastructure/index.ts
+
+ONLY IF:
+
+- Repository owns persistence
+- Repository executes DB queries
+- Repository owns filesystem persistence
+- Repository owns checkpoint persistence
+
+Repositories MUST NOT import infrastructure if:
+
+- Pure mapper
+- Pure types
+- Pure contracts
+- Pure utility
+- Pure validation
+
+==================================================
+PHASE 4 — FIX IMPORTS
+
+For every repository:
+
+IF infrastructure access required:
+
+Use:
+
+import {
+db,
+safeWriteFile,
+safeDeleteFile,
+safeBackup,
+getProjectDir,
+getNuraDir,
+captureGitSha
+} from '../../infrastructure';
+
+Import ONLY symbols actually used.
+
+Remove:
+
+❌ direct sub-path imports
+
+Examples:
+
+../../infrastructure/db/index.ts
+../../infrastructure/events/bus.ts
+../../infrastructure/runtime/runtime-manager.ts
+
+Replace with:
+
+✅ ../../infrastructure/index.ts
+
+==================================================
+PHASE 5 — VIOLATION DETECTION
+
+Detect:
+
+- Repository importing Service
+- Repository importing Agent
+- Repository importing Tool
+- Repository importing Chat
+- Repository importing Orchestration
+
+Report all violations.
+
+==================================================
+FINAL REPORT
+
+Generate:
+
+REPOSITORY_INFRASTRUCTURE_COMPLIANCE_REPORT.md
+
+Include:
+
+1. All repository files
+2. Current imports
+3. Infrastructure symbols used
+4. Should import infrastructure? YES/NO
+5. Exact import statement required
+6. Unused infrastructure imports
+7. Direct sub-path violations
+8. Service/Agent/Tool dependency violations
+9. Final dependency graph
+
+Expected architecture:
+
+server/chat/*
+↓
+server/services/*
+↓
+server/repositories/*
+↓
+server/infrastructure/index.ts
+
+No repository should bypass infrastructure.
+No repository should import higher layers.
+Only repositories that actually need infrastructure may import it.
