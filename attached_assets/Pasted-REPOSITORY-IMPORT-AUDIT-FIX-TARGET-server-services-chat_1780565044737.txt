@@ -1,0 +1,130 @@
+REPOSITORY IMPORT AUDIT + FIX
+
+TARGET:
+
+server/services/chat/**
+server/repositories/chat/index.ts
+
+GOAL:
+
+Repository ko blindly har service file me import mat karo.
+
+Deep scan karo aur identify karo ki kaunsi service files actual data access (DB / persistence / storage) karti hain.
+
+==================================================
+RULES
+
+✅ Repository import karo ONLY agar service:
+
+- Data save karti hai
+- Data load karti hai
+- Data update karti hai
+- Data delete karti hai
+- Checkpoint read/write karti hai
+- Message history read karti hai
+- Run state persist karti hai
+- Conversation persist karti hai
+- Attachment metadata persist karti hai
+
+❌ Repository import mat karo agar service:
+
+- Pure business logic hai
+- Intent classification karti hai
+- Stream manage karti hai
+- Session lifecycle manage karti hai
+- Turn lifecycle manage karti hai
+- LLM response generate karti hai
+- Validation karti hai
+- Event emit karti hai
+- Context transform karti hai bina storage ke
+
+==================================================
+SCAN
+
+Inspect every file:
+
+server/services/chat/*.ts
+
+For each file determine:
+
+1. Does it read data?
+2. Does it write data?
+3. Does it update data?
+4. Does it delete data?
+5. Does it require repository access?
+
+Generate report:
+
+CHAT_SERVICE_REPOSITORY_AUDIT.md
+
+Format:
+
+File:
+Reason:
+Needs Repository: YES / NO
+Repositories Required:
+
+==================================================
+IMPORT RULE
+
+If service needs persistence:
+
+Use:
+
+import {
+messageRepository,
+runRepository,
+checkpointRepository,
+conversationRepository,
+attachmentRepository
+} from '../../repositories/chat';
+
+ONLY import repositories actually used.
+
+Example:
+
+chat.service.ts
+→ runRepository
+→ messageRepository
+
+checkpoint.service.ts
+→ checkpointRepository
+
+context.service.ts
+→ conversationRepository
+→ messageRepository
+
+==================================================
+DO NOT IMPORT REPOSITORY INTO
+
+intent.service.ts
+session.service.ts
+turn.service.ts
+stream.service.ts
+responder.service.ts
+clarification.service.ts
+
+UNLESS scan proves they actually perform persistence.
+
+==================================================
+FINAL OUTPUT
+
+Generate:
+
+1. Services that need repositories
+2. Services that do NOT need repositories
+3. Exact imports added
+4. Unused repository imports removed
+5. Final dependency graph
+
+Expected direction:
+
+server/chat/*
+↓
+server/services/chat/*
+↓
+server/repositories/chat/index.ts
+↓
+server/infrastructure/index.ts
+
+No service should import repositories unless it genuinely performs persistence.
