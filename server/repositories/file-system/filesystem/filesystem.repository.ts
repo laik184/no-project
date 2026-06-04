@@ -9,6 +9,8 @@ import path from 'path';
 import type { FileEntry, FileStat } from '../../../shared/file-explorer-core/types/index.ts';
 import { isExcluded } from '../../../shared/file-explorer-core/guards/index.ts';
 import { FE_CONFIG }  from '../../../shared/file-explorer-core/config/index.ts';
+import { emitFileChange } from '../../../infrastructure/index.ts';
+import type { FileChangeEvent } from '../../../infrastructure/index.ts';
 
 /** Minimal record yielded by walkFiles. */
 export interface FileWalkRecord {
@@ -16,6 +18,12 @@ export interface FileWalkRecord {
   readonly relPath: string;
   readonly size:    number;
   readonly mtime:   number;
+}
+
+/** Optional mutation context — when provided, a FileChangeEvent is emitted. */
+export interface MutationContext {
+  readonly projectId: number;
+  readonly relPath:   string;
 }
 
 class FilesystemRepository {
@@ -46,15 +54,21 @@ class FilesystemRepository {
   }
 
   /** Writes text content to a file, creating parent dirs as needed. */
-  writeText(absPath: string, content: string): void {
+  writeText(absPath: string, content: string, ctx?: MutationContext): void {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     fs.writeFileSync(absPath, content, 'utf-8');
+    if (ctx) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'modified' });
+    }
   }
 
   /** Writes a binary buffer to a file, creating parent dirs as needed. */
-  writeBuffer(absPath: string, buf: Buffer): void {
+  writeBuffer(absPath: string, buf: Buffer, ctx?: MutationContext): void {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     fs.writeFileSync(absPath, buf);
+    if (ctx) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'modified' });
+    }
   }
 
   /** Creates a directory (and any missing parents). */
@@ -63,21 +77,27 @@ class FilesystemRepository {
   }
 
   /** Renames / moves src to dest. Creates dest parent dirs as needed. */
-  rename(absSrc: string, absDest: string): void {
+  rename(absSrc: string, absDest: string, ctx?: MutationContext): void {
     fs.mkdirSync(path.dirname(absDest), { recursive: true });
     fs.renameSync(absSrc, absDest);
+    if (ctx) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'renamed' });
+    }
   }
 
   /** Deletes a file or directory recursively. */
-  remove(absPath: string): void {
+  remove(absPath: string, ctx?: MutationContext): void {
     const s = this.stat(absPath);
     if (!s.exists) return;
     if (s.isDir) { fs.rmSync(absPath, { recursive: true, force: true }); }
     else          { fs.unlinkSync(absPath); }
+    if (ctx) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'deleted' });
+    }
   }
 
   /** Recursively copies src to dest, creating parent dirs as needed. */
-  copy(absSrc: string, absDest: string): void {
+  copy(absSrc: string, absDest: string, ctx?: MutationContext): void {
     const s = this.stat(absSrc);
     if (s.isDir) {
       fs.mkdirSync(absDest, { recursive: true });
@@ -87,6 +107,9 @@ class FilesystemRepository {
     } else {
       fs.mkdirSync(path.dirname(absDest), { recursive: true });
       fs.copyFileSync(absSrc, absDest);
+    }
+    if (ctx) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'created' });
     }
   }
 
