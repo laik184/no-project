@@ -1,7 +1,13 @@
 /**
  * server/file-explorer/mappers/tree.mapper.ts
  * Converts raw filesystem entries into the RawTreeNode contract the frontend expects.
- * type: 'file' | 'folder' — NOT isDirectory boolean (legacy FileItem shape).
+ * Routes through treeService — no direct repository access.
  */
 
-export { buildTreeFromDir } from '../../shared/filesystem/tree-builder.ts';
+import { treeService } from '../../services/filesystem/tree/index.ts';
+import type { RawTreeNode } from '../../shared/file-explorer-core/types/index.ts';
+
+export function buildTreeFromDir(projectPath?: string): RawTreeNode[] {
+  const result = treeService.getTree(projectPath);
+  return result.ok ? result.tree : [];
+}

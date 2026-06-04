@@ -65,3 +65,12 @@ export type {
   RollbackResult,
   SnapshotDiff,
 } from './checkpoint.service.ts';
+
+// ── Message operations ────────────────────────────────────────────────────────
+export { messageService } from './message.service.ts';
+
+// ── Run operations ────────────────────────────────────────────────────────────
+export { runService } from './run.service.ts';
+
+// ── Attachment operations ─────────────────────────────────────────────────────
+export { attachmentService } from './attachment.service.ts';

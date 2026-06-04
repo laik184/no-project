@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { messageStore }   from '../persistence/message-store.ts';
-import { messageBuilder } from '../messages/message-builder.ts';
-import { buildUserPayload } from '../messages/user-message.ts';
+import { messageService }    from '../../services/chat/message.service.ts';
+import { messageBuilder }    from '../messages/message-builder.ts';
+import { buildUserPayload }  from '../messages/user-message.ts';
 import { conversationManager } from '../orchestration/conversation-manager.ts';
 import { sendMessageSchema, feedbackSchema } from '../schemas/chat.schema.ts';
 
@@ -26,7 +26,7 @@ export const chatController = {
     const messageId = Number(req.params.id);
     const parsed    = feedbackSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: 'Invalid feedback' }); return; }
-    await messageStore.setFeedback(messageId, parsed.data.feedback);
+    await messageService.setFeedback(messageId, parsed.data.feedback);
     res.json({ ok: true });
   },
 

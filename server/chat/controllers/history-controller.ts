@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { chatStore }    from '../persistence/chat-store.ts';
-import { messageStore } from '../persistence/message-store.ts';
+import { runService }     from '../../services/chat/run.service.ts';
+import { messageService } from '../../services/chat/message.service.ts';
 
 export const historyController = {
   async getHistory(req: Request, res: Response): Promise<void> {
@@ -8,7 +8,7 @@ export const historyController = {
     const page      = Number(req.query.page ?? 1);
     const limit     = Number(req.query.limit ?? 20);
     if (!projectId) { res.status(400).json({ error: 'projectId required' }); return; }
-    const history = await chatStore.getHistory(projectId, page, limit);
+    const history = await runService.getHistory(projectId, page, limit);
     res.json(history);
   },
 
@@ -16,14 +16,14 @@ export const historyController = {
     const projectId = Number(req.query.projectId);
     const limit     = Number(req.query.limit ?? 50);
     if (!projectId) { res.status(400).json({ error: 'projectId required' }); return; }
-    const messages = await messageStore.listByProject(projectId, limit);
+    const messages = await messageService.listByProject(projectId, limit);
     res.json(messages);
   },
 
   async getMessagesByRun(req: Request, res: Response): Promise<void> {
     const { runId } = req.params;
     if (!runId) { res.status(400).json({ error: 'runId required' }); return; }
-    const messages = await messageStore.listByRun(runId);
+    const messages = await messageService.listByRun(runId);
     res.json(messages);
   },
 };
