@@ -1,10 +1,12 @@
 /**
  * server/services/chat/turn.service.ts
- * Extracted from server/chat/orchestration/turn-manager.ts
  *
- * Chat turn lifecycle only.
- * A turn = one user-message → agent-response cycle.
+ * Manages the lifecycle of a chat "turn" (user → agent cycle).
+ * Tracks status and duration in-memory. Not persisted.
+ *
+ * Owns: start, complete, fail, cancel, duration tracking.
  */
+
 import crypto from 'crypto';
 import type { ChatTurn, TurnStatus } from '../../chat/types/chat.types.ts';
 
@@ -37,61 +39,62 @@ export const turnManager = {
     return turn;
   },
 
-  get(turnId: string): ChatTurn | null {
-    return _turns.get(turnId) ?? null;
+  complete(turnId: string): ChatTurn | null {
+    const t = _turns.get(turnId);
+    if (!t) return null;
+    t.status      = 'completed';
+    t.completedAt = new Date();
+    t.durationMs  = t.completedAt.getTime() - t.startedAt.getTime();
+    _turns.set(turnId, t);
+    return t;
+  },
+
+  fail(turnId: string): ChatTurn | null {
+    const t = _turns.get(turnId);
+    if (!t) return null;
+    t.status      = 'failed';
+    t.completedAt = new Date();
+    t.durationMs  = t.completedAt.getTime() - t.startedAt.getTime();
+    _turns.set(turnId, t);
+    return t;
+  },
+
+  cancel(turnId: string): ChatTurn | null {
+    const t = _turns.get(turnId);
+    if (!t) return null;
+    t.status      = 'cancelled';
+    t.completedAt = new Date();
+    _turns.set(turnId, t);
+    return t;
   },
 
   getByRun(runId: string): ChatTurn | null {
     for (const t of _turns.values()) {
-      if (t.runId === runId) return t;
+      if (t.runId === runId && t.status === 'running') return t;
     }
     return null;
   },
 
-  complete(turnId: string): void {
-    const turn = _turns.get(turnId);
-    if (!turn) return;
-    turn.status      = 'completed';
-    turn.completedAt = new Date();
-    turn.durationMs  = turn.completedAt.getTime() - turn.startedAt.getTime();
+  get(turnId: string): ChatTurn | null {
+    return _turns.get(turnId) ?? null;
   },
 
-  fail(turnId: string): void {
-    const turn = _turns.get(turnId);
-    if (!turn) return;
-    turn.status      = 'failed';
-    turn.completedAt = new Date();
-    turn.durationMs  = turn.completedAt.getTime() - turn.startedAt.getTime();
-  },
-
-  cancel(turnId: string): void {
-    const turn = _turns.get(turnId);
-    if (!turn) return;
-    turn.status      = 'cancelled';
-    turn.completedAt = new Date();
-    turn.durationMs  = turn.completedAt.getTime() - turn.startedAt.getTime();
-    _turns.delete(turnId);
-  },
-
-  setStatus(turnId: string, status: TurnStatus): void {
-    const turn = _turns.get(turnId);
-    if (turn) turn.status = status;
-  },
-
-  clearCompleted(): number {
-    let count = 0;
-    for (const [id, t] of _turns) {
-      if (t.status === 'completed' || t.status === 'failed' || t.status === 'cancelled') {
-        _turns.delete(id);
-        count++;
+  cancelByRun(runId: string): void {
+    for (const t of _turns.values()) {
+      if (t.runId === runId && t.status === 'running') {
+        t.status      = 'cancelled';
+        t.completedAt = new Date();
       }
     }
-    return count;
   },
 
-  size(): number {
-    return _turns.size;
+  clearCompleted(): void {
+    for (const [id, t] of _turns) {
+      if (t.status !== 'running') _turns.delete(id);
+    }
   },
+
+  size(): number { return _turns.size; },
 };
 
 export const turnService = turnManager;

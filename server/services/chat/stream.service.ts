@@ -1,11 +1,12 @@
 /**
  * server/services/chat/stream.service.ts
- * Extracted from server/chat/orchestration/stream-manager.ts
  *
- * Token stream lifecycle only.
- * Owns: open/append/close a streaming session per run.
- * Publishes stream events via eventPublisher.
+ * Token stream lifecycle for active chat runs.
+ * Handles open/append/close + timeout enforcement.
+ *
+ * Owns: stream open, token append (SSE events), stream close, timeout handling.
  */
+
 import {
   makeStreamStartedEvent,
   makeStreamTokenEvent,
@@ -14,18 +15,6 @@ import {
 import { eventPublisher }        from '../../chat/realtime/event-publisher.ts';
 import { MAX_STREAM_DURATION_MS } from '../../chat/constants/stream.constants.ts';
 
-interface StreamState {
-  runId:       string;
-  projectId:   number;
-  startedAt:   number;
-  tokenBuffer: string[];
-  totalTokens: number;
-  active:      boolean;
-  timeoutId:   NodeJS.Timeout;
-}
-
-const _streams = new Map<string, StreamState>();
-
 export class StreamError extends Error {
   constructor(message: string, public readonly code: string) {
     super(message);
@@ -33,82 +22,52 @@ export class StreamError extends Error {
   }
 }
 
+interface StreamState {
+  projectId:  number;
+  tokenCount: number;
+  openedAt:   number;
+  timeoutId?: ReturnType<typeof setTimeout>;
+}
+
+const _streams = new Map<string, StreamState>();
+
 export const streamManager = {
-  /**
-   * Open a new stream for a run. Publishes stream.started event.
-   * Automatically times out after MAX_STREAM_DURATION_MS.
-   */
   open(runId: string, projectId: number): void {
-    if (_streams.has(runId)) {
-      throw new StreamError(`Stream already open for run ${runId}`, 'ALREADY_OPEN');
-    }
+    if (_streams.has(runId)) return;
 
     const timeoutId = setTimeout(() => {
-      streamManager.close(runId);
+      if (_streams.has(runId)) streamManager.close(runId);
     }, MAX_STREAM_DURATION_MS);
 
-    _streams.set(runId, {
-      runId,
-      projectId,
-      startedAt:   Date.now(),
-      tokenBuffer: [],
-      totalTokens: 0,
-      active:      true,
-      timeoutId,
-    });
-
+    _streams.set(runId, { projectId, tokenCount: 0, openedAt: Date.now(), timeoutId });
     eventPublisher.publish(makeStreamStartedEvent(runId, projectId));
   },
 
-  /**
-   * Append a token to the stream. Publishes stream.token event.
-   */
   append(runId: string, token: string): void {
-    const state = _streams.get(runId);
-    if (!state || !state.active) return;
-
-    state.tokenBuffer.push(token);
-    state.totalTokens += 1;
-
-    eventPublisher.publish(makeStreamTokenEvent(runId, state.projectId, token));
+    const s = _streams.get(runId);
+    if (!s) return;
+    s.tokenCount++;
+    eventPublisher.publish(makeStreamTokenEvent(runId, s.projectId, token));
   },
 
-  /**
-   * Close the stream and publish stream.ended event.
-   * Returns the assembled full content.
-   */
-  close(runId: string): string {
-    const state = _streams.get(runId);
-    if (!state) return '';
-
-    clearTimeout(state.timeoutId);
-    state.active = false;
-
-    const content    = state.tokenBuffer.join('');
-    const durationMs = Date.now() - state.startedAt;
-
-    eventPublisher.publish(
-      makeStreamEndedEvent(runId, state.projectId, state.totalTokens, durationMs),
-    );
-
+  close(runId: string): void {
+    const s = _streams.get(runId);
+    if (!s) return;
+    if (s.timeoutId) clearTimeout(s.timeoutId);
+    const durationMs = Date.now() - s.openedAt;
     _streams.delete(runId);
-    return content;
+    eventPublisher.publish(makeStreamEndedEvent(runId, s.projectId, s.tokenCount, durationMs));
   },
 
-  /** Whether a stream is currently active for a run. */
   isActive(runId: string): boolean {
-    return _streams.get(runId)?.active === true;
+    return _streams.has(runId);
   },
 
-  /** Current buffered content for a run (for mid-stream inspection). */
-  peek(runId: string): string {
-    return _streams.get(runId)?.tokenBuffer.join('') ?? '';
+  getTokenCount(runId: string): number {
+    return _streams.get(runId)?.tokenCount ?? 0;
   },
 
-  /** Number of active streams. */
-  activeCount(): number {
-    return _streams.size;
-  },
+  size(): number { return _streams.size; },
 };
 
 export const streamService = streamManager;

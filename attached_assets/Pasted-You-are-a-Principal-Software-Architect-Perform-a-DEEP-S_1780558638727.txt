@@ -1,0 +1,268 @@
+You are a Principal Software Architect.
+
+Perform a DEEP SCAN before making any changes.
+
+Do not create, move, delete, rename, or modify any file until the scan is complete and a dependency report is generated.
+
+MISSION
+
+Create a clean Chat Service Layer under:
+
+server/services/chat/
+
+using a single public entry point architecture.
+
+Do not change runtime behavior.
+
+Do not change APIs.
+
+Do not change routes.
+
+Do not change controllers.
+
+Do not change frontend.
+
+Do not change orchestration behavior.
+
+Only extract responsibilities into a proper service layer.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — DEEP SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan:
+
+server/chat/**
+server/repositories/chat/**
+server/infrastructure/**
+server/orchestration/**
+server/memory/**
+
+Generate report:
+
+1. Which files currently contain chat business logic.
+2. Which files currently contain checkpoint business logic.
+3. Which files currently contain context building logic.
+4. Which files currently contain session lifecycle logic.
+5. Which files currently contain turn lifecycle logic.
+6. Which files currently contain stream lifecycle logic.
+7. Which files currently contain intent classification logic.
+8. Which files currently contain clarification logic.
+9. Which files currently contain LLM response logic.
+
+For every file report:
+
+- imports
+- imported by
+- responsibilities
+- dependency risk
+- safe to move? YES/NO
+
+Only continue if safe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — TARGET STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/services/chat/
+│
+├── index.ts
+│
+├── chat.service.ts
+│
+├── session.service.ts
+├── turn.service.ts
+├── stream.service.ts
+│
+├── intent.service.ts
+├── clarification.service.ts
+│
+├── responder.service.ts
+│
+├── checkpoint.service.ts
+│
+└── context.service.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — RESPONSIBILITY EXTRACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+chat.service.ts
+
+Own:
+
+- startRun()
+- completeRun()
+- failRun()
+- cancelRun()
+- chat lifecycle coordination
+- orchestration triggering
+- memory integration
+- run completion flow
+
+session.service.ts
+
+Own:
+
+- session open
+- session close
+- session status
+- session lookup
+
+turn.service.ts
+
+Own:
+
+- turn start
+- turn complete
+- turn fail
+- turn cancel
+- duration tracking
+
+stream.service.ts
+
+Own:
+
+- stream open
+- stream append
+- stream close
+- timeout handling
+- stream state
+
+intent.service.ts
+
+Own:
+
+- routeIntent()
+- isChatMode()
+- intent scoring
+- intent classification
+
+clarification.service.ts
+
+Own:
+
+- ambiguity detection
+- question creation
+- answer waiting
+- clarification workflow
+
+responder.service.ts
+
+Own:
+
+- streamRunSummary()
+- LLM response generation
+- fallback responses
+
+checkpoint.service.ts
+
+Own:
+
+- create checkpoint
+- manual checkpoint
+- rollback checkpoint
+- diff checkpoint
+- checkpoint business logic
+
+Move business logic out of persistence/checkpoint-store.ts.
+
+context.service.ts
+
+Own:
+
+- build context
+- memory context
+- conversation context
+- prompt assembly
+- context loading coordination
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — PUBLIC ENTRY POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/services/chat/index.ts
+
+This becomes the ONLY public import surface.
+
+Export:
+
+chatService
+sessionService
+turnService
+streamService
+intentService
+clarificationService
+responderService
+checkpointService
+contextService
+
+No business logic in index.ts.
+
+Only exports.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — IMPORT MIGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace direct imports of:
+
+server/chat/orchestration/*
+server/chat/intent/*
+server/chat/questions/*
+server/chat/llm/*
+server/chat/context/*
+server/chat/persistence/checkpoint-store.ts
+
+with imports from:
+
+server/services/chat/index.ts
+
+Use barrel imports wherever possible.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — BACKWARD COMPATIBILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do not break existing code.
+
+Leave compatibility shims in original locations.
+
+Original files should only re-export from:
+
+server/services/chat/
+
+No business logic should remain in shim files.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+- TypeScript build passes
+- No circular imports
+- No broken imports
+- No route failures
+- No controller failures
+- No runtime behavior changes
+- No API contract changes
+
+Generate final report:
+
+1. Files created
+2. Files converted to shims
+3. Imports updated
+4. Remaining direct imports
+5. Architecture compliance score
+6. Any unresolved dependency risks
+
+Do not perform any refactor outside the chat domain.
+Do not modify repositories unless required for checkpoint extraction.
+Do not modify infrastructure.
+Do not modify frontend.
+Only establish a clean service architecture with index.ts as the public entry point.
