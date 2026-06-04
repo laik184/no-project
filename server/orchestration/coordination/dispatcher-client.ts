@@ -1,25 +1,26 @@
 /**
  * server/orchestration/coordination/dispatcher-client.ts
  *
- * THE single gateway from the orchestration layer to the central tool dispatcher.
+ * THE single gateway from the orchestration layer to the tool dispatcher.
  * ALL execution coordination MUST flow through this client — never directly.
  *
  * API STANDARD: executeTool / executeAll / executeSequential
  * (normalized to match agent-layer dispatcher-client naming convention)
  *
- * Orchestration layer imports only from tool-dispatcher — never from tool implementations.
+ * FORBIDDEN: importing from tool-dispatcher directly.
+ * Route through executor's dispatcher-client — it is the sole gateway to the registry.
  */
 
 import {
   dispatch,
   dispatchAll,
   dispatchSequential,
-} from '../../tools/registry/tool-dispatcher.ts';
+} from '../../agents/executor/coordination/dispatcher-client.ts';
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
 } from '../../tools/registry/tool-types.ts';
-import type { DispatchOptions } from '../../tools/registry/tool-dispatcher.ts';
+import type { DispatchOptions } from '../../agents/executor/coordination/dispatcher-client.ts';
 
 export type { ToolExecutionResult, ToolExecutionContext };
 
