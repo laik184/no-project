@@ -39,9 +39,8 @@ export type {
 export { DEFAULT_RETRY_CONFIG } from './execution/retry-manager.ts';
 
 // ── Planning ──────────────────────────────────────────────────────────────────
-export { planExecution }                                    from './planning/execution-planner.ts';
-export type { PlannerResult }                               from './planning/execution-planner.ts';
-export { selectTool, listToolsForKind, defaultToolForKind } from './planning/tool-selection.ts';
+export { planExecution }      from './planning/execution-planner.ts';
+export type { PlannerResult } from './planning/execution-planner.ts';
 
 // ── Telemetry & monitoring ────────────────────────────────────────────────────
 export { executorLogger }    from './telemetry/executor-logger.ts';

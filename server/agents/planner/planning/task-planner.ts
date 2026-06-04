@@ -14,6 +14,25 @@ import {
 } from '../../../engine/planning/index.ts';
 import type { GoalComponent, TaskDependency } from '../../../engine/planning/index.ts';
 
+// ── Component type → executor subKind mapping ─────────────────────────────────
+// Each entry must match a key in tool-coordinator.ts coordinateCoding toolMap.
+
+const TYPE_TO_SUBKIND: Record<string, string> = {
+  frontend:   'generate_page',
+  backend:    'generate_route',
+  api:        'generate_rest_api',
+  database:   'generate_schema',
+  auth:       'generate_auth',
+  crud:       'generate_crud_api',
+  component:  'generate_component',
+  storage:    'generate_module',
+  testing:    'tests',
+  deployment: 'run_script',
+  planning:   'generate_page',
+  finalize:   'generate_page',
+  generic:    'generate_page',
+};
+
 // ── Component → task mapping ──────────────────────────────────────────────────
 
 function componentToTask(
@@ -21,7 +40,8 @@ function componentToTask(
   phaseIndex: number,
   dependencies: string[],
 ): PlannedTask {
-  const id = makeTaskId(component.type);
+  const id      = makeTaskId(component.type);
+  const subKind = TYPE_TO_SUBKIND[component.type] ?? 'generate_page';
   return {
     id,
     label:       `${component.type}: ${component.label}`,
@@ -36,6 +56,7 @@ function componentToTask(
     input: {
       goal:      component.label,
       type:      component.type,
+      subKind,
       phaseIndex,
     },
     timeoutMs:  60_000,

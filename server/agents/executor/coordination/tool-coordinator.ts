@@ -69,22 +69,61 @@ export function coordinateFilesystem(task: ExecutionTask, sandboxRoot: string): 
 
 export function coordinateCoding(task: ExecutionTask): RoutedStep {
   const input   = task.input as Record<string, unknown>;
-  const subKind = String(input.subKind ?? 'generate_component');
+  const subKind = String(input.subKind ?? 'generate_page');
 
   const toolMap: Record<string, string> = {
-    generate_component:    'coding_generate_react_component',
-    generate_route:        'coding_generate_express_route',
-    generate_rest_api:     'coding_generate_rest_api',
-    generate_controller:   'coding_generate_controller',
-    generate_schema:       'coding_generate_drizzle_schema',
-    generate_api_client:   'coding_generate_api_client',
-    generate_api_handler:  'coding_generate_api_handler',
-    generate_auth:         'coding_generate_jwt_auth',
-    generate_middleware:   'coding_generate_auth_middleware',
-    generate_error_handler: 'coding_generate_error_handler',
+    // Frontend
+    generate_page:            'coding_generate_react_page',
+    generate_component:       'coding_generate_tailwind_ui',
+    generate_layout:          'coding_generate_react_layout',
+    generate_hook:            'coding_generate_react_hook',
+    generate_context:         'coding_generate_react_context',
+    generate_routing:         'coding_generate_react_routing',
+    generate_dashboard:       'coding_generate_dashboard',
+    generate_form:            'coding_generate_form',
+    generate_navbar:          'coding_generate_navbar',
+    generate_sidebar:         'coding_generate_sidebar',
+    generate_table:           'coding_generate_table',
+    generate_modal:           'coding_generate_modal',
+    // Backend
+    generate_route:           'coding_generate_express_route',
+    generate_rest_api:        'coding_generate_rest_api',
+    generate_controller:      'coding_generate_controller',
+    generate_middleware:      'coding_generate_middleware',
+    generate_auth_middleware: 'coding_generate_auth_middleware',
+    generate_service:         'coding_generate_service',
+    generate_module:          'coding_generate_module',
+    generate_error_handler:   'coding_generate_error_handler',
+    generate_server:          'coding_generate_server_bootstrap',
+    // API
+    generate_api_client:      'coding_generate_api_client',
+    generate_api_handler:     'coding_generate_api_handler',
+    generate_api_validation:  'coding_generate_api_validation',
+    generate_request_schema:  'coding_generate_request_schema',
+    generate_response_schema: 'coding_generate_response_schema',
+    // Database
+    generate_schema:          'coding_generate_schema',
+    generate_model:           'coding_generate_model',
+    generate_migration:       'coding_generate_migration',
+    generate_repository:      'coding_generate_repository',
+    generate_seed:            'coding_generate_seed',
+    generate_relation:        'coding_generate_relation',
+    generate_db_config:       'coding_generate_db_config',
+    // CRUD
+    generate_crud_api:        'coding_generate_crud_api',
+    generate_crud_module:     'coding_generate_crud_module',
+    generate_crud_ui:         'coding_generate_crud_ui',
+    generate_crud_schema:     'coding_generate_crud_schema',
+    // Auth
+    generate_auth:            'coding_generate_jwt_auth',
+    generate_login_flow:      'coding_generate_login_flow',
+    generate_signup_flow:     'coding_generate_signup_flow',
+    generate_session_auth:    'coding_generate_session_auth',
+    generate_role_system:     'coding_generate_role_system',
+    generate_password_hashing: 'coding_generate_password_hashing',
   };
 
-  const toolName = toolMap[subKind] ?? 'coding_generate_express_route';
+  const toolName = toolMap[subKind] ?? 'coding_generate_react_page';
   return { toolName, toolInput: { ...input } };
 }
 
