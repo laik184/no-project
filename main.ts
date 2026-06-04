@@ -72,6 +72,27 @@ app.get('/api/realtime', (req: Request, res: Response) => {
   req.on('close', () => cleanup());
 });
 
+// ── Stub routes for frontend-expected endpoints ───────────────────────────────
+
+// Project execution status — used by useNavigationLogic & preview-runtime.service
+app.get('/api/project-status', (_req: Request, res: Response) => {
+  res.json({ ok: true, running: [] });
+});
+
+// Tunnel / public URL info — used by useNavigationLogic
+app.get('/api/tunnel-info', (_req: Request, res: Response) => {
+  const domain = process.env.REPLIT_DEV_DOMAIN;
+  res.json({ ok: true, url: domain ? `https://${domain}` : null });
+});
+
+// Runtime start/stop — used by preview panel (fire-and-forget stubs)
+app.post('/api/run-project',  (_req: Request, res: Response) => res.json({ ok: true }));
+app.post('/api/stop-project', (_req: Request, res: Response) => res.json({ ok: true }));
+app.post('/api/preview-state', (_req: Request, res: Response) => res.json({ ok: true }));
+
+// Artifacts list stub
+app.get('/api/artifacts', (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
+
 // ── Mount modules ─────────────────────────────────────────────────────────────
 
 // Chat module: /api/chat/* (SSE at /api/chat/stream) + /api/run/*
