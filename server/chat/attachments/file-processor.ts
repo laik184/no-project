@@ -1,70 +1,22 @@
-/**
- * file-processor.ts — Non-image document attachment processing.
- * Extracts text content or metadata useful for LLM context injection.
- */
+import fs from 'fs';
 import path from 'path';
 
-export interface FileProcessResult {
-  filename:    string;
-  mimeType:    string;
-  sizeBytes:   number;
-  textContent: string | null;  // extracted text (null if binary)
-  truncated:   boolean;
+export interface ProcessedFile {
+  filename:  string;
+  mimeType:  string;
+  buffer:    Buffer;
+  sizeBytes: number;
 }
 
-const MAX_TEXT_CHARS = 50_000; // ~12k tokens
-
-/**
- * Extract text content from document uploads.
- * Supports plain-text types only — binary formats (PDF, ZIP) return null.
- */
-export function processFileAttachment(
-  filename:  string,
-  mimeType:  string,
-  data:      Buffer,
-): FileProcessResult {
-  const ext = path.extname(filename).toLowerCase();
-
-  const textMimeTypes = [
-    'text/plain',
-    'text/csv',
-    'text/markdown',
-    'application/json',
-  ];
-
-  const textExtensions = ['.txt', '.md', '.csv', '.json', '.ts', '.js', '.py', '.rs', '.go'];
-
-  const isText = textMimeTypes.includes(mimeType) || textExtensions.includes(ext);
-
-  if (!isText) {
-    return {
-      filename,
-      mimeType,
-      sizeBytes:   data.length,
-      textContent: null,
-      truncated:   false,
-    };
-  }
-
-  const full      = data.toString('utf8');
-  const truncated = full.length > MAX_TEXT_CHARS;
-  const text      = truncated ? full.slice(0, MAX_TEXT_CHARS) + '\n\n[... truncated]' : full;
-
-  return {
-    filename,
-    mimeType,
-    sizeBytes:   data.length,
-    textContent: text,
-    truncated,
-  };
+export function readAttachmentFile(filePath: string): Buffer {
+  if (!fs.existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
+  return fs.readFileSync(filePath);
 }
 
-/**
- * Format a processed file for LLM context injection.
- */
-export function formatForContext(result: FileProcessResult): string {
-  if (!result.textContent) {
-    return `[Attachment: ${result.filename} (${result.mimeType}, ${result.sizeBytes} bytes) — binary, not included in context]`;
-  }
-  return `<attachment name="${result.filename}">\n${result.textContent}\n</attachment>`;
+export function deleteAttachmentFile(filePath: string): void {
+  try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* ignore */ }
+}
+
+export function getSafeFilename(original: string): string {
+  return path.basename(original).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 255);
 }

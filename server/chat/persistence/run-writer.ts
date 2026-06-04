@@ -1,10 +1,15 @@
-/**
- * run-writer.ts — Delegates to runRepository (write methods).
- * Kept for backward-compat. Import runRepository directly for new code.
- */
 import { runRepository } from '../../repositories/chat/run.repository.ts';
 
 export const runWriter = {
-  create:    runRepository.create.bind(runRepository),
-  setStatus: runRepository.setStatus.bind(runRepository),
+  async create(runId: string, projectId: number, goal: string): Promise<void> {
+    await runRepository.create(runId, projectId, goal);
+  },
+
+  async setStatus(
+    runId:   string,
+    status:  'running' | 'completed' | 'failed' | 'cancelled',
+    result?: unknown,
+  ): Promise<void> {
+    await runRepository.setStatus(runId, status, result);
+  },
 };

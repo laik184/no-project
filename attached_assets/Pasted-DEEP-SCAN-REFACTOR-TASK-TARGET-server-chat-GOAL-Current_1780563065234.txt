@@ -1,0 +1,237 @@
+DEEP SCAN + REFACTOR TASK
+
+TARGET:
+server/chat/
+
+GOAL:
+Current chat module ko audit karo aur existing implementation ko preserve karte hue exactly neeche diye gaye structure ke according reorganize karo.
+
+IMPORTANT RULES:
+
+- Koi functionality break nahi honi chahiye.
+- Koi feature remove nahi karna.
+- Koi business logic rewrite nahi karna.
+- Sirf responsibility-based refactor karna.
+- Existing imports, exports, types aur runtime behavior preserve karna.
+- Circular dependencies detect karke report karna.
+- Har moved file ke imports automatically update karna.
+- Refactor ke baad final dependency graph generate karna.
+
+==================================================
+PHASE 1 — DEEP SCAN
+
+Scan entire:
+
+server/chat/**
+
+For every file report:
+
+- Current responsibility
+- Imported files
+- Exported symbols
+- Runtime consumers
+- Dead code
+- Duplicate responsibility
+- Circular dependency risk
+
+Generate:
+
+CHAT_ARCHITECTURE_AUDIT.md
+
+==================================================
+PHASE 2 — TARGET STRUCTURE
+
+Refactor into:
+
+server/chat/
+
+├── index.ts
+│
+├── api/
+│   ├── attachment.routes.ts
+│   ├── chat.routes.ts
+│   ├── checkpoint.routes.ts
+│   ├── history.routes.ts
+│   ├── question.routes.ts
+│   ├── run.routes.ts
+│   └── run-start.router.ts
+│
+├── attachments/
+│   ├── attachment-manager.ts
+│   ├── attachment-validator.ts
+│   ├── file-processor.ts
+│   ├── image-processor.ts
+│   └── upload-handler.ts
+│
+├── constants/
+│   ├── chat.constants.ts
+│   ├── event.constants.ts
+│   └── stream.constants.ts
+│
+├── context/
+│   ├── context-builder.ts
+│   ├── context-cache.ts
+│   ├── context-loader.ts
+│   └── context-window.ts
+│
+├── controllers/
+│   ├── attachment-controller.ts
+│   ├── chat-controller.ts
+│   ├── checkpoint-controller.ts
+│   ├── history-controller.ts
+│   ├── question-controller.ts
+│   └── run-controller.ts
+│
+├── events/
+│   ├── chat.events.ts
+│   ├── checkpoint.events.ts
+│   ├── question.events.ts
+│   ├── run.events.ts
+│   ├── stream.events.ts
+│   └── timeline.events.ts
+│
+├── intent/
+│   └── intent-router.ts
+│
+├── llm/
+│   └── chat-responder.ts
+│
+├── messages/
+│   ├── assistant-message.ts
+│   ├── message-builder.ts
+│   ├── message-validator.ts
+│   ├── system-message.ts
+│   └── user-message.ts
+│
+├── orchestration/
+│   ├── chat-orchestrator.ts
+│   ├── conversation-manager.ts
+│   ├── session-manager.ts
+│   ├── stream-manager.ts
+│   └── turn-manager.ts
+│
+├── persistence/
+│   ├── attachment-store.ts
+│   ├── chat-store.ts
+│   ├── checkpoint-store.ts
+│   ├── conversation-store.ts
+│   ├── message-store.ts
+│   ├── run-store.ts
+│   ├── run-writer.ts
+│   └── workspace-scanner.ts
+│
+├── questions/
+│   ├── ambiguity-detector.ts
+│   ├── answer-manager.ts
+│   ├── clarification-manager.ts
+│   └── question-manager.ts
+│
+├── realtime/
+│   ├── connection-registry.ts
+│   ├── event-publisher.ts
+│   ├── heartbeat-manager.ts
+│   ├── sse-manager.ts
+│   └── websocket-manager.ts
+│
+├── run/
+│   └── registry.ts
+│
+├── schemas/
+│   ├── attachment.schema.ts
+│   ├── chat.schema.ts
+│   ├── question.schema.ts
+│   └── run.schema.ts
+│
+├── streams/
+│   └── sse-utils.ts
+│
+├── timeline/
+│   ├── event-timeline.ts
+│   ├── run-timeline.ts
+│   ├── timeline-manager.ts
+│   ├── timeline-publisher.ts
+│   └── tool-timeline.ts
+│
+├── types/
+│   ├── chat.types.ts
+│   ├── checkpoint.types.ts
+│   ├── event.types.ts
+│   ├── message.types.ts
+│   ├── question.types.ts
+│   └── run.types.ts
+│
+└── index.ts
+
+==================================================
+PHASE 3 — IMPORT VALIDATION
+
+Verify:
+
+main.ts
+↓
+server/chat/index.ts
+
+server/chat/index.ts
+↓
+api/*
+controllers/*
+realtime/*
+heartbeat-manager
+websocket-manager
+
+chat-orchestrator.ts
+↓
+conversation-manager
+session-manager
+turn-manager
+stream-manager
+context/*
+messages/*
+questions/*
+events/*
+timeline/*
+persistence/*
+intent/*
+llm/*
+memory/*
+orchestration/index.ts
+
+Controllers
+↓
+Managers only
+
+Routes
+↓
+Controllers only
+
+No Route → Store access
+
+No Route → DB access
+
+No Controller → DB access
+
+==================================================
+PHASE 4 — FINAL REPORT
+
+Generate:
+
+CHAT_REFACTOR_REPORT.md
+
+Include:
+
+1. Old structure
+2. New structure
+3. Files moved
+4. Imports updated
+5. Dead files
+6. Duplicate logic
+7. Circular dependency analysis
+8. Runtime flow validation
+9. Missing files
+10. Broken imports
+11. Architecture score
+
+Do not create placeholders.
+Do not invent functionality.
+Only move code according to actual responsibility discovered during scan.
+Preserve runtime behavior 100%.

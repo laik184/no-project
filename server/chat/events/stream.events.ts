@@ -1,18 +1,8 @@
-/**
- * stream.events.ts — Token stream event factories.
- * Pure factories — no side effects.
- *
- * Event shape uses `eventType` (not `type`) to match the frontend
- * agent-event-handler switch block expectations.
- */
 import type { StreamStartedEvent, StreamTokenEvent, StreamEndedEvent } from '../types/event.types.ts';
 
-let _seqCounter = 0;
+let _seq = 0;
 
-/** Monotonic sequence counter — resets on server restart (acceptable for UI ordering). */
-export function nextSeq(): number {
-  return ++_seqCounter;
-}
+export function nextSeq(): number { return ++_seq; }
 
 export function makeStreamStartedEvent(runId: string, projectId: number): StreamStartedEvent {
   return { eventType: 'agent.stream.start', runId, projectId, ts: Date.now() };

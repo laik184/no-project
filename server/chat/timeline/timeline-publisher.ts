@@ -1,12 +1,11 @@
-/**
- * timeline-publisher.ts — Publishes timeline entries to the event bus.
- */
-import { eventPublisher }          from '../realtime/event-publisher.ts';
-import { makeTimelinePublishedEvent } from '../events/timeline.events.ts';
-import type { TimelineEntry }      from './event-timeline.ts';
+import { makeTimelineEvent }  from '../events/timeline.events.ts';
+import { eventPublisher }     from '../realtime/event-publisher.ts';
+import type { TimelineEntry } from './event-timeline.ts';
 
 export const timelinePublisher = {
   publish(runId: string, projectId: number, entry: TimelineEntry): void {
-    eventPublisher.publish(makeTimelinePublishedEvent(runId, projectId, entry));
+    eventPublisher.publish(
+      makeTimelineEvent(runId, projectId, entry) as Record<string, unknown>,
+    );
   },
 };

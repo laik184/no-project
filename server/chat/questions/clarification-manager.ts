@@ -1,9 +1,2 @@
-/**
- * server/chat/questions/clarification-manager.ts
- * Compatibility shim — implementation moved to server/services/chat/
- * Do not add business logic here.
- */
-export {
-  clarificationManager,
-  clarificationService,
-} from '@services/chat';
+export { clarificationManager, clarificationService } from '@services/chat';
+export type { ClarificationInput } from '@services/chat';

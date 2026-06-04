@@ -1,65 +1,48 @@
-/**
- * upload-handler.ts — Handles multipart file upload to disk.
- * Owns: stream file to upload dir, return stored path.
- */
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { UPLOAD_DIR } from '../constants/chat.constants.ts';
+import { UPLOAD_DIR, MAX_ATTACHMENTS_PER_RUN } from '../constants/chat.constants.ts';
+import { validateAttachment } from './attachment-validator.ts';
+import { attachmentStore }   from '../persistence/attachment-store.ts';
+import type { AttachmentRecord } from '../persistence/attachment-store.ts';
 
-export interface UploadedFile {
-  filename:    string;
-  storedPath:  string;
-  mimeType:    string;
-  sizeBytes:   number;
-}
-
-/** Ensure the upload directory exists. */
 function ensureUploadDir(): void {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-/**
- * Write a Buffer to the upload directory with a random name.
- * Returns the stored path (relative to cwd) and byte size.
- */
-export async function storeUpload(
-  originalName: string,
-  mimeType:     string,
-  data:         Buffer,
-): Promise<UploadedFile> {
-  ensureUploadDir();
+export const uploadHandler = {
+  async save(
+    projectId:  number,
+    filename:   string,
+    mimeType:   string,
+    buffer:     Buffer,
+    runId?:     string,
+  ): Promise<AttachmentRecord> {
+    const validation = validateAttachment(mimeType, buffer.length);
+    if (!validation.valid) {
+      throw new Error(validation.errors.join('; '));
+    }
 
-  const ext      = path.extname(originalName).slice(0, 10).toLowerCase();
-  const hash     = crypto.randomBytes(8).toString('hex');
-  const basename = `${Date.now()}-${hash}${ext}`;
-  const stored   = path.join(UPLOAD_DIR, basename);
+    if (runId) {
+      const count = await attachmentStore.countByRun(runId);
+      if (count >= MAX_ATTACHMENTS_PER_RUN) {
+        throw new Error(`Maximum ${MAX_ATTACHMENTS_PER_RUN} attachments per run`);
+      }
+    }
 
-  await fs.promises.writeFile(stored, data);
+    ensureUploadDir();
+    const ext        = path.extname(filename).toLowerCase();
+    const storedName = `${crypto.randomUUID()}${ext}`;
+    const storedPath = path.join(UPLOAD_DIR, storedName);
+    fs.writeFileSync(storedPath, buffer);
 
-  return {
-    filename:   originalName,
-    storedPath: stored,
-    mimeType,
-    sizeBytes:  data.length,
-  };
-}
-
-/**
- * Delete a stored upload by path (called on cleanup / attachment delete).
- * Silently ignores missing files.
- */
-export async function deleteStoredUpload(storedPath: string): Promise<void> {
-  try {
-    await fs.promises.unlink(storedPath);
-  } catch {
-    /* file already gone — ignore */
-  }
-}
-
-/**
- * Read a stored file into a Buffer.
- */
-export async function readStoredUpload(storedPath: string): Promise<Buffer> {
-  return fs.promises.readFile(storedPath);
-}
+    return attachmentStore.insert({
+      projectId,
+      runId,
+      filename,
+      mimeType,
+      storedPath,
+      sizeBytes: buffer.length,
+    });
+  },
+};

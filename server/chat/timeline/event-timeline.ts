@@ -1,8 +1,3 @@
-/**
- * event-timeline.ts — In-memory ordered event timeline per run.
- * Owns: append, query, snapshot for a run's event history.
- */
-
 export type TimelineEntryKind =
   | 'phase'
   | 'tool_call'
@@ -51,7 +46,6 @@ export const eventTimeline = {
     _timelines.delete(runId);
   },
 
-  /** Update status of a specific entry by id. */
   updateStatus(
     runId:  string,
     id:     number,
@@ -61,9 +55,6 @@ export const eventTimeline = {
     const entries = _timelines.get(runId);
     if (!entries) return;
     const entry = entries.find((e) => e.id === id);
-    if (entry) {
-      entry.status = status;
-      if (error) entry.error = error;
-    }
+    if (entry) { entry.status = status; if (error) entry.error = error; }
   },
 };

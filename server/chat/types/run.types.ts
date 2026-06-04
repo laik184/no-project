@@ -24,9 +24,9 @@ export interface RunStartPayload {
 }
 
 export interface RunCancelResult {
-  runId:     string;
-  cancelled: boolean;
-  reason?:   string;
+  runId:      string;
+  cancelled:  boolean;
+  reason?:    string;
 }
 
 export interface RunStatusResult {

@@ -1,152 +1,62 @@
 /**
- * server/chat/index.ts — Chat module bootstrap and public API.
+ * server/chat/index.ts
  *
- * Responsibilities:
- *   - Mount all chat API routes (including SSE)
- *   - Export the module's public contract
- *   - Export application-layer facade (chatOrchestrator) consumed by main.ts
+ * PUBLIC surface for the chat module.
  *
- * No business logic here.
+ * Exports `chatOrchestrator` — the facade that main.ts calls.
+ * It wraps the @services/chat chatOrchestrator with two lifecycle methods:
+ *   - mountRoutes(app)   → registers all /api/chat/* /api/run/* /api/checkpoints/* routes
+ *   - bootstrap(server)  → starts WebSocket manager + heartbeat
  */
-import { Router }              from 'express';
-import type { Application }   from 'express';
-import type { Server }        from 'http';
-import type { Request, Response } from 'express';
-import { chatRoutes }        from './api/chat.routes.ts';
-import { runRoutes }         from './api/run.routes.ts';
-import { historyRoutes }     from './api/history.routes.ts';
-import { attachmentRoutes }  from './api/attachment.routes.ts';
-import { questionRoutes }    from './api/question.routes.ts';
+
+import type { Express }      from 'express';
+import type * as http        from 'http';
+import { chatOrchestrator as coreService } from '@services/chat';
+import { chatRouter }        from './api/chat.routes.ts';
+import { runRouter }         from './api/run.routes.ts';
 import { runStartRouter }    from './api/run-start.router.ts';
-import { checkpointRoutes }  from './api/checkpoint.routes.ts';
-import { heartbeatManager } from './realtime/heartbeat-manager.ts';
-import { websocketManager } from './realtime/websocket-manager.ts';
-import { TOPIC, sseManager as infraSseManager } from '../infrastructure';
+import { questionRouter }    from './api/question.routes.ts';
+import { checkpointRouter }  from './api/checkpoint.routes.ts';
+import { attachmentRouter }  from './api/attachment.routes.ts';
+import { historyRouter }     from './api/history.routes.ts';
+import { websocketManager }  from './realtime/websocket-manager.ts';
+import { heartbeatManager }  from './realtime/heartbeat-manager.ts';
 
-// ── Chat router ───────────────────────────────────────────────────────────────
-
-export const chatRouter = Router();
-
-chatRouter.use('/',            chatRoutes);
-chatRouter.use('/runs',        runRoutes);
-chatRouter.use('/history',     historyRoutes);
-chatRouter.use('/attachments', attachmentRoutes);
-chatRouter.use('/questions',   questionRoutes);
-
-// ── SSE route — mounted at /api/chat/stream ───────────────────────────────────
-
-/**
- * GET /api/chat/stream?projectId=N&runId=X&topics=agent,lifecycle
- * Chat-scoped SSE stream. Delegates to infrastructure SSE manager.
- * Mounted on chatRouter so effective path is /api/chat/stream.
- */
-chatRouter.get('/stream', (req: Request, res: Response) => {
-  const projectId = req.query.projectId ? Number(req.query.projectId) : null;
-  const runId     = (req.query.runId as string | undefined);
-
-  const requestedTopics = req.query.topics
-    ? String(req.query.topics).split(',').map((t) => t.trim())
-    : Object.values(TOPIC);
-
-  const topicSet = new Set<string>(requestedTopics);
-
-  res.writeHead(200, {
-    'Content-Type':  'text/event-stream',
-    'Cache-Control': 'no-cache, no-transform',
-    'Connection':    'keep-alive',
-    'X-Accel-Buffering': 'no',
-  });
-  res.flushHeaders?.();
-
-  const cleanup = infraSseManager.register(
-    res,
-    topicSet as unknown as ReadonlySet<string>,
-    projectId,
-    runId,
-  );
-
-  req.on('close', () => cleanup());
-});
-
-// ── Application-layer facade — consumed by main.ts ────────────────────────────
-
-/**
- * chatOrchestrator — Application facade.
- *
- * main.ts imports this object and calls (in order):
- *   - mountRoutes(app)    → Registers /api/chat/* and /api/run/* on the Express app
- *   - bootstrap(server)   → Attaches WS handler + starts heartbeat (after server creation)
- *
- * Internal orchestration logic lives in orchestration/chat-orchestrator.ts.
- * This facade only wires external I/O.
- */
 export const chatOrchestrator = {
-  /**
-   * Mount all chat HTTP routes onto the given Express app.
-   * Must be called BEFORE http.createServer(app).
-   *   /api/chat/* — chat REST + SSE stream
-   *   /api/run/*  — run start / cancel / active
-   */
-  mountRoutes(app: Application): void {
+  startRun:  coreService.startRun.bind(coreService),
+  cancelRun: coreService.cancelRun.bind(coreService),
+
+  mountRoutes(app: Express): void {
     app.use('/api/chat',        chatRouter);
     app.use('/api/run',         runStartRouter);
-    app.use('/api/checkpoints', checkpointRoutes);
+    app.use('/api/runs',        runRouter);
+    app.use('/api/questions',   questionRouter);
+    app.use('/api/checkpoints', checkpointRouter);
+    app.use('/api/attachments', attachmentRouter);
+    app.use('/api/history',     historyRouter);
   },
 
-  /**
-   * Attach WebSocket upgrade handler and start background services.
-   * Must be called AFTER http.createServer(app).
-   */
-  bootstrap(server: Server): void {
-    server.on('upgrade', (request, socket, head) => {
-      const url      = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
-      const pathname = url.pathname;
-
-      if (!pathname.startsWith('/ws/chat')) return;
-
-      const projectId = Number(url.searchParams.get('projectId') ?? '0');
-      if (!projectId) { socket.destroy(); return; }
-
-      import('ws').then(({ WebSocketServer }) => {
-        const wss = new WebSocketServer({ noServer: true });
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          websocketManager.register(projectId, ws as any);
-          wss.emit('connection', ws, request);
-        });
-      }).catch(() => { socket.destroy(); });
-    });
-
+  bootstrap(server: http.Server): void {
+    websocketManager.initialize(server);
     heartbeatManager.start();
-    console.log('[chat] Module online — heartbeat ✓ SSE facade ✓ WS adapter ✓');
   },
-
-  // ── Legacy aliases (kept for backward compatibility) ─────────────────────
-  buildChatRouter(): Router { return chatRouter; },
-  attachWebSocket(server: Server): void { this.bootstrap(server); },
-  startPersistence(): void { heartbeatManager.start(); },
 };
 
-// ── Public API re-exports ─────────────────────────────────────────────────────
+// ── Re-exports for consumers of the chat module ───────────────────────────────
 
-export { conversationManager }   from './orchestration/conversation-manager.ts';
-export { sessionManager }        from './orchestration/session-manager.ts';
-export { turnManager }           from './orchestration/turn-manager.ts';
-export { streamManager }         from './orchestration/stream-manager.ts';
-export { messageBuilder }        from './messages/message-builder.ts';
-export { questionManager }       from './questions/question-manager.ts';
-export { answerManager }         from './questions/answer-manager.ts';
-export { clarificationManager }  from './questions/clarification-manager.ts';
-export { attachmentManager }     from './attachments/attachment-manager.ts';
-export { timelineManager }       from './timeline/timeline-manager.ts';
-export { chatStore }             from './persistence/chat-store.ts';
-export { eventPublisher }        from './realtime/event-publisher.ts';
-export { runStartRouter }; // imported at top; re-exported for external consumers
+export { conversationManager }  from './orchestration/conversation-manager.ts';
+export { questionManager }      from './questions/question-manager.ts';
+export { messageBuilder }       from './messages/message-builder.ts';
+export { contextLoader }        from './context/context-loader.ts';
+export { buildContext }         from './context/context-builder.ts';
+export { chatCheckpointStore }  from './persistence/checkpoint-store.ts';
+export { runWriter }            from './persistence/run-writer.ts';
+export { eventPublisher }       from './realtime/event-publisher.ts';
+export { timelineManager }      from './timeline/timeline-manager.ts';
 
-// ── Type re-exports ───────────────────────────────────────────────────────────
-
-export type { ChatRun, RunStartPayload, RunStatus } from './types/run.types.ts';
-export type { ChatMessageRecord, MessageRole, StreamChunk } from './types/message.types.ts';
-export type { ChatQuestion, AskQuestionPayload, AnswerPayload } from './types/question.types.ts';
-export type { Conversation, ChatSession, ChatTurn } from './types/chat.types.ts';
-export type { ChatEventType, ChatEvent } from './types/event.types.ts';
-export type { TimelineEntry, TimelineEntryKind } from './timeline/event-timeline.ts';
+export * from './types/chat.types.ts';
+export * from './types/run.types.ts';
+export * from './types/message.types.ts';
+export * from './types/checkpoint.types.ts';
+export * from './types/event.types.ts';
+export * from './types/question.types.ts';

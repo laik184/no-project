@@ -1,64 +1,38 @@
-/**
- * chat-controller.ts — Handles /api/chat/* route requests.
- * Request handling only: validate → call orchestrator → return response.
- *
- * Run start is handled by run-start.router.ts (POST /api/run).
- */
 import type { Request, Response } from 'express';
+import { messageStore }   from '../persistence/message-store.ts';
+import { messageBuilder } from '../messages/message-builder.ts';
+import { buildUserPayload } from '../messages/user-message.ts';
 import { conversationManager } from '../orchestration/conversation-manager.ts';
-import { messageStore }        from '../persistence/message-store.ts';
 import { sendMessageSchema, feedbackSchema } from '../schemas/chat.schema.ts';
 
 export const chatController = {
-  /**
-   * POST /api/chat/message — Persist a user message outside of a run.
-   */
   async sendMessage(req: Request, res: Response): Promise<void> {
     const parsed = sendMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ ok: false, errors: parsed.error.flatten() });
+      res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
       return;
     }
-
     try {
-      const { projectId, content, runId } = parsed.data;
-      const record = await messageStore.insertUser({ projectId, content, runId });
-      res.status(201).json({ ok: true, data: record });
+      const payload = buildUserPayload(parsed.data.projectId, parsed.data.content, parsed.data.runId);
+      const record  = await messageBuilder.buildUser(payload);
+      res.status(201).json(record);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ ok: false, error: message });
+      const message = err instanceof Error ? err.message : 'Failed to store message';
+      res.status(400).json({ error: message });
     }
   },
 
-  /**
-   * POST /api/chat/feedback — Set thumbs-up/down on a message.
-   */
-  async setFeedback(req: Request, res: Response): Promise<void> {
-    const parsed = feedbackSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ ok: false, errors: parsed.error.flatten() });
-      return;
-    }
-
-    try {
-      await messageStore.setFeedback(parsed.data.messageId, parsed.data.feedback);
-      res.json({ ok: true });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      res.status(500).json({ ok: false, error: message });
-    }
+  async feedback(req: Request, res: Response): Promise<void> {
+    const messageId = Number(req.params.id);
+    const parsed    = feedbackSchema.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: 'Invalid feedback' }); return; }
+    await messageStore.setFeedback(messageId, parsed.data.feedback);
+    res.json({ ok: true });
   },
 
-  /**
-   * GET /api/chat/conversations?projectId=N — List conversations for a project.
-   */
-  listConversations(req: Request, res: Response): void {
+  async listConversations(req: Request, res: Response): Promise<void> {
     const projectId = Number(req.query.projectId);
-    if (!Number.isInteger(projectId) || projectId <= 0) {
-      res.status(400).json({ ok: false, error: 'projectId is required and must be a positive integer' });
-      return;
-    }
-    const data = conversationManager.listByProject(projectId);
-    res.json({ ok: true, data });
+    if (!projectId) { res.status(400).json({ error: 'projectId required' }); return; }
+    res.json(conversationManager.listByProject(projectId));
   },
 };

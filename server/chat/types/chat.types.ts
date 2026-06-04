@@ -1,6 +1,6 @@
 export type ConversationStatus = 'active' | 'archived' | 'deleted';
-export type TurnStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-export type SessionStatus = 'open' | 'closing' | 'closed';
+export type TurnStatus         = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type SessionStatus      = 'open' | 'closing' | 'closed';
 
 export interface Conversation {
   conversationId: string;

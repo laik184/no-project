@@ -1,57 +1,28 @@
-/**
- * context-builder.ts — Assembles the LLM context window for a run.
- * Single responsibility: compose context from loaded messages + metadata.
- */
+import { contextWindow }   from './context-window.ts';
 import type { ChatMessageRecord } from '../types/message.types.ts';
-import { contextWindow } from './context-window.ts';
-
-export interface ContextEntry {
-  role:    string;
-  content: string;
-}
+import { DEFAULT_CONTEXT_WINDOW } from '../constants/chat.constants.ts';
 
 export interface BuiltContext {
-  entries:      ContextEntry[];
-  totalTokens:  number;
-  truncated:    boolean;
-  droppedCount: number;
+  entries:        ChatMessageRecord[];
+  systemPrompt?:  string;
+  tokenEstimate:  number;
 }
 
-/**
- * Build the context array from raw message records.
- * Applies sliding-window truncation to stay within budget.
- */
 export function buildContext(
-  messages:   ChatMessageRecord[],
-  systemPrompt?: string,
-  maxMessages = 40,
+  messages:       ChatMessageRecord[],
+  systemPrompt?:  string,
+  maxMessages  = DEFAULT_CONTEXT_WINDOW,
 ): BuiltContext {
-  const windowed   = contextWindow.apply(messages, maxMessages);
-  const truncated  = windowed.length < messages.length;
-  const dropped    = messages.length - windowed.length;
-
-  const entries: ContextEntry[] = [];
-
-  if (systemPrompt) {
-    entries.push({ role: 'system', content: systemPrompt });
-  }
-
-  for (const msg of windowed) {
-    entries.push({ role: msg.role, content: msg.content });
-  }
-
-  const totalTokens = entries.reduce(
-    (sum, e) => sum + Math.ceil(e.content.length / 4), 0,
-  );
-
-  return { entries, totalTokens, truncated, droppedCount: dropped };
+  const entries       = contextWindow.apply(messages, maxMessages);
+  const tokenEstimate = contextWindow.estimateTokens(entries);
+  return { entries, systemPrompt, tokenEstimate };
 }
 
-/**
- * Serialize context entries to a flat string for logging/debugging.
- */
 export function serializeContext(ctx: BuiltContext): string {
-  return ctx.entries
-    .map((e) => `[${e.role.toUpperCase()}]\n${e.content}`)
-    .join('\n\n---\n\n');
+  const parts: string[] = [];
+  if (ctx.systemPrompt) parts.push(`[System]\n${ctx.systemPrompt}`);
+  for (const m of ctx.entries) {
+    parts.push(`[${m.role.toUpperCase()}]\n${m.content}`);
+  }
+  return parts.join('\n\n');
 }

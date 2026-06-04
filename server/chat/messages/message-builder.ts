@@ -1,9 +1,5 @@
-/**
- * message-builder.ts — Builds persisted chat messages.
- * Single responsibility: coordinate messageStore inserts + event emission.
- */
-import { messageStore } from '../persistence/message-store.ts';
-import { eventPublisher } from '../realtime/event-publisher.ts';
+import { messageStore }         from '../persistence/message-store.ts';
+import { eventPublisher }       from '../realtime/event-publisher.ts';
 import { makeMessageCreatedEvent } from '../events/chat.events.ts';
 import type {
   ChatMessageRecord,
@@ -15,25 +11,22 @@ import type {
 export const messageBuilder = {
   async buildUser(payload: UserMessagePayload): Promise<ChatMessageRecord> {
     const record = await messageStore.insertUser(payload);
-    eventPublisher.publish(makeMessageCreatedEvent(
-      record.projectId, record.id, 'user', record.runId,
-    ));
+    eventPublisher.publish(
+      makeMessageCreatedEvent(record.projectId, record.id, 'user', record.runId) as Record<string, unknown>,
+    );
     return record;
   },
 
   async buildAssistant(payload: AssistantMessagePayload): Promise<ChatMessageRecord> {
     const record = await messageStore.insertAssistant(payload);
-    eventPublisher.publish(makeMessageCreatedEvent(
-      record.projectId, record.id, 'assistant', record.runId,
-    ));
+    eventPublisher.publish(
+      makeMessageCreatedEvent(record.projectId, record.id, 'assistant', record.runId) as Record<string, unknown>,
+    );
     return record;
   },
 
   async buildSystem(payload: SystemMessagePayload): Promise<ChatMessageRecord> {
     const record = await messageStore.insertSystem(payload);
-    eventPublisher.publish(makeMessageCreatedEvent(
-      record.projectId, record.id, 'system', record.runId,
-    ));
     return record;
   },
 };

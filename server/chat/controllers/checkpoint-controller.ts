@@ -1,153 +1,62 @@
-/**
- * server/chat/controllers/checkpoint-controller.ts
- * Request handling for checkpoint REST endpoints.
- */
 import type { Request, Response } from 'express';
-import { chatCheckpointStore } from '../persistence/checkpoint-store.ts';
-import { bus } from '../../infrastructure/index.ts';
-import {
-  makeCheckpointCreatedPayload,
-  makeCheckpointRollbackPayload,
-  makeCheckpointDeletedEvent,
-} from '../events/checkpoint.events.ts';
-import type { CheckpointListItem } from '../types/checkpoint.types.ts';
-
-function toListItem(
-  cp:     import('../types/checkpoint.types.ts').ChatCheckpoint,
-  status: 'stable' | 'rolled_back' | 'failed' | 'creating' = 'stable',
-): CheckpointListItem {
-  const sha = cp.gitCommitSha ?? undefined;
-  return {
-    id:            cp.id,
-    runId:         cp.runId,
-    projectId:     cp.projectId,
-    label:         cp.title,
-    title:         cp.title,
-    description:   cp.description,
-    trigger:       cp.trigger,
-    status,
-    filesChanged:  cp.filesChanged,
-    fileCount:     cp.filesChanged,
-    createdFiles:  cp.createdFiles,
-    modifiedFiles: cp.modifiedFiles,
-    deletedFiles:  cp.deletedFiles,
-    createdAt:     cp.createdAt.toISOString(),
-    gitCommitSha:  sha,
-    gitSha:        sha,
-  };
-}
+import { checkpointService } from '@services/chat';
 
 export const checkpointController = {
-
-  /** GET /api/checkpoints/:projectId */
   async list(req: Request, res: Response): Promise<void> {
-    const projectId = Number(req.params.projectId);
-    if (!projectId || isNaN(projectId)) {
-      res.status(400).json({ ok: false, error: 'Invalid projectId' });
-      return;
-    }
+    const projectId = Number(req.query.projectId);
+    if (!projectId) { res.status(400).json({ error: 'projectId required' }); return; }
     try {
-      const cps = await chatCheckpointStore.listByProject(projectId);
-      res.json({ ok: true, checkpoints: cps.map(cp => toListItem(cp)) });
+      const items = await checkpointService.listByProject(projectId);
+      res.json(items);
     } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to list checkpoints' });
     }
   },
 
-  /** GET /api/checkpoints/:projectId/:checkpointId */
   async get(req: Request, res: Response): Promise<void> {
     const { checkpointId } = req.params;
-    try {
-      const cp = await chatCheckpointStore.findById(checkpointId);
-      if (!cp) { res.status(404).json({ ok: false, error: 'Not found' }); return; }
-      res.json({ ok: true, checkpoint: toListItem(cp) });
-    } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
-    }
+    const cp = await checkpointService.findById(checkpointId);
+    if (!cp) { res.status(404).json({ error: 'Checkpoint not found' }); return; }
+    res.json(cp);
   },
 
-  /** POST /api/checkpoints/:projectId — manual checkpoint creation */
   async create(req: Request, res: Response): Promise<void> {
-    const projectId = Number(req.params.projectId);
-    if (!projectId || isNaN(projectId)) {
-      res.status(400).json({ ok: false, error: 'Invalid projectId' });
-      return;
-    }
-    const label = typeof req.body?.label === 'string' ? req.body.label.trim() : 'manual';
+    const { projectId, label } = req.body as { projectId?: number; label?: string };
+    if (!projectId || !label) { res.status(400).json({ error: 'projectId and label required' }); return; }
     try {
-      const cp = await chatCheckpointStore.createManual(projectId, label || 'manual');
-      const payload = makeCheckpointCreatedPayload(cp);
-      bus.emit('checkpoint', payload as unknown as Record<string, unknown>);
-      res.status(201).json({ ok: true, checkpoint: toListItem(cp) });
+      const cp = await checkpointService.createManual(projectId, label);
+      res.status(201).json(cp);
     } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to create checkpoint' });
     }
   },
 
-  /** POST /api/checkpoints/:projectId/:checkpointId/rollback */
   async rollback(req: Request, res: Response): Promise<void> {
-    const { projectId, checkpointId } = req.params;
-    try {
-      const result = await chatCheckpointStore.rollback(checkpointId);
-      if (!result.ok) {
-        res.status(400).json({ ok: false, error: result.error ?? 'Rollback failed' });
-        return;
-      }
-      const payload = makeCheckpointRollbackPayload(checkpointId, '', Number(projectId));
-      bus.emit('checkpoint', payload as unknown as Record<string, unknown>);
-      res.json({ ok: true, ...result });
-    } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
-    }
-  },
-
-  /** DELETE /api/checkpoints/:projectId/:checkpointId */
-  async delete(req: Request, res: Response): Promise<void> {
-    const { projectId, checkpointId } = req.params;
-    try {
-      const deleted = await chatCheckpointStore.deleteCheckpoint(checkpointId);
-      if (!deleted) {
-        res.status(404).json({ ok: false, error: 'Checkpoint not found' });
-        return;
-      }
-      const event = makeCheckpointDeletedEvent(checkpointId, Number(projectId));
-      bus.emit('checkpoint', event as unknown as Record<string, unknown>);
-      res.json({ ok: true, checkpointId });
-    } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
-    }
-  },
-
-  /**
-   * GET /api/checkpoints/:projectId/:checkpointId/diff?compareId=<id>
-   * Returns file-level diff between two checkpoint snapshots.
-   */
-  async diff(req: Request, res: Response): Promise<void> {
     const { checkpointId } = req.params;
-    const compareId = typeof req.query.compareId === 'string' ? req.query.compareId : '';
-    if (!compareId) {
-      res.status(400).json({ ok: false, error: 'compareId query param is required' });
-      return;
-    }
     try {
-      const diff = await chatCheckpointStore.diffCheckpoints(checkpointId, compareId);
-      const summary = `${diff.added.length} added, ${diff.removed.length} removed, ${diff.modified.length} modified`;
-      res.json({ ok: true, diff, summary });
+      const result = await checkpointService.rollback(checkpointId);
+      res.json(result);
     } catch (err) {
-      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Rollback failed' });
     }
   },
 
-  /** GET /api/checkpoints/:projectId/recovery/diagnostics — stub for hook compat */
-  diagnostics(_req: Request, res: Response): void {
-    res.json({
-      ok: true,
-      diagnostics: { locked: false, consecutiveFailures: 0, circuitOpen: false },
-    });
+  async diff(req: Request, res: Response): Promise<void> {
+    const { checkpointId }  = req.params;
+    const { compareId }     = req.query as { compareId?: string };
+    if (!compareId) { res.status(400).json({ error: 'compareId query param required' }); return; }
+    try {
+      const result = await checkpointService.diff(checkpointId, compareId);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Diff failed' });
+    }
   },
 
-  /** POST /api/checkpoints/:projectId/recovery/reset — stub for hook compat */
-  resetRecovery(_req: Request, res: Response): void {
-    res.json({ ok: true });
+  async delete(req: Request, res: Response): Promise<void> {
+    const { checkpointId } = req.params;
+    const deleted = await checkpointService.delete(checkpointId);
+    if (!deleted) { res.status(404).json({ error: 'Checkpoint not found' }); return; }
+    res.status(204).send();
   },
 };

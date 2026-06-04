@@ -1,14 +1,20 @@
-/**
- * run-store.ts — Delegates to runRepository (read methods).
- * Kept for backward-compat. Import runRepository directly for new code.
- */
 import { runRepository } from '../../repositories/chat/run.repository.ts';
-
-export type { ChatRun, RunStatus } from '../types/run.types.ts';
+import type { ChatRun } from '../types/run.types.ts';
 
 export const runStore = {
-  findById:           runRepository.findById.bind(runRepository),
-  findActiveByProject: runRepository.findActiveByProject.bind(runRepository),
-  listByProject:      runRepository.listByProject.bind(runRepository),
-  isActive:           runRepository.isActive.bind(runRepository),
+  async findById(runId: string): Promise<ChatRun | null> {
+    return runRepository.findById(runId);
+  },
+
+  async findActiveByProject(projectId: number): Promise<ChatRun | null> {
+    return runRepository.findActiveByProject(projectId);
+  },
+
+  async listByProject(projectId: number, limit = 20): Promise<ChatRun[]> {
+    return runRepository.listByProject(projectId, limit);
+  },
+
+  async isActive(runId: string): Promise<boolean> {
+    return runRepository.isActive(runId);
+  },
 };

@@ -1,19 +1,8 @@
-/**
- * conversation-store.ts — In-memory conversation state store.
- *
- * Conversations are logical groupings of runs per project.
- * Stored in memory (TTL-backed map) — DB persistence can be added
- * when a conversations table is added to the schema.
- */
+import crypto from 'crypto';
 import type { Conversation, ConversationSummary, ConversationStatus } from '../types/chat.types.ts';
 import { MAX_TITLE_LENGTH } from '../constants/chat.constants.ts';
-import crypto from 'crypto';
 
 const _store = new Map<string, Conversation>();
-
-function makeId(): string {
-  return crypto.randomUUID();
-}
 
 function deriveTitleFromGoal(goal: string): string {
   const trimmed = goal.trim().replace(/\s+/g, ' ');
@@ -26,7 +15,7 @@ export const conversationStore = {
   create(projectId: number, goal: string): Conversation {
     const now = new Date();
     const conv: Conversation = {
-      conversationId: makeId(),
+      conversationId: crypto.randomUUID(),
       projectId,
       status:         'active',
       title:          deriveTitleFromGoal(goal),
@@ -63,7 +52,7 @@ export const conversationStore = {
   incrementMessageCount(conversationId: string): void {
     const conv = _store.get(conversationId);
     if (!conv) return;
-    conv.messageCount += 1;
+    conv.messageCount++;
     conv.lastMessageAt = new Date();
     conv.updatedAt     = new Date();
   },

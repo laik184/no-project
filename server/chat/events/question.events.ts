@@ -1,11 +1,8 @@
-/**
- * question.events.ts — Question/answer event factories.
- */
-import { CHAT_EVENT } from '../constants/event.constants.ts';
 import type { ChatQuestion } from '../types/question.types.ts';
 
 export interface QuestionAskedEvent {
-  type:       typeof CHAT_EVENT.QUESTION_ASKED;
+  eventType: string;
+  type:      string;
   questionId: string;
   runId:      string;
   projectId:  number;
@@ -16,7 +13,8 @@ export interface QuestionAskedEvent {
 }
 
 export interface QuestionAnsweredEvent {
-  type:       typeof CHAT_EVENT.QUESTION_ANSWERED;
+  eventType:  string;
+  type:       string;
   questionId: string;
   runId:      string;
   projectId:  number;
@@ -24,15 +22,16 @@ export interface QuestionAnsweredEvent {
   ts:         number;
 }
 
-export function makeQuestionAskedEvent(q: ChatQuestion): QuestionAskedEvent {
+export function makeQuestionAskedEvent(question: ChatQuestion): QuestionAskedEvent {
   return {
-    type:       CHAT_EVENT.QUESTION_ASKED,
-    questionId: q.questionId,
-    runId:      q.runId,
-    projectId:  q.projectId,
-    kind:       q.kind,
-    text:       q.text,
-    options:    q.options,
+    eventType:  'chat.question.asked',
+    type:       'chat.question.asked',
+    questionId: question.questionId,
+    runId:      question.runId,
+    projectId:  question.projectId,
+    kind:       question.kind,
+    text:       question.text,
+    options:    question.options,
     ts:         Date.now(),
   };
 }
@@ -43,5 +42,13 @@ export function makeQuestionAnsweredEvent(
   projectId:  number,
   answer:     string,
 ): QuestionAnsweredEvent {
-  return { type: CHAT_EVENT.QUESTION_ANSWERED, questionId, runId, projectId, answer, ts: Date.now() };
+  return {
+    eventType:  'chat.question.answered',
+    type:       'chat.question.answered',
+    questionId,
+    runId,
+    projectId,
+    answer,
+    ts: Date.now(),
+  };
 }

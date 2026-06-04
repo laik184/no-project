@@ -1,27 +1,13 @@
-/**
- * question-manager.ts — In-memory lifecycle manager for chat questions.
- * Owns: create, find, expire, cancel questions.
- */
 import crypto from 'crypto';
 import type { ChatQuestion, AskQuestionPayload, QuestionStatus } from '../types/question.types.ts';
 import { QUESTION_TTL_MS } from '../constants/stream.constants.ts';
 
 const _questions = new Map<string, ChatQuestion>();
 
-function evictExpired(): void {
-  const now = new Date();
-  for (const [id, q] of _questions) {
-    if (q.expiresAt && q.expiresAt <= now && q.status === 'pending') {
-      q.status = 'expired';
-      _questions.set(id, q);
-    }
-  }
-}
-
 export const questionManager = {
   create(payload: AskQuestionPayload): ChatQuestion {
-    evictExpired();
-    const now = new Date();
+    const now       = new Date();
+    const ttl       = payload.ttlMs ?? QUESTION_TTL_MS;
     const question: ChatQuestion = {
       questionId: crypto.randomUUID(),
       runId:      payload.runId,
@@ -31,32 +17,37 @@ export const questionManager = {
       options:    payload.options,
       status:     'pending',
       askedAt:    now,
-      expiresAt:  new Date(now.getTime() + (payload.ttlMs ?? QUESTION_TTL_MS)),
+      expiresAt:  new Date(now.getTime() + ttl),
     };
     _questions.set(question.questionId, question);
+
+    setTimeout(() => {
+      const q = _questions.get(question.questionId);
+      if (q && q.status === 'pending') {
+        q.status = 'expired';
+      }
+    }, ttl);
+
     return question;
   },
 
   get(questionId: string): ChatQuestion | null {
-    evictExpired();
     return _questions.get(questionId) ?? null;
   },
 
   answer(questionId: string, answer: string): ChatQuestion | null {
     const q = _questions.get(questionId);
     if (!q || q.status !== 'pending') return null;
-    q.status     = 'answered';
-    q.answer     = answer;
-    q.answeredAt = new Date();
-    _questions.set(questionId, q);
+    q.status      = 'answered';
+    q.answer      = answer;
+    q.answeredAt  = new Date();
     return q;
   },
 
   cancel(questionId: string): boolean {
     const q = _questions.get(questionId);
-    if (!q || q.status !== 'pending') return false;
+    if (!q) return false;
     q.status = 'cancelled';
-    _questions.set(questionId, q);
     return true;
   },
 
@@ -72,12 +63,10 @@ export const questionManager = {
   },
 
   listPendingByRun(runId: string): ChatQuestion[] {
-    evictExpired();
-    return Array.from(_questions.values())
-      .filter((q) => q.runId === runId && q.status === 'pending');
+    return [..._questions.values()].filter(
+      (q) => q.runId === runId && q.status === 'pending',
+    );
   },
 
-  size(): number {
-    return _questions.size;
-  },
+  size(): number { return _questions.size; },
 };

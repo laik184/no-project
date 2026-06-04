@@ -1,19 +1,10 @@
-/**
- * history.routes.ts — Route registration for /api/chat/history/* endpoints.
- * Route registration only — no business logic.
- */
 import { Router } from 'express';
 import { historyController } from '../controllers/history-controller.ts';
 
 const router = Router();
 
-/** Paginated history (runs + messages) for a project. */
-router.get('/', (req, res) => historyController.getHistory(req, res));
+router.get('/',                    (req, res) => historyController.getHistory(req, res));
+router.get('/messages',            (req, res) => historyController.getMessagesByProject(req, res));
+router.get('/runs/:runId/messages',(req, res) => historyController.getMessagesByRun(req, res));
 
-/** Recent messages for a project. */
-router.get('/messages', (req, res) => historyController.getProjectMessages(req, res));
-
-/** All messages for a specific run. */
-router.get('/run/:runId', (req, res) => historyController.getRunMessages(req, res));
-
-export { router as historyRoutes };
+export { router as historyRouter };
