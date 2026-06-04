@@ -1,0 +1,331 @@
+DEEP SCAN — AGENT LIFECYCLE STATE AUDIT
+
+OBJECTIVE
+
+Verify whether the complete agent lifecycle exists end-to-end and whether every state is emitted, transported, consumed, and rendered correctly.
+
+Do NOT fix anything.
+
+Do NOT refactor.
+
+Do NOT change architecture.
+
+Only perform a deep scan and generate a report with evidence.
+
+==================================================
+TARGET STATES
+
+Idle
+Thinking
+Planning
+Delegating
+Working
+Writing
+Editing
+Testing
+Verifying
+Deploying
+Completed
+Failed
+Cancelled
+
+==================================================
+PHASE 1 — BACKEND EVENT DISCOVERY
+
+Scan:
+
+server/chat/events/**
+server/chat/realtime/**
+server/orchestration/**
+server/agents/**
+
+Find:
+
+1. Every lifecycle event emitted.
+2. Every status emitted.
+3. Every phase emitted.
+4. Every run state emitted.
+5. Every tool execution state emitted.
+
+For each event provide:
+
+Event Name
+Payload
+File
+Function
+Line Number
+
+Output:
+
+Lifecycle Event Inventory
+
+==================================================
+PHASE 2 — ORCHESTRATION FLOW TRACE
+
+Trace:
+
+User Request
+↓
+Planner
+↓
+Executor
+↓
+Tool Execution
+↓
+Verification
+↓
+Completion
+
+Scan:
+
+server/orchestration/**
+server/agents/planner/**
+server/agents/executor/**
+server/agents/supervisor/**
+server/agents/filesystem/**
+server/agents/browser/**
+
+Determine:
+
+1. Where Thinking starts.
+2. Where Planning starts.
+3. Where Delegation happens.
+4. Where Working begins.
+5. Where Verification begins.
+6. Where Completion occurs.
+7. Where Failure occurs.
+8. Where Cancellation occurs.
+
+Output:
+
+Full Lifecycle Timeline
+
+==================================================
+PHASE 3 — TOOL EXECUTION STATES
+
+Scan:
+
+server/tools/**
+server/agents/executor/**
+server/agents//coordination/
+
+Determine:
+
+Does system emit:
+
+Working
+Writing
+Editing
+Testing
+Deploying
+
+If yes:
+
+Show exact event.
+
+If no:
+
+Mark as missing.
+
+Output:
+
+Tool Lifecycle Coverage
+
+==================================================
+PHASE 4 — SSE / WEBSOCKET TRANSPORT
+
+Scan:
+
+server/chat/realtime/event-publisher.ts
+server/chat/realtime/sse-manager.ts
+server/chat/realtime/websocket-manager.ts
+server/chat/events/**
+
+Trace:
+
+Backend Event
+↓
+Publisher
+↓
+SSE Topic
+↓
+WebSocket
+↓
+Client
+
+Verify:
+
+1. Event emitted.
+2. Event published.
+3. Event reaches frontend.
+
+Output:
+
+Transport Audit
+
+==================================================
+PHASE 5 — FRONTEND EVENT CONSUMPTION
+
+Scan:
+
+client/src/components/chat/agent-event-handler.ts
+
+client/src/components/chat/handlers/
+
+message-handler.ts
+plan-handler.ts
+stream-handler.ts
+tool-handler.ts
+
+buildSubscriptions.ts
+
+Determine:
+
+1. Which lifecycle events are consumed.
+2. Which events are ignored.
+3. Which events have no handler.
+
+Output:
+
+Frontend Consumption Matrix
+
+==================================================
+PHASE 6 — FRONTEND STATE MANAGEMENT
+
+Scan:
+
+client/src/components/chat/useAgentRunner.ts
+
+Find:
+
+1. Agent state variables.
+2. Phase variables.
+3. Status variables.
+4. Loading variables.
+
+Determine:
+
+How UI knows:
+
+Thinking
+Working
+Completed
+Failed
+
+Output:
+
+State Management Report
+
+==================================================
+PHASE 7 — UI RENDERING AUDIT
+
+Scan:
+
+client/src/components/chat/
+
+TypingIndicator.tsx
+LiveActionBar.tsx
+ActionTimeline.tsx
+ActionSummaryBar.tsx
+ChatMessages.tsx
+
+Determine:
+
+Which states are actually rendered.
+
+For each state:
+
+Rendered
+Not Rendered
+
+Output:
+
+UI State Coverage
+
+==================================================
+PHASE 8 — END-TO-END TRACE
+
+Simulate:
+
+"Create HTML file"
+
+Trace:
+
+User
+↓
+Run Started
+↓
+Thinking
+↓
+Planning
+↓
+Delegating
+↓
+Working
+↓
+Writing
+↓
+Testing
+↓
+Verifying
+↓
+Completed
+
+Verify each stage.
+
+For every stage:
+
+PASS
+FAIL
+MISSING
+
+==================================================
+PHASE 9 — GAP ANALYSIS
+
+Identify:
+
+1. States emitted but never shown.
+2. States shown but never emitted.
+3. States handled but never triggered.
+4. States triggered but never transported.
+5. Missing lifecycle states.
+
+==================================================
+FINAL REPORT
+
+Provide:
+
+1. Backend Lifecycle Map
+2. Event Inventory
+3. Transport Audit
+4. Frontend State Audit
+5. UI State Audit
+6. End-to-End Workflow Trace
+7. Missing States
+8. Broken States
+9. Unused States
+10. Lifecycle Coverage Percentage
+
+Most Important:
+
+Confirm whether these states truly exist and function:
+
+Idle
+Thinking
+Planning
+Delegating
+Working
+Writing
+Editing
+Testing
+Verifying
+Deploying
+Completed
+Failed
+Cancelled
+
+Provide evidence for every conclusion.
+
+DO NOT FIX ANYTHING.
+
+ONLY DEEP SCAN AND REPORT.
