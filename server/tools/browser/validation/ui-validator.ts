@@ -5,14 +5,14 @@
  */
 
 import type { Page }                        from 'playwright';
-import type { UIValidationResult, UICheck } from '../../../agents/browser/types/validation.types.ts';
-import type { ConsoleError }                from '../../../agents/browser/types/validation.types.ts';
-import { buildRootAppSelectors }            from '../../../agents/browser/utils/dom-utils.ts';
+import type { UIValidationResult, UICheck } from '../../../shared/browser/types/validation.types.ts';
+import type { ConsoleError }                from '../../../shared/browser/types/validation.types.ts';
+import { buildRootAppSelectors }            from '../../../shared/browser/utils/dom-utils.ts';
 import { emitValidationFailed,
-         emitValidationPassed }             from '../../../agents/browser/events/browser-events.ts';
-import { browserLogger }                    from '../../../agents/browser/telemetry/browser-logger.ts';
-import { browserMetrics }                   from '../../../agents/browser/telemetry/browser-metrics.ts';
-import { elapsed }                          from '../../../agents/browser/utils/performance-utils.ts';
+         emitValidationPassed }             from '../../../shared/browser/events/browser-events.ts';
+import { browserLogger }                    from '../../../shared/browser/telemetry/browser-logger.ts';
+import { browserMetrics }                   from '../../../shared/browser/telemetry/browser-metrics.ts';
+import { elapsed }                          from '../../../shared/browser/utils/performance-utils.ts';
 
 const ROOT_VISIBLE_TIMEOUT_MS = 5_000;
 

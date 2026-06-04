@@ -5,9 +5,9 @@
  */
 
 import type { Page, Locator }   from 'playwright';
-import { isSafeSelector }       from '../../../agents/browser/utils/dom-utils.ts';
-import { emitElementNotFound }  from '../../../agents/browser/events/interaction-events.ts';
-import { browserLogger }        from '../../../agents/browser/telemetry/browser-logger.ts';
+import { isSafeSelector }       from '../../../shared/browser/utils/dom-utils.ts';
+import { emitElementNotFound }  from '../../../shared/browser/events/interaction-events.ts';
+import { browserLogger }        from '../../../shared/browser/telemetry/browser-logger.ts';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 

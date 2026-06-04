@@ -6,7 +6,7 @@
  * Fail-closed: getSession() throws if no session exists for the runId.
  */
 
-import type { LiveBrowserSession } from '../../../agents/browser/core/browser-session.ts';
+import type { LiveBrowserSession } from '../../../shared/browser/core/browser-session.ts';
 import { noSessionError }          from '../shared/browser-errors.ts';
 
 const sessions = new Map<string, LiveBrowserSession>();

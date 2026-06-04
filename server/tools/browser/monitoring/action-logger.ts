@@ -7,7 +7,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
-import { actionTrace }                                from '../../../agents/browser/telemetry/action-trace.ts';
+import { actionTrace }                                from '../../../shared/browser/telemetry/action-trace.ts';
 
 export const browserGetActionLogTool: ToolDefinition = {
   name:        'browser_get_action_log',

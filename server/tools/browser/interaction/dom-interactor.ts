@@ -10,11 +10,11 @@ import {
   emitFillResult,
   emitSelectResult,
   emitInteractionFailed,
-}                                          from '../../../agents/browser/events/interaction-events.ts';
-import { browserLogger }                   from '../../../agents/browser/telemetry/browser-logger.ts';
-import { browserMetrics }                  from '../../../agents/browser/telemetry/browser-metrics.ts';
-import { actionTrace }                     from '../../../agents/browser/telemetry/action-trace.ts';
-import { elapsed, clampTimeout }           from '../../../agents/browser/utils/performance-utils.ts';
+}                                          from '../../../shared/browser/events/interaction-events.ts';
+import { browserLogger }                   from '../../../shared/browser/telemetry/browser-logger.ts';
+import { browserMetrics }                  from '../../../shared/browser/telemetry/browser-metrics.ts';
+import { actionTrace }                     from '../../../shared/browser/telemetry/action-trace.ts';
+import { elapsed, clampTimeout }           from '../../../shared/browser/utils/performance-utils.ts';
 
 const DEFAULT_INTERACTION_TIMEOUT = 5_000;
 

@@ -5,7 +5,7 @@
 
 import type { Page }                   from 'playwright';
 import type { FlowStep, FlowResult,
-              FlowStepResult }          from '../../../agents/browser/types/navigation.types.ts';
+              FlowStepResult }          from '../../../shared/browser/types/navigation.types.ts';
 import { navigateToUrl }               from './page-navigator.ts';
 import { clickElement, fillInput,
          selectOption }                from '../interaction/dom-interactor.ts';
@@ -13,10 +13,10 @@ import { waitForElement }              from '../interaction/element-finder.ts';
 import {
   emitFlowStarted, emitFlowCompleted,
   emitFlowStepCompleted,
-}                                      from '../../../agents/browser/events/navigation-events.ts';
-import { browserLogger }               from '../../../agents/browser/telemetry/browser-logger.ts';
-import { browserMetrics }              from '../../../agents/browser/telemetry/browser-metrics.ts';
-import { elapsed, clampTimeout }       from '../../../agents/browser/utils/performance-utils.ts';
+}                                      from '../../../shared/browser/events/navigation-events.ts';
+import { browserLogger }               from '../../../shared/browser/telemetry/browser-logger.ts';
+import { browserMetrics }              from '../../../shared/browser/telemetry/browser-metrics.ts';
+import { elapsed, clampTimeout }       from '../../../shared/browser/utils/performance-utils.ts';
 import { takeScreenshot }              from '../capture/screenshot-taker.ts';
 
 const DEFAULT_STEP_TIMEOUT_MS = 8_000;

@@ -10,7 +10,7 @@ export type {
   BrowserSessionStatus,
   BrowserLaunchOptions,
   BrowserHealthStatus,
-} from '../../../agents/browser/types/browser.types.ts';
+} from '../../../shared/browser/types/browser.types.ts';
 
 export type {
   NavigationResult,
@@ -20,7 +20,7 @@ export type {
   FlowResult,
   FlowStepResult,
   ResponsiveTestResult,
-} from '../../../agents/browser/types/navigation.types.ts';
+} from '../../../shared/browser/types/navigation.types.ts';
 
 export type {
   UIValidationResult,
@@ -31,16 +31,16 @@ export type {
   CrashType,
   VisualDiffResult,
   PerformanceValidation,
-} from '../../../agents/browser/types/validation.types.ts';
+} from '../../../shared/browser/types/validation.types.ts';
 
 export type {
   BrowserReport,
   ScreenshotMeta,
   ActionEntry,
   PerformanceSummary,
-} from '../../../agents/browser/types/reporting.types.ts';
+} from '../../../shared/browser/types/reporting.types.ts';
 
-export type { LiveBrowserSession } from '../../../agents/browser/core/browser-session.ts';
+export type { LiveBrowserSession } from '../../../shared/browser/core/browser-session.ts';
 
 // ── Tool-layer input / output shapes ──────────────────────────────────────────
 

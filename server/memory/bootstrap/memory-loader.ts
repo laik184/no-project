@@ -20,8 +20,9 @@
  */
 
 import { memoryEngine } from '../core/memory-engine.ts';
-import type { ExecutionHistoryEntry, FailurePattern, LearnedEntry, LearnedKind, TaskKind }
-  from '../../agents/executor/index.ts';
+import type { ExecutionHistoryEntry, TaskKind } from '../stores/execution-history.ts';
+import type { FailurePattern }                  from '../stores/failure-memory.ts';
+import type { LearnedEntry, LearnedKind }       from '../stores/learning-store.ts';
 
 const VALID_TASK_KINDS = new Set<TaskKind>(['terminal', 'filesystem', 'coding', 'verify', 'browser']);
 

@@ -4,14 +4,14 @@
  */
 
 import type { Page }                   from 'playwright';
-import type { PerformanceValidation }  from '../../../agents/browser/types/validation.types.ts';
-import type { PerformanceSummary }     from '../../../agents/browser/types/reporting.types.ts';
+import type { PerformanceValidation }  from '../../../shared/browser/types/validation.types.ts';
+import type { PerformanceSummary }     from '../../../shared/browser/types/reporting.types.ts';
 import {
   PERF_THRESHOLDS,
   isWithinLoadThreshold,
   formatMs,
-}                                      from '../../../agents/browser/utils/performance-utils.ts';
-import { browserLogger }               from '../../../agents/browser/telemetry/browser-logger.ts';
+}                                      from '../../../shared/browser/utils/performance-utils.ts';
+import { browserLogger }               from '../../../shared/browser/telemetry/browser-logger.ts';
 
 interface RawNavigationTiming {
   loadEventEnd:          number;

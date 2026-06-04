@@ -5,7 +5,7 @@
  * Does NOT own session lifecycle — use browser-lifecycle.ts for that.
  */
 
-import { openNewPage }  from '../../../agents/browser/core/browser-session.ts';
+import { openNewPage }  from '../../../shared/browser/core/browser-session.ts';
 import { getSession }   from './browser-context.ts';
 import type { Page }    from 'playwright';
 

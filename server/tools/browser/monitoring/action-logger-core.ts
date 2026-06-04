@@ -3,8 +3,8 @@
  * ONLY responsible for logging browser actions to the run action trace.
  */
 
-import { actionTrace }    from '../../../agents/browser/telemetry/action-trace.ts';
-import { browserLogger }  from '../../../agents/browser/telemetry/browser-logger.ts';
+import { actionTrace }    from '../../../shared/browser/telemetry/action-trace.ts';
+import { browserLogger }  from '../../../shared/browser/telemetry/browser-logger.ts';
 
 export interface LoggedAction {
   runId:     string;

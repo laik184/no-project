@@ -5,7 +5,7 @@
  * Fail-closed: only localhost, sandbox, and explicitly allowed hosts pass.
  */
 
-import { isAllowedUrl, normalizeUrl } from '../../../agents/browser/utils/navigation-utils.ts';
+import { isAllowedUrl, normalizeUrl } from '../../../shared/browser/utils/navigation-utils.ts';
 
 export interface UrlValidation {
   valid:        boolean;

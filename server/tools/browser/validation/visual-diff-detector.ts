@@ -5,11 +5,11 @@
  */
 
 import fs                                  from 'fs';
-import type { VisualDiffResult }           from '../../../agents/browser/types/validation.types.ts';
+import type { VisualDiffResult }           from '../../../shared/browser/types/validation.types.ts';
 import { buildBaselinePath,
          readScreenshotBuffer,
-         saveBaseline }                    from '../../../agents/browser/utils/screenshot-utils.ts';
-import { browserLogger }                   from '../../../agents/browser/telemetry/browser-logger.ts';
+         saveBaseline }                    from '../../../shared/browser/utils/screenshot-utils.ts';
+import { browserLogger }                   from '../../../shared/browser/telemetry/browser-logger.ts';
 
 const DEFAULT_DIFF_THRESHOLD = 0.05; // 5% size deviation allowed
 

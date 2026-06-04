@@ -4,9 +4,9 @@
  */
 
 import type { Page }              from 'playwright';
-import type { BrowserHealthStatus } from '../../../agents/browser/types/browser.types.ts';
-import { emitBrowserCrashed }     from '../../../agents/browser/events/browser-events.ts';
-import { browserLogger }          from '../../../agents/browser/telemetry/browser-logger.ts';
+import type { BrowserHealthStatus } from '../../../shared/browser/types/browser.types.ts';
+import { emitBrowserCrashed }     from '../../../shared/browser/events/browser-events.ts';
+import { browserLogger }          from '../../../shared/browser/telemetry/browser-logger.ts';
 
 const HEALTH_CHECK_TIMEOUT_MS = 3_000;
 

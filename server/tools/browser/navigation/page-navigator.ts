@@ -5,13 +5,13 @@
  */
 
 import type { Page }                                   from 'playwright';
-import type { NavigationResult }                       from '../../../agents/browser/types/navigation.types.ts';
-import { isAllowedUrl, normalizeUrl, isBlankPage }    from '../../../agents/browser/utils/navigation-utils.ts';
+import type { NavigationResult }                       from '../../../shared/browser/types/navigation.types.ts';
+import { isAllowedUrl, normalizeUrl, isBlankPage }    from '../../../shared/browser/utils/navigation-utils.ts';
 import { emitNavigationStarted, emitNavigationCompleted,
-         emitNavigationFailed }                        from '../../../agents/browser/events/navigation-events.ts';
-import { browserLogger }                               from '../../../agents/browser/telemetry/browser-logger.ts';
-import { actionTrace }                                 from '../../../agents/browser/telemetry/action-trace.ts';
-import { elapsed }                                     from '../../../agents/browser/utils/performance-utils.ts';
+         emitNavigationFailed }                        from '../../../shared/browser/events/navigation-events.ts';
+import { browserLogger }                               from '../../../shared/browser/telemetry/browser-logger.ts';
+import { actionTrace }                                 from '../../../shared/browser/telemetry/action-trace.ts';
+import { elapsed }                                     from '../../../shared/browser/utils/performance-utils.ts';
 
 const NAV_TIMEOUT_MS    = 20_000;
 const WAIT_STATE        = 'domcontentloaded' as const;

@@ -6,8 +6,8 @@
  * Converts BrowserLifecyclePayload → BrowserSessionEvent for the bus.
  */
 
-import { bus }           from '../../../infrastructure/index.ts';
-import { browserBus }    from './browser-events.ts';
+import { publishBrowserSession } from './browser-event-publisher.ts';
+import { browserBus }            from './browser-events.ts';
 import type { BrowserLifecyclePayload } from './browser-events.ts';
 
 // ── Mapping helpers ───────────────────────────────────────────────────────────
@@ -28,20 +28,16 @@ function forward(
   evType: string,
   payload: BrowserLifecyclePayload,
 ): void {
-  try {
-    bus.emit('browser.session', {
-      type:            toBusType(evType),
-      sessionId:       payload.sessionId,
-      runId:           payload.runId,
-      url:             payload.url,
-      label:           payload.label,
-      screenshotPath:  payload.screenshotPath,
-      error:           payload.error,
-      timestamp:       payload.ts,
-    });
-  } catch {
-    // Never let bridge errors propagate into the emitter
-  }
+  publishBrowserSession({
+    type:            toBusType(evType),
+    sessionId:       payload.sessionId,
+    runId:           payload.runId,
+    url:             payload.url,
+    label:           payload.label,
+    screenshotPath:  payload.screenshotPath,
+    error:           payload.error,
+    timestamp:       payload.ts,
+  });
 }
 
 // ── Wire-up ───────────────────────────────────────────────────────────────────

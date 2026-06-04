@@ -7,7 +7,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                        from '../../registry/tool-metadata.ts';
-import { browserMetrics }                             from '../../../agents/browser/telemetry/browser-metrics.ts';
+import { browserMetrics }                             from '../../../shared/browser/telemetry/browser-metrics.ts';
 
 export const browserGetMetricsTool: ToolDefinition = {
   name:        'browser_get_metrics',

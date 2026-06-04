@@ -7,12 +7,12 @@ import type { Page } from 'playwright';
 import {
   buildScreenshotPath,
   getScreenshotSize,
-} from '../../../agents/browser/utils/screenshot-utils.ts';
-import { emitScreenshotCaptured }         from '../../../agents/browser/events/browser-events.ts';
-import { browserMetrics }                  from '../../../agents/browser/telemetry/browser-metrics.ts';
-import { actionTrace }                     from '../../../agents/browser/telemetry/action-trace.ts';
-import { browserLogger }                   from '../../../agents/browser/telemetry/browser-logger.ts';
-import type { ScreenshotMeta }             from '../../../agents/browser/types/reporting.types.ts';
+} from '../../../shared/browser/utils/screenshot-utils.ts';
+import { emitScreenshotCaptured }         from '../../../shared/browser/events/browser-events.ts';
+import { browserMetrics }                  from '../../../shared/browser/telemetry/browser-metrics.ts';
+import { actionTrace }                     from '../../../shared/browser/telemetry/action-trace.ts';
+import { browserLogger }                   from '../../../shared/browser/telemetry/browser-logger.ts';
+import type { ScreenshotMeta }             from '../../../shared/browser/types/reporting.types.ts';
 
 export interface ScreenshotOptions {
   fullPage?: boolean;

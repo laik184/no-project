@@ -6,7 +6,7 @@
 
 import type { Page }        from 'playwright';
 import { isElementVisible } from './element-finder.ts';
-import { browserLogger }    from '../../../agents/browser/telemetry/browser-logger.ts';
+import { browserLogger }    from '../../../shared/browser/telemetry/browser-logger.ts';
 
 export interface UIStateSnapshot {
   url:           string;
