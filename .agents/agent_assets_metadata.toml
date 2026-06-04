@@ -414,3 +414,9 @@ id = "-sBMib-3uaw9xGUdAJWzm"
 uri = "file://INFRASTRUCTURE_CLEANUP_REPORT.md"
 type = "text"
 title = "Infrastructure Cleanup Report"
+
+[[outputs]]
+id = "DhLCqkWMN4MCvUdnFPrW-"
+uri = "file://ROOT_CAUSE_REPORT.md"
+type = "text"
+title = "Root Cause Analysis Report"
