@@ -14,8 +14,7 @@
 import { questionManager } from '../questions/question-manager.ts';
 import { contextCache }    from '../context/context-cache.ts';
 import { eventTimeline }   from '../timeline/event-timeline.ts';
-import { turnManager }     from '../orchestration/turn-manager.ts';
-import { streamManager }   from '../orchestration/stream-manager.ts';
+import { turnManager, streamManager } from '../../services/chat/index.ts';
 
 /**
  * Release all per-run in-memory chat state.

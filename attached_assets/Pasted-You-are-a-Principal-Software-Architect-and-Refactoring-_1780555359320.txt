@@ -1,0 +1,217 @@
+You are a Principal Software Architect and Refactoring Specialist.
+
+MISSION
+
+Perform a DEEP SCAN first.
+
+Do NOT move anything until the scan is complete.
+
+Use actual imports and actual code only.
+
+After the scan, execute the refactor ONLY if dependencies are safe.
+
+Do not change runtime behavior.
+
+Do not change APIs.
+
+Do not change business logic.
+
+Do not change function names.
+
+Only perform layer extraction and import updates.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — CHAT SERVICE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan:
+
+server/chat/**
+
+Identify all files currently acting as services.
+
+Expected candidates:
+
+server/chat/orchestration/chat-orchestrator.ts
+
+server/chat/orchestration/session-manager.ts
+
+server/chat/orchestration/turn-manager.ts
+
+server/chat/orchestration/stream-manager.ts
+
+server/chat/intent/intent-router.ts
+
+server/chat/questions/clarification-manager.ts
+
+server/chat/llm/chat-responder.ts
+
+For each file report:
+
+- Full path
+- Imports
+- Imported by
+- Runtime responsibility
+- Dependency risk
+- Safe to move? (YES/NO)
+
+Do not move yet.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — DEPENDENCY SAFETY CHECK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build dependency graph for all candidate service files.
+
+Verify:
+
+- No circular imports will be introduced
+- No chat route will break
+- No controller will break
+- No persistence import will break
+- No frontend API contract will break
+
+Generate migration impact report.
+
+Only continue if safe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — CREATE CHAT SERVICE LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/services/chat/
+
+Structure:
+
+server/services/chat/
+├── index.ts
+├── chat-orchestrator.service.ts
+├── session.service.ts
+├── turn.service.ts
+├── stream.service.ts
+├── intent.service.ts
+├── clarification.service.ts
+└── chat-responder.service.ts
+
+Move implementation from:
+
+server/chat/orchestration/chat-orchestrator.ts
+server/chat/orchestration/session-manager.ts
+server/chat/orchestration/turn-manager.ts
+server/chat/orchestration/stream-manager.ts
+server/chat/intent/intent-router.ts
+server/chat/questions/clarification-manager.ts
+server/chat/llm/chat-responder.ts
+
+into corresponding service files.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — PUBLIC ENTRY POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+server/services/chat/index.ts
+
+Export ONLY public service APIs.
+
+Example:
+
+export { chatOrchestratorService } from './chat-orchestrator.service';
+export { sessionService } from './session.service';
+export { turnService } from './turn.service';
+export { streamService } from './stream.service';
+export { intentService } from './intent.service';
+export { clarificationService } from './clarification.service';
+export { chatResponderService } from './chat-responder.service';
+
+This becomes the ONLY import surface.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — UPDATE IMPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace all direct imports of:
+
+server/chat/orchestration/chat-orchestrator.ts
+server/chat/orchestration/session-manager.ts
+server/chat/orchestration/turn-manager.ts
+server/chat/orchestration/stream-manager.ts
+server/chat/intent/intent-router.ts
+server/chat/questions/clarification-manager.ts
+server/chat/llm/chat-responder.ts
+
+with:
+
+server/services/chat/index.ts
+
+Use barrel imports only.
+
+Example:
+
+OLD:
+
+import { chatOrchestrator } from '../../chat/orchestration/chat-orchestrator';
+
+NEW:
+
+import { chatOrchestratorService } from '../../services/chat';
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — BACKWARD COMPATIBILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do NOT break existing modules.
+
+Leave thin compatibility shims in original locations:
+
+server/chat/orchestration/chat-orchestrator.ts
+server/chat/orchestration/session-manager.ts
+server/chat/orchestration/turn-manager.ts
+server/chat/orchestration/stream-manager.ts
+server/chat/intent/intent-router.ts
+server/chat/questions/clarification-manager.ts
+server/chat/llm/chat-responder.ts
+
+Each file should only re-export from:
+
+server/services/chat/
+
+No business logic remains in old locations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — VALIDATION SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After migration:
+
+Verify:
+
+- All chat services imported through server/services/chat/index.ts
+- No broken imports
+- No circular dependencies
+- TypeScript build passes
+- ESLint passes
+- Runtime behavior unchanged
+
+Generate final report:
+
+1. Files moved
+2. Files updated
+3. Imports updated
+4. Remaining direct imports
+5. Architecture compliance score
+
+Do not perform any refactor outside the files listed above.
+
+Do not touch repositories.
+
+Do not touch controllers.
+
+Do not touch routes.
+
+Do not touch frontend.
+
+Only extract chat services and establish a single public entry point.
