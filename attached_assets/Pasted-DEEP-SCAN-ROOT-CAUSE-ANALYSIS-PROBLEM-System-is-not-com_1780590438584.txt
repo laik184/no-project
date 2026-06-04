@@ -1,0 +1,252 @@
+DEEP SCAN — ROOT CAUSE ANALYSIS
+
+PROBLEM:
+
+System is not completing coding tasks.
+
+Example:
+
+User:
+"Create an HTML file and write code"
+
+Response:
+
+"The planner set up a frontend UI task but the required coding tool wasn't available."
+
+DO NOT FIX ANYTHING.
+
+DO NOT REFACTOR.
+
+DO NOT CREATE NEW FILES.
+
+DO NOT CHANGE IMPORTS.
+
+FIRST FIND THE ROOT CAUSE.
+
+==================================================
+GOAL
+
+Determine exactly why coding requests fail.
+
+Identify the first failure point.
+
+Confirm with evidence.
+
+==================================================
+TRACE COMPLETE EXECUTION FLOW
+
+User Request
+↓
+Chat
+↓
+Orchestration
+↓
+Planner Agent
+↓
+Executor Agent
+↓
+Tool Dispatcher
+↓
+Tool Registry
+↓
+Coding Tool
+↓
+File Creation
+↓
+Response
+
+==================================================
+PHASE 1 — PLANNER ANALYSIS
+
+Scan:
+
+server/agents/planner/**
+server/orchestration/**
+
+Find:
+
+1. Which tool is selected when user asks:
+   
+   - create html file
+   - create frontend
+   - build webpage
+   - generate html
+
+2. What tool name is emitted?
+
+3. What task payload is generated?
+
+4. What tool identifier reaches executor?
+
+Output:
+
+Selected Tool Name
+Selected Tool ID
+Selected Tool Type
+
+==================================================
+PHASE 2 — EXECUTOR ANALYSIS
+
+Scan:
+
+server/agents/executor/**
+
+Find:
+
+1. Does executor receive the task?
+
+2. Does executor attempt tool execution?
+
+3. Which tool name does executor request?
+
+4. Does execution stop before dispatch?
+
+Output:
+
+Executor Status
+Tool Requested
+
+==================================================
+PHASE 3 — TOOL DISPATCHER ANALYSIS
+
+Scan:
+
+server/tools/registry/**
+server/tools/**
+
+Trace:
+
+Executor
+↓
+Tool Dispatcher
+↓
+Tool Registry
+
+Find:
+
+1. Tool lookup code
+
+2. Tool resolution logic
+
+3. Tool existence check
+
+4. Tool unavailable errors
+
+5. Exact failure branch
+
+Output:
+
+Tool Found?
+YES / NO
+
+Exact Failure Location
+
+File Path
+Function Name
+Line Number
+
+==================================================
+PHASE 4 — TOOL REGISTRY AUDIT
+
+Scan:
+
+server/tools/**
+server/tools/coding/**
+server/tools/codegen/**
+server/tools/filesystem/**
+
+Find:
+
+1. Is an HTML generation tool present?
+
+2. Is a file creation tool present?
+
+3. Is a code generation tool present?
+
+4. Is the tool exported?
+
+5. Is the tool registered?
+
+Output:
+
+Tool Exists?
+Registered?
+Exported?
+
+==================================================
+PHASE 5 — SERVICE / REPOSITORY CHECK
+
+Verify whether failure is caused by missing:
+
+server/services/coding/**
+server/repositories/coding/**
+
+Important:
+
+Do not assume these are required.
+
+Determine:
+
+1. Did execution fail before tool invocation?
+
+2. Or did tool invocation start and fail because a dependency is missing?
+
+Output:
+
+Failure Stage:
+
+A. Planner
+B. Executor
+C. Dispatcher
+D. Tool Registry
+E. Tool Execution
+F. Service Layer
+G. Repository Layer
+
+==================================================
+PHASE 6 — SEARCH ERROR SOURCE
+
+Search entire backend for:
+
+"tool wasn't available"
+
+"required coding tool"
+
+"tool unavailable"
+
+"tool not found"
+
+"missing tool"
+
+"unsupported tool"
+
+Find:
+
+Exact file path
+Exact function
+Exact line
+
+Determine who generated the message.
+
+==================================================
+PHASE 7 — FINAL ROOT CAUSE
+
+Provide:
+
+1. Root Cause
+
+2. Evidence
+
+3. Exact file paths
+
+4. Exact failing function
+
+5. Exact failing import/registration if applicable
+
+6. Confidence level
+
+DO NOT FIX ANYTHING.
+
+DO NOT SUGGEST ARCHITECTURE CHANGES.
+
+ONLY CONFIRM THE REAL FAILURE POINT.
