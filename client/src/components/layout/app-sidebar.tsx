@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useImportModal } from "@/context/import-modal-context";
 import { SettingsPanel } from "@/components/panels/SettingsPanel";
+import { LifecycleOrb } from "@/components/ui/LifecycleOrb";
+import { useLifecycle } from "@/context/lifecycle-context";
 import {
   Home,
   FolderOpen,
@@ -13,7 +15,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Cpu,
   LayoutTemplate,
   BookOpen,
 } from "lucide-react";
@@ -80,6 +81,7 @@ export function AppSidebar() {
   const [showSettings, setShowSettings] = useState(false);
   const [location] = useLocation();
   const { openImport } = useImportModal();
+  const { label, dynamicDescription, isActive, state } = useLifecycle();
 
   return (
     <>
@@ -91,22 +93,35 @@ export function AppSidebar() {
 
       <div className={cn("flex items-center h-14 px-3 border-b border-white/6 flex-shrink-0", collapsed ? "justify-center" : "justify-between")}>
         {!collapsed && (
-          <div className="flex items-center gap-2.5 animate-fade-in-up">
-            <div className="relative">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7c8dff] to-[#a78bfa] flex items-center justify-center shadow-lg" style={{ boxShadow: "0 0 12px rgba(124,141,255,0.5)" }}>
-                <Cpu className="h-3.5 w-3.5 text-white" />
-              </div>
-            </div>
-            <div>
+          <div className="flex items-center gap-2.5 animate-fade-in-up min-w-0">
+            <LifecycleOrb size={28} />
+            <div className="min-w-0">
               <div className="text-sm font-bold tracking-wide gradient-text">NURA X</div>
-              <div className="text-[10px] text-muted-foreground leading-none">AI Agent</div>
+              <div className="text-[10px] leading-none truncate" style={{
+                color: isActive ? "#a78bfa" : state === "completed" ? "#22c55e" : state === "failed" ? "#ef4444" : state === "cancelled" ? "#6b7280" : "#64748b",
+                transition: "color 0.4s ease",
+              }}>
+                {state === "idle" ? "AI Agent" : label}
+              </div>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7c8dff] to-[#a78bfa] flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(124,141,255,0.5)" }}>
-            <Cpu className="h-3.5 w-3.5 text-white" />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div data-testid="lifecycle-orb-collapsed">
+                <LifecycleOrb size={28} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="glass border-white/10 text-foreground ml-2">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold">{state === "idle" ? "NURA X" : label}</span>
+                {dynamicDescription && state !== "idle" && (
+                  <span className="text-[10px] text-muted-foreground">{dynamicDescription}</span>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )}
 
         <button onClick={() => setCollapsed(!collapsed)} className={cn("flex-shrink-0 rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200", collapsed && "mt-0")} data-testid="button-sidebar-collapse">

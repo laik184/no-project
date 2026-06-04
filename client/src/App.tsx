@@ -10,6 +10,7 @@ import { SidebarDrawerProvider } from "@/components/panels/sidebar-drawer-contex
 import { SidebarDrawer } from "@/components/panels/sidebar-drawer";
 import { AppStateProvider } from "@/context/app-state-context";
 import { RealtimeProvider } from "@/realtime/realtime-provider";
+import { LifecycleProvider } from "@/context/lifecycle-context";
 import { ImportModalProvider } from "@/context/import-modal-context";
 import { ImportModal } from "@/components/import/import-modal";
 import Home from "@/pages/core/home";
@@ -87,6 +88,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
+      <LifecycleProvider>
       <AppStateProvider>
         <ImportModalProvider>
           <SidebarDrawerProvider>
@@ -99,6 +101,7 @@ function App() {
           </SidebarDrawerProvider>
         </ImportModalProvider>
       </AppStateProvider>
+      </LifecycleProvider>
       </RealtimeProvider>
     </QueryClientProvider>
   );
