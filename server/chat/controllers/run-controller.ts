@@ -6,7 +6,7 @@
  */
 import type { Request, Response } from 'express';
 import { runManager }       from '../../orchestration/core/run-manager.ts';
-import { chatOrchestrator } from '../../services/chat/index.ts';
+import { chatOrchestrator } from '@services/chat';
 import { runStore }         from '../persistence/run-store.ts';
 import { cancelRunSchema, runIdParamSchema, runStatusQuerySchema } from '../schemas/run.schema.ts';
 

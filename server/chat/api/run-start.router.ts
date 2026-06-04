@@ -12,7 +12,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { chatOrchestrator } from '../../services/chat/index.ts';
+import { chatOrchestrator } from '@services/chat';
 import { runController }    from '../controllers/run-controller.ts';
 
 const router = Router();

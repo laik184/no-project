@@ -11,7 +11,13 @@
     "outDir": "./dist",
     "rootDir": ".",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@services/chat": ["./server/services/chat/index.ts"],
+      "@services/chat/*": ["./server/services/chat/*"],
+      "@services/filesystem": ["./server/services/filesystem/index.ts"],
+      "@services/filesystem/*": ["./server/services/filesystem/*"]
+    }
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist", ".local"]

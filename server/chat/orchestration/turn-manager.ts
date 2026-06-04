@@ -7,4 +7,4 @@ export {
   turnManager,
   turnService,
   TurnError,
-} from '../../../server/services/chat/index.ts';
+} from '@services/chat';

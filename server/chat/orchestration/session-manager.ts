@@ -6,4 +6,4 @@
 export {
   sessionManager,
   sessionService,
-} from '../../../server/services/chat/index.ts';
+} from '@services/chat';
