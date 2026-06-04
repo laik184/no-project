@@ -2,7 +2,7 @@ import { Router }         from 'express';
 import type { Request, Response } from 'express';
 import { runController }  from '../controllers/run-controller.ts';
 import { startRunSchema } from '../schemas/chat.schema.ts';
-import { chatOrchestrator } from '@services/chat';
+import { chatOrchestrator } from '../orchestration/chat-orchestrator.ts';
 import { runStore }       from '../persistence/run-store.ts';
 
 const router = Router();

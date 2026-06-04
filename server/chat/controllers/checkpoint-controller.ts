@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { checkpointService } from '@services/chat';
+import { checkpointService } from '../../services/chat/checkpoint.service.ts';
 
 export const checkpointController = {
   async list(req: Request, res: Response): Promise<void> {

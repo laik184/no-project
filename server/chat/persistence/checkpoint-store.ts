@@ -5,7 +5,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db, captureGitSha } from '../../infrastructure/index.ts';
 import { checkpoints, rollbackHistory } from '../../../shared/schema.ts';
 import { checkpointRepository } from '../../repositories/chat/checkpoint.repository.ts';
-import { scanWorkspace } from './workspace-scanner.ts';
+import { scanWorkspace } from '../../shared/filesystem/workspace-scanner.ts';
 import type {
   ChatCheckpoint,
   CheckpointTrigger,

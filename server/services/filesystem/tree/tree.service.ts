@@ -6,7 +6,7 @@
 import path from 'path';
 import { FE_CONFIG }          from '../../../shared/file-explorer-core/config/index.ts';
 import { resolveSafe }        from '../../../shared/file-explorer-core/guards/index.ts';
-import { buildTreeFromDir }   from '../../../file-explorer/mappers/index.ts';
+import { buildTreeFromDir }   from '../../../shared/filesystem/tree-builder.ts';
 import { countNodes }         from '../../../shared/file-explorer-core/utils/index.ts';
 import type { TreeResponse }  from '../../../shared/file-explorer-core/contracts/index.ts';
 import type { RawTreeNode }   from '../../../shared/file-explorer-core/types/index.ts';

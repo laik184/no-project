@@ -8,13 +8,9 @@
  * Alias: @services/chat  (configured in tsconfig.json paths)
  */
 
-// ── Core orchestrator ─────────────────────────────────────────────────────────
-export {
-  chatOrchestrator,
-  chatOrchestratorService,
-  chatService,
-  ChatOrchestratorError,
-} from './chat.service.ts';
+// ── Orchestrator error class ──────────────────────────────────────────────────
+// chatOrchestrator implementation lives in server/chat/orchestration/chat-orchestrator.ts
+export { ChatOrchestratorError } from './chat.service.ts';
 
 // ── Session lifecycle ─────────────────────────────────────────────────────────
 export {
@@ -46,12 +42,8 @@ export {
 
 export type { IntentMode, IntentResult } from './intent.service.ts';
 
-// ── Clarification workflow ────────────────────────────────────────────────────
-export {
-  clarificationManager,
-  clarificationService,
-} from './clarification.service.ts';
-
+// ── Clarification input type ──────────────────────────────────────────────────
+// clarificationManager implementation lives in server/chat/questions/clarification-manager.ts
 export type { ClarificationInput } from './clarification.service.ts';
 
 // ── LLM responder ─────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 
 import { resolveSafe }          from '../../../shared/file-explorer-core/guards/index.ts';
 import { filesystemRepository } from '../../../repositories/file-system/index.ts';
-import { toUploadedFile }       from '../../../file-explorer/mappers/index.ts';
+import { toUploadedFile }       from '../../../shared/filesystem/file-mapper.ts';
 import type { UploadResponse }  from '../../../shared/file-explorer-core/contracts/index.ts';
 
 class UploadService {

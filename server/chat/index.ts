@@ -11,7 +11,7 @@
 
 import type { Express }      from 'express';
 import type * as http        from 'http';
-import { chatOrchestrator as coreService } from '@services/chat';
+import { chatOrchestrator as coreService } from './orchestration/chat-orchestrator.ts';
 import { chatRouter }        from './api/chat.routes.ts';
 import { runRouter }         from './api/run.routes.ts';
 import { runStartRouter }    from './api/run-start.router.ts';
