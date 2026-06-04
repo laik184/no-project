@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath }                           from '../validation/operation-validator.ts';
-import { readService }                               from '../../../server/services/filesystem/index.ts';
+import { readService }                               from '../../../services/filesystem/index.ts';
 
 export const readFileTool: ToolDefinition = {
   name:        'fs_read_file',

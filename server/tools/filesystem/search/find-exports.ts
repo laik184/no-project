@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath }                           from '../validation/operation-validator.ts';
-import { dependencyAnalysisService }                 from '../../../server/services/filesystem/index.ts';
+import { dependencyAnalysisService }                 from '../../../services/filesystem/index.ts';
 
 export const findExportsTool: ToolDefinition = {
   name:        'fs_find_exports',

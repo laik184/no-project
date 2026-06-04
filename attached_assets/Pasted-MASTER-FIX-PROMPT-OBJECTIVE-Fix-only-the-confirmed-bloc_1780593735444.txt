@@ -1,0 +1,246 @@
+MASTER FIX PROMPT
+
+OBJECTIVE:
+
+Fix only the confirmed blockers below.
+
+Do NOT perform another audit.
+
+Do NOT generate reports.
+
+Do NOT redesign architecture.
+
+Do NOT move files.
+
+Do NOT rename folders.
+
+Do NOT introduce new abstractions.
+
+Do NOT touch unrelated code.
+
+Implement only the fixes required to make the workflow operational.
+
+==================================================
+BLOCKER 1 — REGISTRY BOOTSTRAP
+
+Severity: CRITICAL
+
+Problem:
+
+Tool registry is never initialized.
+
+loadAllTools() exists but is never executed during startup.
+
+Result:
+
+Registry size = 0
+
+All tool lookups fail.
+
+Tasks:
+
+1. Scan startup flow.
+
+2. Find correct application bootstrap point.
+
+3. Import loadAllTools().
+
+4. Execute loadAllTools() exactly once during startup.
+
+5. Verify:
+   
+   Registry contains all expected tools.
+
+6. Verify:
+   
+   coding_generate_react_page resolves successfully.
+
+7. Verify:
+   
+   Registry is sealed after loading.
+
+Do not change registry architecture.
+
+Do not change tool implementations.
+
+==================================================
+BLOCKER 2 — GENERATED FILES NOT PERSISTED
+
+Severity: HIGH
+
+Problem:
+
+Coding tools generate file maps.
+
+Executor receives generated files.
+
+Files are never written to disk.
+
+Tasks:
+
+1. Trace:
+   
+   Coding Tool
+   ↓
+   Executor
+   ↓
+   Result Handling
+
+2. Detect where generated file map is returned.
+
+3. Add the missing persistence step.
+
+4. Automatically invoke filesystem write flow after successful coding generation.
+
+5. Ensure generated files are written into sandbox/project workspace.
+
+6. Preserve current coding tool behavior.
+
+7. Do not modify code generation logic.
+
+Verify:
+
+Create HTML Page
+Create React Page
+Create Dashboard
+
+Generated files physically exist after execution.
+
+==================================================
+BLOCKER 3 — PLANNER TOOL REGISTRATION
+
+Severity: MEDIUM
+
+Problem:
+
+create_execution_plan registration path depends on registry bootstrap.
+
+Tasks:
+
+1. Verify planner tools are registered after registry initialization.
+
+2. Verify:
+   
+   create_execution_plan
+   
+   becomes discoverable.
+
+3. Verify planner execution path works.
+
+4. Preserve existing workaround behavior.
+
+Do not redesign planner architecture.
+
+==================================================
+BLOCKER 4 — PORT 3001 COLLISION
+
+Severity: CRITICAL
+
+Problem:
+
+Old API process survives restart.
+
+New API cannot bind.
+
+EADDRINUSE occurs.
+
+Tasks:
+
+1. Find startup scripts.
+
+2. Ensure stale API processes are terminated before new startup.
+
+3. Prevent multiple main.ts instances.
+
+4. Verify:
+   
+   Only one API process owns port 3001.
+
+5. Verify:
+   
+   Server starts cleanly after restart.
+
+Do not change application behavior.
+
+==================================================
+BLOCKER 5 — VITE PORT COLLISION
+
+Severity: CRITICAL
+
+Problem:
+
+Old Vite process survives restart.
+
+New Vite falls back to 5001.
+
+Preview serves stale build.
+
+Tasks:
+
+1. Ensure stale Vite processes terminate before startup.
+
+2. Ensure Vite starts on intended port.
+
+3. Verify:
+   
+   Only one Vite process exists.
+
+4. Verify:
+   
+   Browser receives latest frontend build.
+
+==================================================
+WORKFLOW VALIDATION
+
+After fixes:
+
+Test:
+
+1. Create HTML file
+2. Create React page
+3. Create Dashboard
+
+Expected flow:
+
+User
+↓
+Planner
+↓
+Executor
+↓
+Coordinator
+↓
+Dispatcher
+↓
+Resolver
+↓
+Tool
+↓
+Generated Files
+↓
+Filesystem Write
+↓
+Files Exist On Disk
+↓
+Success Response
+
+Verify every stage passes.
+
+==================================================
+CONSTRAINTS
+
+NO REPORTS.
+
+NO REFACTORING.
+
+NO ARCHITECTURE CHANGES.
+
+NO FOLDER REORGANIZATION.
+
+NO SERVICE LAYER CHANGES.
+
+NO REPOSITORY LAYER CHANGES.
+
+NO IMPORT CLEANUP UNLESS REQUIRED FOR FIX.
+
+Apply only the minimum code changes required to remove the confirmed blockers and make the workflow fully operational.

@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { searchService }                             from '../../../server/services/filesystem/index.ts';
+import { searchService }                             from '../../../services/filesystem/index.ts';
 
 export const searchTextTool: ToolDefinition = {
   name:        'fs_search_text',

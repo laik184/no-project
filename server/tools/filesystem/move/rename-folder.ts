@@ -7,7 +7,7 @@ import path                                          from 'node:path';
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { renameService }                             from '../../../server/services/filesystem/index.ts';
+import { renameService }                             from '../../../services/filesystem/index.ts';
 
 export const renameFolderTool: ToolDefinition = {
   name:        'fs_rename_folder',

@@ -5,7 +5,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { deleteService }                             from '../../../server/services/filesystem/index.ts';
+import { deleteService }                             from '../../../services/filesystem/index.ts';
 
 const MAX_BATCH = 100;
 

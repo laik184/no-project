@@ -10,6 +10,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 
 import { bootstrapMemory }                            from './server/memory/index.ts';
+import { loadAllTools }                              from './server/tools/registry/tool-loader.ts';
 import { chatOrchestrator }                           from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
 import { seedDefaultProject, TOPIC, sseManager }      from './server/infrastructure/index.ts';
@@ -33,6 +34,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Must run before any module that stores to or reads from memoryEngine.
 
 bootstrapMemory();
+
+// ── Tool registry ─────────────────────────────────────────────────────────────
+// Must run after bootstrapMemory() and before any agent dispatch.
+// Registers all 177 tools across 6 categories and seals the registry.
+
+loadAllTools();
 
 // ── Health check ──────────────────────────────────────────────────────────────
 

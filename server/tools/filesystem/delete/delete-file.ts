@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath }                           from '../validation/operation-validator.ts';
-import { deleteService }                             from '../../../server/services/filesystem/index.ts';
+import { deleteService }                             from '../../../services/filesystem/index.ts';
 
 export const deleteFileTool: ToolDefinition = {
   name:        'fs_delete_file',
