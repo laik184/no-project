@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath }                           from '../validation/operation-validator.ts';
-import { duplicateService }                          from '../../../services/filesystem/index.ts';
+import { duplicateService }                          from '../../../server/services/filesystem/index.ts';
 
 export const cloneFileTool: ToolDefinition = {
   name:        'fs_clone_file',

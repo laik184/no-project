@@ -7,4 +7,4 @@ export {
   streamManager,
   streamService,
   StreamError,
-} from '../../../services/chat/index.ts';
+} from '../../../server/services/chat/index.ts';

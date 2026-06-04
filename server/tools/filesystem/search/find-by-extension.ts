@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { scannerService }                            from '../../../services/filesystem/index.ts';
+import { scannerService }                            from '../../../server/services/filesystem/index.ts';
 
 export const findByExtensionTool: ToolDefinition = {
   name:        'fs_find_by_extension',

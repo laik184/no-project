@@ -7,6 +7,6 @@ export {
   routeIntent,
   isChatMode,
   intentService,
-} from '../../../services/chat/index.ts';
+} from '../../../server/services/chat/index.ts';
 
-export type { IntentMode, IntentResult } from '../../../services/chat/index.ts';
+export type { IntentMode, IntentResult } from '../../../server/services/chat/index.ts';

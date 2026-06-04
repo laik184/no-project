@@ -6,4 +6,4 @@
 export {
   clarificationManager,
   clarificationService,
-} from '../../../services/chat/index.ts';
+} from '../../../server/services/chat/index.ts';

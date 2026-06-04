@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { readService, writeService, createService }  from '../../../services/filesystem/index.ts';
+import { readService, writeService, createService }  from '../../../server/services/filesystem/index.ts';
 
 export const appendFileTool: ToolDefinition = {
   name:        'fs_append_file',

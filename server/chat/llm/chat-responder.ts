@@ -6,4 +6,4 @@
 export {
   streamRunSummary,
   chatResponderService,
-} from '../../../services/chat/index.ts';
+} from '../../../server/services/chat/index.ts';

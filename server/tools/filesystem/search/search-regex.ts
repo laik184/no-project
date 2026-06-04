@@ -6,7 +6,7 @@
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_ONCE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
 import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
-import { scannerService, readService }               from '../../../services/filesystem/index.ts';
+import { scannerService, readService }               from '../../../server/services/filesystem/index.ts';
 
 export const searchRegexTool: ToolDefinition = {
   name:        'fs_search_regex',

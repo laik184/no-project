@@ -7,4 +7,4 @@ export {
   chatOrchestrator,
   chatOrchestratorService,
   ChatOrchestratorError,
-} from '../../../services/chat/index.ts';
+} from '../../../server/services/chat/index.ts';
