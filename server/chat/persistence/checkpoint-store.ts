@@ -2,11 +2,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { eq, desc } from 'drizzle-orm';
-import { db } from '../../infrastructure/index.ts';
+import { db, captureGitSha } from '../../infrastructure/index.ts';
 import { checkpoints, rollbackHistory } from '../../../shared/schema.ts';
 import { checkpointRepository } from '../../repositories/chat/checkpoint.repository.ts';
 import { scanWorkspace } from './workspace-scanner.ts';
-import { captureGitSha } from '../../infrastructure/index.ts';
 import type {
   ChatCheckpoint,
   CheckpointTrigger,
