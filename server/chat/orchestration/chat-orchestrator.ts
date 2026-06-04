@@ -28,6 +28,8 @@ import { streamManager }              from '../../services/chat/stream.service.t
 import { clarificationManager }       from '../questions/clarification-manager.ts';
 import { checkpointService }          from '../../services/chat/checkpoint.service.ts';
 import { streamRunSummary }           from '../../services/chat/responder.service.ts';
+import { routeIntent }                from '../../services/chat/intent.service.ts';
+import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
 import { bus }                        from '../../infrastructure/index.ts';
 import type {
   ChatRun,
@@ -142,6 +144,34 @@ export const chatOrchestrator = {
       await messageBuilder.buildUser(userMsgPayload);
     } catch { /* non-fatal */ }
 
+    const intent = routeIntent(refinedGoal);
+
+    if (intent.mode === 'conversation' || intent.mode === 'explain') {
+      // Route directly to the chat agent — no orchestration overhead needed
+      void (async () => {
+        streamManager.open(runId, payload.projectId);
+        const writer = {
+          append:   (token: string) => streamManager.append(runId, token),
+          close:    ()              => { streamManager.close(runId); return ''; },
+          isActive: ()              => streamManager.isActive(runId),
+        };
+        try {
+          await runChatAgent(
+            { runId, projectId: payload.projectId, goal: refinedGoal, intentMode: intent.mode },
+            writer,
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Chat agent error';
+          if (streamManager.isActive(runId)) {
+            streamManager.append(runId, `I ran into an issue: ${msg}`);
+            streamManager.close(runId);
+          }
+        }
+        await _completeRun(run, turn.turnId).catch(() => {});
+      })();
+      return run;
+    }
+
     void orchestrate({
       orchestrationId: crypto.randomUUID(),
       runId,
@@ -156,7 +186,7 @@ export const chatOrchestrator = {
         contextEntries: context.entries,
       },
     } as any).then(async (result) => {
-      await streamRunSummary(runId, payload.projectId, result as any);
+      await streamRunSummary(runId, payload.projectId, result as any, refinedGoal);
       await _completeRun(run, turn.turnId);
     }).catch(async (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Orchestration failed';
