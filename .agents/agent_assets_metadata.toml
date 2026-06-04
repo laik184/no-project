@@ -408,3 +408,9 @@ id = "4U1zcM1sbadxg_g0xP8k3"
 uri = "file://CHAT_ARCHITECTURE_REPORT.md"
 type = "text"
 title = "Chat Architecture Report"
+
+[[outputs]]
+id = "-sBMib-3uaw9xGUdAJWzm"
+uri = "file://INFRASTRUCTURE_CLEANUP_REPORT.md"
+type = "text"
+title = "Infrastructure Cleanup Report"
