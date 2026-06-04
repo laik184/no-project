@@ -4,6 +4,9 @@
  * THE single gateway from the executor agent to the central tool dispatcher.
  * ALL tool execution MUST flow through this client — never directly.
  *
+ * This is the ONLY file in server/agents/ that may import from tool-dispatcher.
+ * All other agents MUST import through this module — never from tool-dispatcher directly.
+ *
  * Imports ONLY from the tool registry dispatcher — never from tool implementations.
  */
 
@@ -12,6 +15,11 @@ import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/
 import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
 
 export type { ToolExecutionResult, ToolExecutionContext };
+
+// Re-export dispatcher primitives so all other agents can route through this file
+// without importing tool-dispatcher directly.
+export type { DispatchOptions };
+export { dispatch, dispatchAll, dispatchSequential };
 
 /**
  * Execute a single tool through the central dispatcher.

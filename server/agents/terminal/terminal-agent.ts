@@ -23,7 +23,7 @@ import { runtimeHealthMonitor }                 from './monitoring/runtime-healt
 import { terminalLogger }                       from './telemetry/terminal-logger.ts';
 import { makeRunId }                            from './utils/execution-utils.ts';
 import { buildMemoryContext, memoryEngine }     from '../../memory/index.ts';
-import type { DispatchOptions }               from '../../tools/registry/tool-dispatcher.ts';
+import type { DispatchOptions }               from './coordination/dispatcher-client.ts';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 

@@ -10,12 +10,12 @@ import {
   dispatch,
   dispatchSequential,
   dispatchAll,
-}                               from '../../../tools/registry/tool-dispatcher.ts';
+}                               from '../../executor/coordination/dispatcher-client.ts';
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
 }                               from '../../../shared/types/execution-contracts.ts';
-import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
+import type { DispatchOptions } from '../../executor/coordination/dispatcher-client.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };
 

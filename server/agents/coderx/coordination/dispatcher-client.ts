@@ -7,9 +7,9 @@
  * Imports ONLY from the tool registry dispatcher — never from tool implementations.
  */
 
-import { dispatch, dispatchAll, dispatchSequential } from '../../../tools/registry/tool-dispatcher.ts';
+import { dispatch, dispatchAll, dispatchSequential } from '../../executor/coordination/dispatcher-client.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
-import type { DispatchOptions } from '../../../tools/registry/tool-dispatcher.ts';
+import type { DispatchOptions } from '../../executor/coordination/dispatcher-client.ts';
 
 export type { ToolExecutionResult, ToolExecutionContext };
 

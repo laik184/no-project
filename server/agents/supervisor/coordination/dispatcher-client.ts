@@ -12,7 +12,7 @@
 import {
   dispatch,
   type DispatchOptions,
-} from '../../../tools/registry/tool-dispatcher.ts';
+} from '../../executor/coordination/dispatcher-client.ts';
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 
 export type { ToolExecutionContext, ToolExecutionResult };
