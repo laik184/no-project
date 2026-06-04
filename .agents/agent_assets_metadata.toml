@@ -420,3 +420,9 @@ id = "DhLCqkWMN4MCvUdnFPrW-"
 uri = "file://ROOT_CAUSE_REPORT.md"
 type = "text"
 title = "Root Cause Analysis Report"
+
+[[outputs]]
+id = "pw4GvEiUWYJAAxtljzThG"
+uri = "file://AGENT_LIFECYCLE_AUDIT.md"
+type = "text"
+title = "Agent Lifecycle State Audit Report"
