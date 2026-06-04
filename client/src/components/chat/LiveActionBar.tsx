@@ -24,24 +24,15 @@ export const LIVE_ACTION_CSS = `
 
 export function ThinkingBubble() {
   return (
-    <div className="la-enter flex gap-2 items-start" data-testid="thinking-bubble">
+    <div className="la-enter flex items-center gap-2 py-1 px-1" data-testid="thinking-bubble">
       <style>{LIVE_ACTION_CSS}</style>
-      <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
-        style={{ background: "rgba(59,130,246,0.1)", border: "1px solid #1f2937" }}>
-        <Brain className="h-3.5 w-3.5 la-pulse" style={{ color: "#3b82f6" }} />
-      </div>
-      <div className="flex flex-col gap-1.5 px-3.5 py-2.5 rounded-2xl rounded-tl-sm"
-        style={{ background: "#111827", border: "1px solid #1f2937", minWidth: 120 }}>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-semibold" style={{ color: "#94a3b8" }}>Thinking</span>
-          <span className="flex items-end gap-[3px] pb-[1px]">
-            <span className="la-think-dot-1 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
-            <span className="la-think-dot-2 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
-            <span className="la-think-dot-3 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
-          </span>
-        </div>
-        <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.55)" }}>Analyzing request and planning steps</span>
-      </div>
+      <span className="text-[11px] font-semibold" style={{ color: "#94a3b8" }}>Thinking</span>
+      <span className="flex items-end gap-[3px] pb-[1px]">
+        <span className="la-think-dot-1 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
+        <span className="la-think-dot-2 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
+        <span className="la-think-dot-3 w-[4px] h-[4px] rounded-full inline-block" style={{ background: "#3b82f6" }} />
+      </span>
+      <span className="text-[10px]" style={{ color: "rgba(148,163,184,0.55)" }}>Analyzing request and planning steps</span>
     </div>
   );
 }
@@ -56,37 +47,21 @@ export function LiveActionBar({ action }: { action: AgentStreamItem }) {
   const label   = isThink ? "Thinking" : "Working";
 
   return (
-    <div className="la-enter flex gap-2 items-start" data-testid="live-action-bar">
+    <div className="la-enter flex items-center gap-2 py-1 px-1" data-testid="live-action-bar">
       <style>{LIVE_ACTION_CSS}</style>
-      <div className="relative w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center mt-0.5"
-        style={{ background: `${color}30`, border: `1px solid ${color}60` }}>
-        {anim === "ping" && (
-          <span className="absolute rounded-full"
-            style={{ width: 18, height: 18, background: color, opacity: 0.12, animation: "la-ping 1.1s ease-out infinite" }} />
-        )}
-        <Icon className={`la-${anim} flex-shrink-0`} style={{ width: 12, height: 12, color, strokeWidth: 1.75 }} />
-      </div>
-      <div className="flex flex-col gap-1 px-3.5 py-2.5 rounded-2xl rounded-tl-sm"
-        style={{ background: "#111827", border: "1px solid #1f2937", minWidth: 140 }}>
-        <div className="flex items-center gap-1.5">
-          {/* Neutral tool chip — no color tinting */}
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
-            style={{ background: "rgba(148,163,184,0.08)", border: "1px solid rgba(148,163,184,0.15)", color: "rgba(148,163,184,0.65)" }}>
-            {tool}
-          </span>
-          <span className="text-[11px] font-semibold" style={{ color: "#e5e7eb" }}>{label}</span>
-          <span className="flex items-end gap-[3px] pb-[1px]">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="rounded-full inline-block"
-                style={{ width: 3.5, height: 3.5, background: color, animation: `la-think-dot 1.3s ease-in-out ${i * 180}ms infinite` }} />
-            ))}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] leading-none">{emoji}</span>
-          <span className="text-[10px]" style={{ color: "#94a3b8" }}>{action.content}</span>
-        </div>
-      </div>
+      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
+        style={{ background: "rgba(148,163,184,0.08)", border: "1px solid rgba(148,163,184,0.15)", color: "rgba(148,163,184,0.65)" }}>
+        {tool}
+      </span>
+      <span className="text-[11px] font-semibold" style={{ color: "#e5e7eb" }}>{label}</span>
+      <span className="flex items-end gap-[3px] pb-[1px]">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="rounded-full inline-block"
+            style={{ width: 3.5, height: 3.5, background: color, animation: `la-think-dot 1.3s ease-in-out ${i * 180}ms infinite` }} />
+        ))}
+      </span>
+      <span className="text-[11px] leading-none">{emoji}</span>
+      <span className="text-[10px]" style={{ color: "#94a3b8" }}>{action.content}</span>
     </div>
   );
 }

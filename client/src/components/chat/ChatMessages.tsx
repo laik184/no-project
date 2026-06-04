@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Bot, Cpu, MessageSquarePlus } from "lucide-react";
+import { Cpu, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentMarkdown   } from "@/components/agent/AgentMarkdown";
 import { CheckpointCard  } from "@/components/panels/CheckpointCard";
@@ -81,12 +81,6 @@ export function ChatMessages({ messages, isAgentThinking, isAgentTyping, activeA
         const isBotRole = msg.role === "agent" || msg.role === "assistant";
         return (
           <div key={i} className={cn("flex gap-2", msg.role === "user" ? "flex-row-reverse" : "flex-row")}>
-            {isBotRole && (
-              <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center text-[9px] font-bold mt-0.5"
-                style={{ background: "#1A2230", border: "1px solid #263244" }}>
-                <Bot className="h-3 w-3" style={{ color: "#3B82F6" }} />
-              </div>
-            )}
             {isBotRole ? (
               <div className="flex-1 min-w-0 py-0.5" data-testid={`message-${msg.role}-${i}`}>
                 <AgentMarkdown content={msg.content} />
