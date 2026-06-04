@@ -1,0 +1,255 @@
+DEEP SCAN + WORKFLOW VALIDATION
+
+GOAL:
+
+Before fixing anything, perform a full workflow validation to confirm that the identified root cause is truly the only blocker.
+
+Current confirmed finding:
+
+Tool exists.
+Tool is registered in code.
+Tool exports are correct.
+Planner emits correct tool name.
+Executor receives correct tool name.
+Dispatcher executes correctly.
+Resolver fails because registry is empty.
+
+Suspected root cause:
+
+loadAllTools() is never executed during application startup.
+
+DO NOT FIX YET.
+
+FIRST VALIDATE THE ENTIRE WORKFLOW.
+
+==================================================
+PHASE 1 — STARTUP BOOT FLOW
+
+Trace:
+
+main.ts
+↓
+bootstrap sequence
+↓
+memory bootstrap
+↓
+tool bootstrap
+↓
+orchestration bootstrap
+↓
+chat bootstrap
+↓
+server ready
+
+Verify:
+
+1. Which startup functions are called.
+
+2. Which startup functions are NOT called.
+
+3. Is loadAllTools() imported?
+
+4. Is loadAllTools() executed?
+
+5. Is registry populated?
+
+6. Is registry sealed?
+
+Output:
+
+Startup Execution Order
+
+==================================================
+PHASE 2 — TOOL REGISTRY VALIDATION
+
+Trace:
+
+loadAllTools()
+↓
+registerCodingTools()
+↓
+registerTool()
+↓
+Registry Map
+
+Verify:
+
+1. Total registered tools.
+
+2. Total coding tools.
+
+3. Total filesystem tools.
+
+4. Registry size after startup.
+
+5. Registry size before first dispatch.
+
+Output:
+
+Expected Registry Count
+Actual Registry Count
+
+==================================================
+PHASE 3 — END-TO-END EXECUTION TEST
+
+Simulate:
+
+"Create HTML file"
+
+Trace:
+
+User Request
+↓
+Planner
+↓
+Executor
+↓
+Coordinator
+↓
+Dispatcher
+↓
+Resolver
+↓
+Registry
+↓
+Tool
+↓
+Tool Result
+
+Verify every step.
+
+For each step provide:
+
+PASS / FAIL
+
+==================================================
+PHASE 4 — TOOL EXECUTION VALIDATION
+
+After resolver succeeds:
+
+Verify:
+
+coding_generate_react_page
+
+actually executes.
+
+Check:
+
+1. Tool handler runs.
+
+2. Input schema validates.
+
+3. Template generation works.
+
+4. React page output generated.
+
+5. Result object returned.
+
+Output:
+
+Tool Execution Status
+
+==================================================
+PHASE 5 — FILE GENERATION FLOW
+
+Trace:
+
+coding_generate_react_page
+↓
+Generated Files
+↓
+Returned File Map
+↓
+Executor
+↓
+Agent Response
+
+Verify:
+
+1. Does tool return code?
+
+2. Does tool return file map?
+
+3. Does tool write files?
+
+4. Does tool require another tool?
+
+5. Does tool require service/repository?
+
+==================================================
+PHASE 6 — SERVICE / REPOSITORY CONFIRMATION
+
+Verify:
+
+1. Does coding_generate_react_page import:
+
+server/services/**
+
+2. Does coding_generate_react_page import:
+
+server/repositories/**
+
+3. Does tool execution depend on them?
+
+Output:
+
+Required:
+YES / NO
+
+==================================================
+PHASE 7 — MULTI-SCENARIO TEST
+
+Test:
+
+Create HTML page
+
+Create React page
+
+Create Dashboard
+
+Create Landing Page
+
+Create Settings Page
+
+Create Admin Panel
+
+Verify:
+
+Planner
+Executor
+Registry
+Tool
+Output
+
+all succeed.
+
+==================================================
+PHASE 8 — ROOT CAUSE CONFIRMATION
+
+Answer:
+
+1. Is loadAllTools() missing startup execution?
+
+2. Is this the first failure point?
+
+3. If fixed, will coding_generate_react_page execute?
+
+4. Are there any secondary blockers after registry initialization?
+
+5. List every additional blocker discovered.
+
+==================================================
+FINAL OUTPUT
+
+Provide:
+
+1. Startup flow
+2. Registry flow
+3. Tool execution flow
+4. End-to-end workflow result
+5. Secondary blockers (if any)
+6. Final confidence level
+
+DO NOT FIX.
+
+ONLY VALIDATE AND CONFIRM THE COMPLETE WORKFLOW.
