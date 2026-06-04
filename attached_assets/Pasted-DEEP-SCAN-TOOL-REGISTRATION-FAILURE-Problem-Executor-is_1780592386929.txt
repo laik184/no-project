@@ -1,0 +1,251 @@
+DEEP SCAN — TOOL REGISTRATION FAILURE
+
+Problem:
+
+Executor is trying to execute:
+
+coding_generate_react_page
+
+but Tool Not Found is returned.
+
+Find root cause.
+
+Do NOT fix anything yet.
+
+Only identify and confirm the real failure point.
+
+==================================================
+SCAN TARGETS
+
+server/tools/**
+server/tools/registry/**
+server/tools/codegen/**
+server/tools/coding/**
+server/agents/planner/**
+server/agents/executor/**
+
+==================================================
+TASK 1 — TOOL EXISTENCE
+
+Find:
+
+coding_generate_react_page
+
+Determine:
+
+1. Does this tool physically exist?
+
+2. Exact file path.
+
+3. Exact exported name.
+
+4. Exact tool metadata.
+
+5. Exact tool identifier.
+
+Output:
+
+EXISTS / NOT EXISTS
+
+==================================================
+TASK 2 — TOOL REGISTRATION
+
+Find all registrations.
+
+Scan:
+
+server/tools/registry/**
+
+Determine:
+
+1. Is coding_generate_react_page registered?
+
+2. Is it exported?
+
+3. Is it discoverable by resolver?
+
+4. Is it loaded during startup?
+
+Output:
+
+REGISTERED / NOT REGISTERED
+
+==================================================
+TASK 3 — TOOL NAME COMPARISON
+
+Compare:
+
+Planner Name
+
+Executor Name
+
+Registry Name
+
+Tool Metadata Name
+
+Tool Export Name
+
+Determine:
+
+1. Exact naming mismatch.
+
+2. Case mismatch.
+
+3. Prefix mismatch.
+
+4. Alias mismatch.
+
+Example:
+
+Planner:
+coding_generate_react_page
+
+Registry:
+generate_react_page
+
+This is a mismatch.
+
+==================================================
+TASK 4 — EXECUTION TRACE
+
+Trace complete path:
+
+Planner
+↓
+Executor
+↓
+Tool Dispatcher
+↓
+Tool Resolver
+↓
+Tool Registry
+↓
+Tool
+
+Find:
+
+1. Last successful step.
+
+2. First failing step.
+
+3. Exact file.
+
+4. Exact function.
+
+5. Exact line number.
+
+==================================================
+TASK 5 — TOOL RESOLVER FAILURE
+
+Scan:
+
+server/tools/registry/tool-resolver.ts
+
+Find:
+
+1. Why resolver cannot find tool.
+
+2. Tool name received.
+
+3. Registry lookup result.
+
+4. Exact failure branch.
+
+Output:
+
+Resolver Input
+
+Resolver Output
+
+Failure Reason
+
+==================================================
+TASK 6 — SERVICE / REPOSITORY VALIDATION
+
+IMPORTANT:
+
+Do not assume service or repository layers are required.
+
+Determine:
+
+1. Does coding_generate_react_page require a service layer?
+
+2. Does coding_generate_react_page require a repository layer?
+
+3. Is execution failing BEFORE tool execution?
+
+OR
+
+4. Does execution reach tool code and fail because service/repository dependencies are missing?
+
+Output:
+
+Failure Stage:
+
+Planner
+Executor
+Dispatcher
+Registry
+Tool
+Service
+Repository
+
+==================================================
+TASK 7 — TOOL DEPENDENCY AUDIT
+
+If tool exists:
+
+Audit imports.
+
+Determine:
+
+1. What does the tool import?
+
+2. Does it depend on:
+
+server/services/**
+
+server/repositories/**
+
+server/infrastructure/**
+
+3. Are any required dependencies missing?
+
+4. Are imports broken?
+
+5. Are exports broken?
+
+==================================================
+TASK 8 — ROOT CAUSE CONFIRMATION
+
+Provide:
+
+1. Exact root cause.
+
+2. Evidence.
+
+3. Exact file paths.
+
+4. Exact line numbers.
+
+5. Confidence level.
+
+6. Confirm whether the issue is:
+
+- Missing tool
+- Missing registration
+- Missing export
+- Naming mismatch
+- Resolver failure
+- Dispatcher failure
+- Missing service
+- Missing repository
+- Broken import
+
+DO NOT FIX.
+
+DO NOT REFACTOR.
+
+DO NOT CHANGE ARCHITECTURE.
+
+ONLY IDENTIFY AND CONFIRM THE REAL FAILURE POINT.
