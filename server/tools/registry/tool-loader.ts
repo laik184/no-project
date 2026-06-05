@@ -12,6 +12,7 @@
 // ── Phase A: Platform tool registrations ──────────────────────────────────────
 import { registerFilesystemTools } from '../filesystem/index.ts';
 import { registerCodingTools }     from '../coding/index.ts';
+import { registerTerminalTools }   from '../terminal/index.ts';
 import { sealRegistry, toolCount, isSealed } from './tool-registry.ts';
 
 export function loadAllTools(): void {
@@ -23,10 +24,11 @@ export function loadAllTools(): void {
   // Phase A — platform registry
   registerFilesystemTools();
   registerCodingTools();
+  registerTerminalTools();
 
   sealRegistry();
 
   console.log(
-    `[tool-loader] ${toolCount()} tools registered (filesystem + coding) — registry sealed.`,
+    `[tool-loader] ${toolCount()} tools registered (filesystem + coding + terminal) — registry sealed.`,
   );
 }

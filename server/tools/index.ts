@@ -42,3 +42,10 @@ export {
   CODING_TOOL_COUNT,
   CODING_TOOL_NAMES,
 } from './coding/index.ts';
+
+// ── Terminal domain ───────────────────────────────────────────────────────────
+export {
+  registerTerminalTools,
+  TERMINAL_TOOL_COUNT,
+  TERMINAL_TOOL_NAMES,
+} from './terminal/index.ts';
