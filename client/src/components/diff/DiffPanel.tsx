@@ -2,17 +2,18 @@ import React, { useState } from 'react';
 import PatchList from './PatchList';
 import DiffPreviewModal from './DiffPreviewModal';
 import { useRealtimeEvent } from '@/realtime/useRealtimeStream';
+import { useToast } from '@/hooks/use-toast';
+import { toastError, toastSuccess, fetchWithToast } from '@/lib/app-error';
 
 export default function DiffPanel({ initialPatches }: { initialPatches?: any[] }) {
-  const [patches, setPatches] = useState<any[]>(initialPatches || []);
+  const [patches,  setPatches]  = useState<any[]>(initialPatches || []);
   const [selected, setSelected] = useState<{ id?: string; [key: string]: any } | null>(null);
+  const { toast } = useToast();
 
   useRealtimeEvent('console', (data) => {
     try {
       const d = data as Record<string, unknown>;
-      if (d.type === 'autoevolve:patch-list' && d.patches) {
-        setPatches(d.patches as any[]);
-      }
+      if (d.type === 'autoevolve:patch-list' && d.patches) setPatches(d.patches as any[]);
       if (d.type === 'autoevolve:patch-updated' && d.patch) {
         setPatches(prev => prev.map(p => p.id === (d.patch as any).id ? d.patch : p));
       }
@@ -20,27 +21,21 @@ export default function DiffPanel({ initialPatches }: { initialPatches?: any[] }
   });
 
   async function handleApply(patch: any) {
-    try {
-      const res = await fetch('/api/solopilot/applyPatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patchId: patch.id, patch }),
-      });
-      const j = await res.json();
-      if (j.ok) alert('Applied'); else alert('Apply failed: ' + (j.error || 'unknown'));
-    } catch (e) { alert('Apply error: ' + String(e)); }
+    const data = await fetchWithToast(toast, '/api/solopilot/applyPatch', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ patchId: patch.id, patch }),
+    }, 'Apply Failed');
+    if (data) toastSuccess(toast, 'Patch Applied', `${patch.id ?? ''} applied successfully.`);
   }
 
   async function handleReject(patch: any) {
-    try {
-      const res = await fetch('/api/solopilot/rejectPatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patchId: patch.id }),
-      });
-      const j = await res.json();
-      if (j.ok) alert('Rejected'); else alert('Reject failed: ' + (j.error || 'unknown'));
-    } catch (e) { alert('Reject error: ' + String(e)); }
+    const data = await fetchWithToast(toast, '/api/solopilot/rejectPatch', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ patchId: patch.id }),
+    }, 'Reject Failed');
+    if (data) toastSuccess(toast, 'Patch Rejected', `${patch.id ?? ''} rejected.`);
   }
 
   return (
@@ -48,16 +43,24 @@ export default function DiffPanel({ initialPatches }: { initialPatches?: any[] }
       <PatchList patches={patches} selectedId={selected?.id} onSelect={(p) => setSelected(p)} />
       <div style={{ flex: 1, padding: 12 }}>
         <h4>Patch Preview</h4>
-        {!selected && <div>Select a patch to preview</div>}
+        {!selected && <div style={{ color: '#888' }}>Select a patch to preview</div>}
         {selected && (
           <div>
-            <pre style={{ whiteSpace: 'pre-wrap', background: '#f7f7f7', padding: 8 }}>
-              {JSON.stringify(selected, null, 2)}
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>
+              {selected.id ?? 'Patch'} — {selected.path ?? ''}
+            </div>
+            <pre style={{ whiteSpace: 'pre-wrap', background: '#f7f7f7', padding: 8, fontSize: 12 }}>
+              {selected.description ?? selected.summary ?? JSON.stringify(selected, null, 2)}
             </pre>
           </div>
         )}
       </div>
-      <DiffPreviewModal patch={selected} onClose={() => setSelected(null)} onApply={handleApply} onReject={handleReject} />
+      <DiffPreviewModal
+        patch={selected}
+        onClose={() => setSelected(null)}
+        onApply={handleApply}
+        onReject={handleReject}
+      />
     </div>
   );
 }

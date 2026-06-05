@@ -32,6 +32,7 @@ import { routeIntent }                from '../../services/chat/intent.service.t
 import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
 import { bus }                        from '../../infrastructure/index.ts';
 import { SANDBOX_ROOT }               from '../../infrastructure/config/sandbox.config.ts';
+import { logError }                   from '../../shared/errors/index.ts';
 import type {
   ChatRun,
   RunStartPayload,
@@ -74,7 +75,7 @@ async function _completeRun(run: ChatRun, turnId: string): Promise<void> {
   const durationMs = now.getTime() - run.startedAt.getTime();
 
   turnManager.complete(turnId);
-  await runWriter.setStatus(run.runId, 'completed').catch(() => {});
+  await runWriter.setStatus(run.runId, 'completed').catch(e => logError(e, 'run-status-complete'));
   eventPublisher.publish(makeRunCompletedEvent(run.runId, run.projectId, durationMs));
 
   try {
@@ -92,7 +93,7 @@ async function _completeRun(run: ChatRun, turnId: string): Promise<void> {
 
 async function _failRun(run: ChatRun, turnId: string, error: string): Promise<void> {
   turnManager.fail(turnId);
-  await runWriter.setStatus(run.runId, 'failed').catch(() => {});
+  await runWriter.setStatus(run.runId, 'failed').catch(e => logError(e, 'run-status-fail'));
   eventPublisher.publish(makeRunFailedEvent(run.runId, run.projectId, error));
   if (streamManager.isActive(run.runId)) streamManager.close(run.runId);
 }
@@ -168,7 +169,7 @@ export const chatOrchestrator = {
             streamManager.close(runId);
           }
         }
-        await _completeRun(run, turn.turnId).catch(() => {});
+        await _completeRun(run, turn.turnId).catch(e => logError(e, 'complete-run'));
       })();
       return run;
     }

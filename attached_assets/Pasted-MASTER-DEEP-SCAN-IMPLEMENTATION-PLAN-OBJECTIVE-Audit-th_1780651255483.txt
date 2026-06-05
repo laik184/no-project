@@ -1,0 +1,427 @@
+MASTER DEEP SCAN + IMPLEMENTATION PLAN
+
+OBJECTIVE
+
+Audit the entire Nura-X system and identify every location where failures are:
+
+- Hidden
+- Swallowed
+- Converted into fake success
+- Returned as raw JSON dumps
+- Returned as internal stack traces
+- Missing recovery guidance
+- Missing user-facing error messages
+
+Goal:
+
+After the scan, implement a unified enterprise-grade error handling system similar to ChatGPT, Cursor, Replit Agent, Claude Code, GitHub Copilot Workspace, and other production AI systems.
+
+==================================================
+PHASE 1 — FAILURE DISCOVERY
+
+Scan entire workflow:
+
+User
+↓
+Chat
+↓
+Planner
+↓
+Executor
+↓
+Coordinator
+↓
+Dispatcher
+↓
+Tool
+↓
+Filesystem
+↓
+Verification
+↓
+Build
+↓
+Deployment
+↓
+Frontend
+
+Identify:
+
+1. Every throw.
+2. Every catch.
+3. Every try/catch block.
+4. Every silent return.
+5. Every fake success response.
+6. Every swallowed exception.
+7. Every fallback success state.
+8. Every unhandled promise rejection.
+
+Scan:
+
+server/agents/**
+server/tools/**
+server/chat/**
+server/orchestration/**
+server/services/**
+server/repositories/**
+server/file-explorer/**
+server/infrastructure/**
+
+Output:
+
+FAILURE_MAP.md
+
+==================================================
+PHASE 2 — ERROR FLOW TRACE
+
+Trace real failures:
+
+LLM API Key Missing
+
+Tool Not Found
+
+Filesystem Write Failure
+
+Build Failure
+
+Verification Failure
+
+Timeout Failure
+
+Agent Failure
+
+Planner Failure
+
+Executor Failure
+
+Dispatcher Failure
+
+Determine:
+
+1. Where failure originates.
+2. Where failure is transformed.
+3. Where failure disappears.
+4. Where success is incorrectly returned.
+
+Output:
+
+ERROR_FLOW_REPORT.md
+
+==================================================
+PHASE 3 — USER EXPERIENCE AUDIT
+
+Find every place where user currently sees:
+
+Raw JSON
+
+Internal Error
+
+Stack Trace
+
+Tool Payload
+
+Debug Object
+
+Generic Failure
+
+Examples:
+
+Current:
+
+[executor]:
+LLM call failed
+
+Current:
+
+{
+success:false
+error:{...}
+}
+
+Current:
+
+ToolExecutionResult
+
+Current:
+
+Unhandled Error
+
+Identify all locations.
+
+Output:
+
+USER_ERROR_EXPOSURE_REPORT.md
+
+==================================================
+PHASE 4 — FRONTEND ERROR AUDIT
+
+Scan:
+
+client/src/**
+
+Determine:
+
+1. How errors are displayed.
+2. How failures are rendered.
+3. Missing error states.
+4. Missing retry actions.
+5. Missing recovery guidance.
+
+Output:
+
+FRONTEND_ERROR_AUDIT.md
+
+==================================================
+PHASE 5 — DESIGN ENTERPRISE ERROR MODEL
+
+Create centralized error architecture.
+
+Required error categories:
+
+ValidationError
+
+AuthenticationError
+
+AuthorizationError
+
+LLMError
+
+ToolError
+
+ToolNotFoundError
+
+FilesystemError
+
+BuildError
+
+VerificationError
+
+DeploymentError
+
+TimeoutError
+
+AgentError
+
+PlannerError
+
+ExecutorError
+
+DispatcherError
+
+UnknownError
+
+Each error must contain:
+
+errorId
+type
+title
+message
+technicalReason
+userReason
+recoverySuggestion
+severity
+timestamp
+
+==================================================
+PHASE 6 — CENTRAL ERROR INFRASTRUCTURE
+
+Find best location.
+
+Implement:
+
+BaseAppError
+
+ErrorFactory
+
+ErrorMapper
+
+ErrorSerializer
+
+ErrorReporter
+
+ErrorLogger
+
+GlobalErrorHandler
+
+GlobalUnhandledRejectionHandler
+
+GlobalProcessErrorHandler
+
+Ensure:
+
+No raw exception reaches user.
+
+==================================================
+PHASE 7 — AGENT ERROR STANDARDIZATION
+
+Planner
+
+Executor
+
+Verifier
+
+Filesystem Agent
+
+Browser Agent
+
+Deployment Agent
+
+Chat Agent
+
+All agents must return:
+
+SuccessResult
+
+or
+
+ErrorResult
+
+Never raw exceptions.
+
+Never stack traces.
+
+Never JSON dumps.
+
+==================================================
+PHASE 8 — TOOL ERROR STANDARDIZATION
+
+All tools must return:
+
+{
+success:false,
+error:{
+type,
+title,
+message,
+recoverySuggestion
+}
+}
+
+Never:
+
+throw raw Error
+
+Never:
+
+return undefined
+
+Never:
+
+return ambiguous result
+
+==================================================
+PHASE 9 — USER-FACING ERROR EXPERIENCE
+
+Convert failures into friendly messages.
+
+Example:
+
+Current:
+
+LLM call failed:
+No LLM API key found
+
+Required:
+
+AI Provider Not Configured
+
+The system cannot access an AI model because no API key is configured.
+
+How to fix:
+
+Add OPENROUTER_API_KEY to environment variables.
+
+Example:
+
+Current:
+
+ToolNotFoundError
+
+Required:
+
+Required Tool Unavailable
+
+The requested capability is currently unavailable.
+
+Try again later or contact an administrator.
+
+==================================================
+PHASE 10 — IMPLEMENTATION
+
+After audit completes:
+
+Implement:
+
+1. Centralized error framework.
+2. Error classes.
+3. Error mapper.
+4. Global handlers.
+5. Tool wrappers.
+6. Agent wrappers.
+7. Frontend error renderer.
+8. Recovery suggestions.
+9. Structured logging.
+10. Error IDs.
+
+==================================================
+PHASE 11 — VALIDATION
+
+Test:
+
+Missing API Key
+
+Missing Tool
+
+Filesystem Failure
+
+Build Failure
+
+Verification Failure
+
+Agent Crash
+
+Unhandled Exception
+
+Timeout
+
+Cancellation
+
+Deployment Failure
+
+Verify:
+
+1. Correct error category.
+2. Correct user message.
+3. Correct recovery guidance.
+4. No raw JSON shown.
+5. No stack trace shown.
+6. No fake success shown.
+
+==================================================
+FINAL DELIVERABLES
+
+Generate:
+
+FAILURE_MAP.md
+
+ERROR_FLOW_REPORT.md
+
+USER_ERROR_EXPOSURE_REPORT.md
+
+FRONTEND_ERROR_AUDIT.md
+
+ERROR_ARCHITECTURE.md
+
+IMPLEMENTATION_PLAN.md
+
+Then implement the approved solution.
+
+IMPORTANT
+
+Do not perform random refactoring.
+
+Do not redesign business logic.
+
+Do not change workflow behavior.
+
+Only identify failure paths, build a centralized error architecture, and implement consistent error handling across the entire system.

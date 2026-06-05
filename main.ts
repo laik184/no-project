@@ -9,6 +9,8 @@ import http from 'http';
 import express from 'express';
 import type { Request, Response } from 'express';
 
+import { installGlobalHandlers, expressErrorMiddleware } from './server/shared/errors/index.ts';
+
 import { bootstrapMemory }                            from './server/memory/index.ts';
 import { loadAllTools }                              from './server/tools/registry/tool-loader.ts';
 import { chatOrchestrator }                           from './server/chat/index.ts';
@@ -21,6 +23,11 @@ import {
   startDirectoryWatcher,
   subscribeToAgentFileEvents,
 } from './server/file-explorer/index.ts';
+
+// ── Global error safety net ───────────────────────────────────────────────────
+// Must run before any async code so uncaught exceptions are captured.
+
+installGlobalHandlers();
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -146,6 +153,11 @@ seedDefaultProject()
     console.error('[server] Startup seed failed:', err);
     process.exit(1);
   });
+
+// ── Express error middleware ──────────────────────────────────────────────────
+// Must be last — catches any unhandled error thrown inside route handlers.
+
+app.use(expressErrorMiddleware);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
