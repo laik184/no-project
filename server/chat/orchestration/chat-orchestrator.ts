@@ -42,23 +42,6 @@ import type {
   RunMode,
 }                                     from '../types/run.types.ts';
 
-// Re-export orchestration utilities needed by other chat consumers
-export {
-  orchestrate,
-  runManager,
-}                                     from '../../orchestration/index.ts';
-export {
-  initOrchestrator,
-  shutdownOrchestrator,
-  initOrchestration,
-  createOrchestrationRouter,
-}                                     from '../../orchestration/index.ts';
-export type {
-  OrchestrationRequest,
-  OrchestrationResult,
-  RunRecord,
-}                                     from '../../orchestration/index.ts';
-
 const SANDBOX = SANDBOX_ROOT;
 
 // ── Error class ───────────────────────────────────────────────────────────────
