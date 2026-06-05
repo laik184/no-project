@@ -53,3 +53,37 @@ export type {
   RuntimeEntry,
   ConnectedEvent,
 } from '../shared/console/types.ts';
+
+// ── Tool Registry ─────────────────────────────────────────────────────────────
+export { consoleToolRegistry }               from './registry/index.ts';
+export type { ConsoleTool, ConsoleToolResult } from './registry/index.ts';
+
+// ── Terminal tools ────────────────────────────────────────────────────────────
+export { terminalTool }                      from './terminal/index.ts';
+export type { TerminalInput, TerminalOutput } from './terminal/index.ts';
+
+// ── Package tools ─────────────────────────────────────────────────────────────
+export { installPackageTool, uninstallPackageTool } from './package/index.ts';
+export type { InstallPackageInput, InstallPackageOutput,
+              UninstallPackageInput, UninstallPackageOutput } from './package/index.ts';
+
+// ── Runtime tools ─────────────────────────────────────────────────────────────
+export { startRuntimeTool, restartRuntimeTool, stopRuntimeTool } from './runtime/index.ts';
+export type { StartRuntimeInput, StartRuntimeOutput,
+              RestartRuntimeInput, RestartRuntimeOutput,
+              StopRuntimeInput, StopRuntimeOutput }              from './runtime/index.ts';
+
+// ── Git tools ─────────────────────────────────────────────────────────────────
+export { gitStatusTool, gitCommitTool, gitRestoreTool }          from './git/index.ts';
+export type { GitStatusInput, GitStatusOutput,
+              GitCommitInput, GitCommitOutput,
+              GitRestoreInput, GitRestoreOutput }                 from './git/index.ts';
+
+// ── Checkpoint tools ──────────────────────────────────────────────────────────
+export { createCheckpointTool, restoreCheckpointTool }           from './checkpoint/index.ts';
+export type { CreateCheckpointInput, CreateCheckpointOutput,
+              RestoreCheckpointInput, RestoreCheckpointOutput }  from './checkpoint/index.ts';
+
+// ── Preview tools ─────────────────────────────────────────────────────────────
+export { openPreviewTool }                                        from './preview/index.ts';
+export type { OpenPreviewInput, OpenPreviewOutput }               from './preview/index.ts';
