@@ -12,9 +12,8 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { consoleService }   from '../../services/console/index.ts';
+import { consoleService }     from '../../services/console/index.ts';
 import { registerConnection } from '../streaming/stream-broker.ts';
-import { sessionRepository }  from '../../repositories/console/index.ts';
 
 export const consoleRouter = Router();
 
@@ -45,8 +44,8 @@ consoleRouter.get('/stream', (req: Request, res: Response) => {
   });
   (res as Response & { flushHeaders?: () => void }).flushHeaders?.();
 
-  // Register session + connection
-  const session = sessionRepository.create(projectId);
+  // Register session + connection (via service — no direct repo access in controller)
+  const session = consoleService.createSession(projectId);
   const cleanup = registerConnection(projectId, res, session.sessionId);
 
   req.on('close', () => {

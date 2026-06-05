@@ -6,7 +6,6 @@
  */
 
 import { bus }   from '../../infrastructure/events/bus.ts';
-import { TOPIC } from '../../infrastructure/realtime/stream-topics.ts';
 import type { LogLine, RuntimeStateEvent } from '../types/index.ts';
 
 // ── Event name constants ───────────────────────────────────────────────────────
@@ -24,25 +23,22 @@ export type ConsoleEventName = typeof CONSOLE_EVENT[keyof typeof CONSOLE_EVENT];
 
 /** Emit a log line on the bus (consumed by StreamBroker). */
 export function emitLogLine(projectId: number, log: LogLine): void {
-  bus.emit(CONSOLE_EVENT.LOG_LINE as keyof typeof bus['on'] extends never ? string : any, {
-    projectId,
-    ...log,
-  });
+  bus.emit('console.log_line', { projectId, ...log });
 }
 
 /** Emit a runtime state change on the bus (consumed by StreamBroker). */
 export function emitRuntimeState(projectId: number, event: RuntimeStateEvent): void {
-  bus.emit(CONSOLE_EVENT.RUNTIME_STATE as any, { projectId, ...event });
+  bus.emit('console.runtime_state', { projectId, ...event });
 }
 
 /** Emit a session-opened event. */
 export function emitSessionOpen(projectId: number, sessionId: string): void {
-  bus.emit(CONSOLE_EVENT.SESSION_OPEN as any, { projectId, sessionId });
+  bus.emit('console.session_open', { projectId, sessionId });
 }
 
 /** Emit a session-closed event. */
 export function emitSessionClose(projectId: number, sessionId: string): void {
-  bus.emit(CONSOLE_EVENT.SESSION_CLOSE as any, { projectId, sessionId });
+  bus.emit('console.session_close', { projectId, sessionId });
 }
 
 // ── Subscribe helpers ──────────────────────────────────────────────────────────
@@ -56,8 +52,8 @@ export function onLogLine(
     const { projectId, ...log } = payload;
     handler(projectId as number, log as unknown as LogLine);
   };
-  bus.on(CONSOLE_EVENT.LOG_LINE as any, listener);
-  return () => bus.off(CONSOLE_EVENT.LOG_LINE as any, listener);
+  bus.on('console.log_line', listener);
+  return () => bus.off('console.log_line', listener);
 }
 
 export function onRuntimeState(
@@ -67,6 +63,6 @@ export function onRuntimeState(
     const { projectId, ...event } = payload;
     handler(projectId as number, event as unknown as RuntimeStateEvent);
   };
-  bus.on(CONSOLE_EVENT.RUNTIME_STATE as any, listener);
-  return () => bus.off(CONSOLE_EVENT.RUNTIME_STATE as any, listener);
+  bus.on('console.runtime_state', listener);
+  return () => bus.off('console.runtime_state', listener);
 }

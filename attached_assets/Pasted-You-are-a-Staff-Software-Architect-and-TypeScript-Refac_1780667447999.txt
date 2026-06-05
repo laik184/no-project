@@ -1,0 +1,342 @@
+You are a Staff Software Architect and TypeScript Refactoring Agent.
+
+DO NOT immediately modify code.
+
+PHASE 1 = VERIFY
+PHASE 2 = REPORT
+PHASE 3 = FIX
+PHASE 4 = RE-VERIFY
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GOAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify that the Console module follows the required architecture.
+
+Required execution flow:
+
+main.ts
+ ↓
+bootstrap()
+ ↓
+registerInfrastructure()
+ ↓
+registerRepositories()
+ ↓
+registerServices()
+ ↓
+registerConsoleModule()
+ ↓
+startHttpServer()
+ ↓
+Console Routes
+
+Runtime Flow:
+
+Runtime Manager
+ ↓
+Process Supervisor
+ ↓
+spawn()
+ ↓
+npm run dev
+ ↓
+stdout/stderr
+
+Log Flow:
+
+stdout/stderr
+ ↓
+Process Supervisor
+ ↓
+Log Service
+ ↓
+Parser
+ ↓
+Repository
+ ↓
+Stream Broker
+ ↓
+SSE Manager
+ ↓
+Frontend Console
+
+Runtime Event Flow:
+
+Runtime Manager
+ ↓
+Runtime Repository
+ ↓
+Runtime Event
+ ↓
+Stream Broker
+ ↓
+SSE Manager
+ ↓
+Frontend RuntimeBadge
+
+Install Flow:
+
+Npm Installer
+ ↓
+Package Monitor
+ ↓
+Dependency Scanner
+ ↓
+Install Event
+ ↓
+Stream Broker
+ ↓
+Frontend InstallProgress
+
+Crash Flow:
+
+Process Supervisor
+ ↓
+Crash Recovery
+ ↓
+Runtime Manager
+ ↓
+Runtime Repository
+ ↓
+runtime.state
+ ↓
+Stream Broker
+ ↓
+Frontend RuntimeOverlay
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — DISCOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan entire project.
+
+Find:
+
+- main.ts
+- bootstrap.ts
+- DI container
+- console module
+- services
+- repositories
+- runtime
+- streaming
+- events
+- persistence
+- frontend console
+
+Create a dependency graph.
+
+Output:
+
+FOUND
+MISSING
+UNUSED
+ORPHANED
+
+for every file.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — IMPORT/EXPORT AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every console file verify:
+
+1. File exists
+2. Export exists
+3. Import path valid
+4. No circular dependency
+5. No dead import
+6. No unused export
+7. No broken barrel export
+
+Generate report:
+
+✓ VALID
+
+or
+
+✗ INVALID
+
+for every file.
+
+Example:
+
+server/services/console/log-service.ts
+
+Exports:
+✓ LogService
+
+Imports:
+✓ LogRepository
+✓ StreamBroker
+
+Status:
+✓ VALID
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — ARCHITECTURE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify ALL rules.
+
+Allowed:
+
+Controller
+ → Service
+
+Service
+ → Repository
+
+Repository
+ → Persistence
+
+Persistence
+ → Infrastructure
+
+Forbidden:
+
+Controller
+ → Repository
+
+Controller
+ → Database
+
+Service
+ → Database
+
+Runtime
+ → Database
+
+Frontend
+ → Repository
+
+Frontend
+ → Service
+
+Tool
+ → Repository
+
+Agent
+ → Database
+
+Report every violation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — FLOW VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify actual execution paths.
+
+Check:
+
+main.ts
+ ↓
+bootstrap
+ ↓
+container registration
+ ↓
+route registration
+ ↓
+runtime startup
+
+Verify logs actually reach:
+
+Process
+ ↓
+Service
+ ↓
+Repository
+ ↓
+Broker
+ ↓
+SSE
+ ↓
+Frontend
+
+Verify runtime state actually reaches:
+
+RuntimeBadge
+
+Verify install events actually reach:
+
+InstallProgress
+
+Verify crash events actually reach:
+
+RuntimeOverlay
+
+Report broken links.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — AUTO FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ONLY after report.
+
+Fix:
+
+- missing imports
+- missing exports
+- incorrect import paths
+- invalid DI registration
+- broken repository injection
+- missing service registration
+- missing event registration
+- broken SSE wiring
+- broken runtime wiring
+
+Do NOT create duplicate classes.
+
+Reuse existing implementations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — RE-VERIFY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After fixes run again.
+
+Verify:
+
+✓ TypeScript build passes
+
+✓ ESLint passes
+
+✓ No circular dependencies
+
+✓ All imports resolve
+
+✓ All exports resolve
+
+✓ Runtime flow valid
+
+✓ SSE flow valid
+
+✓ Frontend sync valid
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide:
+
+1. Dependency graph
+2. Architecture violations
+3. Import/export issues
+4. Fixes applied
+5. Files modified
+6. Remaining risks
+7. Final health score
+
+Health Score:
+
+Architecture
+Imports
+Exports
+DI
+Runtime
+Streaming
+Frontend Sync
+Overall
+
+Do not stop until every console file is verified.

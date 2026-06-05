@@ -11,7 +11,8 @@ import { runtimeService } from './runtime-service.ts';
 import { processService } from './process-service.ts';
 import { sessionRepository } from '../../repositories/console/index.ts';
 import { initStreamBroker, streamBrokerStats } from '../../console/streaming/stream-broker.ts';
-import type { LogLine, RuntimeEntry, RuntimeState } from '../../console/types/index.ts';
+import { consoleRuntimeManager } from '../../console/runtime/runtime-manager.ts';
+import type { LogLine, RuntimeEntry, RuntimeState, ConsoleSession } from '../../console/types/index.ts';
 
 export const consoleService = {
   /**
@@ -20,7 +21,14 @@ export const consoleService = {
    */
   init(): void {
     initStreamBroker();
-    // consoleRuntimeManager.init() is called by runtimeService lazily
+    consoleRuntimeManager.init();
+  },
+
+  // ── Session management ─────────────────────────────────────────────────────
+
+  /** Create a new SSE session for a project. Used by the controller. */
+  createSession(projectId: number): ConsoleSession {
+    return sessionRepository.create(projectId);
   },
 
   // ── Log operations ─────────────────────────────────────────────────────────

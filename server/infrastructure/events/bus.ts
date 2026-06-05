@@ -10,11 +10,15 @@ import { EventEmitter } from 'events';
 // ── Typed event map ────────────────────────────────────────────────────────────
 
 export interface BusEventMap {
-  'agent.event':     Record<string, unknown>;
-  'run.lifecycle':   Record<string, unknown>;
-  'checkpoint':      Record<string, unknown>;
-  'process.crashed': Record<string, unknown>;
-  [key: string]:     unknown;
+  'agent.event':          Record<string, unknown>;
+  'run.lifecycle':        Record<string, unknown>;
+  'checkpoint':           Record<string, unknown>;
+  'process.crashed':      Record<string, unknown>;
+  'console.log_line':     Record<string, unknown>;
+  'console.runtime_state': Record<string, unknown>;
+  'console.session_open': Record<string, unknown>;
+  'console.session_close': Record<string, unknown>;
+  [key: string]:          unknown;
 }
 
 // ── Bus implementation ────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
  * state transitions through recovering → recovered | failed.
  */
 
-import { bus }                from '../../../server/infrastructure/events/bus.ts';
+import { bus }                from '../../infrastructure/events/bus.ts';
 import { runtimeRepository }  from '../../repositories/console/index.ts';
 import { emitRuntimeState }   from '../events/console-events.ts';
 import { healthMonitor }      from './health-monitor.ts';
