@@ -6,8 +6,7 @@
  *   bootstrap()
  *     ↓ registerInfrastructure()   — DB seed, infra wiring
  *     ↓ registerRepositories()     — (singletons — no explicit init needed)
- *     ↓ registerServices()         — memory platform, tool registry, console service
- *     ↓ registerConsoleModule()    — stream broker + runtime manager init
+ *     ↓ registerServices()         — memory platform, tool registry
  *     ↓ registerRoutes(app)        — mount all HTTP routers
  *     ↓ startHttpServer(app)       — bind port, start watchers
  *
@@ -34,10 +33,10 @@ import {
   subscribeToAgentFileEvents,
 } from './server/file-explorer/index.ts';
 
-// Console: router from the console module public API.
-import { consoleRouter } from './server/console/index.ts';
+// Terminal: router from the new terminal module.
+import { terminalRouter } from './server/terminal/index.ts';
 
-// Bus adapter wiring — must be initialized before any console module runs.
+// Bus adapter wiring.
 import { initBusAdapter } from './server/shared/events/bus-adapter.ts';
 import { bus }            from './server/infrastructure/index.ts';
 
@@ -122,7 +121,7 @@ function registerRoutes(app: Express): void {
   // ── Module routers ──────────────────────────────────────────────────────────
   chatOrchestrator.mountRoutes(app);
   app.use('/api/orchestration',  createOrchestrationRouter());
-  app.use('/api/console',        consoleRouter);           // Console → Service → Repo → Persistence → Infra
+  app.use('/api/terminal',       terminalRouter);
   app.use('/api/file-explorer',  fileExplorerRouter);
   app.use('/api',                legacyFileRouter);
 
