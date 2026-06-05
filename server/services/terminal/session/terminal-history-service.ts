@@ -3,7 +3,13 @@
  *
  * Per-session command history with circular buffer.
  * Supports append, retrieve, search, and clear.
+ *
+ * Write-through pattern:
+ *   _histories Map        → hot in-process cache (all reads are sync)
+ *   commandRepository     → durable file-backed store (sync write-through on push)
  */
+
+import { commandRepository } from '../../../repositories/terminal/index.ts';
 
 export class HistoryError extends Error {
   constructor(message: string) {
@@ -39,6 +45,13 @@ export const terminalHistoryService = {
     if (history.length > MAX_HISTORY) {
       history.splice(0, history.length - MAX_HISTORY);
     }
+
+    // Write-through: persist to file-backed store immediately (sync)
+    commandRepository.appendHistory(sessionId, {
+      command,
+      exitCode:  exitCode ?? 0,
+      timestamp: entry.timestamp,
+    });
 
     return entry;
   },

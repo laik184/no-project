@@ -3,11 +3,16 @@
  *
  * Low-level process start / stop / restart primitives.
  * Maintains an in-process Map of running ChildProcesses keyed by sessionId.
+ *
+ * Write-through pattern:
+ *   _registry Map       → holds live ChildProcess objects (not serializable, must stay in-process)
+ *   processRepository   → tracks serializable process metadata for cross-layer queries
  */
 
 import { spawn }    from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { commandParser, commandValidator } from '../command/index.ts';
+import { processRepository }               from '../../../repositories/terminal/index.ts';
 
 export class LifecycleError extends Error {
   constructor(message: string) {
@@ -58,7 +63,20 @@ export const processLifecycleService = {
 
     _registry.set(sessionId, managed);
 
-    proc.on('close', () => { _registry.delete(sessionId); });
+    // Write-through: register serializable metadata in repository
+    processRepository.register({
+      sessionId,
+      projectId: 0,
+      pid:       managed.pid,
+      command,
+      cwd,
+      startedAt: managed.startedAt,
+    });
+
+    proc.on('close', () => {
+      _registry.delete(sessionId);
+      processRepository.unregister(sessionId);
+    });
 
     return managed;
   },
@@ -69,6 +87,7 @@ export const processLifecycleService = {
 
     try { managed.proc.kill(force ? 'SIGKILL' : 'SIGTERM'); } catch { /* already gone */ }
     _registry.delete(sessionId);
+    processRepository.unregister(sessionId);
     return true;
   },
 
