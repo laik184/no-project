@@ -4,7 +4,7 @@
  * Detects npm install log patterns and extracts structured NpmMeta.
  */
 
-import type { NpmMeta } from '../types/index.ts';
+import type { NpmMeta } from '../../shared/console/types.ts';
 
 const RE_INSTALL_START  = /^(npm warn|added \d+|npm install|installing packages)/i;
 const RE_INSTALL_DONE   = /^added\s+(\d+)\s+package/i;

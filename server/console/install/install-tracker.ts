@@ -6,7 +6,7 @@
  */
 
 import { consoleRuntimeManager } from '../runtime/runtime-manager.ts';
-import type { NpmMeta } from '../types/index.ts';
+import type { NpmMeta } from '../../shared/console/types.ts';
 
 interface InstallState {
   projectId:   number;

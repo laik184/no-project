@@ -5,7 +5,7 @@
  * Determines log kind (stdout/stderr/error) and attaches ConsoleLineMeta.
  */
 
-import type { LogLine, LogKind, ConsoleLineMeta } from '../types/index.ts';
+import type { LogLine, LogKind, ConsoleLineMeta } from '../../shared/console/types.ts';
 import { makeLogLine }    from '../domain/log-line.ts';
 import { parseNpm, isNpmLine }       from './npm-parser.ts';
 import { parseVite, isViteLine }     from './vite-parser.ts';

@@ -49,6 +49,15 @@ From `server/console/events/`, `runtime/`, `streaming/` (2 levels): `../../share
 From `server/console/persistence/postgres/`, `redis/`, `file/` (3 levels): `../../../shared/console/`
 From `server/repositories/console/`, `server/services/console/` (2 levels): `../../shared/console/`
 
+## Bootstrap sequence (main.ts)
+main.ts now has a formal 6-phase bootstrap():
+1. registerInfrastructure() — await seedDefaultProject()
+2. registerRepositories()   — singletons init at module load
+3. registerServices()        — bootstrapMemory(), loadAllTools()
+4. registerConsoleModule()   — consoleService.init()
+5. registerRoutes(app)       — mount all HTTP routers
+6. startHttpServer(app)      — listen + watchers
+
 ## How to apply
 Any new module in the console domain must:
 1. Import types from `server/shared/console/types.ts`

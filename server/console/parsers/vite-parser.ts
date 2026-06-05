@@ -4,7 +4,7 @@
  * Detects Vite dev-server log patterns and extracts structured ViteMeta.
  */
 
-import type { ViteMeta } from '../types/index.ts';
+import type { ViteMeta } from '../../shared/console/types.ts';
 
 const RE_STARTING     = /vite\s+v[\d.]+\s+ready|vite\s+dev\s+server\s+running/i;
 const RE_READY        = /➜\s+Local:|local:\s+http/i;

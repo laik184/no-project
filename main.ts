@@ -1,21 +1,31 @@
 /**
  * main.ts — Application entry point
  *
- * Boots all server modules and starts the HTTP server on port 3001.
- * The Vite dev server (port 5000) proxies /api, /sse, /events, /preview, /ws to this server.
+ * Boots all server modules in the required dependency order:
+ *
+ *   bootstrap()
+ *     ↓ registerInfrastructure()   — DB seed, infra wiring
+ *     ↓ registerRepositories()     — (singletons — no explicit init needed)
+ *     ↓ registerServices()         — memory platform, tool registry, console service
+ *     ↓ registerConsoleModule()    — stream broker + runtime manager init
+ *     ↓ registerRoutes(app)        — mount all HTTP routers
+ *     ↓ startHttpServer(app)       — bind port, start watchers
+ *
+ * The Vite dev server (port 5000) proxies /api, /sse, /events, /preview, /ws
+ * to this server on port 3001.
  */
 
-import http from 'http';
-import express from 'express';
+import http    from 'http';
+import express, { type Express } from 'express';
 import type { Request, Response } from 'express';
 
 import { installGlobalHandlers, expressErrorMiddleware } from './server/shared/errors/index.ts';
 
-import { bootstrapMemory }                            from './server/memory/index.ts';
-import { loadAllTools }                              from './server/tools/registry/tool-loader.ts';
-import { chatOrchestrator }                           from './server/chat/index.ts';
+import { bootstrapMemory }                               from './server/memory/index.ts';
+import { loadAllTools }                                  from './server/tools/registry/tool-loader.ts';
+import { chatOrchestrator }                              from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { seedDefaultProject, TOPIC, sseManager }      from './server/infrastructure/index.ts';
+import { seedDefaultProject, TOPIC, sseManager }        from './server/infrastructure/index.ts';
 import {
   fileExplorerRouter,
   legacyFileRouter,
@@ -24,113 +34,146 @@ import {
   subscribeToAgentFileEvents,
 } from './server/file-explorer/index.ts';
 
-// Console: router from module, service from service layer directly (avoids circular dep)
+// Console: router from the console module public API,
+//          service from the service layer directly (avoids circular dep).
 import { consoleRouter }  from './server/console/index.ts';
 import { consoleService } from './server/services/console/index.ts';
 
-// ── Global error safety net ───────────────────────────────────────────────────
+// ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
 
-// ── App setup ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 1 — registerInfrastructure
+//   Seed the database and warm up infrastructure singletons.
+//   Must run before any repository or service is used.
+// ═══════════════════════════════════════════════════════════════════════════════
+async function registerInfrastructure(): Promise<void> {
+  await seedDefaultProject();
+}
 
-const app  = express();
-const PORT = Number(process.env.API_PORT ?? 3001);
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — registerRepositories
+//   Repository singletons are initialized on first import (module-level).
+//   No explicit wiring is required here; this phase documents the dependency.
+// ═══════════════════════════════════════════════════════════════════════════════
+function registerRepositories(): void {
+  // singletons: logRepository, sessionRepository, runtimeRepository,
+  //             checkpointRepository — all initialized at module load.
+}
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — registerServices
+//   Memory platform, tool registry, and chat orchestration.
+//   Console service init is deferred to registerConsoleModule().
+// ═══════════════════════════════════════════════════════════════════════════════
+function registerServices(): void {
+  bootstrapMemory();
+  loadAllTools();
+}
 
-// ── Console module ────────────────────────────────────────────────────────────
-consoleService.init();
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4 — registerConsoleModule
+//   Starts the stream broker and runtime health monitor.
+//   Must run after services so the log pipeline is ready.
+// ═══════════════════════════════════════════════════════════════════════════════
+function registerConsoleModule(): void {
+  consoleService.init();
+}
 
-// ── Memory platform ───────────────────────────────────────────────────────────
-bootstrapMemory();
-
-// ── Tool registry ─────────────────────────────────────────────────────────────
-loadAllTools();
-
-// ── Health check ──────────────────────────────────────────────────────────────
-
-app.get('/health', (_req, res) => {
-  res.json({ ok: true, uptime: process.uptime() });
-});
-
-// ── /api/realtime — shared SSE stream for all topics ─────────────────────────
-
-app.get('/api/realtime', (req: Request, res: Response) => {
-  const projectId = req.query.projectId ? Number(req.query.projectId) : null;
-  const runId     = req.query.runId as string | undefined;
-
-  res.writeHead(200, {
-    'Content-Type':      'text/event-stream',
-    'Cache-Control':     'no-cache, no-transform',
-    'Connection':        'keep-alive',
-    'X-Accel-Buffering': 'no',
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 5 — registerRoutes
+//   Mount all HTTP routers onto the Express app.
+// ═══════════════════════════════════════════════════════════════════════════════
+function registerRoutes(app: Express): void {
+  app.get('/health', (_req, res) => {
+    res.json({ ok: true, uptime: process.uptime() });
   });
-  (res as any).flushHeaders?.();
 
-  const topicSet = new Set<string>(Object.values(TOPIC));
+  // ── Shared SSE stream (all topics) ─────────────────────────────────────────
+  app.get('/api/realtime', (req: Request, res: Response) => {
+    const projectId = req.query.projectId ? Number(req.query.projectId) : null;
+    const runId     = req.query.runId as string | undefined;
 
-  const cleanup = sseManager.register(
-    res,
-    topicSet as unknown as ReadonlySet<string>,
-    projectId,
-    runId,
-  );
-
-  req.on('close', () => cleanup());
-});
-
-// ── Stub routes ───────────────────────────────────────────────────────────────
-
-app.get('/api/project-status', (_req: Request, res: Response) => {
-  res.json({ ok: true, running: [] });
-});
-
-app.get('/api/tunnel-info', (_req: Request, res: Response) => {
-  const domain = process.env.REPLIT_DEV_DOMAIN;
-  res.json({ ok: true, url: domain ? `https://${domain}` : null });
-});
-
-app.post('/api/run-project',  (_req: Request, res: Response) => res.json({ ok: true }));
-app.post('/api/stop-project', (_req: Request, res: Response) => res.json({ ok: true }));
-app.post('/api/preview-state', (_req: Request, res: Response) => res.json({ ok: true }));
-app.get('/api/artifacts', (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
-
-// ── Mount modules ─────────────────────────────────────────────────────────────
-
-chatOrchestrator.mountRoutes(app);
-app.use('/api/orchestration', createOrchestrationRouter());
-app.use('/api/console', consoleRouter);
-app.use('/api/file-explorer', fileExplorerRouter);
-app.use('/api', legacyFileRouter);
-
-// ── HTTP server ───────────────────────────────────────────────────────────────
-
-const server = http.createServer(app);
-chatOrchestrator.bootstrap(server);
-
-// ── Start ─────────────────────────────────────────────────────────────────────
-
-initOrchestration();
-subscribeToAgentFileEvents();
-
-seedDefaultProject()
-  .then(() => {
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`[server] API server listening on port ${PORT}`);
-      startFileWatcher().catch((err) => console.error('[file-watcher] Failed to start:', err));
-      startDirectoryWatcher().catch((err) => console.error('[dir-watcher] Failed to start:', err));
+    res.writeHead(200, {
+      'Content-Type':      'text/event-stream',
+      'Cache-Control':     'no-cache, no-transform',
+      'Connection':        'keep-alive',
+      'X-Accel-Buffering': 'no',
     });
-  })
-  .catch((err) => {
-    console.error('[server] Startup seed failed:', err);
-    process.exit(1);
+    (res as any).flushHeaders?.();
+
+    const topicSet = new Set<string>(Object.values(TOPIC));
+    const cleanup  = sseManager.register(
+      res,
+      topicSet as unknown as ReadonlySet<string>,
+      projectId,
+      runId,
+    );
+    req.on('close', () => cleanup());
   });
 
-// ── Express error middleware ──────────────────────────────────────────────────
-app.use(expressErrorMiddleware);
+  // ── Stub routes ─────────────────────────────────────────────────────────────
+  app.get('/api/project-status',  (_req: Request, res: Response) => res.json({ ok: true, running: [] }));
+  app.get('/api/tunnel-info',     (_req: Request, res: Response) => {
+    const domain = process.env.REPLIT_DEV_DOMAIN;
+    res.json({ ok: true, url: domain ? `https://${domain}` : null });
+  });
+  app.post('/api/run-project',    (_req: Request, res: Response) => res.json({ ok: true }));
+  app.post('/api/stop-project',   (_req: Request, res: Response) => res.json({ ok: true }));
+  app.post('/api/preview-state',  (_req: Request, res: Response) => res.json({ ok: true }));
+  app.get('/api/artifacts',       (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
 
-process.on('SIGTERM', () => {
-  console.log('[server] SIGTERM received — shutting down');
-  server.close(() => process.exit(0));
+  // ── Module routers ──────────────────────────────────────────────────────────
+  chatOrchestrator.mountRoutes(app);
+  app.use('/api/orchestration',  createOrchestrationRouter());
+  app.use('/api/console',        consoleRouter);           // Console → Service → Repo → Persistence → Infra
+  app.use('/api/file-explorer',  fileExplorerRouter);
+  app.use('/api',                legacyFileRouter);
+
+  app.use(expressErrorMiddleware);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 6 — startHttpServer
+//   Bind the HTTP port and kick off background watchers.
+// ═══════════════════════════════════════════════════════════════════════════════
+function startHttpServer(app: Express): void {
+  const PORT   = Number(process.env.API_PORT ?? 3001);
+  const server = http.createServer(app);
+
+  chatOrchestrator.bootstrap(server);
+  initOrchestration();
+  subscribeToAgentFileEvents();
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[server] API server listening on port ${PORT}`);
+    startFileWatcher().catch((err) => console.error('[file-watcher] Failed to start:', err));
+    startDirectoryWatcher().catch((err) => console.error('[dir-watcher] Failed to start:', err));
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('[server] SIGTERM received — shutting down');
+    server.close(() => process.exit(0));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOOTSTRAP — ordered startup sequence
+// ═══════════════════════════════════════════════════════════════════════════════
+async function bootstrap(): Promise<void> {
+  const app = express();
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  await registerInfrastructure();   // Phase 1 — DB seed
+  registerRepositories();           // Phase 2 — repo singletons (module-load)
+  registerServices();               // Phase 3 — memory, tools
+  registerConsoleModule();          // Phase 4 — console service + stream broker
+  registerRoutes(app);              // Phase 5 — HTTP routers
+  startHttpServer(app);             // Phase 6 — listen
+}
+
+bootstrap().catch((err) => {
+  console.error('[server] Fatal startup error:', err);
+  process.exit(1);
 });

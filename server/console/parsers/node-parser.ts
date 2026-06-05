@@ -4,7 +4,7 @@
  * Detects Node.js error patterns and extracts structured NodeMeta.
  */
 
-import type { NodeMeta } from '../types/index.ts';
+import type { NodeMeta } from '../../shared/console/types.ts';
 
 const RE_STACK_TRACE   = /^\s+at\s+.+\(?.+:\d+:\d+\)?/;
 const RE_UNCAUGHT      = /^uncaughtException:|^UnhandledPromiseRejection/i;

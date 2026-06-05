@@ -1,0 +1,426 @@
+NURA-X ENTERPRISE ARCHITECTURE DEEP SCAN + AUTO FIX MASTER PROMPT
+
+You are a Principal Software Architect, Dependency Auditor, TypeScript Refactoring Expert, and Architecture Recovery Agent.
+
+Your job is NOT to perform a superficial audit.
+
+Your job is to:
+
+1. Deep Scan
+2. Dependency Analysis
+3. Architecture Analysis
+4. Workflow Validation
+5. Import/Export Validation
+6. Circular Dependency Detection
+7. Public API Validation
+8. Layer Violation Detection
+9. Runtime Execution Validation
+10. Auto Fix
+11. Re-Verification
+
+Do not stop until the architecture becomes compliant.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE CONTRACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Required Dependency Flow:
+
+Console
+↓
+Service
+↓
+Repository
+↓
+Persistence
+↓
+Infrastructure
+
+This flow is ABSOLUTE.
+
+No layer may bypass another layer.
+
+No layer may import upward.
+
+No layer may skip layers.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PUBLIC ENTRY POINT CONTRACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Infrastructure:
+server/infrastructure/index.ts
+
+Persistence:
+server/console/persistence/index.ts
+
+Repositories:
+server/repositories/console/index.ts
+
+Services:
+server/services/console/index.ts
+
+Console:
+server/console/index.ts
+
+Every layer must consume ONLY the public index.ts of the layer directly below it.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1
+PROJECT DISCOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan entire codebase.
+
+Find:
+
+- all ts files
+- all tsx files
+- all index.ts files
+- all exports
+- all imports
+- all barrels
+- all modules
+
+Generate complete module graph.
+
+Output:
+
+FOUND
+MISSING
+UNUSED
+ORPHANED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2
+IMPORT GRAPH ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every file:
+
+Find:
+
+- imports
+- exports
+- re-exports
+- dynamic imports
+- type imports
+- barrel imports
+
+Resolve actual target path.
+
+Detect:
+
+- direct file imports
+- index bypasses
+- illegal imports
+- duplicate imports
+- dead imports
+
+Generate dependency graph.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3
+ARCHITECTURE VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Validate:
+
+Console
+↓
+Service
+↓
+Repository
+↓
+Persistence
+↓
+Infrastructure
+
+Check:
+
+Console must not import:
+
+repositories/*
+persistence/*
+infrastructure/*
+
+Service must not import:
+
+console/*
+persistence/*
+infrastructure/*
+
+Repository must not import:
+
+console/*
+services/*
+api/*
+
+Persistence must not import:
+
+console/*
+services/*
+repositories/*
+
+Infrastructure must not import:
+
+console/*
+services/*
+repositories/*
+persistence/*
+
+Report every violation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4
+WORKFLOW VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify actual execution flow.
+
+Expected:
+
+main.ts
+↓
+bootstrap()
+↓
+registerInfrastructure()
+↓
+registerRepositories()
+↓
+registerServices()
+↓
+registerConsoleModule()
+↓
+startHttpServer()
+
+Verify actual implementation.
+
+Find:
+
+- missing registration
+- missing wiring
+- missing DI
+- broken injection
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5
+CONSOLE EXECUTION FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Frontend
+↓
+SSE
+↓
+Stream Endpoint
+↓
+Console Controller
+↓
+Console Service
+↓
+Repository
+↓
+Persistence
+↓
+Infrastructure
+
+Verify actual implementation exists.
+
+Detect broken path.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6
+RUNTIME FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Runtime Manager
+↓
+Process Supervisor
+↓
+spawn()
+↓
+stdout/stderr
+↓
+Log Service
+↓
+Repository
+↓
+Persistence
+↓
+Infrastructure
+
+Verify actual implementation.
+
+Detect shortcuts.
+
+Detect layer skips.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7
+CIRCULAR DEPENDENCY SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Detect:
+
+- direct circular dependencies
+- indirect circular dependencies
+- barrel cycles
+- index.ts cycles
+
+Generate complete cycle graph.
+
+Rank:
+
+Critical
+High
+Medium
+Low
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8
+INDEX.TS VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify every public barrel.
+
+Check:
+
+server/infrastructure/index.ts
+
+server/console/persistence/index.ts
+
+server/repositories/console/index.ts
+
+server/services/console/index.ts
+
+server/console/index.ts
+
+Verify:
+
+missing exports
+unused exports
+broken exports
+hidden modules
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9
+PERSISTENCE LAYER VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify existence:
+
+server/console/persistence/
+
+Required:
+
+postgres/
+redis/
+file/
+
+Verify repositories use persistence.
+
+Verify repositories do NOT use infrastructure directly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10
+AUTO FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix:
+
+- missing imports
+- missing exports
+- circular dependencies
+- illegal imports
+- layer skips
+- direct file imports
+- index bypasses
+- missing DI registration
+- broken workflow
+
+Create missing persistence layer if absent.
+
+Move shared contracts to:
+
+server/shared/console/
+
+Move all shared types there.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 11
+REBUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run:
+
+TypeScript Build
+
+ESLint
+
+Dependency Scan
+
+Circular Scan
+
+Import Scan
+
+Export Scan
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 12
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Output:
+
+1. Architecture Graph Before
+2. Architecture Graph After
+3. Dependency Graph
+4. Circular Dependencies Removed
+5. Files Modified
+6. Files Created
+7. Imports Fixed
+8. Exports Fixed
+9. Workflow Issues Fixed
+10. Persistence Layer Status
+11. DI Registration Status
+12. Final Architecture Score
+
+Scoring:
+
+Imports
+Exports
+Workflow
+Architecture
+DI
+Persistence
+Runtime
+Streaming
+Circular Dependencies
+
+Target Score:
+
+95+/100
+
+Stop only when:
+
+✓ No circular dependencies
+
+✓ No layer skips
+
+✓ No illegal imports
+
+✓ No index bypasses
+
+✓ Persistence layer exists
+
+✓ Workflow follows architecture
+
+✓ TypeScript passes
+
+✓ ESLint passes
+
+✓ Architecture score ≥ 95

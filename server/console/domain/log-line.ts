@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { LogLine, LogKind, ConsoleLineMeta } from '../types/index.ts';
+import type { LogLine, LogKind, ConsoleLineMeta } from '../../shared/console/types.ts';
 
 export function makeLogLine(
   kind:  LogKind,
