@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { messageService }    from '../../services/chat/message.service.ts';
+import { messageService }    from '@services/chat';
 import { messageBuilder }    from '../messages/message-builder.ts';
 import { buildUserPayload }  from '../messages/user-message.ts';
 import { conversationManager } from '../orchestration/conversation-manager.ts';

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { chatOrchestrator } from '../orchestration/chat-orchestrator.ts';
-import { runService }       from '../../services/chat/run.service.ts';
+import { runService }       from '@services/chat';
 import { startRunSchema }   from '../schemas/chat.schema.ts';
 import { unregisterRun }    from '../run/registry.ts';
 

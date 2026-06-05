@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { attachmentService } from '../../services/chat/attachment.service.ts';
+import { attachmentService } from '@services/chat';
 
 export const attachmentController = {
   async listByProject(req: Request, res: Response): Promise<void> {

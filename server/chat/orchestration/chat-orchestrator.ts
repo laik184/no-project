@@ -22,13 +22,15 @@ import {
   makeRunFailedEvent,
 }                                     from '../events/run.events.ts';
 import { makeCheckpointCreatedPayload } from '../events/checkpoint.events.ts';
-import { sessionManager }             from '../../services/chat/session.service.ts';
-import { turnManager }                from '../../services/chat/turn.service.ts';
-import { streamManager }              from '../../services/chat/stream.service.ts';
+import {
+  sessionManager,
+  turnManager,
+  streamManager,
+  checkpointService,
+  streamRunSummary,
+  routeIntent,
+}                                     from '@services/chat';
 import { clarificationManager }       from '../questions/clarification-manager.ts';
-import { checkpointService }          from '../../services/chat/checkpoint.service.ts';
-import { streamRunSummary }           from '../../services/chat/responder.service.ts';
-import { routeIntent }                from '../../services/chat/intent.service.ts';
 import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
 import { bus }                        from '../../infrastructure/index.ts';
 import { SANDBOX_ROOT }               from '../../infrastructure/config/sandbox.config.ts';

@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
-import { runService }     from '../../services/chat/run.service.ts';
-import { messageService } from '../../services/chat/message.service.ts';
+import { runService, messageService } from '@services/chat';
 
 export const historyController = {
   async getHistory(req: Request, res: Response): Promise<void> {
