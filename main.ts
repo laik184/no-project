@@ -34,10 +34,8 @@ import {
   subscribeToAgentFileEvents,
 } from './server/file-explorer/index.ts';
 
-// Console: router from the console module public API,
-//          service from the service layer directly (avoids circular dep).
-import { consoleRouter }  from './server/console/index.ts';
-import { consoleService } from './server/services/console/index.ts';
+// Console: router from the console module public API.
+import { consoleRouter } from './server/console/index.ts';
 
 // Bus adapter wiring — must be initialized before any console module runs.
 import { initBusAdapter } from './server/shared/events/bus-adapter.ts';
@@ -76,15 +74,6 @@ function registerRepositories(): void {
 function registerServices(): void {
   bootstrapMemory();
   loadAllTools();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PHASE 4 — registerConsoleModule
-//   Starts the stream broker and runtime health monitor.
-//   Must run after services so the log pipeline is ready.
-// ═══════════════════════════════════════════════════════════════════════════════
-function registerConsoleModule(): void {
-  consoleService.init();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -175,9 +164,8 @@ async function bootstrap(): Promise<void> {
   await registerInfrastructure();   // Phase 1 — DB seed
   registerRepositories();           // Phase 2 — repo singletons (module-load)
   registerServices();               // Phase 3 — memory, tools
-  registerConsoleModule();          // Phase 4 — console service + stream broker
-  registerRoutes(app);              // Phase 5 — HTTP routers
-  startHttpServer(app);             // Phase 6 — listen
+  registerRoutes(app);              // Phase 4 — HTTP routers
+  startHttpServer(app);             // Phase 5 — listen
 }
 
 bootstrap().catch((err) => {
