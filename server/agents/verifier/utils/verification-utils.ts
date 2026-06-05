@@ -57,7 +57,7 @@ export function defaultSteps(
     push('tests', 'run_tests', 'Run tests', { runId, projectId }, false, 120_000, 1);
   }
   if (phases.includes('runtime')) {
-    push('runtime', 'check_server_health', 'Check server health', { runId }, true, 15_000, 2);
+    push('runtime', 'check_server_health', 'Check server health', { runId }, false, 15_000, 2);
   }
   if (phases.includes('endpoints')) {
     push('endpoints', 'validate_endpoints', 'Validate endpoints', { runId, endpoints: [] }, false, 30_000, 1);
