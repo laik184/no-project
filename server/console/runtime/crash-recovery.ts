@@ -3,10 +3,10 @@
  *
  * Handles crash detection and initiates recovery sequences.
  * Uses shared runtime-state store (no repository import).
- * Uses infrastructure/index.ts for bus (no subpath bypass).
+ * Uses shared/events/bus-adapter — no direct infrastructure import.
  */
 
-import { bus }               from '../../infrastructure/index.ts';
+import { busAdapter }        from '../../shared/events/bus-adapter.ts';
 import { runtimeStateStore } from '../../shared/console/runtime-state.ts';
 import { emitRuntimeState }  from '../events/console-events.ts';
 import { healthMonitor }     from './health-monitor.ts';
@@ -62,7 +62,7 @@ export const crashRecovery = {
     if (_initialized) return;
     _initialized = true;
 
-    bus.on('process.crashed', (payload: Record<string, unknown>) => {
+    busAdapter.on('process.crashed', (payload: Record<string, unknown>) => {
       const projectId = payload.projectId as number | undefined;
       if (!projectId) return;
 

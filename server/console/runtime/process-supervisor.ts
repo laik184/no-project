@@ -2,15 +2,15 @@
  * server/console/runtime/process-supervisor.ts
  *
  * Wraps a spawned child process and pipes stdout/stderr through
- * the log pipeline: raw bytes → LogLine → bus → StreamBroker → SSE.
- * Uses infrastructure/index.ts for bus (no subpath bypass).
+ * the log pipeline: raw bytes → LogLine → busAdapter → StreamBroker → SSE.
+ * Uses shared/events/bus-adapter.ts — no direct infrastructure import.
  */
 
 import { spawn, type ChildProcess } from 'child_process';
 import { parseLogLine }  from '../parsers/log-parser.ts';
 import { emitLogLine }   from '../events/console-events.ts';
 import { healthMonitor } from './health-monitor.ts';
-import { bus }           from '../../infrastructure/index.ts';
+import { busAdapter }    from '../../shared/events/bus-adapter.ts';
 
 export interface SupervisorOptions {
   projectId: number;
@@ -59,7 +59,7 @@ class Supervisor {
 
     child.on('exit', (code, signal) => {
       this.child = null;
-      bus.emit('process.crashed', {
+      busAdapter.emit('process.crashed', {
         projectId,
         code:   code ?? -1,
         signal: signal ?? null,
@@ -67,7 +67,7 @@ class Supervisor {
     });
 
     child.on('error', (err) => {
-      bus.emit('process.crashed', {
+      busAdapter.emit('process.crashed', {
         projectId,
         code:  -1,
         error: err.message,

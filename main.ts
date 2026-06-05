@@ -39,6 +39,10 @@ import {
 import { consoleRouter }  from './server/console/index.ts';
 import { consoleService } from './server/services/console/index.ts';
 
+// Bus adapter wiring — must be initialized before any console module runs.
+import { initBusAdapter } from './server/shared/events/bus-adapter.ts';
+import { bus }            from './server/infrastructure/index.ts';
+
 // ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
 
@@ -48,6 +52,9 @@ installGlobalHandlers();
 //   Must run before any repository or service is used.
 // ═══════════════════════════════════════════════════════════════════════════════
 async function registerInfrastructure(): Promise<void> {
+  // Wire the shared bus adapter FIRST — console modules depend on it at init time.
+  // Cast needed: TypedEventBus has generic overloads; IBusAdapter uses string for flexibility.
+  initBusAdapter(bus as Parameters<typeof initBusAdapter>[0]);
   await seedDefaultProject();
 }
 
