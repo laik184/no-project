@@ -426,3 +426,9 @@ id = "pw4GvEiUWYJAAxtljzThG"
 uri = "file://AGENT_LIFECYCLE_AUDIT.md"
 type = "text"
 title = "Agent Lifecycle State Audit Report"
+
+[[outputs]]
+id = "9lNMHjclvRV5gzU7hgyXh"
+uri = "file://WORKFLOW_REPORT.md"
+type = "text"
+title = "Nura-X Workflow Report — Chat → Agent → File Creation"
