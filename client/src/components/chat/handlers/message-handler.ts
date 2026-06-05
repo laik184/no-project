@@ -59,7 +59,8 @@ export function handleMessageEvents(e: AgentEvent, deps: AgentHandlerDeps): void
       setIsAgentTyping(false);
       setActiveAction(null);
       if (errMsg) {
-        setMessages((p) => [...p, { role: "agent" as const, content: `Something went wrong: ${errMsg}`, time: "just now" }]);
+        const friendly = toFriendlyRunError(errMsg);
+        setMessages((p) => [...p, { role: "agent" as const, content: friendly, time: "just now" }]);
       }
       break;
     }
