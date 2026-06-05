@@ -1,7 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
+import { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { Eye, Database, Terminal, Globe, X, Plus, GitBranch, Lock, Camera, AlertTriangle, MonitorPlay } from "lucide-react";
+import { Eye, Database, Terminal, Globe, GitBranch, Lock, Camera, MonitorPlay } from "lucide-react";
+import { CenterPanelTabBar } from "./CenterPanelTabBar";
+import { CenterPanelConflictBanner } from "./CenterPanelConflictBanner";
+import { CenterPanelToolsGrid } from "./CenterPanelToolsGrid";
+import { CenterPanelMonacoEditor } from "./CenterPanelMonacoEditor";
 import { cn } from "@/lib/utils";
 import Preview from "@/pages/preview/index";
 import { DatabasePanel } from "@/components/panels/DatabasePanel";
@@ -43,35 +47,6 @@ function tabIcon(tab: WorkspaceTab): React.ReactElement {
   return <></>;
 }
 
-const toolItems = [
-  {
-    section: "Your App",
-    items: [
-      { id: "preview",    label: "Preview",    sub: "Live preview of your app in real time",                 icon: Eye,       color: "#60a5fa", bg: "rgba(96,165,250,0.1)",   url: "/preview"       },
-      { id: "database",   label: "Database",   sub: "Manage tables, rows, and run queries",                  icon: Database,  color: "#34d399", bg: "rgba(52,211,153,0.1)",   url: "__database__"   },
-      { id: "console",    label: "Console",    sub: "Run commands and view server logs",                     icon: Terminal,  color: "#fbbf24", bg: "rgba(251,191,36,0.1)",   url: "__console__"    },
-      { id: "git",        label: "Git",        sub: "Version history, branches, and commits",                icon: GitBranch, color: "#86efac", bg: "rgba(134,239,172,0.1)", url: "__git__"        },
-    ],
-  },
-  {
-    section: "Deployment",
-    items: [
-      { id: "publishing", label: "Publishing", sub: "Publish a live, stable, public version of your app",   icon: Globe,   color: "#4ade80", bg: "rgba(74,222,128,0.1)",   url: "__publishing__" },
-    ],
-  },
-  {
-    section: "Safety",
-    items: [
-      { id: "checkpoints", label: "Checkpoints", sub: "Browse history, compare snapshots, and one-click restore", icon: Camera,       color: "#fbbf24", bg: "rgba(251,191,36,0.1)",  url: "__checkpoints__" },
-    ],
-  },
-  {
-    section: "Agent Tools",
-    items: [
-      { id: "browser",     label: "Browser",     sub: "Live Playwright session status, screenshots, and validation", icon: MonitorPlay, color: "#60a5fa", bg: "rgba(96,165,250,0.1)", url: "__browser__"     },
-    ],
-  },
-];
 
 interface CenterPanelProps {
   tabs: WorkspaceTab[];
@@ -298,66 +273,15 @@ export function CenterPanel({
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
 
       {/* ── Tab bar ── */}
-      <div
-        className="flex items-center gap-0.5 px-3 border-b flex-shrink-0 overflow-x-auto"
-        style={{ height: 38, background: "rgba(255,255,255,0.01)", borderColor: "rgba(255,255,255,0.06)", scrollbarWidth: "none" }}
-      >
-        {tabs.map((tab) => {
-          const isActive   = tab.id === activeTabId;
-          const isModified = dirtyTabIds.has(tab.id);
-          return (
-            <div
-              key={tab.id}
-              onClick={() => void handleTabSwitch(tab.id)}
-              className="flex items-center gap-1.5 pl-2.5 pr-1 rounded-md border text-xs cursor-pointer transition-all flex-shrink-0 group"
-              style={{
-                height: 26,
-                background: isActive ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.025)",
-                borderColor: isActive ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)",
-                color: isActive ? "rgba(226,232,240,0.9)" : "rgba(148,163,184,0.55)",
-              }}
-              data-testid={`tab-${tab.id}`}
-            >
-              {tabIcon(tab)}
-              <span className="whitespace-nowrap text-[11.5px]">{tab.label}</span>
-              <div className="w-4 h-4 flex items-center justify-center ml-0.5">
-                {isModified ? (
-                  <>
-                    <span className="group-hover:hidden w-1.5 h-1.5 rounded-full" style={{ background: "#fbbf24" }} />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); void handleCloseTab(tab.id); }}
-                      className="hidden group-hover:flex w-4 h-4 items-center justify-center rounded hover:bg-white/10 transition-colors"
-                      data-testid={`button-close-tab-${tab.id}`}
-                    >
-                      <X style={{ width: 9, height: 9 }} />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); void handleCloseTab(tab.id); }}
-                    className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
-                    data-testid={`button-close-tab-${tab.id}`}
-                  >
-                    <X style={{ width: 9, height: 9 }} />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        <button
-          onClick={addTab}
-          className={cn(
-            "flex items-center gap-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-white/6 transition-colors flex-shrink-0",
-            tabs.length > 0 ? "w-6 h-6 justify-center" : "px-2.5 h-7",
-          )}
-          data-testid="button-new-tab"
-        >
-          <Plus style={{ width: 12, height: 12 }} />
-          {tabs.length === 0 && <span>Tools &amp; files</span>}
-        </button>
-      </div>
+      <CenterPanelTabBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        dirtyTabIds={dirtyTabIds}
+        onSwitchTab={(id) => void handleTabSwitch(id)}
+        onCloseTab={(id) => void handleCloseTab(id)}
+        onAddTab={addTab}
+        tabIcon={tabIcon}
+      />
 
       {/* ── Content area ── */}
       <div className="flex-1 flex overflow-hidden">
@@ -377,87 +301,26 @@ export function CenterPanel({
             />
           )}
 
-          {/* Conflict resolution banner — shown when the server rejects our save
-              because another process wrote the file after our last sync.        */}
-          {isFileTab && conflictPath && conflictPath === activeFilePath && (
-            <div
-              className="flex items-center gap-2.5 px-4 py-2 flex-shrink-0 text-xs"
-              style={{
-                background: "rgba(239,68,68,0.1)",
-                borderBottom: "1px solid rgba(239,68,68,0.22)",
-              }}
-              data-testid="banner-conflict"
-            >
-              <AlertTriangle style={{ width: 13, height: 13, color: "#fca5a5", flexShrink: 0 }} />
-              <span style={{ color: "#fca5a5", flex: 1 }}>
-                Server has a newer version — your changes weren&apos;t saved.
-              </span>
-              <button
-                onClick={() => void handleConflictReload()}
-                className="px-2.5 py-0.5 rounded text-[11px] font-medium transition-opacity hover:opacity-80"
-                style={{
-                  background: "rgba(239,68,68,0.22)",
-                  color: "#fca5a5",
-                  border: "1px solid rgba(239,68,68,0.3)",
-                }}
-                data-testid="button-conflict-reload"
-              >
-                Reload from server
-              </button>
-              <button
-                onClick={() => void handleConflictOverwrite()}
-                className="px-2.5 py-0.5 rounded text-[11px] font-medium transition-opacity hover:opacity-80"
-                style={{
-                  background: "rgba(255,255,255,0.07)",
-                  color: "rgba(226,232,240,0.65)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-                data-testid="button-conflict-overwrite"
-              >
-                Force overwrite
-              </button>
-              <button
-                onClick={() => setConflictPath(null)}
-                className="opacity-40 hover:opacity-80 transition-opacity ml-1"
-                data-testid="button-conflict-dismiss"
-              >
-                <X style={{ width: 11, height: 11 }} />
-              </button>
-            </div>
-          )}
+          {/* Conflict resolution banner */}
+          <CenterPanelConflictBanner
+            conflictPath={conflictPath}
+            activeFilePath={activeFilePath}
+            isFileTab={isFileTab}
+            onReload={() => void handleConflictReload()}
+            onOverwrite={() => void handleConflictOverwrite()}
+            onDismiss={() => setConflictPath(null)}
+          />
 
           <div className="flex-1 relative overflow-hidden">
             {(() => {
               if (isFileTab) {
-                // FIX: restore edited content when switching back to this tab
-                const restoredContent =
-                  dirtyStateStore.getEditedContent(activeTab!.id) ?? activeTab!.fileContent;
-
                 return (
-                  <div className="absolute inset-0">
-                    <Editor
-                      key={activeTab!.id}
-                      defaultValue={restoredContent}
-                      language={activeTab!.fileLang ?? "typescript"}
-                      theme="vs-dark"
-                      onMount={handleMount}
-                      onChange={handleEditorChange}
-                      options={{
-                        fontSize: 13,
-                        fontFamily: '"Fira Code","Cascadia Code","JetBrains Mono",monospace',
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        lineNumbers: "on",
-                        renderLineHighlight: "line",
-                        padding: { top: 12, bottom: 12 },
-                        cursorBlinking: "smooth",
-                        smoothScrolling: true,
-                        wordWrap: wordWrap ? "on" : "off",
-                        tabSize: 2,
-                        automaticLayout: true,
-                      }}
-                    />
-                  </div>
+                  <CenterPanelMonacoEditor
+                    activeTab={activeTab!}
+                    wordWrap={wordWrap}
+                    onMount={handleMount}
+                    onChange={handleEditorChange}
+                  />
                 );
               }
               if (activeTab?.url === "/preview")        return <Preview />;
@@ -479,44 +342,7 @@ export function CenterPanel({
                   />
                 );
               }
-              return (
-                <div className="absolute inset-0 overflow-y-auto" style={{ background: "rgba(255,255,255,0.006)" }}>
-                  <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-                  <div className="relative py-8 px-6 w-full">
-                    <div style={{ maxWidth: 700, margin: "0 auto" }}>
-                      {toolItems.map((section) => (
-                        <div key={section.section} className="mb-7">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(148,163,184,0.38)" }}>{section.section}</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {section.items.map((item) => {
-                              const Icon = item.icon;
-                              return (
-                                <button
-                                  key={item.id}
-                                  onClick={() => addToolTab(item.label, item.url)}
-                                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left group transition-all duration-200"
-                                  style={{ background: "rgba(255,255,255,0.028)", border: "1px solid rgba(255,255,255,0.07)" }}
-                                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.border = "1px solid rgba(124,141,255,0.28)"; el.style.background = "rgba(124,141,255,0.055)"; el.style.transform = "translateY(-1px)"; el.style.boxShadow = "0 4px 16px rgba(124,141,255,0.08)"; }}
-                                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.border = "1px solid rgba(255,255,255,0.07)"; el.style.background = "rgba(255,255,255,0.028)"; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
-                                  data-testid={`button-newtab-tool-${item.id}`}
-                                >
-                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: item.bg }}>
-                                    <Icon style={{ width: 15, height: 15, color: item.color }} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[12px] font-semibold text-foreground/80 group-hover:text-foreground transition-colors mb-0.5 truncate">{item.label}</p>
-                                    <p className="text-[10.5px] leading-snug line-clamp-2" style={{ color: "rgba(148,163,184,0.48)" }}>{item.sub}</p>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
+              return <CenterPanelToolsGrid onToolSelect={addToolTab} />;
             })()}
           </div>
 

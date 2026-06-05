@@ -3,67 +3,10 @@ import {
   AlertTriangle,
   RefreshCw,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine,
-} from "recharts";
 import { cn } from "@/lib/utils";
-
-type TimeRange = "5m" | "1h" | "24h";
-
-interface DataPoint {
-  time: string;
-  cpu: number;
-  mem: number;
-}
-
-const TOTAL_MEM_MB = 512;
-
-function generateData(range: TimeRange): DataPoint[] {
-  const now = Date.now();
-  let count: number, stepMs: number;
-  if (range === "5m")  { count = 30; stepMs = 10_000; }
-  else if (range === "1h") { count = 60; stepMs = 60_000; }
-  else                  { count = 48; stepMs = 1_800_000; }
-
-  let cpu = 30 + Math.random() * 20;
-  let mem = 200 + Math.random() * 80;
-
-  return Array.from({ length: count }, (_, i) => {
-    const t = new Date(now - (count - 1 - i) * stepMs);
-    const label = range === "24h"
-      ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: range === "5m" ? "2-digit" : undefined });
-
-    cpu = Math.max(5, Math.min(98, cpu + (Math.random() - 0.47) * 12));
-    if (Math.random() < 0.07) cpu = Math.min(98, cpu + 30 + Math.random() * 20);
-    mem = Math.max(80, Math.min(TOTAL_MEM_MB - 10, mem + (Math.random() - 0.45) * 18));
-
-    return { time: label, cpu: Math.round(cpu * 10) / 10, mem: Math.round(mem) };
-  });
-}
-
-function SkeletonChart() {
-  return (
-    <div className="w-full h-full rounded-lg overflow-hidden relative" style={{ background: "rgba(255,255,255,0.03)" }}>
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)",
-          backgroundSize: "200% 100%",
-          animation: "skel-sweep 1.4s ease-in-out infinite",
-        }}
-      />
-    </div>
-  );
-}
+import { type TimeRange, type DataPoint, TOTAL_MEM_MB, generateData, SkeletonChart } from "./resources-tab-helpers";
+import { ResourcesCpuChart } from "./ResourcesCpuChart";
+import { ResourcesMemoryChart } from "./ResourcesMemoryChart";
 
 export function ResourcesTab() {
   const [range, setRange]       = useState<TimeRange>("5m");
@@ -121,6 +64,7 @@ export function ResourcesTab() {
       </div>
     );
   };
+
 
   return (
     <div className="flex flex-col gap-4 h-full" style={{ minHeight: 0 }}>
@@ -262,106 +206,9 @@ export function ResourcesTab() {
         </div>
       </div>
 
-      {/* CPU Chart */}
-      <div className="flex-1 flex flex-col min-h-0 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.2)" }}>
-        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: isCpuCrit ? "#f87171" : "#a78bfa" }} />
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(226,232,240,0.8)" }}>CPU Utilization</span>
-          </div>
-          {isCpuCrit && (
-            <span className="text-[10.5px] flex items-center gap-1" style={{ color: "rgba(248,113,113,0.7)" }}>
-              <AlertTriangle className="h-3 w-3" /> Above 80% threshold
-            </span>
-          )}
-        </div>
-        <div className="flex-1 min-h-0 p-2">
-          {loading ? (
-            <SkeletonChart />
-          ) : data.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-[12px]" style={{ color: "rgba(100,116,139,0.4)" }}>No resource data available</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={isCpuCrit ? "#f87171" : "#a78bfa"} stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={isCpuCrit ? "#f87171" : "#a78bfa"} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="cpuCritGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"  stopColor="#f87171" stopOpacity={0.18} />
-                    <stop offset="100%" stopColor="#f87171" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="time" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.5)", fontFamily: "monospace" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.5)", fontFamily: "monospace" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceArea y1={80} y2={100} fill="rgba(248,113,113,0.07)" stroke="rgba(248,113,113,0.2)" strokeDasharray="4 3" />
-                <ReferenceLine y={80} stroke="rgba(248,113,113,0.45)" strokeDasharray="5 3" label={{ value: "80% critical", position: "insideTopRight", fontSize: 9, fill: "rgba(248,113,113,0.55)", fontFamily: "monospace" }} />
-                <Area
-                  type="monotone"
-                  dataKey="cpu"
-                  name="CPU"
-                  stroke={isCpuCrit ? "#f87171" : "#a78bfa"}
-                  strokeWidth={1.5}
-                  fill="url(#cpuGrad)"
-                  dot={false}
-                  activeDot={{ r: 3, strokeWidth: 0, fill: isCpuCrit ? "#f87171" : "#a78bfa" }}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
+      <ResourcesCpuChart data={data} loading={loading} isCpuCrit={isCpuCrit} CustomTooltip={CustomTooltip} />
 
-      {/* Memory Chart */}
-      <div className="flex-1 flex flex-col min-h-0 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.2)" }}>
-        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: "#4ade80" }} />
-            <span className="text-[12px] font-semibold" style={{ color: "rgba(226,232,240,0.8)" }}>Memory Utilization</span>
-          </div>
-          <span className="text-[10px]" style={{ color: "rgba(100,116,139,0.45)" }}>
-            {memNow} MB / {TOTAL_MEM_MB} MB
-          </span>
-        </div>
-        <div className="flex-1 min-h-0 p-2">
-          {loading ? (
-            <SkeletonChart />
-          ) : data.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-[12px]" style={{ color: "rgba(100,116,139,0.4)" }}>No resource data available</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 6, right: 6, left: -8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#4ade80" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#4ade80" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="time" tick={{ fontSize: 9, fill: "rgba(100,116,139,0.5)", fontFamily: "monospace" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis domain={[0, TOTAL_MEM_MB]} tick={{ fontSize: 9, fill: "rgba(100,116,139,0.5)", fontFamily: "monospace" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}MB`} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={TOTAL_MEM_MB * 0.85} stroke="rgba(251,191,36,0.35)" strokeDasharray="4 3" label={{ value: "85% warn", position: "insideTopRight", fontSize: 9, fill: "rgba(251,191,36,0.5)", fontFamily: "monospace" }} />
-                <Area
-                  type="monotone"
-                  dataKey="mem"
-                  name="Memory"
-                  stroke="#4ade80"
-                  strokeWidth={1.5}
-                  fill="url(#memGrad)"
-                  dot={false}
-                  activeDot={{ r: 3, strokeWidth: 0, fill: "#4ade80" }}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
+      <ResourcesMemoryChart data={data} loading={loading} memNow={memNow} CustomTooltip={CustomTooltip} />
     </div>
   );
 }

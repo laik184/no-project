@@ -1,28 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import Editor from "@monaco-editor/react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import {
-  Plus,
-  Trash2,
-  Download,
-  Upload,
-  X,
-  Save,
-  FileCode,
-  Circle,
-  FilePlus,
-  FolderPlus,
-  Clipboard,
-  Search,
-  Edit3,
-  Folder,
-} from "lucide-react";
+import { Plus, Upload, Folder, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FileNode,
   OpenFile,
   ContextMenu,
-  SearchResult,
   DEFAULT_TREE,
   detectLanguage,
   findNode,
@@ -33,7 +16,9 @@ import {
   getNodePath,
   searchAllFiles,
 } from "./library-panel-data";
-import { TreeNode, getLanguageIcon } from "./LibraryTreeNode";
+import { TreeNode } from "./LibraryTreeNode";
+import { LibraryQuickOpen } from "./library-quick-open";
+import { LibraryContextMenu } from "./library-context-menu";
 
 export function LibraryPanel() {
   const [tree, setTree] = useState<FileNode[]>(DEFAULT_TREE);
@@ -325,71 +310,15 @@ export function LibraryPanel() {
             </div>
 
             {showSearch ? (
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="px-2 py-2 border-b flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <Search className="h-3 w-3 flex-shrink-0" style={{ color: "rgba(148,163,184,0.5)" }} />
-                    <input ref={searchInputRef} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search in files..." className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/50 outline-none min-w-0" data-testid="input-global-search" />
-                    {searchQuery && (
-                      <button onClick={() => setSearchQuery("")} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                  {searchQuery && (
-                    <p className="text-[10px] mt-1.5" style={{ color: "rgba(148,163,184,0.4)" }}>
-                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}>
-                  {!searchQuery.trim() ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: "rgba(100,116,139,0.45)" }}>
-                      <Search className="h-6 w-6" style={{ color: "rgba(100,116,139,0.25)" }} />
-                      <p className="text-[11px] text-center px-4">Type to search across all files</p>
-                    </div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: "rgba(100,116,139,0.45)" }}>
-                      <p className="text-[11px]">No results found</p>
-                    </div>
-                  ) : (
-                    <div className="py-1">
-                      {(() => {
-                        const grouped = searchResults.reduce<Record<string, SearchResult[]>>((acc, r) => {
-                          if (!acc[r.fileId]) acc[r.fileId] = [];
-                          acc[r.fileId].push(r);
-                          return acc;
-                        }, {});
-                        return Object.entries(grouped).map(([fileId, results]) => (
-                          <div key={fileId}>
-                            <div className="flex items-center gap-1.5 px-2 py-1 sticky top-0" style={{ background: "rgba(10,12,20,0.98)" }}>
-                              {getLanguageIcon(results[0].fileName)}
-                              <span className="text-[10px] font-semibold truncate" style={{ color: "rgba(226,232,240,0.6)" }}>{results[0].fileName}</span>
-                              <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: "rgba(100,116,139,0.5)" }}>{results.length}</span>
-                            </div>
-                            {results.map((result, i) => {
-                              const before = result.lineText.slice(0, result.matchIndex);
-                              const match = result.lineText.slice(result.matchIndex, result.matchIndex + searchQuery.length);
-                              const after = result.lineText.slice(result.matchIndex + searchQuery.length);
-                              return (
-                                <button key={i} onClick={() => { const node = findNode(tree, fileId); if (node) openFile(node); setShowSearch(false); }} className="w-full text-left flex items-start gap-2 px-2 py-1 hover:bg-white/5 transition-colors group" data-testid={`search-result-${fileId}-${i}`}>
-                                  <span className="text-[10px] flex-shrink-0 mt-px font-mono" style={{ color: "rgba(100,116,139,0.4)", minWidth: 24, textAlign: "right" }}>{result.lineNumber}</span>
-                                  <span className="text-[11px] font-mono truncate" style={{ color: "rgba(148,163,184,0.65)" }}>
-                                    <span>{before}</span>
-                                    <span style={{ color: "#f59e0b", background: "rgba(245,158,11,0.15)", borderRadius: 2, padding: "0 1px" }}>{match}</span>
-                                    <span>{after}</span>
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <LibrarySearchPane
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchResults={searchResults}
+                tree={tree}
+                openFile={openFile}
+                setShowSearch={setShowSearch}
+                searchInputRef={searchInputRef}
+              />
             ) : (
               <div className="flex-1 overflow-y-auto py-1 px-1" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }} onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, nodeId: null }); }}>
                 {tree.map((node) => (
@@ -419,206 +348,44 @@ export function LibraryPanel() {
 
         <Panel defaultSize={75} minSize={40}>
           <div className="flex flex-col h-full overflow-hidden">
-            {openFiles.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3" style={{ color: "rgba(100,116,139,0.5)" }}>
-                <FileCode className="h-10 w-10" style={{ color: "rgba(100,116,139,0.3)" }} />
-                <p className="text-sm">Click a file to open it in the editor</p>
-                <p className="text-xs" style={{ color: "rgba(100,116,139,0.35)" }}>or right-click to create a new file</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center border-b overflow-x-auto flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", scrollbarWidth: "none" }}>
-                  {openFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      onClick={() => { setActiveEditorId(file.id); setActiveFileId(file.id); }}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 border-r cursor-pointer flex-shrink-0 transition-all group text-xs",
-                        activeEditorId === file.id
-                          ? "bg-white/6 text-foreground border-b-2 border-b-primary"
-                          : "text-muted-foreground hover:bg-white/4 hover:text-foreground"
-                      )}
-                      style={{ borderRightColor: "rgba(255,255,255,0.06)" }}
-                      data-testid={`editor-tab-${file.id}`}
-                    >
-                      {getLanguageIcon(file.name)}
-                      <span className="whitespace-nowrap max-w-[120px] truncate">{file.name}</span>
-                      {file.isDirty && <Circle className="h-1.5 w-1.5 fill-current text-primary flex-shrink-0" />}
-                      <button onClick={(e) => { e.stopPropagation(); closeTab(file.id); }} className="w-3.5 h-3.5 flex items-center justify-center rounded hover:bg-white/12 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" data-testid={`button-close-editor-tab-${file.id}`}>
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {activeFile && (
-                  <div className="flex items-center justify-between px-3 py-1 border-b flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
-                    <div className="flex items-center gap-1.5">
-                      {getLanguageIcon(activeFile.name)}
-                      <span className="text-xs text-foreground/60">{activeFile.name}</span>
-                      {activeFile.isDirty && <span className="text-[10px] text-primary/70">● unsaved</span>}
-                    </div>
-                    <button
-                      onClick={() => saveFile(activeFile.id)}
-                      className={cn(
-                        "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all",
-                        activeFile.isDirty
-                          ? "bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20"
-                          : "text-muted-foreground/40 cursor-default"
-                      )}
-                      disabled={!activeFile.isDirty}
-                      data-testid="button-save-file"
-                    >
-                      <Save className="h-3 w-3" />
-                      Save
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex-1 overflow-hidden">
-                  {activeFile && (
-                    <Editor
-                      key={activeFile.id}
-                      height="100%"
-                      language={activeFile.language}
-                      value={activeFile.content}
-                      onChange={handleEditorChange}
-                      theme="vs-dark"
-                      options={{
-                        fontSize: 13,
-                        fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                        lineNumbers: "on",
-                        renderLineHighlight: "line",
-                        wordWrap: "on",
-                        automaticLayout: true,
-                        formatOnType: true,
-                        tabSize: 2,
-                        insertSpaces: true,
-                        bracketPairColorization: { enabled: true },
-                        renderWhitespace: "none",
-                        cursorBlinking: "smooth",
-                        smoothScrolling: true,
-                        padding: { top: 12, bottom: 12 },
-                        scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-                      }}
-                    />
-                  )}
-                </div>
-              </>
-            )}
+            <LibraryEditorPane
+              openFiles={openFiles}
+              activeEditorId={activeEditorId}
+              activeFile={activeFile}
+              onSelectTab={(id) => { setActiveEditorId(id); setActiveFileId(id); }}
+              onCloseTab={closeTab}
+              onEditorChange={handleEditorChange}
+              onSaveFile={saveFile}
+            />
           </div>
         </Panel>
       </PanelGroup>
 
-      {showQuickOpen && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center pt-12 px-4" style={{ background: "rgba(0,0,0,0.55)" }} onClick={() => { setShowQuickOpen(false); setQuickOpenQuery(""); }}>
-          <div className="w-full rounded-xl overflow-hidden flex flex-col" style={{ maxWidth: 480, maxHeight: 360, background: "rgba(13,14,26,0.99)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-              <Search className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "rgba(148,163,184,0.5)" }} />
-              <input
-                ref={quickOpenInputRef}
-                value={quickOpenQuery}
-                onChange={(e) => { setQuickOpenQuery(e.target.value); setQuickOpenIdx(0); }}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") { e.preventDefault(); setQuickOpenIdx((i) => Math.min(i + 1, quickOpenResults.length - 1)); }
-                  if (e.key === "ArrowUp") { e.preventDefault(); setQuickOpenIdx((i) => Math.max(i - 1, 0)); }
-                  if (e.key === "Enter" && quickOpenResults[quickOpenIdx]) { openFile(quickOpenResults[quickOpenIdx]); setShowQuickOpen(false); setQuickOpenQuery(""); }
-                  if (e.key === "Escape") { setShowQuickOpen(false); setQuickOpenQuery(""); }
-                }}
-                placeholder="Search files by name..."
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
-                data-testid="input-quick-open"
-              />
-              <kbd className="text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0" style={{ background: "rgba(255,255,255,0.07)", color: "rgba(148,163,184,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>ESC</kbd>
-            </div>
+      <LibraryQuickOpen
+        showQuickOpen={showQuickOpen}
+        quickOpenQuery={quickOpenQuery}
+        setQuickOpenQuery={setQuickOpenQuery}
+        quickOpenIdx={quickOpenIdx}
+        setQuickOpenIdx={setQuickOpenIdx}
+        quickOpenResults={quickOpenResults}
+        tree={tree}
+        inputRef={quickOpenInputRef}
+        onOpen={openFile}
+        onClose={() => setShowQuickOpen(false)}
+      />
 
-            <div className="overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}>
-              {quickOpenResults.length === 0 ? (
-                <div className="py-8 text-center text-xs" style={{ color: "rgba(100,116,139,0.5)" }}>No files found</div>
-              ) : (
-                quickOpenResults.map((file, idx) => {
-                  const isSelected = idx === quickOpenIdx;
-                  const path = getNodePath(tree, file.id) || file.name;
-                  const qLower = quickOpenQuery.toLowerCase();
-                  const nameLower = file.name.toLowerCase();
-                  const matchIdx = nameLower.indexOf(qLower);
-                  return (
-                    <button key={file.id} onClick={() => { openFile(file); setShowQuickOpen(false); setQuickOpenQuery(""); }} onMouseEnter={() => setQuickOpenIdx(idx)} className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors" style={{ background: isSelected ? "rgba(124,141,255,0.12)" : "transparent" }} data-testid={`quickopen-result-${file.id}`}>
-                      {getLanguageIcon(file.name)}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs truncate" style={{ color: isSelected ? "rgba(226,232,240,1)" : "rgba(226,232,240,0.75)" }}>
-                          {matchIdx >= 0 && quickOpenQuery ? (
-                            <>
-                              <span>{file.name.slice(0, matchIdx)}</span>
-                              <span style={{ color: "#f59e0b", fontWeight: 600 }}>{file.name.slice(matchIdx, matchIdx + quickOpenQuery.length)}</span>
-                              <span>{file.name.slice(matchIdx + quickOpenQuery.length)}</span>
-                            </>
-                          ) : file.name}
-                        </span>
-                        <span className="text-[10px] truncate" style={{ color: "rgba(100,116,139,0.5)" }}>{path}</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 px-3 py-1.5 border-t flex-shrink-0" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
-              {[["↑↓", "navigate"], ["↵", "open"], ["ESC", "close"]].map(([key, label]) => (
-                <span key={key} className="flex items-center gap-1 text-[10px]" style={{ color: "rgba(100,116,139,0.5)" }}>
-                  <kbd className="px-1 py-px rounded font-mono" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>{key}</kbd>
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          className="fixed z-50 py-1.5 rounded-xl overflow-hidden"
-          style={{ left: Math.min(contextMenu.x, window.innerWidth - 200), top: Math.min(contextMenu.y, window.innerHeight - 260), width: 192, background: "rgba(13,13,28,0.98)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)" }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {contextMenu.nodeId ? (
-            <>
-              <ContextMenuItem icon={<Edit3 className="h-3.5 w-3.5" />} label="Rename" onClick={() => { setRenamingId(contextMenu.nodeId); setContextMenu(null); }} />
-              <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "4px 8px" }} />
-              {contextNode?.type === "folder" && (
-                <>
-                  <ContextMenuItem icon={<FilePlus className="h-3.5 w-3.5" />} label="Add File" onClick={() => createFile(contextMenu.nodeId)} />
-                  <ContextMenuItem icon={<FolderPlus className="h-3.5 w-3.5" />} label="Add Folder" onClick={() => createFolder(contextMenu.nodeId)} />
-                  <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "4px 8px" }} />
-                </>
-              )}
-              <ContextMenuItem icon={<Clipboard className="h-3.5 w-3.5" />} label="Copy Path" onClick={() => copyPath(contextMenu.nodeId!)} />
-              {contextNode?.type === "file" && (
-                <ContextMenuItem icon={<Download className="h-3.5 w-3.5" />} label="Download" onClick={() => handleDownload(contextMenu.nodeId!)} />
-              )}
-              <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "4px 8px" }} />
-              <ContextMenuItem icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />} label="Delete" labelClass="text-red-400" onClick={() => deleteNode(contextMenu.nodeId!)} />
-            </>
-          ) : (
-            <>
-              <ContextMenuItem icon={<FilePlus className="h-3.5 w-3.5" />} label="New File" onClick={() => createFile(null)} />
-              <ContextMenuItem icon={<FolderPlus className="h-3.5 w-3.5" />} label="New Folder" onClick={() => createFolder(null)} />
-            </>
-          )}
-        </div>
-      )}
+      <LibraryContextMenu
+        contextMenu={contextMenu}
+        contextMenuRef={contextMenuRef}
+        contextNode={contextNode}
+        onRename={(id) => setRenamingId(id)}
+        onCreateFile={createFile}
+        onCreateFolder={createFolder}
+        onCopyPath={copyPath}
+        onDownload={handleDownload}
+        onDelete={deleteNode}
+        onClose={() => setContextMenu(null)}
+      />
     </div>
-  );
-}
-
-function ContextMenuItem({ icon, label, labelClass, onClick }: { icon: React.ReactNode; label: string; labelClass?: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="flex items-center gap-2.5 w-full px-3 py-1.5 text-xs hover:bg-white/6 transition-colors text-left" style={{ color: "rgba(226,232,240,0.75)" }}>
-      <span className="text-muted-foreground">{icon}</span>
-      <span className={labelClass}>{label}</span>
-    </button>
   );
 }

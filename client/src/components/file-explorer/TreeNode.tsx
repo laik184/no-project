@@ -1,9 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  ChevronDown, ChevronRight, FilePlus, FolderPlus,
-  MoreHorizontal, Pencil, Search, ChevronsDownUp,
-  Terminal, Copy, Link2, Download, Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { RawTreeNode, ClipboardState } from "./types";
 import { fileIcon } from "./file-icon";
 import { formatBytes } from "./use-file-explorer-utils";
@@ -11,44 +7,11 @@ import { AIActivityBadge } from "./AIActivityBadge";
 import type { ActivityKind } from "./AIActivityBadge";
 import { GitStatusBadge } from "./use-git-status";
 import type { GitStatus } from "./use-git-status";
-import { InlineInput } from "./InlineInput";
+import { INDENT } from "./tree-node-utils";
+import { NodeRowMenu, MoreBtn } from "./tree-node-menu";
+import type { MenuAction } from "./tree-node-menu";
 
-export const INDENT = 14;
-
-export function timeAgo(ms: number): string {
-  const d = Date.now() - ms;
-  if (d < 60_000)      return "just now";
-  if (d < 3_600_000)   return `${Math.floor(d / 60_000)}m ago`;
-  if (d < 86_400_000)  return `${Math.floor(d / 3_600_000)}h ago`;
-  if (d < 172_800_000) return "yesterday";
-  if (d < 604_800_000) return `${Math.floor(d / 86_400_000)}d ago`;
-  return new Date(ms).toLocaleDateString();
-}
-
-export function countDescendantFiles(nodes: RawTreeNode[]): number {
-  let n = 0;
-  for (const node of nodes) {
-    if (node.type === "file") n++;
-    else if (node.children) n += countDescendantFiles(node.children);
-  }
-  return n;
-}
-
-export function collectSearchExpanded(
-  nodes: RawTreeNode[], basePath: string, sq: string, result: Set<string>,
-): boolean {
-  let anyMatch = false;
-  for (const n of nodes) {
-    const full = basePath ? `${basePath}/${n.name}` : n.name;
-    if (n.type === "file") {
-      if (n.name.toLowerCase().includes(sq)) anyMatch = true;
-    } else if (n.children) {
-      const childMatch = collectSearchExpanded(n.children, full, sq, result);
-      if (childMatch) { result.add(full); anyMatch = true; }
-    }
-  }
-  return anyMatch;
-}
+export { INDENT, timeAgo, countDescendantFiles, collectSearchExpanded, InlineCreateRow } from "./tree-node-utils";
 
 function hasMatchingDescendant(nodes: RawTreeNode[], sq: string): boolean {
   for (const n of nodes) {
@@ -59,148 +22,6 @@ function hasMatchingDescendant(nodes: RawTreeNode[], sq: string): boolean {
   }
   return false;
 }
-
-export function InlineCreateRow({
-  type, onConfirm, onCancel,
-}: { type: "file" | "folder"; onConfirm: (name: string) => void; onCancel: () => void }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "2px 6px 2px 8px", height: 22, borderBottom: "1px solid #222", background: "#1e1e1e" }}>
-      {type === "file"
-        ? <FilePlus style={{ width: 11, height: 11, color: "#60a5fa", flexShrink: 0 }} />
-        : <FolderPlus style={{ width: 11, height: 11, color: "#e8a427", flexShrink: 0 }} />}
-      <InlineInput
-        initialValue={type === "file" ? "untitled.tsx" : "new-folder"}
-        onConfirm={onConfirm} onCancel={onCancel}
-      />
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NodeRowMenu — the 3-dot dropdown
-// ─────────────────────────────────────────────────────────────────────────────
-
-type MenuAction =
-  | "rename" | "search-dir" | "new-file" | "new-folder"
-  | "collapse" | "open-shell" | "copy-path" | "copy-link"
-  | "download" | "delete";
-
-interface MenuEntry {
-  icon:    React.ElementType;
-  label:   string;
-  action:  MenuAction;
-  danger?: boolean;
-}
-type MenuRow = MenuEntry | "divider";
-
-const DIR_MENU: MenuRow[] = [
-  { icon: Pencil,        label: "Rename",               action: "rename"     },
-  { icon: Search,        label: "Search this directory", action: "search-dir" },
-  { icon: FilePlus,      label: "Add file",              action: "new-file"   },
-  { icon: FolderPlus,    label: "Add folder",            action: "new-folder" },
-  { icon: ChevronsDownUp,label: "Collapse child folders",action: "collapse"   },
-  { icon: Terminal,      label: "Open shell here",       action: "open-shell" },
-  "divider",
-  { icon: Copy,          label: "Copy file path",        action: "copy-path"  },
-  { icon: Link2,         label: "Copy link",             action: "copy-link"  },
-  "divider",
-  { icon: Download,      label: "Download folder",       action: "download"   },
-  "divider",
-  { icon: Trash2,        label: "Delete",                action: "delete",   danger: true },
-];
-
-const FILE_MENU: MenuRow[] = [
-  { icon: Pencil,   label: "Rename",        action: "rename"    },
-  "divider",
-  { icon: Copy,     label: "Copy file path",action: "copy-path" },
-  { icon: Link2,    label: "Copy link",     action: "copy-link" },
-  "divider",
-  { icon: Download, label: "Download",      action: "download"  },
-  "divider",
-  { icon: Trash2,   label: "Delete",        action: "delete",  danger: true },
-];
-
-interface NodeRowMenuProps {
-  x: number; y: number;
-  isDir: boolean;
-  onAction: (action: MenuAction) => void;
-  onClose: () => void;
-}
-
-function NodeRowMenu({ x, y, isDir, onAction, onClose }: NodeRowMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const items = isDir ? DIR_MENU : FILE_MENU;
-
-  // Clamp to viewport
-  const tipX = Math.min(x, window.innerWidth  - 210);
-  const tipY = Math.min(y, window.innerHeight - (isDir ? 380 : 210));
-
-  useEffect(() => {
-    const down = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("mousedown", down, true);
-    document.addEventListener("keydown",   key,  true);
-    return () => {
-      document.removeEventListener("mousedown", down, true);
-      document.removeEventListener("keydown",   key,  true);
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      ref={ref}
-      role="menu"
-      style={{
-        position: "fixed", top: tipY, left: tipX, zIndex: 99999,
-        background: "#1a1a1a", border: "1px solid #2a2a2a",
-        borderRadius: 8, padding: "3px",
-        boxShadow: "0 8px 28px rgba(0,0,0,.75), 0 2px 8px rgba(0,0,0,.4)",
-        minWidth: 196,
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-      data-testid="row-context-menu"
-    >
-      {items.map((row, i) => {
-        if (row === "divider") {
-          return <div key={`d-${i}`} style={{ height: 1, background: "#252525", margin: "2px 3px" }} />;
-        }
-        const { icon: Icon, label, action, danger } = row;
-        return (
-          <div
-            key={action}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={(e) => { e.stopPropagation(); onAction(action); onClose(); }}
-            style={{
-              display: "flex", alignItems: "center", gap: 9,
-              padding: "5px 11px", borderRadius: 5, cursor: "pointer",
-              fontSize: 12.5, color: danger ? "#f87171" : "#b4b4b4",
-              transition: "background .08s, color .08s",
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.background = danger ? "rgba(239,68,68,.12)" : "#252525";
-              (e.currentTarget as HTMLElement).style.color      = danger ? "#ef4444"             : "#f0f0f0";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color      = danger ? "#f87171" : "#b4b4b4";
-            }}
-            data-testid={`row-menu-${action}`}
-          >
-            <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
-            {label}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RenderNode
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface RenderNodeProps {
   node: RawTreeNode; basePath: string; depth: number;
@@ -230,9 +51,8 @@ export function RenderNode({
   folderCounts, forcedExpandedPaths, clipboard, onShowMeta, onHideMeta,
   onRowMenuAction,
 }: RenderNodeProps) {
-  const [open, setOpen]                 = useState(depth < 2);
-  const [menuPos, setMenuPos]           = useState<{ x: number; y: number } | null>(null);
-  const menuBtnRef                      = useRef<HTMLButtonElement>(null);
+  const [open, setOpen]       = useState(depth < 2);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   const isDir      = node.type === "folder" || node.type === "directory";
   const full       = (basePath && basePath !== "/" ? basePath + "/" : "") + node.name;
@@ -260,7 +80,6 @@ export function RenderNode({
     return () => window.removeEventListener("rfe:set-expanded", handler);
   }, [full]);
 
-  // ── Search filter ──────────────────────────────────────────────────────────
   const sq = searchQuery;
   if (sq) {
     const nameMatches = node.name.toLowerCase().includes(sq);
@@ -329,30 +148,6 @@ export function RenderNode({
     setMenuPos({ x: rect.right + 4, y: rect.top - 4 });
   }, [onHideMeta]);
 
-  // ── 3-dot button ──────────────────────────────────────────────────────────
-  const moreBtn = (hovered || menuPos !== null) && (
-    <button
-      ref={menuBtnRef}
-      onClick={openMenu}
-      onMouseDown={e => e.stopPropagation()}
-      title="More options"
-      data-testid={`btn-more-${node.name}`}
-      style={{
-        flexShrink: 0, background: menuPos ? "#333" : "transparent",
-        border: "none", cursor: "pointer", borderRadius: 4,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: 18, height: 18, color: "#888",
-        transition: "background .1s, color .1s",
-        marginLeft: "auto",
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#333"; (e.currentTarget as HTMLElement).style.color = "#d4d4d4"; }}
-      onMouseLeave={e => { if (!menuPos) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#888"; } }}
-    >
-      <MoreHorizontal style={{ width: 13, height: 13 }} />
-    </button>
-  );
-
-  // ── Status badge (hidden while 3-dot is showing) ──────────────────────────
   const badge = (hovered || menuPos !== null) ? null :
     writing ? (
       <span className="rfe-badge"><span className="rfe-spinner" />{writeSize !== undefined ? formatBytes(writeSize) : "…"}</span>
@@ -399,7 +194,7 @@ export function RenderNode({
             <span style={{ fontSize: 9, color: "#3e3e3e", marginLeft: 2, flexShrink: 0 }}>{folderCount}</span>
           )}
           {badge}
-          {moreBtn}
+          <MoreBtn nodeName={node.name} menuPos={menuPos} hovered={hovered} onClick={openMenu} />
         </div>
         {menu}
         {effectiveOpen && (
@@ -439,7 +234,7 @@ export function RenderNode({
         {highlightName(node.name)}
       </span>
       {badge}
-      {moreBtn}
+      <MoreBtn nodeName={node.name} menuPos={menuPos} hovered={hovered} onClick={openMenu} />
       {menu}
     </div>
   );

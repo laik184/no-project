@@ -11,55 +11,8 @@ import {
   Check,
   Copy,
 } from "lucide-react";
-
-type LogLevel = "INFO" | "SUCCESS" | "WARNING" | "ERROR";
-type LogFilter = "ALL" | LogLevel;
-
-interface LogEntry {
-  id: number;
-  ts: string;
-  level: LogLevel;
-  message: string;
-}
-
-const LEVEL_STYLE: Record<LogLevel, { badge: string; badgeBg: string; text: string }> = {
-  INFO:    { badge: "#94a3b8", badgeBg: "rgba(148,163,184,0.1)", text: "rgba(148,163,184,0.8)"  },
-  SUCCESS: { badge: "#4ade80", badgeBg: "rgba(74,222,128,0.1)",  text: "rgba(134,239,172,0.9)"  },
-  WARNING: { badge: "#fbbf24", badgeBg: "rgba(251,191,36,0.1)",  text: "rgba(253,224,71,0.85)"  },
-  ERROR:   { badge: "#f87171", badgeBg: "rgba(248,113,113,0.1)", text: "rgba(252,165,165,0.9)"  },
-};
-
-function makeTs(base: Date, offsetSec: number) {
-  const d = new Date(base.getTime() + offsetSec * 1000);
-  return d.toTimeString().slice(0, 8);
-}
-
-const BASE = new Date();
-BASE.setHours(12, 45, 0, 0);
-
-const SEED_LOGS: LogEntry[] = [
-  { id:  1, ts: makeTs(BASE,  0), level: "INFO",    message: "Starting deployment pipeline..." },
-  { id:  2, ts: makeTs(BASE,  1), level: "INFO",    message: "Allocating compute resources..." },
-  { id:  3, ts: makeTs(BASE,  2), level: "SUCCESS", message: "Resources provisioned successfully." },
-  { id:  4, ts: makeTs(BASE,  3), level: "INFO",    message: "Running security scan on dependencies..." },
-  { id:  5, ts: makeTs(BASE,  5), level: "WARNING", message: "lodash@4.17.20 has 1 low-severity advisory." },
-  { id:  6, ts: makeTs(BASE,  6), level: "SUCCESS", message: "Security scan passed. No critical issues found." },
-  { id:  7, ts: makeTs(BASE,  7), level: "INFO",    message: "Installing dependencies (npm ci)..." },
-  { id:  8, ts: makeTs(BASE,  9), level: "INFO",    message: "Running build script: npm run build" },
-  { id:  9, ts: makeTs(BASE, 11), level: "INFO",    message: "Compiling TypeScript..." },
-  { id: 10, ts: makeTs(BASE, 13), level: "INFO",    message: "Optimizing and minifying assets..." },
-  { id: 11, ts: makeTs(BASE, 15), level: "SUCCESS", message: "Build completed in 12.4s  (847KB → 213KB gzipped)" },
-  { id: 12, ts: makeTs(BASE, 16), level: "INFO",    message: "Bundling assets for production..." },
-  { id: 13, ts: makeTs(BASE, 17), level: "INFO",    message: "Generating source maps..." },
-  { id: 14, ts: makeTs(BASE, 18), level: "SUCCESS", message: "Bundle ready. Output: dist/" },
-  { id: 15, ts: makeTs(BASE, 19), level: "INFO",    message: "Pushing image to container registry..." },
-  { id: 16, ts: makeTs(BASE, 21), level: "INFO",    message: "Routing traffic to new deployment..." },
-  { id: 17, ts: makeTs(BASE, 22), level: "INFO",    message: "Running health checks on /health..." },
-  { id: 18, ts: makeTs(BASE, 23), level: "ERROR",   message: "Health check failed: connection refused on port 3000." },
-  { id: 19, ts: makeTs(BASE, 24), level: "WARNING", message: "Retrying health check (attempt 2 of 3)..." },
-  { id: 20, ts: makeTs(BASE, 25), level: "SUCCESS", message: "Health check passed. Service is healthy." },
-  { id: 21, ts: makeTs(BASE, 26), level: "SUCCESS", message: "Deployment promoted to production. App is live 🚀" },
-];
+import { type LogLevel, type LogFilter, type LogEntry, LEVEL_STYLE, SEED_LOGS } from "./logs-tab-data";
+import { LogsTerminal } from "./LogsTerminal";
 
 export function LogsTab() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -267,103 +220,17 @@ export function LogsTab() {
         </div>
       )}
 
-      {/* Terminal */}
-      <div
-        className="flex-1 rounded-xl overflow-hidden flex flex-col min-h-0"
-        style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.3)" }}
-      >
-        {/* Terminal titlebar */}
-        <div
-          className="flex items-center gap-1.5 px-3 py-2 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
-        >
-          {["#f87171","#fbbf24","#4ade80"].map((c) => (
-            <span key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c, opacity: 0.45 }} />
-          ))}
-          <FileText className="h-3 w-3 ml-2" style={{ color: "rgba(100,116,139,0.45)" }} />
-          <span className="text-[10.5px] font-mono" style={{ color: "rgba(100,116,139,0.5)" }}>deployment.log</span>
-          {logs.length < SEED_LOGS.length && (
-            <span className="ml-auto flex items-center gap-1 text-[10px]" style={{ color: "rgba(167,139,250,0.6)" }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#a78bfa", animation: "pulse 1.2s ease-in-out infinite" }} />
-              streaming
-            </span>
-          )}
-        </div>
-
-        {/* Log rows */}
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto py-1.5 font-mono text-[11.5px] leading-relaxed min-h-0"
-          style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.06) transparent" }}
-          data-testid="logs-container"
-        >
-          {filteredLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2 py-12" style={{ color: "rgba(100,116,139,0.4)" }}>
-              <FileText className="h-7 w-7 opacity-25" />
-              <p className="text-[12px]">
-                {logs.length === 0 ? "No logs yet" : "No logs match your filter"}
-              </p>
-            </div>
-          ) : (
-            filteredLogs.map((entry, i) => {
-              const s = LEVEL_STYLE[entry.level];
-              const isEven = i % 2 === 0;
-              return (
-                <div
-                  key={entry.id}
-                  className="log-row log-row-anim flex items-start gap-0 group px-3 py-0.5 transition-colors duration-75"
-                  style={{
-                    background: isEven ? "transparent" : "rgba(255,255,255,0.015)",
-                  }}
-                  onMouseEnter={() => setHoveredId(entry.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  data-testid={`log-entry-${entry.id}`}
-                >
-                  {/* Timestamp */}
-                  <span className="flex-shrink-0 select-none mr-2" style={{ color: "rgba(100,116,139,0.45)", minWidth: "60px" }}>
-                    {entry.ts}
-                  </span>
-
-                  {/* Level badge */}
-                  <span
-                    className="flex-shrink-0 px-1.5 py-px rounded text-[9.5px] font-bold mr-2 tracking-wide"
-                    style={{
-                      background: s.badgeBg,
-                      color: s.badge,
-                      minWidth: "58px",
-                      textAlign: "center",
-                      display: "inline-block",
-                    }}
-                  >
-                    {entry.level}
-                  </span>
-
-                  {/* Message */}
-                  <span className="flex-1 min-w-0 break-words" style={{ color: s.text }}>
-                    {entry.message}
-                  </span>
-
-                  {/* Copy button */}
-                  <button
-                    onClick={() => copyLine(entry)}
-                    className="log-copy-btn flex-shrink-0 ml-2 p-0.5 rounded transition-colors duration-100"
-                    style={{
-                      color: copiedId === entry.id ? "#4ade80" : "rgba(100,116,139,0.45)",
-                      opacity: hoveredId === entry.id ? 1 : 0,
-                    }}
-                    title="Copy line"
-                    data-testid={`button-copy-log-${entry.id}`}
-                  >
-                    {copiedId === entry.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </button>
-                </div>
-              );
-            })
-          )}
-          <div ref={logEndRef} />
-        </div>
-      </div>
+      <LogsTerminal
+        logs={logs}
+        filteredLogs={filteredLogs}
+        containerRef={containerRef}
+        handleScroll={handleScroll}
+        logEndRef={logEndRef}
+        hoveredId={hoveredId}
+        setHoveredId={setHoveredId}
+        copiedId={copiedId}
+        copyLine={copyLine}
+      />
     </div>
   );
 }
