@@ -5,7 +5,7 @@
  * Uses Node.js fs/path — no child_process spawning needed.
  */
 
-import { readdirSync, statSync, mkdirSync, rmSync, existsSync } from 'fs';
+import { readdirSync, statSync, mkdirSync, rmSync, existsSync, lstatSync } from 'fs';
 import { join, resolve, relative }                              from 'path';
 
 export class ShellServiceError extends Error {
@@ -98,5 +98,16 @@ export const shellService = {
 
     rmSync(resolved, { recursive, force });
     return { path: resolved, removed: true };
+  },
+
+  cd(sandboxRoot: string, path: string): { resolved: string; sandboxRoot: string } {
+    const resolved = guardPath(sandboxRoot, path);
+    if (!existsSync(resolved)) {
+      throw new ShellServiceError(`Directory does not exist: ${path}`);
+    }
+    if (!lstatSync(resolved).isDirectory()) {
+      throw new ShellServiceError(`Path is not a directory: ${path}`);
+    }
+    return { resolved, sandboxRoot };
   },
 };

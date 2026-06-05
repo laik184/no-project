@@ -2,20 +2,12 @@
  * server/tools/terminal/package-manager/detect-package-manager-tool.ts
  * Tool: terminal_detect_package_manager
  *
- * Detects which package manager is in use by inspecting lock files.
+ * Detects which package manager is in use via PackageManagerDetector service.
  */
 
-import { existsSync }  from 'fs';
-import { join }        from 'path';
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-
-const LOCK_FILES: Array<{ file: string; manager: string }> = [
-  { file: 'pnpm-lock.yaml', manager: 'pnpm' },
-  { file: 'yarn.lock',      manager: 'yarn' },
-  { file: 'package-lock.json', manager: 'npm' },
-  { file: 'bun.lockb',     manager: 'bun'  },
-];
+import { packageManagerDetector }                    from '../../../services/terminal/index.ts';
 
 export const detectPackageManagerTool: ToolDefinition = {
   name:        'terminal_detect_package_manager',
@@ -29,14 +21,7 @@ export const detectPackageManagerTool: ToolDefinition = {
   retry:       RETRY_NONE,
 
   handler: async (input, ctx: ToolExecutionContext) => {
-    const dir = input.cwd ? join(ctx.sandboxRoot, String(input.cwd)) : ctx.sandboxRoot;
-
-    for (const { file, manager } of LOCK_FILES) {
-      if (existsSync(join(dir, file))) {
-        return { manager, lockFile: file, detected: true };
-      }
-    }
-
-    return { manager: 'npm', lockFile: null, detected: false };
+    const cwd = String(input.cwd ?? ctx.sandboxRoot);
+    return packageManagerDetector.detect(cwd);
   },
 };
