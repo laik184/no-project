@@ -11,7 +11,7 @@ import type {
   AssistantMessagePayload,
   UserMessagePayload,
   SystemMessagePayload,
-} from '../../chat/types/message.types.ts';
+} from '../../shared/types/chat.types.ts';
 
 function rowToRecord(row: typeof chatMessages.$inferSelect): ChatMessageRecord {
   return {

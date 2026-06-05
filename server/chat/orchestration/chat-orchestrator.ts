@@ -31,6 +31,7 @@ import { streamRunSummary }           from '../../services/chat/responder.servic
 import { routeIntent }                from '../../services/chat/intent.service.ts';
 import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
 import { bus }                        from '../../infrastructure/index.ts';
+import { SANDBOX_ROOT }               from '../../infrastructure/config/sandbox.config.ts';
 import type {
   ChatRun,
   RunStartPayload,
@@ -55,7 +56,7 @@ export type {
   RunRecord,
 }                                     from '../../orchestration/index.ts';
 
-const SANDBOX = process.env.AGENT_PROJECT_ROOT ?? '.sandbox';
+const SANDBOX = SANDBOX_ROOT;
 
 // ── Error class ───────────────────────────────────────────────────────────────
 

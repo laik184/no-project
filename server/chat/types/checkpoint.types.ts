@@ -1,24 +1,7 @@
-export type CheckpointTrigger =
-  | 'run_complete'
-  | 'files_threshold'
-  | 'phase_complete'
-  | 'loop_end'
-  | 'manual';
-
-export interface ChatCheckpoint {
-  id:            string;
-  runId:         string;
-  projectId:     number;
-  title:         string;
-  description:   string;
-  trigger:       CheckpointTrigger;
-  filesChanged:  number;
-  createdFiles:  string[];
-  modifiedFiles: string[];
-  deletedFiles:  string[];
-  createdAt:     Date;
-  gitCommitSha?: string;
-}
+export type {
+  CheckpointTrigger,
+  ChatCheckpoint,
+} from '../../shared/types/chat.types.ts';
 
 export interface CheckpointListItem {
   id:            string;

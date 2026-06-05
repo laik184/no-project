@@ -7,7 +7,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../infrastructure/index.ts';
 import { checkpoints, rollbackHistory } from '../../../shared/schema.ts';
-import type { ChatCheckpoint, CheckpointTrigger } from '../../chat/types/checkpoint.types.ts';
+import type { ChatCheckpoint, CheckpointTrigger } from '../../shared/types/chat.types.ts';
 
 function rowToCheckpoint(row: typeof checkpoints.$inferSelect): ChatCheckpoint {
   return {

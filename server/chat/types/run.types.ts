@@ -1,19 +1,4 @@
-export type RunMode   = 'planned' | 'direct' | 'auto';
-export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-
-export interface ChatRun {
-  runId:           string;
-  projectId:       number;
-  conversationId?: string;
-  goal:            string;
-  mode:            RunMode;
-  status:          RunStatus;
-  startedAt:       Date;
-  completedAt?:    Date;
-  durationMs?:     number;
-  result?:         unknown;
-  error?:          string;
-}
+export type { RunMode, RunStatus, ChatRun } from '../../shared/types/chat.types.ts';
 
 export interface RunStartPayload {
   projectId:       number;

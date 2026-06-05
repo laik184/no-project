@@ -1,0 +1,140 @@
+🔴 MASTER FIX PROMPT — Backend Bug Remediation
+Based on: Backend Architecture X-Ray Report + KillCritic Analysis
+Date: 2026-06-05
+CONTEXT FOR AI/DEVELOPER
+You are fixing 4 confirmed bugs in a production AI agent backend (TypeScript/Node.js/Express).
+The codebase follows strict layered architecture:
+Code
+Zero tolerance for:
+Breaking existing layer boundaries
+Adding new dependencies upward (repo → service, tool → agent, etc.)
+Modifying test files unless explicitly asked
+Changing public API contracts
+Read each fix independently. They are ordered by priority.
+🔴 FIX #1 — SANDBOX ROOT UNIFICATION (HIGHEST PRIORITY)
+Problem
+Two different sandbox paths are being used:
+File Explorer reads/writes → .sandbox/ (relative to process.cwd())
+Agent tools read/write → /tmp/nurax-sandbox/ (from AGENT_PROJECT_ROOT env var)
+Result: Agent creates a file → File Explorer cannot see it. User thinks agent failed.
+Step 1 — Create Single Config Source
+Create file: server/infrastructure/config/sandbox.config.ts
+Typescript
+Step 2 — Update File Explorer Config
+File: server/file-explorer/config/explorer.config.ts (or wherever FE_CONFIG / .sandbox is defined)
+Find:
+Typescript
+Replace with:
+Typescript
+Step 3 — Update filesystem.repository.ts in File Explorer
+File: server/file-explorer/repositories/filesystem.repository.ts
+Find any usage of:
+Typescript
+Replace with:
+Typescript
+Ensure resolveSafe() uses SANDBOX_ROOT as its base.
+Step 4 — Update Agent Tool Context
+File: server/chat/orchestration/chat-orchestrator.ts
+Find:
+Typescript
+Verify that when building agent context/run config, the sandbox path passed to agents
+comes from SANDBOX_ROOT in sandbox.config.ts, NOT directly from process.env.
+Step 5 — Update .replit / Environment
+In .replit or environment config, ensure:
+Code
+OR remove AGENT_PROJECT_ROOT entirely and let sandbox.config.ts default to .sandbox.
+Verification: After fix, agent fs_write_file and File Explorer GET /api/file-explorer/tree
+must both resolve to the same absolute path.
+🟡 FIX #2 — SSE LIVE UPDATE ON WRITE (MEDIUM PRIORITY)
+Problem
+WriteService.saveFile() calls filesystemRepository.writeText(abs, content) without a MutationContext.
+The writeText() function only emits SSE (emitFileChange()) when MutationContext is provided.
+Result: File saves successfully to disk, but browser never receives the update event.
+Step 1 — Locate the broken call
+File: server/services/filesystem/write/write.service.ts
+Find:
+Typescript
+Step 2 — Add MutationContext
+Replace with:
+Typescript
+Where ctx is whatever execution context is available in saveFile().
+If no context is passed in, create a minimal one as shown above.
+Step 3 — Verify MutationContext type
+File: server/repositories/filesystem/filesystem.repository.ts (or wherever writeText is defined)
+Ensure signature is:
+Typescript
+If emitFileChange is not calling bus.emit() → sseManager.broadcast(), trace and fix that chain too.
+Step 4 — Verify SSE event chain
+Confirm this chain is intact:
+Code
+Do NOT break this chain for agent writes — both REST and agent writes must trigger SSE after this fix.
+🟡 FIX #3 — UNDO HISTORY FOR AGENT WRITES (MEDIUM PRIORITY)
+Problem
+When agent dispatches fs_write_file tool, it calls writeService.saveFile() directly.
+It does NOT go through explorerOrchestrator.writeFile() which calls historyService.snapshotBeforeWrite().
+Result: Agent overwrites files → undo via /api/file/undo is impossible.
+Step 1 — Locate the tool handler
+File: server/tools/filesystem/write/write-file.ts
+Find the handler body — it likely looks like:
+Typescript
+Step 2 — Add history snapshot BEFORE write
+Typescript
+Step 3 — Verify historyService is importable from tools layer
+Check: server/services/filesystem/history/history.service.ts exists and exports snapshotBeforeWrite(filePath: string): Promise<void>.
+Layer check: tools → services is ALLOWED. Do NOT import from orchestration or agents.
+Step 4 — Verify history repository
+File: server/repositories/filesystem/history.repository.ts
+Ensure it:
+Stores a copy of file content before overwrite
+Associates snapshot with filePath + timestamp
+Is queryable by /api/file/undo endpoint
+If snapshotBeforeWrite does not exist yet, implement it:
+Typescript
+🟢 FIX #4 — CHAT TYPES OWNERSHIP CLEANUP (LOW PRIORITY)
+Problem
+Chat repository files import domain types from server/chat/types/.
+Repositories should not depend on domain layer — they should use shared types only.
+Step 1 — Find all violations
+Search in server/repositories/chat/ for:
+Code
+Files likely affected:
+server/repositories/chat/message.repository.ts → imports ChatMessage
+server/repositories/chat/run.repository.ts → imports ChatRun, RunStatus
+server/repositories/chat/checkpoint.repository.ts → imports ChatCheckpoint, CheckpointTrigger
+Step 2 — Create shared types
+Create: server/shared/types/chat.types.ts
+Move these types here:
+Typescript
+Step 3 — Update repository imports
+In each affected repository file, change:
+Typescript
+Step 4 — Update original chat type files to re-export
+In server/chat/types/message.types.ts etc., add:
+Typescript
+This avoids breaking any existing imports in the chat layer itself.
+✅ VERIFICATION CHECKLIST
+After all fixes, verify:
+Code
+ARCHITECTURE RULES (DO NOT VIOLATE)
+Code
+SUMMARY
+#
+Fix
+Files Changed
+Risk
+1 🔴
+Sandbox root unification
+sandbox.config.ts (new), explorer config, filesystem repo
+LOW — config only
+2 🟡
+SSE on write
+write.service.ts, verify repo writeText
+LOW — additive change
+3 🟡
+Undo history for agent writes
+write-file.ts (tool), history.service.ts
+LOW — non-fatal guard
+4 🟢
+Chat types to shared
+shared/types/chat.types.ts (new), 3 repo files
+VERY LOW — types only

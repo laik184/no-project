@@ -5,6 +5,7 @@
  */
 
 import path from 'path';
+import { SANDBOX_ROOT } from '../../../infrastructure/config/sandbox.config.ts';
 
 export interface ExplorerConfig {
   readonly sandboxRoot:        string;
@@ -18,8 +19,7 @@ export interface ExplorerConfig {
   readonly historyDir:         string;
 }
 
-const sandboxRoot =
-  process.env.AGENT_PROJECT_ROOT ?? path.join(process.cwd(), '.sandbox');
+const sandboxRoot = SANDBOX_ROOT;
 
 /** Module-wide configuration singleton. Never mutate after startup. */
 export const FE_CONFIG: ExplorerConfig = Object.freeze({

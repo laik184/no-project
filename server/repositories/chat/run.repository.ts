@@ -6,7 +6,7 @@
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../../infrastructure/index.ts';
 import { agentRuns } from '../../../shared/schema.ts';
-import type { ChatRun, RunStatus } from '../../chat/types/run.types.ts';
+import type { ChatRun, RunStatus } from '../../shared/types/chat.types.ts';
 
 function rowToRun(row: typeof agentRuns.$inferSelect): ChatRun {
   const startedAt   = row.startedAt ?? new Date();

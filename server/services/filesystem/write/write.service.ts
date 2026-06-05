@@ -3,7 +3,9 @@
  * Writes file content with optional clientMtime conflict detection.
  */
 
+import path                     from 'path';
 import { resolveSafe }          from '../../../shared/file-explorer-core/guards/index.ts';
+import { FE_CONFIG }            from '../../../shared/file-explorer-core/config/index.ts';
 import { filesystemRepository } from '../../../repositories/file-system/index.ts';
 import { metadataRepository }   from '../../../repositories/file-system/index.ts';
 import type { WriteResponse }   from '../../../shared/file-explorer-core/contracts/index.ts';
@@ -27,7 +29,8 @@ class WriteService {
         }
       }
 
-      filesystemRepository.writeText(abs, content);
+      const relPath = path.relative(FE_CONFIG.sandboxRoot, abs).split(path.sep).join('/');
+      filesystemRepository.writeText(abs, content, { projectId: 1, relPath });
       metadataRepository.invalidate(abs);
       const newStat = filesystemRepository.stat(abs);
 
