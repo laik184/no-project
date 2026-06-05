@@ -3,11 +3,13 @@
  *
  * In-memory repository for TerminalCommand entities.
  * Also delegates command history (append/read) to the file-backed history store.
+ * Emits agent.event telemetry on the EventBus when commands are executed.
  */
 
 import type { TerminalCommand } from '../../terminal/domain/entities/terminal-command.ts';
 import { terminalHistoryStore } from '../../terminal/persistence/file/terminal-history-store.ts';
 import type { HistoryRecord }   from '../../terminal/persistence/file/terminal-history-store.ts';
+import { bus }                  from '../../infrastructure/index.ts';
 
 export type { HistoryRecord };
 
@@ -72,6 +74,13 @@ class CommandRepository implements ICommandRepository {
 
   appendHistory(sessionId: string, record: HistoryRecord): void {
     terminalHistoryStore.append(sessionId, record);
+    bus.emit('agent.event', {
+      type:      'terminal.command',
+      sessionId,
+      command:   record.command,
+      exitCode:  record.exitCode,
+      timestamp: record.timestamp,
+    });
   }
 
   readHistory(sessionId: string, limit = 100): HistoryRecord[] {

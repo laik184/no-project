@@ -2,11 +2,15 @@
  * server/repositories/terminal/checkpoint-repository.ts
  *
  * Thin facade over the chat checkpoint repository.
- * Delegates to the DB-backed chat layer — never imports infrastructure directly.
+ * Delegates to the DB-backed chat layer for persistence.
+ * Uses static imports from infrastructure — dynamic imports are an anti-pattern.
  */
 
-import { checkpointRepository as chatCheckpointRepo } from '../chat/checkpoint.repository.ts';
-import type { ChatCheckpoint } from '../../shared/types/chat.types.ts';
+import { randomUUID }                                        from 'crypto';
+import { checkpointRepository as chatCheckpointRepo }        from '../chat/checkpoint.repository.ts';
+import type { ChatCheckpoint }                               from '../../shared/types/chat.types.ts';
+import { db, bus }                                           from '../../infrastructure/index.ts';
+import { checkpoints }                                       from '../../../shared/schema.ts';
 
 export type CheckpointSummary = Pick<
   ChatCheckpoint,
@@ -39,11 +43,8 @@ class CheckpointRepository implements ICheckpointRepository {
     projectId: number,
     data: { trigger: string; label?: string; description?: string; runId?: string },
   ): Promise<CheckpointSummary> {
-    const { db }         = await import('../../infrastructure/index.ts');
-    const { checkpoints } = await import('../../../shared/schema.ts');
-    const crypto         = await import('crypto');
+    const checkpointId = randomUUID();
 
-    const checkpointId = crypto.randomUUID();
     await db.insert(checkpoints).values({
       checkpointId,
       projectId,
@@ -58,6 +59,8 @@ class CheckpointRepository implements ICheckpointRepository {
       deletedFiles:  [] as unknown as string[],
       gitCommitSha:  null,
     });
+
+    bus.emit('checkpoint', { checkpointId, projectId, trigger: data.trigger });
 
     const cp = await chatCheckpointRepo.findById(checkpointId);
     return toSummary(cp!);

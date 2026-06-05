@@ -3,7 +3,10 @@
  *
  * In-memory repository for live OS process entries.
  * Maps sessionId → running process metadata (pid, command, start time).
+ * Emits runtime_state events on the EventBus for observability.
  */
+
+import { bus } from '../../infrastructure/index.ts';
 
 export interface ProcessEntry {
   sessionId: string;
@@ -30,6 +33,13 @@ class ProcessRepository implements IProcessRepository {
 
   register(entry: ProcessEntry): void {
     this._store.set(entry.sessionId, { ...entry });
+    bus.emit('console.runtime_state', {
+      action:    'process_started',
+      sessionId: entry.sessionId,
+      projectId: entry.projectId,
+      pid:       entry.pid,
+      command:   entry.command,
+    });
   }
 
   findBySession(sessionId: string): ProcessEntry | null {
@@ -45,12 +55,29 @@ class ProcessRepository implements IProcessRepository {
   }
 
   unregister(sessionId: string): void {
+    const entry = this._store.get(sessionId);
     this._store.delete(sessionId);
+    if (entry) {
+      bus.emit('console.runtime_state', {
+        action:    'process_ended',
+        sessionId,
+        projectId: entry.projectId,
+        pid:       entry.pid,
+      });
+    }
   }
 
   unregisterByProject(projectId: number): void {
     for (const [id, e] of this._store) {
-      if (e.projectId === projectId) this._store.delete(id);
+      if (e.projectId === projectId) {
+        this._store.delete(id);
+        bus.emit('console.runtime_state', {
+          action:    'process_ended',
+          sessionId: id,
+          projectId,
+          pid:       e.pid,
+        });
+      }
     }
   }
 

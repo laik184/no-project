@@ -3,9 +3,11 @@
  *
  * File-backed repository for package install records per session/project.
  * Delegates to the terminal history store for JSONL persistence.
+ * Emits agent.event telemetry on the EventBus when packages are recorded.
  */
 
 import { terminalHistoryStore } from '../../terminal/persistence/file/terminal-history-store.ts';
+import { bus }                  from '../../infrastructure/index.ts';
 
 export interface PackageRecord {
   packageName: string;
@@ -44,6 +46,15 @@ class PackageRepository implements IPackageRepository {
 
   record(sessionId: string, entry: PackageRecord): void {
     terminalHistoryStore.append(sessionId, this.toHistoryRecord(entry));
+    bus.emit('agent.event', {
+      type:        'terminal.package_install',
+      sessionId,
+      packageName: entry.packageName,
+      manager:     entry.manager,
+      dev:         entry.dev,
+      exitCode:    entry.exitCode,
+      installedAt: entry.installedAt,
+    });
   }
 
   history(sessionId: string, limit = 100): PackageRecord[] {
