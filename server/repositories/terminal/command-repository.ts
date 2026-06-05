@@ -2,10 +2,14 @@
  * server/repositories/terminal/command-repository.ts
  *
  * In-memory repository for TerminalCommand entities.
- * Commands are ephemeral — no DB persistence required.
+ * Also delegates command history (append/read) to the file-backed history store.
  */
 
 import type { TerminalCommand } from '../../terminal/domain/entities/terminal-command.ts';
+import { terminalHistoryStore } from '../../terminal/persistence/file/terminal-history-store.ts';
+import type { HistoryRecord }   from '../../terminal/persistence/file/terminal-history-store.ts';
+
+export type { HistoryRecord };
 
 export interface ICommandRepository {
   save(command: TerminalCommand): void;
@@ -17,6 +21,9 @@ export interface ICommandRepository {
   deleteBySession(sessionId: string): void;
   deleteByProject(projectId: number): void;
   countBySession(sessionId: string): number;
+  appendHistory(sessionId: string, record: HistoryRecord): void;
+  readHistory(sessionId: string, limit?: number): HistoryRecord[];
+  searchHistory(sessionId: string, query: string): HistoryRecord[];
 }
 
 class CommandRepository implements ICommandRepository {
@@ -61,6 +68,18 @@ class CommandRepository implements ICommandRepository {
 
   countBySession(sessionId: string): number {
     return this.findBySession(sessionId).length;
+  }
+
+  appendHistory(sessionId: string, record: HistoryRecord): void {
+    terminalHistoryStore.append(sessionId, record);
+  }
+
+  readHistory(sessionId: string, limit = 100): HistoryRecord[] {
+    return terminalHistoryStore.read(sessionId, limit);
+  }
+
+  searchHistory(sessionId: string, query: string): HistoryRecord[] {
+    return terminalHistoryStore.search(sessionId, query);
   }
 }
 

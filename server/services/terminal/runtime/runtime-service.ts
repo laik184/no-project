@@ -4,10 +4,10 @@
  * Main runtime manager — start, stop, restart, status for project runtimes.
  */
 
-import { processService }        from '../process/process-service.ts';
+import { processService }        from '../process/index.ts';
 import { runtimeHealthService }  from './runtime-health-service.ts';
 import { runtimeRestartService } from './runtime-restart-service.ts';
-import type { LineHandler }      from '../process/process-stream-service.ts';
+import type { LineHandler }      from '../process/index.ts';
 import type { RestartOptions }   from './runtime-restart-service.ts';
 
 export class RuntimeError extends Error {

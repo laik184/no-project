@@ -3,17 +3,17 @@
  *
  * Express request handlers for the terminal API.
  * Thin layer — delegates all logic to runtime and service modules.
+ * Data persistence goes exclusively through the repository layer.
  */
 
-import type { Request, Response } from 'express';
-import { terminalSessionManager } from '../runtime/terminal-session-manager.ts';
-import { terminalLifecycle }      from '../runtime/terminal-lifecycle.ts';
-import { terminalStreamBroker }   from '../streaming/terminal-stream-broker.ts';
-import { terminalLogStore }       from '../persistence/postgres/terminal-log-store.ts';
-import { terminalHistoryStore }   from '../persistence/file/terminal-history-store.ts';
-import { errorParser }            from '../parsers/error-parser.ts';
-import { commandService }         from '../../services/terminal/index.ts';
-import type { CommandInput }      from '../contracts/command-input.ts';
+import type { Request, Response }    from 'express';
+import { terminalSessionManager }    from '../runtime/terminal-session-manager.ts';
+import { terminalLifecycle }         from '../runtime/terminal-lifecycle.ts';
+import { terminalStreamBroker }      from '../streaming/terminal-stream-broker.ts';
+import { errorParser }               from '../parsers/error-parser.ts';
+import { commandService }            from '../../services/terminal/index.ts';
+import { terminalLogRepository, commandRepository } from '../../repositories/terminal/index.ts';
+import type { CommandInput }         from '../contracts/command-input.ts';
 
 export const terminalController = {
   // POST /api/terminal/sessions
@@ -83,8 +83,8 @@ export const terminalController = {
         terminalStreamBroker.publishLine(sessionId, line, 'stderr');
       });
 
-      // Persist log + history
-      terminalLogStore.saveMany(
+      // Persist logs via repository layer
+      terminalLogRepository.saveMany(
         [...result.stdout.split('\n'), ...result.stderr.split('\n')]
           .filter(Boolean)
           .map((line, i) => ({
@@ -98,7 +98,8 @@ export const terminalController = {
           })),
       ).catch(() => void 0);
 
-      terminalHistoryStore.append(sessionId, {
+      // Persist command history via repository layer
+      commandRepository.appendHistory(sessionId, {
         command:   body.command,
         exitCode:  result.exitCode,
         timestamp: Date.now(),
@@ -157,7 +158,7 @@ export const terminalController = {
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
 
     const limit = Number(req.query.limit ?? 200);
-    const logs  = await terminalLogStore.findByProject(session.projectId, limit, sessionId);
+    const logs  = await terminalLogRepository.findByProject(session.projectId, limit);
     res.json({ sessionId, logs });
   },
 
@@ -165,7 +166,7 @@ export const terminalController = {
   getHistory(req: Request, res: Response): void {
     const { sessionId } = req.params;
     const limit         = Number(req.query.limit ?? 50);
-    const entries       = terminalHistoryStore.read(sessionId, limit);
+    const entries       = commandRepository.readHistory(sessionId, limit);
     res.json({ sessionId, entries });
   },
 };

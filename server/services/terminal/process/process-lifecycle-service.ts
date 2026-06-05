@@ -7,8 +7,7 @@
 
 import { spawn }    from 'child_process';
 import type { ChildProcess } from 'child_process';
-import { commandParser }     from '../command/command-parser.ts';
-import { commandValidator }  from '../command/command-validator.ts';
+import { commandParser, commandValidator } from '../command/index.ts';
 
 export class LifecycleError extends Error {
   constructor(message: string) {

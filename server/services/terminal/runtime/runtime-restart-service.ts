@@ -4,8 +4,8 @@
  * Handles graceful stop → delay → start restart sequences for runtimes.
  */
 
-import { processService } from '../process/process-service.ts';
-import type { ManagedProcess } from '../process/process-lifecycle-service.ts';
+import { processService }      from '../process/index.ts';
+import type { ManagedProcess } from '../process/index.ts';
 
 export class RestartError extends Error {
   constructor(message: string) {

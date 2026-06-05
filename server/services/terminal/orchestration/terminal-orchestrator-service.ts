@@ -6,16 +6,28 @@
  * and package-manager sub-services into a single cohesive API.
  */
 
-import { terminalSessionService }  from '../session/terminal-session-service.ts';
-import { terminalHistoryService }  from '../session/terminal-history-service.ts';
-import { commandService }          from '../command/command-service.ts';
-import { commandValidator }        from '../command/command-validator.ts';
-import { runtimeService }          from '../runtime/runtime-service.ts';
-import { terminalLogService }      from '../logging/terminal-log-service.ts';
-import { terminalStreamService }   from '../streaming/terminal-stream-service.ts';
-import { packageService }          from '../package-manager/package-service.ts';
-import type { TerminalSession }    from '../session/terminal-session-service.ts';
-import type { RuntimeInfo }        from '../runtime/runtime-service.ts';
+import {
+  terminalSessionService,
+  terminalHistoryService,
+} from '../session/index.ts';
+import {
+  commandService,
+  commandValidator,
+} from '../command/index.ts';
+import {
+  runtimeService,
+} from '../runtime/index.ts';
+import {
+  terminalLogService,
+} from '../logging/index.ts';
+import {
+  terminalStreamService,
+} from '../streaming/index.ts';
+import {
+  packageService,
+} from '../package-manager/index.ts';
+import type { TerminalSession } from '../session/index.ts';
+import type { RuntimeInfo }     from '../runtime/index.ts';
 
 export class OrchestratorError extends Error {
   constructor(message: string) {

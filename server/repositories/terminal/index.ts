@@ -32,3 +32,4 @@ export type { ICheckpointRepository }      from './checkpoint-repository.ts';
 export type { ProcessEntry }      from './process-repository.ts';
 export type { PackageRecord }     from './package-repository.ts';
 export type { CheckpointSummary } from './checkpoint-repository.ts';
+export type { HistoryRecord }     from './command-repository.ts';
