@@ -24,6 +24,8 @@ import {
   subscribeToAgentFileEvents,
 } from './server/file-explorer/index.ts';
 
+import { consoleRouter, consoleService } from './server/console/index.ts';
+
 // ── Global error safety net ───────────────────────────────────────────────────
 // Must run before any async code so uncaught exceptions are captured.
 
@@ -36,6 +38,11 @@ const PORT = Number(process.env.API_PORT ?? 3001);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ── Console module ────────────────────────────────────────────────────────────
+// Init SSE broker and subsystems before any route mounts.
+
+consoleService.init();
 
 // ── Memory platform ───────────────────────────────────────────────────────────
 // Must run before any module that stores to or reads from memoryEngine.
@@ -114,6 +121,9 @@ chatOrchestrator.mountRoutes(app);
 
 // Orchestration: /api/orchestration/*
 app.use('/api/orchestration', createOrchestrationRouter());
+
+// Console module: /api/console/* (SSE stream + state + logs)
+app.use('/api/console', consoleRouter);
 
 // File Explorer: /api/file-explorer/* (canonical REST routes)
 app.use('/api/file-explorer', fileExplorerRouter);
