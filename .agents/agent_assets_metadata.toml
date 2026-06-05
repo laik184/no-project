@@ -432,3 +432,9 @@ id = "9lNMHjclvRV5gzU7hgyXh"
 uri = "file://WORKFLOW_REPORT.md"
 type = "text"
 title = "Nura-X Workflow Report — Chat → Agent → File Creation"
+
+[[outputs]]
+id = "A5SwGpJieJnwHYFIOVg2v"
+uri = "file://docs/console-component-structure.md"
+type = "text"
+title = "Console Component — Deep Structure Report"
