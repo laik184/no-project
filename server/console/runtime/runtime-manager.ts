@@ -6,7 +6,7 @@
  * Does NOT touch the infrastructure runtimeManager — this is separate.
  */
 
-import { runtimeRepository }    from '../../repositories/console/runtime-repository.ts';
+import { runtimeRepository }    from '../../repositories/console/index.ts';
 import { emitRuntimeState }     from '../events/console-events.ts';
 import { spawnSupervised }      from './process-supervisor.ts';
 import { crashRecovery }        from './crash-recovery.ts';

@@ -8,7 +8,7 @@
 import type { Response } from 'express';
 import { connectionPool } from './connection-pool.ts';
 import { onLogLine, onRuntimeState } from '../events/console-events.ts';
-import { sessionRepository } from '../../repositories/console/session-repository.ts';
+import { sessionRepository } from '../../repositories/console/index.ts';
 import type { LogLine, RuntimeStateEvent } from '../types/index.ts';
 
 const HEARTBEAT_INTERVAL_MS = 20_000;

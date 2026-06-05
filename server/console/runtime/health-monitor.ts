@@ -5,7 +5,7 @@
  * Emits `warning` state if a project misses heartbeats beyond the threshold.
  */
 
-import { runtimeRepository } from '../../repositories/console/runtime-repository.ts';
+import { runtimeRepository } from '../../repositories/console/index.ts';
 import { emitRuntimeState }  from '../events/console-events.ts';
 
 const POLL_INTERVAL_MS   = 10_000;

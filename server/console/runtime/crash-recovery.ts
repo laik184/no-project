@@ -7,7 +7,7 @@
  */
 
 import { bus }                from '../../../server/infrastructure/events/bus.ts';
-import { runtimeRepository }  from '../../repositories/console/runtime-repository.ts';
+import { runtimeRepository }  from '../../repositories/console/index.ts';
 import { emitRuntimeState }   from '../events/console-events.ts';
 import { healthMonitor }      from './health-monitor.ts';
 

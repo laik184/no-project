@@ -9,7 +9,7 @@
 import { logService }     from './log-service.ts';
 import { runtimeService } from './runtime-service.ts';
 import { processService } from './process-service.ts';
-import { sessionRepository } from '../../repositories/console/session-repository.ts';
+import { sessionRepository } from '../../repositories/console/index.ts';
 import { initStreamBroker, streamBrokerStats } from '../../console/streaming/stream-broker.ts';
 import type { LogLine, RuntimeEntry, RuntimeState } from '../../console/types/index.ts';
 

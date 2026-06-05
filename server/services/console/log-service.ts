@@ -8,7 +8,7 @@
 import { parseLogLine }     from '../../console/parsers/log-parser.ts';
 import { emitLogLine }      from '../../console/events/console-events.ts';
 import { installTracker }   from '../../console/install/install-tracker.ts';
-import { logRepository }    from '../../repositories/console/log-repository.ts';
+import { logRepository }    from '../../repositories/console/index.ts';
 import { makeSystemLine }   from '../../console/domain/log-line.ts';
 import type { LogLine }     from '../../console/types/index.ts';
 

@@ -7,7 +7,7 @@
 
 import { consoleRuntimeManager }  from '../../console/runtime/runtime-manager.ts';
 import { crashRecovery }          from '../../console/runtime/crash-recovery.ts';
-import { runtimeRepository }      from '../../repositories/console/runtime-repository.ts';
+import { runtimeRepository }      from '../../repositories/console/index.ts';
 import { logService }             from './log-service.ts';
 import type { RuntimeState, RuntimeEntry } from '../../console/types/index.ts';
 

@@ -14,7 +14,7 @@
 import { Router, type Request, type Response } from 'express';
 import { consoleService }   from '../../services/console/index.ts';
 import { registerConnection } from '../streaming/stream-broker.ts';
-import { sessionRepository }  from '../../repositories/console/session-repository.ts';
+import { sessionRepository }  from '../../repositories/console/index.ts';
 
 export const consoleRouter = Router();
 
