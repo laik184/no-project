@@ -1,3 +1,9 @@
+import { ConsolePanel } from "@/components/console";
+
 export default function ConsolePage() {
-  return null;
+  return (
+    <div className="relative flex-1 h-full w-full overflow-hidden">
+      <ConsolePanel />
+    </div>
+  );
 }
