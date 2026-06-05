@@ -1,0 +1,401 @@
+You are a Principal Software Architect.
+
+You are NOT allowed to perform partial fixes.
+
+Your mission is to completely repair the Console Architecture until the architecture score reaches 90+/100.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CURRENT AUDIT STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Architecture Score: 39/100
+
+Critical Issues:
+
+1. Missing Persistence Layer
+2. Console ↔ Service Circular Dependency
+3. Service → Console Internal Imports
+4. Console → Repository Layer Skips
+5. Infrastructure Index Bypass
+6. Repository → Console Upward Dependencies
+7. Missing Public Exports
+8. Missing Redis Export
+9. Missing Queue Export
+10. Direct Subpath Imports
+
+Do not ignore any issue.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #1
+MISSING PERSISTENCE LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CURRENT:
+
+Repository
+ ↓
+Infrastructure
+
+EXPECTED:
+
+Repository
+ ↓
+Persistence
+ ↓
+Infrastructure
+
+Create:
+
+server/console/persistence/
+
+Structure:
+
+server/console/persistence/
+│
+├── index.ts
+│
+├── postgres/
+│   ├── postgres-log-store.ts
+│   ├── postgres-session-store.ts
+│   ├── postgres-runtime-store.ts
+│   └── postgres-checkpoint-store.ts
+│
+├── redis/
+│   ├── redis-log-cache.ts
+│   └── redis-runtime-cache.ts
+│
+└── file/
+    ├── file-log-store.ts
+    └── file-checkpoint-store.ts
+
+Repository must depend on persistence only.
+
+Repositories must never touch infrastructure directly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #2
+CONSOLE ↔ SERVICE CIRCULAR DEPENDENCY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AUDIT FOUND:
+
+console/index.ts
+ ↓
+services/index.ts
+
+services/*
+ ↓
+console/*
+
+This is forbidden.
+
+Find every circular dependency.
+
+Generate graph.
+
+Break all cycles.
+
+Services must never import:
+
+server/console/runtime/*
+server/console/parsers/*
+server/console/install/*
+server/console/events/*
+server/console/domain/*
+
+Move contracts to:
+
+server/shared/console/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #3
+REPOSITORY → CONSOLE VIOLATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files:
+
+server/repositories/console/log-repository.ts
+
+server/repositories/console/session-repository.ts
+
+server/repositories/console/runtime-repository.ts
+
+Problem:
+
+Imports:
+
+server/console/types/index.ts
+
+Repository cannot import Console.
+
+Fix:
+
+Create:
+
+server/shared/console/
+
+Move:
+
+LogLine
+RuntimeState
+ConsoleEvent
+Checkpoint types
+
+Update imports.
+
+Target:
+
+Repository
+ ↓
+Shared Types
+
+NOT
+
+Repository
+ ↓
+Console
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #4
+INFRASTRUCTURE BYPASS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files:
+
+server/repositories/console/log-repository.ts
+
+server/repositories/console/checkpoint-repository.ts
+
+server/console/events/console-events.ts
+
+server/console/runtime/crash-recovery.ts
+
+server/console/runtime/process-supervisor.ts
+
+Problem:
+
+Direct imports:
+
+infrastructure/db/index.ts
+
+infrastructure/events/bus.ts
+
+Expected:
+
+server/infrastructure/index.ts
+
+Replace all direct infrastructure imports.
+
+Use public infrastructure API only.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #5
+CONSOLE → REPOSITORY LAYER SKIP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files:
+
+server/console/streaming/stream-broker.ts
+
+server/console/runtime/runtime-manager.ts
+
+server/console/runtime/crash-recovery.ts
+
+server/console/runtime/health-monitor.ts
+
+Problem:
+
+Console directly imports repositories.
+
+Forbidden.
+
+Current:
+
+Console
+ ↓
+Repository
+
+Expected:
+
+Console
+ ↓
+Service
+ ↓
+Repository
+
+Fix all layer skips.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #6
+SERVICE → CONSOLE INTERNALS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files:
+
+server/services/console/console-service.ts
+
+server/services/console/log-service.ts
+
+server/services/console/runtime-service.ts
+
+server/services/console/process-service.ts
+
+Problem:
+
+Direct imports:
+
+console/runtime/*
+console/parsers/*
+console/install/*
+console/events/*
+console/domain/*
+
+Fix:
+
+Expose required APIs through:
+
+server/console/index.ts
+
+or
+
+server/console/public/index.ts
+
+Services may consume public console API only.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #7
+MISSING EXPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Audit found:
+
+server/console/index.ts
+
+does not export enough public APIs.
+
+Find all service imports that force bypasses.
+
+Export them properly.
+
+Goal:
+
+No service file should import console internals.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISSUE #8
+INFRASTRUCTURE INDEX INCOMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Audit found:
+
+Missing:
+
+redis
+
+queue
+
+Add:
+
+server/infrastructure/redis/
+
+server/infrastructure/queue/
+
+Export both from:
+
+server/infrastructure/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE EXECUTION ORDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PHASE 1
+
+Create Persistence Layer.
+
+PHASE 2
+
+Move Shared Types.
+
+PHASE 3
+
+Fix Repository Imports.
+
+PHASE 4
+
+Fix Infrastructure Imports.
+
+PHASE 5
+
+Fix Service Imports.
+
+PHASE 6
+
+Fix Console Layer Skips.
+
+PHASE 7
+
+Fix Circular Dependencies.
+
+PHASE 8
+
+Add Missing Exports.
+
+PHASE 9
+
+Run TypeScript Build.
+
+PHASE 10
+
+Run ESLint.
+
+PHASE 11
+
+Run Circular Dependency Scan.
+
+PHASE 12
+
+Run Architecture Audit Again.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+✓ No circular dependencies
+
+✓ No repository imports from console
+
+✓ No service imports from console internals
+
+✓ No console imports from repositories
+
+✓ No infrastructure subpath imports
+
+✓ Persistence layer exists
+
+✓ Redis exported
+
+✓ Queue exported
+
+✓ TypeScript build passes
+
+✓ ESLint passes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return:
+
+1. Files Modified
+2. Files Created
+3. Circular Dependencies Removed
+4. Imports Fixed
+5. Exports Added
+6. Architecture Graph Before
+7. Architecture Graph After
+8. New Architecture Score
+9. Remaining Risks
+
+Do not stop until architecture score exceeds 90/100.
