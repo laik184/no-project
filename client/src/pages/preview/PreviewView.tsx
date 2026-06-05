@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { TabletFrame, OnePlusFrame, MobileFrame } from "./device-frames";
 
-const PREVIEW_BASE = "http://localhost:3000";
-const SSE_URL = "http://localhost:3000/__sse_reload";
+const REPLIT_DEV_DOMAIN = typeof window !== "undefined" ? window.location.host : "";
+const PREVIEW_BASE = REPLIT_DEV_DOMAIN ? `https://${REPLIT_DEV_DOMAIN}` : "http://localhost:3000";
+const SSE_URL = REPLIT_DEV_DOMAIN ? `https://${REPLIT_DEV_DOMAIN}/__sse_reload` : "http://localhost:3000/__sse_reload";
 
 const DEVICES = {
   desktop:  { w: "100%",  h: "100%"  },
