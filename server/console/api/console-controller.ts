@@ -12,7 +12,7 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { consoleService }   from '../../services/console/console-service.ts';
+import { consoleService }   from '../../services/console/index.ts';
 import { registerConnection } from '../streaming/stream-broker.ts';
 import { sessionRepository }  from '../../repositories/console/session-repository.ts';
 
