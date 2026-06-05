@@ -45,23 +45,34 @@ export function coordinateFilesystem(task: ExecutionTask, sandboxRoot: string): 
   const input = task.input as Record<string, unknown>;
   const op    = String(input.operation ?? 'read');
 
+  // Tool names MUST match the registered fs_* names exactly.
+  // Any mismatch causes silent NOT_FOUND failures.
   const toolMap: Record<string, string> = {
-    read:   'read_file',
-    write:  'write_file',
-    patch:  'patch_file',
-    delete: 'delete_file',
-    search: 'search_text',
-    list:   'read_folder',
+    read:    'fs_read_file',
+    write:   'fs_write_file',
+    create:  'fs_write_file',    // alias: create == write
+    patch:   'fs_patch_file',
+    delete:  'fs_delete_file',
+    remove:  'fs_delete_file',   // alias
+    search:  'fs_search_text',
+    list:    'fs_read_folder',
+    ls:      'fs_read_folder',   // alias
+    append:  'fs_append_file',
+    ensure:  'fs_ensure_file',
+    mkdir:   'fs_create_folder',
+    folder:  'fs_create_folder', // alias
   };
 
-  const toolName = toolMap[op] ?? 'read_file';
+  const toolName = toolMap[op] ?? 'fs_read_file';
+
+  // fs_* tools call resolveSafe() internally which prepends AGENT_PROJECT_ROOT.
+  // Passing an absolute path causes double-prefixing (tool strips "/" then re-joins sandboxRoot).
+  // Always pass a relative path — strip any leading slash from caller-supplied path.
+  const relPath = input.path ? String(input.path).replace(/^\/+/, '') : '';
 
   return {
     toolName,
-    toolInput: {
-      path: input.path ? `${sandboxRoot}/${String(input.path).replace(/^\/+/, '')}` : sandboxRoot,
-      ...input,
-    },
+    toolInput: { ...input, path: relPath },
   };
 }
 

@@ -32,20 +32,38 @@ import { toToolContext }          from '../core/executor-context.ts';
  */
 async function persistGeneratedFiles(
   output:      unknown,
-  sandboxRoot: string,
-  ctx:         ReturnType<typeof toToolContext>,
-): Promise<void> {
+  _sandboxRoot: string,
+  ctx:          ReturnType<typeof toToolContext>,
+): Promise<{ written: string[]; failed: string[] }> {
   const files = (output as Record<string, unknown> | null)?.files;
-  if (!files || typeof files !== 'object') return;
+  if (!files || typeof files !== 'object') return { written: [], failed: [] };
+
+  const written: string[] = [];
+  const failed:  string[] = [];
 
   for (const [relPath, content] of Object.entries(files as Record<string, unknown>)) {
     if (typeof content !== 'string') continue;
-    const absPath = `${sandboxRoot}/${relPath.replace(/^\/+/, '')}`;
-    const writeResult = await executeTool('fs_write_file', { path: absPath, content }, ctx);
-    if (!writeResult.ok) {
-      console.error(`[task-executor] Failed to persist ${relPath}: ${writeResult.error}`);
+
+    // Pass the RELATIVE path — fs_write_file's resolveSafe() prepends sandboxRoot internally.
+    // Passing an absolute path causes double-prefixing (sandboxRoot/tmp/nurax-sandbox/...).
+    const safePath = relPath.replace(/^\/+/, '');
+
+    const writeResult = await executeTool('fs_write_file', { path: safePath, content }, ctx);
+    if (writeResult.ok) {
+      written.push(safePath);
+    } else {
+      failed.push(safePath);
+      console.error(`[task-executor] Failed to persist "${safePath}": ${writeResult.error}`);
     }
   }
+
+  if (failed.length > 0) {
+    console.error(`[task-executor] ${failed.length} file(s) failed to write: ${failed.join(', ')}`);
+  } else if (written.length > 0) {
+    console.log(`[task-executor] Persisted ${written.length} file(s): ${written.join(', ')}`);
+  }
+
+  return { written, failed };
 }
 
 // ── Task executor ─────────────────────────────────────────────────────────────
@@ -76,11 +94,18 @@ export async function executeTask(
 
   // Persist generated files to sandbox after a successful coding task
   if (result.ok && task.kind === 'coding') {
-    await persistGeneratedFiles(
+    const persist = await persistGeneratedFiles(
       result.output,
       context.sandboxRoot,
       toToolContext(context),
-    ).catch((err) => console.error('[task-executor] File persistence error:', err));
+    ).catch((err: unknown) => {
+      console.error('[task-executor] File persistence threw unexpectedly:', err);
+      return { written: [], failed: [] };
+    });
+    if (persist.failed.length > 0 && persist.written.length === 0) {
+      // Every file failed — surface as task error so the caller knows nothing landed on disk
+      console.error(`[task-executor] All ${persist.failed.length} generated file(s) failed to persist`);
+    }
   }
 
   executionMonitor.incrementDone(context.runId);
