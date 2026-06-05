@@ -43,3 +43,11 @@ export { captureGitSha } from './checkpoints/git-runner.ts';
 
 // ── Seed ──────────────────────────────────────────────────────────────────────
 export { seedDefaultProject } from './seed.ts';
+
+// ── Redis ─────────────────────────────────────────────────────────────────────
+export { redis } from './redis/index.ts';
+export type { RedisClient } from './redis/index.ts';
+
+// ── Queue ─────────────────────────────────────────────────────────────────────
+export { queue } from './queue/index.ts';
+export type { IQueue, QueueJob } from './queue/index.ts';

@@ -3,13 +3,14 @@
  *
  * Wraps a spawned child process and pipes stdout/stderr through
  * the log pipeline: raw bytes → LogLine → bus → StreamBroker → SSE.
+ * Uses infrastructure/index.ts for bus (no subpath bypass).
  */
 
 import { spawn, type ChildProcess } from 'child_process';
-import { parseLogLine }   from '../parsers/log-parser.ts';
-import { emitLogLine }    from '../events/console-events.ts';
-import { healthMonitor }  from './health-monitor.ts';
-import { bus }            from '../../infrastructure/events/bus.ts';
+import { parseLogLine }  from '../parsers/log-parser.ts';
+import { emitLogLine }   from '../events/console-events.ts';
+import { healthMonitor } from './health-monitor.ts';
+import { bus }           from '../../infrastructure/index.ts';
 
 export interface SupervisorOptions {
   projectId: number;

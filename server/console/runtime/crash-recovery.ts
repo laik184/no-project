@@ -2,14 +2,15 @@
  * server/console/runtime/crash-recovery.ts
  *
  * Handles crash detection and initiates recovery sequences.
- * Listens to the bus for process.crashed events and coordinates
- * state transitions through recovering → recovered | failed.
+ * Uses shared runtime-state store (no repository import).
+ * Uses infrastructure/index.ts for bus (no subpath bypass).
  */
 
-import { bus }                from '../../infrastructure/events/bus.ts';
-import { runtimeRepository }  from '../../repositories/console/index.ts';
-import { emitRuntimeState }   from '../events/console-events.ts';
-import { healthMonitor }      from './health-monitor.ts';
+import { bus }               from '../../infrastructure/index.ts';
+import { runtimeStateStore } from '../../shared/console/runtime-state.ts';
+import { emitRuntimeState }  from '../events/console-events.ts';
+import { healthMonitor }     from './health-monitor.ts';
+import type { RuntimeState } from '../../shared/console/types.ts';
 
 const MAX_AUTO_RESTARTS = 3;
 const RECOVERY_DELAY_MS = 2_000;
@@ -25,9 +26,8 @@ function recordCrash(projectId: number): CrashRecord {
   const existing = crashHistory.get(projectId);
   const now      = Date.now();
 
-  // Reset crash count if last crash was over 2 minutes ago
   if (existing && now - existing.lastCrash > 120_000) {
-    existing.count    = 1;
+    existing.count     = 1;
     existing.lastCrash = now;
     return existing;
   }
@@ -42,10 +42,10 @@ function recordCrash(projectId: number): CrashRecord {
 
 function transitionState(
   projectId: number,
-  state:     Parameters<typeof runtimeRepository.setState>[1],
+  state:     RuntimeState,
   message:   string,
 ): void {
-  const entry = runtimeRepository.setState(projectId, state, message);
+  const entry = runtimeStateStore.setState(projectId, state, message);
   emitRuntimeState(projectId, {
     type:    'runtime.state',
     state,
@@ -76,7 +76,6 @@ export const crashRecovery = {
         return;
       }
 
-      // Signal recovery attempt
       setTimeout(() => {
         transitionState(projectId, 'recovering', 'AI agent attempting recovery…');
         healthMonitor.beat(projectId);
@@ -84,11 +83,9 @@ export const crashRecovery = {
     });
   },
 
-  /** Mark a project as fully recovered. */
   markRecovered(projectId: number): void {
     crashHistory.delete(projectId);
     transitionState(projectId, 'recovered', 'Runtime recovered successfully');
-    // Transition to ready shortly after
     setTimeout(() => {
       transitionState(projectId, 'ready', 'Development server ready');
     }, 1_500);

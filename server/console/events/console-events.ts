@@ -5,8 +5,8 @@
  * All internal console events flow through the shared infrastructure bus.
  */
 
-import { bus }   from '../../infrastructure/events/bus.ts';
-import type { LogLine, RuntimeStateEvent } from '../types/index.ts';
+import { bus }   from '../../infrastructure/index.ts';
+import type { LogLine, RuntimeStateEvent } from '../../shared/console/types.ts';
 
 // ── Event name constants ───────────────────────────────────────────────────────
 

@@ -2,13 +2,11 @@
  * server/repositories/console/log-repository.ts
  *
  * Persists and retrieves console log lines.
- * Backed by the consoleLogs table in PostgreSQL.
+ * Delegates to the persistence layer — never imports infrastructure directly.
  */
 
-import { desc, eq, lt, sql } from 'drizzle-orm';
-import { db }          from '../../infrastructure/db/index.ts';
-import { consoleLogs } from '../../../shared/schema.ts';
-import type { LogLine } from '../../console/types/index.ts';
+import { postgresLogStore } from '../../console/persistence/index.ts';
+import type { LogLine }     from '../../shared/console/types.ts';
 
 export interface ILogRepository {
   save(projectId: number, log: LogLine): Promise<void>;
@@ -18,73 +16,25 @@ export interface ILogRepository {
   deleteOld(projectId: number, before: Date): Promise<number>;
 }
 
-function rowToLogLine(row: typeof consoleLogs.$inferSelect): LogLine {
-  return {
-    id:   String(row.id),
-    kind: (row.stream ?? 'stdout') as LogLine['kind'],
-    line: row.line ?? '',
-    ts:   row.ts?.toISOString() ?? new Date().toISOString(),
-  };
-}
-
 class LogRepository implements ILogRepository {
-  async save(projectId: number, log: LogLine): Promise<void> {
-    await db.insert(consoleLogs).values({
-      projectId,
-      stream: log.kind,
-      line:   log.line,
-      ts:     log.ts ? new Date(log.ts) : new Date(),
-    });
+  save(projectId: number, log: LogLine): Promise<void> {
+    return postgresLogStore.save(projectId, log);
   }
 
-  async saveMany(projectId: number, logs: LogLine[]): Promise<void> {
-    if (logs.length === 0) return;
-
-    const rows = logs.map((log) => ({
-      projectId,
-      stream: log.kind,
-      line:   log.line,
-      ts:     log.ts ? new Date(log.ts) : new Date(),
-    }));
-
-    // Chunk into 100-row inserts to stay within pg parameter limits
-    for (let i = 0; i < rows.length; i += 100) {
-      await db.insert(consoleLogs).values(rows.slice(i, i + 100));
-    }
+  saveMany(projectId: number, logs: LogLine[]): Promise<void> {
+    return postgresLogStore.saveMany(projectId, logs);
   }
 
-  async findByProject(projectId: number, limit = 200): Promise<LogLine[]> {
-    const rows = await db
-      .select()
-      .from(consoleLogs)
-      .where(eq(consoleLogs.projectId, projectId))
-      .orderBy(desc(consoleLogs.ts))
-      .limit(limit);
-
-    return rows.reverse().map(rowToLogLine);
+  findByProject(projectId: number, limit = 200): Promise<LogLine[]> {
+    return postgresLogStore.findByProject(projectId, limit);
   }
 
-  async findRecent(projectId: number, since: Date, limit = 500): Promise<LogLine[]> {
-    const rows = await db
-      .select()
-      .from(consoleLogs)
-      .where(
-        sql`${consoleLogs.projectId} = ${projectId} AND ${consoleLogs.ts} > ${since}`,
-      )
-      .orderBy(consoleLogs.ts)
-      .limit(limit);
-
-    return rows.map(rowToLogLine);
+  findRecent(projectId: number, since: Date, limit = 500): Promise<LogLine[]> {
+    return postgresLogStore.findRecent(projectId, since, limit);
   }
 
-  async deleteOld(projectId: number, before: Date): Promise<number> {
-    const result = await db
-      .delete(consoleLogs)
-      .where(
-        sql`${consoleLogs.projectId} = ${projectId} AND ${consoleLogs.ts} < ${before}`,
-      );
-
-    return (result as unknown as { rowCount: number }).rowCount ?? 0;
+  deleteOld(projectId: number, before: Date): Promise<number> {
+    return postgresLogStore.deleteOld(projectId, before);
   }
 }
 

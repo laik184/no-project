@@ -2,17 +2,20 @@
  * server/services/console/console-service.ts
  *
  * Top-level coordinator for the console domain.
- * Routes controller calls to the correct sub-service.
+ * Imports console internals ONLY through server/console/index.ts (public API).
  * Enforces: Controller → ConsoleService → {LogService | RuntimeService | ProcessService}
  */
 
 import { logService }     from './log-service.ts';
 import { runtimeService } from './runtime-service.ts';
 import { processService } from './process-service.ts';
+import {
+  initStreamBroker,
+  streamBrokerStats,
+  consoleRuntimeManager,
+} from '../../console/index.ts';
 import { sessionRepository } from '../../repositories/console/index.ts';
-import { initStreamBroker, streamBrokerStats } from '../../console/streaming/stream-broker.ts';
-import { consoleRuntimeManager } from '../../console/runtime/runtime-manager.ts';
-import type { LogLine, RuntimeEntry, RuntimeState, ConsoleSession } from '../../console/types/index.ts';
+import type { LogLine, RuntimeEntry, RuntimeState, ConsoleSession } from '../../shared/console/types.ts';
 
 export const consoleService = {
   /**
@@ -26,7 +29,6 @@ export const consoleService = {
 
   // ── Session management ─────────────────────────────────────────────────────
 
-  /** Create a new SSE session for a project. Used by the controller. */
   createSession(projectId: number): ConsoleSession {
     return sessionRepository.create(projectId);
   },

@@ -1,19 +1,45 @@
 /**
  * server/console/index.ts
  *
- * Public API surface for the console module.
- * All external imports from this module MUST use this file.
- * Never import from internal sub-paths directly.
+ * PUBLIC API surface for the console module.
+ *
+ * Rules:
+ *   - Services import console internals ONLY from this file (not sub-paths).
+ *   - This file MUST NOT import from server/services/** (would create a circular dep).
+ *   - External consumers (main.ts) use server/services/console/index.ts for services.
  */
 
-// ── Router (mount in main.ts) ─────────────────────────────────────────────────
+// ── Router ────────────────────────────────────────────────────────────────────
 export { consoleRouter } from './api/console-controller.ts';
 
-// ── Services (via the services layer public entry point) ──────────────────────
-export { consoleService, logService, runtimeService, processService } from '../services/console/index.ts';
-export type { ProcessStartOptions, ProcessInfo, StartRuntimeOptions } from '../services/console/index.ts';
+// ── Runtime management (used by services/console/runtime-service & process-service) ──
+export { consoleRuntimeManager } from './runtime/runtime-manager.ts';
+export type { StartOptions }     from './runtime/runtime-manager.ts';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Crash recovery (used by services/console/runtime-service) ────────────────
+export { crashRecovery } from './runtime/crash-recovery.ts';
+
+// ── Process supervisor (used by services/console/process-service) ─────────────
+export { spawnSupervised }          from './runtime/process-supervisor.ts';
+export type { SupervisorHandle, SupervisorOptions } from './runtime/process-supervisor.ts';
+
+// ── Log parsers (used by services/console/log-service) ────────────────────────
+export { parseLogLine } from './parsers/log-parser.ts';
+
+// ── Domain factories (used by services/console/log-service) ──────────────────
+export { makeLogLine, makeSystemLine, makeErrorLine, makeStdoutLine, makeStderrLine } from './domain/log-line.ts';
+
+// ── Install tracker (used by services/console/log-service) ───────────────────
+export { installTracker } from './install/install-tracker.ts';
+
+// ── Event helpers (used by services and agent/tool integration) ───────────────
+export { emitLogLine, emitRuntimeState, onLogLine, onRuntimeState, CONSOLE_EVENT } from './events/console-events.ts';
+export type { ConsoleEventName } from './events/console-events.ts';
+
+// ── Stream broker (used by services/console/console-service) ─────────────────
+export { initStreamBroker, streamBrokerStats, registerConnection } from './streaming/stream-broker.ts';
+
+// ── Types (re-exported from shared for convenience) ───────────────────────────
 export type {
   LogLine,
   LogKind,
@@ -25,8 +51,5 @@ export type {
   NodeMeta,
   ConsoleSession,
   RuntimeEntry,
-} from './types/index.ts';
-
-// ── Event helpers (for agent/tool integration) ────────────────────────────────
-export { emitLogLine, emitRuntimeState } from './events/console-events.ts';
-
+  ConnectedEvent,
+} from '../shared/console/types.ts';

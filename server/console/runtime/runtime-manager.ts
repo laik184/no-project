@@ -3,15 +3,15 @@
  *
  * Console-domain runtime manager.
  * Coordinates state transitions, supervisor lifecycle, and recovery.
- * Does NOT touch the infrastructure runtimeManager — this is separate.
+ * State is owned by the shared runtime-state store (no repository import).
  */
 
-import { runtimeRepository }    from '../../repositories/console/index.ts';
-import { emitRuntimeState }     from '../events/console-events.ts';
-import { spawnSupervised }      from './process-supervisor.ts';
-import { crashRecovery }        from './crash-recovery.ts';
-import { healthMonitor }        from './health-monitor.ts';
-import type { RuntimeState, RuntimeStateEvent } from '../types/index.ts';
+import { runtimeStateStore }  from '../../shared/console/runtime-state.ts';
+import { emitRuntimeState }   from '../events/console-events.ts';
+import { spawnSupervised }    from './process-supervisor.ts';
+import { crashRecovery }      from './crash-recovery.ts';
+import { healthMonitor }      from './health-monitor.ts';
+import type { RuntimeState, RuntimeStateEvent, RuntimeEntry } from '../../shared/console/types.ts';
 import type { SupervisorHandle } from './process-supervisor.ts';
 
 interface ManagedProcess {
@@ -22,7 +22,7 @@ interface ManagedProcess {
 const processes = new Map<number, ManagedProcess>();
 
 function transition(projectId: number, state: RuntimeState, message: string): void {
-  const entry = runtimeRepository.setState(projectId, state, message);
+  const entry = runtimeStateStore.setState(projectId, state, message);
   const event: RuntimeStateEvent = {
     type:    'runtime.state',
     state,
@@ -57,9 +57,8 @@ export const consoleRuntimeManager = {
     const spawned = spawnSupervised({ projectId, ...opts });
     processes.set(projectId, { handle: spawned, startedAt: Date.now() });
 
-    // Transition to ready after first heartbeat window
     setTimeout(() => {
-      const entry = runtimeRepository.getState(projectId);
+      const entry = runtimeStateStore.getState(projectId);
       if (entry?.state === 'starting') {
         transition(projectId, 'ready', 'Development server ready');
       }
@@ -88,8 +87,12 @@ export const consoleRuntimeManager = {
     transition(projectId, state, message);
   },
 
-  getState(projectId: number): ReturnType<typeof runtimeRepository.getState> {
-    return runtimeRepository.getState(projectId);
+  getState(projectId: number): RuntimeEntry | undefined {
+    return runtimeStateStore.getState(projectId);
+  },
+
+  getAllStates(): RuntimeEntry[] {
+    return runtimeStateStore.all();
   },
 
   isRunning(projectId: number): boolean {

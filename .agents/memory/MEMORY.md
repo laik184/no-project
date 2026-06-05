@@ -18,3 +18,4 @@
 - [Executor filesystem tool names](executor-filesystem-tool-names.md) — coordinateFilesystem must use fs_* prefix names; wrong names cause silent NOT_FOUND failures on every filesystem task.
 - [Tool permission defaults](tool-permission-defaults.md) — DEFAULT_GRANTED is only read/write/execute; never declare permissions:['network'] on a tool unless you also add 'network' to DEFAULT_GRANTED or pass it via ctx.meta.grantedPermissions.
 - [Generic file creation pipeline](generic-file-pipeline.md) — end-to-end fix for "create X.ts" tasks: dispatcher pass-through, coding_generate_generic_file tool (permissions:[]), adaptCodingInput() in tool-coordinator, TYPE_TO_SUBKIND.generic→generate_generic_file.
+- [Console arch refactor](console-arch-refactor.md) — 5-layer hierarchy; shared types+state in server/shared/console/; persistence layer in console/persistence/; circular dep broken in console/index.ts; redis+queue added to infrastructure.
