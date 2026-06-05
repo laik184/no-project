@@ -85,10 +85,76 @@ export function AppSidebar() {
 
   return (
     <>
+    <style>{`
+      @keyframes sweep-down {
+        0%   { background-position: 0% 0%; }
+        100% { background-position: 0% 200%; }
+      }
+      @keyframes sweep-up {
+        0%   { background-position: 0% 200%; }
+        100% { background-position: 0% 0%; }
+      }
+      @keyframes bar-flash {
+        0%,100% { opacity: 1; }
+        50%      { opacity: .25; }
+      }
+      .lifecycle-bar-active {
+        animation: sweep-down 1.8s linear infinite;
+      }
+      .lifecycle-bar-fast {
+        animation: sweep-down 0.9s linear infinite;
+      }
+      .lifecycle-bar-flash {
+        animation: bar-flash 0.7s ease-in-out infinite;
+      }
+    `}</style>
     <div
       className={cn("relative flex flex-col h-screen border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0", "bg-[hsl(222,30%,7%)]", collapsed ? "w-[60px]" : "w-[220px]")}
       style={{ minWidth: collapsed ? 60 : 220 }}
     >
+      {/* ── Replit-style left-edge sweep bar ── */}
+      {(() => {
+        const barColor = state === "thinking"  ? ["#6c8fff","#a78bfa","#6c8fff","transparent"]
+                       : state === "planning"  ? ["#7c8dff","#4f63ff","#7c8dff","transparent"]
+                       : state === "delegating"? ["#a78bfa","#7c8dff","#a78bfa","transparent"]
+                       : state === "working"   ? ["#c084fc","#7c8dff","#c084fc","transparent"]
+                       : state === "writing"   ? ["#34d399","#6ee7b7","#34d399","transparent"]
+                       : state === "editing"   ? ["#6ee7b7","#34d399","#6ee7b7","transparent"]
+                       : state === "testing"   ? ["#fbbf24","#f59e0b","#fbbf24","transparent"]
+                       : state === "verifying" ? ["#f59e0b","#fbbf24","#f59e0b","transparent"]
+                       : state === "deploying" ? ["#22c55e","#4ade80","#22c55e","transparent"]
+                       : state === "completed" ? ["#4ade80","#22c55e","#4ade80","transparent"]
+                       : state === "failed"    ? ["#f87171","#ef4444","#f87171","transparent"]
+                       : state === "cancelled" ? ["#6b7280","#9ca3af","#6b7280","transparent"]
+                       : null;
+        const barClass = state === "working" || state === "deploying" ? "lifecycle-bar-fast"
+                       : state === "testing" ? "lifecycle-bar-flash"
+                       : state !== "idle" ? "lifecycle-bar-active"
+                       : "";
+        const visible = state !== "idle";
+        return (
+          <div
+            className={barClass}
+            style={{
+              position:   "absolute",
+              left:       0,
+              top:        0,
+              bottom:     0,
+              width:      2,
+              zIndex:     50,
+              opacity:    visible ? 1 : 0,
+              transition: "opacity 0.5s ease",
+              borderRadius: "0 2px 2px 0",
+              background: barColor
+                ? `linear-gradient(to bottom, ${barColor.join(", ")})`
+                : "transparent",
+              backgroundSize: "100% 200%",
+              boxShadow: visible && barColor ? `2px 0 10px ${barColor[0]}80` : "none",
+            }}
+          />
+        );
+      })()}
+
       <div className="orb" style={{ width: 200, height: 200, top: -60, left: -80, background: "radial-gradient(circle, rgba(124,141,255,0.06) 0%, transparent 70%)" }} />
 
       <div className={cn("flex items-center h-14 px-3 border-b border-white/6 flex-shrink-0", collapsed ? "justify-center" : "justify-between")}>
