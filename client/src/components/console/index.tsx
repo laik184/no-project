@@ -24,7 +24,7 @@ const MAX_LINES = 2000;
 function uid() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
 
 const WELCOME: LogLine[] = [
-  { id:"w1", kind:"system", text:"Console ready — agent output appears here.", ts: new Date().toISOString() },
+  { id:"w1", kind:"system", text:"Terminal ready — agent output appears here.", ts: new Date().toISOString() },
   { id:"w2", kind:"system", text:"────────────────────────────────────────────────────────", ts: new Date().toISOString() },
 ];
 
@@ -104,7 +104,7 @@ export function ConsolePanel() {
         style={{ borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-2.5">
           <Terminal size={13} className="text-emerald-400 flex-shrink-0" />
-          <span className="text-xs font-semibold" style={{ color:"rgba(255,255,255,0.65)" }}>Console</span>
+          <span className="text-xs font-semibold" style={{ color:"rgba(255,255,255,0.65)" }}>Terminal</span>
           {connected
             ? <span className="flex items-center gap-1 text-[10px]" style={{ color:"rgba(107,203,119,0.8)" }}><Wifi size={10}/>live</span>
             : <span className="flex items-center gap-1 text-[10px]" style={{ color:"rgba(255,255,255,0.25)" }}><WifiOff size={10}/>connecting…</span>}

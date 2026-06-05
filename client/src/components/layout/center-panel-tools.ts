@@ -6,7 +6,7 @@ export const toolItems = [
     items: [
       { id: "preview",    label: "Preview",    sub: "Live preview of your app in real time",                      icon: Eye,        color: "#60a5fa", bg: "rgba(96,165,250,0.1)",   url: "/preview"        },
       { id: "database",   label: "Database",   sub: "Manage tables, rows, and run queries",                       icon: Database,   color: "#34d399", bg: "rgba(52,211,153,0.1)",   url: "__database__"    },
-      { id: "console",    label: "Console",    sub: "Run commands and view server logs",                          icon: Terminal,   color: "#fbbf24", bg: "rgba(251,191,36,0.1)",   url: "__console__"     },
+      { id: "console",    label: "Terminal",   sub: "Run commands and view server logs",                          icon: Terminal,   color: "#fbbf24", bg: "rgba(251,191,36,0.1)",   url: "__console__"     },
       { id: "git",        label: "Git",        sub: "Version history, branches, and commits",                     icon: GitBranch,  color: "#86efac", bg: "rgba(134,239,172,0.1)",  url: "__git__"         },
     ],
   },

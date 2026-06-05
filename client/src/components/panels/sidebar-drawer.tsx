@@ -8,7 +8,7 @@ export function SidebarDrawer() {
   const pageInfo: Record<string, { title: string; icon: React.ElementType }> = {
     preview:   { title: "Preview",   icon: Monitor   },
     published: { title: "Published", icon: BookOpen  },
-    console:   { title: "Console",   icon: Terminal  },
+    console:   { title: "Terminal",  icon: Terminal  },
   };
 
   const currentInfo  = currentPage ? pageInfo[currentPage] : null;
@@ -41,7 +41,7 @@ export function SidebarDrawer() {
         <div className="h-[calc(100%-49px)] overflow-auto text-white p-4">
           {currentPage === "preview"   && <div>Preview content coming soon</div>}
           {currentPage === "published" && <div>Published content coming soon</div>}
-          {currentPage === "console"   && <div>Console content coming soon</div>}
+          {currentPage === "console"   && <div>Terminal content coming soon</div>}
         </div>
       </div>
     </>
