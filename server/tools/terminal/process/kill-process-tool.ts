@@ -2,20 +2,20 @@
  * server/tools/terminal/process/kill-process-tool.ts
  * Tool: terminal_kill_process
  *
- * Kills a process by PID and removes it from the process store if tracked.
+ * Kills a process by PID. Cleans up via ProcessService if the PID is tracked.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { listProcesses, deleteProcess }              from '../runtime/process-store.ts';
+import { processService }                            from '../../../services/terminal/index.ts';
 
 export const killProcessTool: ToolDefinition = {
   name:        'terminal_kill_process',
   category:    'terminal',
-  description: 'Kill a process by PID. Also removes it from the process store if it was tracked.',
+  description: 'Kill a process by PID. Also cleans up the tracked session if one matches.',
   inputSchema: {
-    pid:   { type: 'number',  description: 'Process ID to kill',         required: true  },
-    force: { type: 'boolean', description: 'Use SIGKILL instead of SIGTERM', required: false },
+    pid:   { type: 'number',  description: 'Process ID to kill',              required: true  },
+    force: { type: 'boolean', description: 'Use SIGKILL instead of SIGTERM',  required: false },
   },
   permissions: ['execute', 'process'],
   timeoutMs:   TIMEOUT.FAST,
@@ -23,23 +23,28 @@ export const killProcessTool: ToolDefinition = {
 
   handler: async (input, _ctx: ToolExecutionContext) => {
     const pid    = Number(input.pid);
-    const signal = input.force ? 'SIGKILL' : 'SIGTERM';
+    const force  = Boolean(input.force);
+    const signal = force ? 'SIGKILL' : 'SIGTERM';
 
     if (!Number.isInteger(pid) || pid <= 0) {
       throw new Error('pid must be a positive integer.');
     }
 
-    const tracked = listProcesses().find(r => r.pid === pid);
+    // Find whether this PID belongs to a tracked session
+    const tracked = processService.list().find(p => p.pid === pid);
 
     try {
       process.kill(pid, signal);
-      if (tracked) deleteProcess(tracked.projectId);
-      return { killed: true, pid, signal, wasTracked: !!tracked };
+
+      // Detach from process service if tracked
+      if (tracked) processService.stop(tracked.sessionId, force);
+
+      return { killed: true, pid, signal, sessionId: tracked?.sessionId ?? null };
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'ESRCH') {
-        if (tracked) deleteProcess(tracked.projectId);
-        return { killed: false, pid, signal, wasTracked: !!tracked, error: 'Process already exited.' };
+        if (tracked) processService.stop(tracked.sessionId, false);
+        return { killed: false, pid, signal, sessionId: tracked?.sessionId ?? null, error: 'Process already exited.' };
       }
       throw err;
     }

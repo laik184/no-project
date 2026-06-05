@@ -1,35 +1,41 @@
 /**
  * server/tools/terminal/runtime/runtime-status-tool.ts
  * Tool: terminal_runtime_status
+ *
+ * Returns the current status of the runtime process for a session via RuntimeService.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { getProcess, isRunning }                     from './process-store.ts';
+import { runtimeService }                            from '../../../services/terminal/index.ts';
 
 export const runtimeStatusTool: ToolDefinition = {
   name:        'terminal_runtime_status',
   category:    'terminal',
-  description: 'Get the current status of the runtime process for a project.',
+  description: 'Get the current status of the runtime process for a session.',
   inputSchema: {
-    projectId: { type: 'number', description: 'Project identifier', required: true },
+    sessionId: { type: 'string', description: 'Terminal session identifier', required: true },
   },
   permissions: ['read', 'process'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 
   handler: async (input, _ctx: ToolExecutionContext) => {
-    const projectId = Number(input.projectId);
-    const running   = isRunning(projectId);
-    const rec       = getProcess(projectId);
+    const sessionId = String(input.sessionId);
+    const info      = runtimeService.status(sessionId);
+
+    if (!info) {
+      return { sessionId, running: false, pid: null, command: null, startedAt: null, uptimeMs: null };
+    }
 
     return {
-      projectId,
-      running,
-      pid:       rec?.pid       ?? null,
-      command:   rec?.command   ?? null,
-      startedAt: rec?.startedAt ?? null,
-      uptimeMs:  rec ? Date.now() - rec.startedAt : null,
+      sessionId,
+      running:   info.running,
+      pid:       info.pid,
+      command:   info.command,
+      cwd:       info.cwd,
+      startedAt: info.startedAt,
+      uptimeMs:  info.uptimeMs,
     };
   },
 };

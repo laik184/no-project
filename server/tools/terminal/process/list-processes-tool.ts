@@ -2,12 +2,12 @@
  * server/tools/terminal/process/list-processes-tool.ts
  * Tool: terminal_list_processes
  *
- * Lists all processes tracked by the runtime process store.
+ * Lists all tracked processes via ProcessService.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { listProcesses, isRunning }                  from '../runtime/process-store.ts';
+import { processService }                            from '../../../services/terminal/index.ts';
 
 export const listProcessesTool: ToolDefinition = {
   name:        'terminal_list_processes',
@@ -19,15 +19,7 @@ export const listProcessesTool: ToolDefinition = {
   retry:       RETRY_NONE,
 
   handler: async (_input, _ctx: ToolExecutionContext) => {
-    const records = listProcesses().map(rec => ({
-      projectId: rec.projectId,
-      pid:       rec.pid,
-      command:   rec.command,
-      startedAt: rec.startedAt,
-      running:   isRunning(rec.projectId),
-      uptimeMs:  Date.now() - rec.startedAt,
-    }));
-
-    return { total: records.length, processes: records };
+    const processes = processService.list();
+    return { total: processes.length, processes };
   },
 };

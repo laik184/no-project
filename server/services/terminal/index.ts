@@ -121,3 +121,13 @@ export type {
   ParsedLogEntry,
   LogLevel,
 } from './logging/index.ts';
+
+// ── Shell utilities ───────────────────────────────────────────────────────────
+export {
+  shellService,
+  ShellServiceError,
+} from './shell/index.ts';
+export type {
+  DirEntry,
+  LsResult,
+} from './shell/index.ts';

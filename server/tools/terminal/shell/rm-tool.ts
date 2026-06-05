@@ -2,13 +2,12 @@
  * server/tools/terminal/shell/rm-tool.ts
  * Tool: terminal_rm
  *
- * Removes a file or directory inside the sandbox.
+ * Removes a file or directory inside the sandbox via ShellService.
  */
 
-import { rmSync, existsSync } from 'fs';
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { resolveCwd }                                from '../validation/sandbox-validator.ts';
+import { shellService }                              from '../../../services/terminal/index.ts';
 
 export const rmTool: ToolDefinition = {
   name:        'terminal_rm',
@@ -24,16 +23,11 @@ export const rmTool: ToolDefinition = {
   retry:       RETRY_NONE,
 
   handler: async (input, ctx: ToolExecutionContext) => {
-    const resolved  = resolveCwd(ctx.sandboxRoot, String(input.path));
-    const recursive = Boolean(input.recursive);
-    const force     = Boolean(input.force);
-
-    if (!existsSync(resolved)) {
-      if (force) return { path: resolved, removed: false, message: 'Path did not exist.' };
-      throw new Error(`Path does not exist: ${resolved}`);
-    }
-
-    rmSync(resolved, { recursive, force });
-    return { path: resolved, removed: true };
+    return shellService.rm(
+      ctx.sandboxRoot,
+      String(input.path),
+      Boolean(input.recursive),
+      Boolean(input.force),
+    );
   },
 };
