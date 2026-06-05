@@ -30,7 +30,7 @@ const TYPE_TO_SUBKIND: Record<string, string> = {
   deployment: 'run_script',
   planning:   'generate_page',
   finalize:   'generate_page',
-  generic:    'generate_page',
+  generic:    'generate_generic_file',
 };
 
 // ── Component → task mapping ──────────────────────────────────────────────────

@@ -68,6 +68,9 @@ import { generateCrudUITool }           from '../crud/generate-crud-ui.ts';
 import { generateCrudSchemaTool }       from '../crud/generate-crud-schema.ts';
 import { generateCrudTestsTool }        from '../crud/generate-crud-tests.ts';
 
+// ── Generic (catch-all) ───────────────────────────────────────────────────────
+import { generateGenericFileTool }      from '../generic/generate-generic-file.ts';
+
 // ── Registration list ─────────────────────────────────────────────────────────
 
 const ALL_CODING_TOOLS = [
@@ -124,6 +127,8 @@ const ALL_CODING_TOOLS = [
   generateCrudUITool,
   generateCrudSchemaTool,
   generateCrudTestsTool,
+  // Generic catch-all (1)
+  generateGenericFileTool,
 ] as const;
 
 let _registered = false;

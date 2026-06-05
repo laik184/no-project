@@ -147,7 +147,25 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
   try {
     const { result: data, retries } = await withRetry(
       () => withTimeout(
-        () => definition.handler(input as Record<string, unknown>, context) as Promise<TOutput>,
+        async () => {
+          const result = await (definition.handler(input as Record<string, unknown>, context) as Promise<TOutput>);
+
+          // Many tools (e.g. coding tools) return a ToolExecutionResult directly from
+          // their handler instead of raw data. When they return { ok: false, ... } we
+          // MUST throw so the retry + failure pipeline triggers — otherwise the failure
+          // is silently wrapped as { ok: true, data: { ok: false } } and swallowed.
+          if (
+            result !== null &&
+            typeof result === 'object' &&
+            'ok' in (result as object) &&
+            (result as Record<string, unknown>).ok === false
+          ) {
+            const f = result as { error?: string };
+            throw new Error(f.error ?? `Tool "${name}" returned a failure result`);
+          }
+
+          return result;
+        },
         timeoutMs,
         name,
       ),
@@ -156,6 +174,28 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
 
     const durationMs = Date.now() - start;
     const timedOut   = false;
+
+    // If the handler returned a ToolExecutionResult (has .ok + .data), pass it
+    // through directly — do NOT double-wrap as { ok: true, data: toolResult }.
+    // Coding tools use codingOk() which returns { ok: true, data: GenerationResult }.
+    if (
+      data !== null &&
+      typeof data === 'object' &&
+      'ok' in (data as object) &&
+      'data' in (data as object)
+    ) {
+      const toolResult = data as ToolExecutionResult<TOutput>;
+      recordMetric(name, true, durationMs, retries, timedOut);
+      recordAudit({
+        ts:        new Date().toISOString(),
+        toolName:  name,
+        category:  definition.category,
+        runId:     context.runId,
+        ok:        true,
+        durationMs,
+      });
+      return { ...toolResult, durationMs } as ToolExecutionResult<TOutput>;
+    }
 
     recordMetric(name, true, durationMs, retries, timedOut);
     recordAudit({
