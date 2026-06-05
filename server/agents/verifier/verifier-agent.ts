@@ -24,7 +24,7 @@ import { verifierMetrics }              from './telemetry/verifier-metrics.ts';
 import { verifierHealthMonitor }        from './monitoring/health-monitor.ts';
 import { makeRunId, defaultSteps }      from './utils/verification-utils.ts';
 import { memoryEngine, buildMemoryContext } from '../../memory/index.ts';
-import type { DispatchOptions }            from './coordination/dispatcher-client.ts';
+import type { DispatchOptions }            from '../../tools/registry/tool-dispatcher.ts';
 
 // ── Agent lifecycle ───────────────────────────────────────────────────────────
 

@@ -36,7 +36,7 @@ import { filesystemLogger }     from './telemetry/filesystem-logger.ts';
 import { filesystemMetrics }    from './telemetry/filesystem-metrics.ts';
 import { failureMonitor }       from './monitoring/failure-monitor.ts';
 import { elapsedMs, toErrorMessage } from './utils/filesystem-utils.ts';
-import type { DispatchOptions }       from './coordination/dispatcher-client.ts';
+import type { DispatchOptions }       from '../../tools/registry/tool-dispatcher.ts';
 
 // ── Agent input ───────────────────────────────────────────────────────────────
 

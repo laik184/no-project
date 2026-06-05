@@ -1,0 +1,133 @@
+You are a Senior Software Architect.
+
+TASK
+
+Apply ONLY the tool-dispatcher import standard.
+
+Do NOT refactor logic.
+
+Do NOT move files.
+
+Do NOT rename files.
+
+Do NOT create new agents.
+
+Do NOT create new tools.
+
+Do NOT modify runtime behavior.
+
+Do NOT change APIs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TARGET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use:
+
+server/tools/registry/tool-dispatcher.ts
+
+as the single tool execution entry point.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALLOWED IMPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify and ensure these agents import:
+
+server/tools/registry/tool-dispatcher.ts
+
+Agents:
+
+server/agents/executor/executor-agent.ts
+
+server/agents/filesystem/filesystem-agent.ts
+
+server/agents/terminal/terminal-agent.ts
+
+server/agents/browser/browser-agent.ts
+
+server/agents/coderx/coderx-agent.ts
+
+server/agents/verifier/verifier-agent.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORBIDDEN IMPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify these agents DO NOT import:
+
+server/tools/registry/tool-dispatcher.ts
+
+Agents:
+
+server/agents/planner/planner-agent.ts
+
+server/agents/supervisor/supervisor-agent.ts
+
+server/agents/chat/chat-agent.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Inspect all agent files.
+
+Identify:
+
+- current tool imports
+- direct tool imports
+- dispatcher imports
+
+Generate evidence.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If an allowed agent imports tools directly:
+
+❌ server/tools/filesystem/*
+❌ server/tools/browser/*
+❌ server/tools/terminal/*
+❌ server/tools/verifier/*
+❌ server/tools/coding/*
+
+Replace those imports with:
+
+✅ server/tools/registry/tool-dispatcher.ts
+
+If a forbidden agent imports tool-dispatcher:
+
+remove the import.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+1. Allowed agents use tool-dispatcher.
+
+2. Forbidden agents do not use tool-dispatcher.
+
+3. No direct tool imports remain in allowed agents.
+
+4. No circular dependencies are introduced.
+
+5. Runtime behavior remains unchanged.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Agents scanned
+
+2. Dispatcher imports added
+
+3. Direct tool imports removed
+
+4. Forbidden imports found
+
+5. Final agent → dispatcher graph
+
+Do not perform any work outside tool-dispatcher import standardization.
