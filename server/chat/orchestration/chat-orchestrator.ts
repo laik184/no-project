@@ -33,6 +33,7 @@ import {
 import { clarificationManager }       from '../questions/clarification-manager.ts';
 import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
 import { bus, SANDBOX_ROOT }          from '../../infrastructure/index.ts';
+import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
 import { logError }                   from '../../shared/errors/index.ts';
 import type {
   ChatRun,
@@ -73,6 +74,14 @@ async function _completeRun(run: ChatRun, turnId: string): Promise<void> {
   } catch (err) {
     console.error('[chat-orchestrator] Checkpoint creation failed:', err);
   }
+
+  memoryEngine.store({
+    category: 'conversation',
+    content:  `Run completed — goal: ${run.goal.slice(0, 200)}`,
+    tags:     ['chat', 'run-complete', `project:${run.projectId}`],
+    score:    0.7,
+    meta:     { runId: run.runId, projectId: run.projectId, durationMs },
+  }).catch((err) => console.error('[chat-orchestrator] Memory store failed:', err));
 }
 
 async function _failRun(run: ChatRun, turnId: string, error: string): Promise<void> {
@@ -121,7 +130,8 @@ export const chatOrchestrator = {
       .catch(() => payload.goal);
 
     const loaded  = await contextLoader.loadForRun(runId).catch(() => ({ messages: [], run: null }));
-    const context = buildContext(loaded.messages, undefined, 20);
+    const memoryCtx = await buildMemoryContextString(refinedGoal).catch(() => '');
+    const context = buildContext(loaded.messages, memoryCtx || undefined, 20);
 
     eventPublisher.publish(makeRunStartedEvent(runId, payload.projectId, refinedGoal, mode));
 
