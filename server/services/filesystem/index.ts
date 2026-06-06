@@ -18,3 +18,4 @@ export { gitStatusService }          from "./git-status/index.ts";
 export { insightsService }           from "./insights/index.ts";
 export { dependencyAnalysisService } from "./dependency-analysis/index.ts";
 export { scannerService }            from "./scanner/index.ts";
+export type { ScanEntry }            from "./scanner/scanner.service.ts";
