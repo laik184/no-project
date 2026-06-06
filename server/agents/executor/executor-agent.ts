@@ -43,8 +43,8 @@ export {
   dispatch,
   dispatchAll,
   dispatchSequential,
-}                                 from '../../tools/registry/tool-dispatcher.ts';
-export type { DispatchOptions }   from '../../tools/registry/tool-dispatcher.ts';
+}                                 from './coordination/dispatcher-client.ts';
+export type { DispatchOptions }   from './coordination/dispatcher-client.ts';
 
 // ── Initialization guard ──────────────────────────────────────────────────────
 
