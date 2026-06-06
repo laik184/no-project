@@ -4,8 +4,8 @@
  * Routes through treeService — no direct repository access.
  */
 
-import { treeService } from '../../services/filesystem/tree/index.ts';
-import type { RawTreeNode } from '../../shared/file-explorer-core/types/index.ts';
+import { treeService }      from '../../services/filesystem/index.ts';
+import type { RawTreeNode } from '../types/index.ts';
 
 export function buildTreeFromDir(projectPath?: string): RawTreeNode[] {
   const result = treeService.getTree(projectPath);
