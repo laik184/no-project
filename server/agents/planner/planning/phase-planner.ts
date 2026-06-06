@@ -8,8 +8,8 @@
 
 import type { PlannedTask, ExecutionPhase, ExecutionStrategy } from '../types/planner.types.ts';
 import { topoSort } from '../utils/planning-utils.ts';
-import { findParallelizable, detectDependencies } from '../../../engine/planning/index.ts';
-import type { GoalComponent } from '../../../engine/planning/index.ts';
+import { findParallelizable, detectDependencies } from '../engine/index.ts';
+import type { GoalComponent } from '../engine/index.ts';
 
 // ── Wave-based phase builder ──────────────────────────────────────────────────
 

@@ -11,8 +11,8 @@ import { makeTaskId, normaliseGoal } from '../utils/planning-utils.ts';
 import {
   analyzeGoal,
   detectDependencies,
-} from '../../../engine/planning/index.ts';
-import type { GoalComponent, TaskDependency } from '../../../engine/planning/index.ts';
+} from '../engine/index.ts';
+import type { GoalComponent, TaskDependency } from '../engine/index.ts';
 
 // ── Component type → executor subKind mapping ─────────────────────────────────
 // Each entry must match a key in tool-coordinator.ts coordinateCoding toolMap.

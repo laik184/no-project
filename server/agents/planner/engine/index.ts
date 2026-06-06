@@ -1,9 +1,12 @@
 /**
- * server/engine/planning/index.ts
+ * server/agents/planner/engine/index.ts
  *
  * Pure goal-analysis engine — no I/O, no tool calls, no side effects.
  * Converts a natural-language goal string into structured components
  * and dependency/parallelism metadata consumed by the planner agent.
+ *
+ * Moved from server/engine/planning/index.ts — all consumers are within
+ * server/agents/planner/, so this belongs here.
  */
 
 // ── Types ─────────────────────────────────────────────────────────────────────

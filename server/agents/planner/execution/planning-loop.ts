@@ -26,7 +26,7 @@ import { resolveDependencies }          from '../planning/dependency-planner.ts'
 import { buildExecutionPhases }         from '../planning/phase-planner.ts';
 import { buildExecutionPlan }           from '../planning/execution-plan-builder.ts';
 import { validateExecutionPlan }        from '../validation/planning-validator.ts';
-import { analyzeGoal }                  from '../../../engine/planning/index.ts';
+import { analyzeGoal }                  from '../engine/index.ts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

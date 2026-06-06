@@ -14,7 +14,7 @@ import type {
   PlanValidationResults,
 } from '../types/planner.types.ts';
 import { makePlanId, estimateDurationMs } from '../utils/planning-utils.ts';
-import type { GoalAnalysis } from '../../../engine/planning/index.ts';
+import type { GoalAnalysis } from '../engine/index.ts';
 
 export interface PlanBuildInput {
   runId:      string;

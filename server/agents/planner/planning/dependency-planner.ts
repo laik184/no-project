@@ -12,8 +12,8 @@ import { topoSort } from '../utils/planning-utils.ts';
 import {
   orderComponents,
   detectDependencies,
-} from '../../../engine/planning/index.ts';
-import type { GoalComponent } from '../../../engine/planning/index.ts';
+} from '../engine/index.ts';
+import type { GoalComponent } from '../engine/index.ts';
 
 export interface DependencyResolution {
   orderedTasks: PlannedTask[];
