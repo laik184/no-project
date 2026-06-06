@@ -32,8 +32,7 @@ import {
 }                                     from '@services/chat';
 import { clarificationManager }       from '../questions/clarification-manager.ts';
 import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
-import { bus }                        from '../../infrastructure/index.ts';
-import { SANDBOX_ROOT }               from '../../infrastructure/config/sandbox.config.ts';
+import { bus, SANDBOX_ROOT }          from '../../infrastructure/index.ts';
 import { logError }                   from '../../shared/errors/index.ts';
 import type {
   ChatRun,

@@ -35,6 +35,9 @@ export { runtimeManager } from './runtime/runtime-manager.ts';
 // ── Sandbox Path Utilities ────────────────────────────────────────────────────
 export { getProjectDir, getNuraDir } from './sandbox/sandbox.util.ts';
 
+// ── Sandbox Root Constant ─────────────────────────────────────────────────────
+export { SANDBOX_ROOT } from './config/sandbox.config.ts';
+
 // ── Safe Filesystem Operations ────────────────────────────────────────────────
 export { safeWriteFile, safeDeleteFile, safeBackup } from './checkpoints/safe-fs.util.ts';
 
