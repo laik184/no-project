@@ -1,44 +1,114 @@
 /**
  * server/memory/index.ts
  *
- * Purpose: Top-level public API for the Nura-X memory platform.
- * Responsibility: Single import point for all consumers.
- *   Re-exports the engine, bootstrap, and module surfaces.
- * Exports: memoryEngine, bootstrapMemory, and all sub-module exports
+ * Public API for the Nura-X memory platform.
+ *
+ * Store flow:  content → chunker → embedding → repository → persistence → vector store
+ * Search flow: query   → embedding → vector search → retrieval → ranked chunks
+ *
+ * Import chain enforced:
+ *   index → repositories → persistence → infrastructure
+ *   index → retrieval    → vector, embedding
  */
 
+// ── Core public API ───────────────────────────────────────────────────────────
+
+export { memoryRepository }                      from './repositories/index.ts';
+export type { MemoryEntry, SaveInput, SearchOptions } from './repositories/index.ts';
+
+export { embeddingService }                      from './embedding/index.ts';
+export type { EmbeddingProvider }                from './embedding/index.ts';
+
+export { vectorStore, vectorSearch }             from './vector/index.ts';
+export type { VectorRecord, SearchResult }       from './vector/index.ts';
+
+export { retrieve, hybridSearch, rerank }        from './retrieval/index.ts';
+export type { RetrievalResult, RetrievalOptions } from './retrieval/index.ts';
+
+export { chunkText, chunkCode, chunkMarkdown, chunkJson } from './chunking/index.ts';
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
-export { bootstrapMemory }                  from './bootstrap.ts';
 
-// ── Core engine (primary consumer API) ───────────────────────────────────────
-export { memoryEngine, MemoryEngine }       from './core/memory-engine.ts';
-export { memoryRouter, MemoryRouter }       from './core/memory-router.ts';
-export { memoryRegistry, MemoryRegistry }   from './core/memory-registry.ts';
-export { memoryManager, MemoryManager }     from './core/memory-manager.ts';
+import { memoryRepository as _repo } from './repositories/memory-repository.ts';
 
-// ── Domain stores ─────────────────────────────────────────────────────────────
-export { decisionStore }      from './decision-memory/index.ts';
-export { architectureStore }  from './architecture-memory/index.ts';
-export { bugStore }           from './bug-memory/index.ts';
-export { businessStore }      from './business-memory/index.ts';
-export { feedbackStore }      from './user-feedback-memory/index.ts';
-export { revenueStore }       from './revenue-memory/index.ts';
-export { learningStore, capabilityTracker } from './learning-memory/index.ts';
-export { predictionStore }    from './prediction-memory/index.ts';
-export { executionStore }     from './execution-memory/index.ts';
-export { conversationStore }  from './conversation-memory/index.ts';
+export function bootstrapMemory(): void {
+  _repo.init().catch((err: unknown) =>
+    console.error('[memory] Hydration failed:', err),
+  );
+}
 
-// ── Infrastructure layers ─────────────────────────────────────────────────────
-export { graphStore, graphBuilder, graphTraversal } from './knowledge-graph/index.ts';
-export { reflectionStore, reflectionEngine, lessonExtractor } from './reflection/index.ts';
-export { retrievalEngine, semanticSearch, vectorSearch, hybridSearch, reranker } from './retrieval/index.ts';
-export { compressionEngine, summarizer, clusterer, archiver } from './compression/index.ts';
-export { checkpointManager, checkpointStore, snapshotBuilder } from './checkpoints/index.ts';
-export { memoryMetrics, memoryEvents, telemetryReporter }      from './telemetry/index.ts';
+// ── memoryEngine — backward-compatible facade ─────────────────────────────────
 
-// ── Context builder (public API for agents / orchestrators) ──────────────────
-export { buildMemoryContext, buildMemoryContextString } from './context/memory-context-builder.ts';
-export type { MemoryContext, ContextBuildOptions }      from './context/memory-context-builder.ts';
+export const memoryEngine = {
+  store(input: {
+    category: string;
+    content:  string;
+    tags?:    string[];
+    score?:   number;
+    meta?:    Record<string, unknown>;
+  }): Promise<void> {
+    return _repo.save(input).then(() => undefined);
+  },
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-export type * from './types/index.ts';
+  searchCategory(
+    category: string,
+    query:    string,
+    limit:    number = 10,
+  ) {
+    return _repo.searchByCategory(category, query, limit);
+  },
+};
+
+// ── buildMemoryContext ────────────────────────────────────────────────────────
+
+export interface MemoryContextResult {
+  totalFound:   number;
+  hasGraphData: boolean;
+  entries:      import('./repositories/memory-repository.ts').MemoryEntry[];
+  summary:      string;
+}
+
+export async function buildMemoryContext(
+  query:   string,
+  options: { categories?: string[]; limit?: number; minScore?: number } = {},
+): Promise<MemoryContextResult> {
+  const entries = await _repo.search(query, options).catch(() => []);
+  return {
+    totalFound:   entries.length,
+    hasGraphData: false,
+    entries,
+    summary:      entries.map(e => e.content.slice(0, 80)).join(' | '),
+  };
+}
+
+// ── buildMemoryContextString ──────────────────────────────────────────────────
+
+export async function buildMemoryContextString(
+  opts: { runId?: string; projectId?: string; query?: string } = {},
+): Promise<string> {
+  const query = opts.query
+    ?? ([opts.runId && `run:${opts.runId}`, opts.projectId && `project:${opts.projectId}`]
+         .filter(Boolean).join(' ') || 'general');
+  const ctx = await buildMemoryContext(query, { limit: 5 }).catch(() => null);
+  if (!ctx || ctx.totalFound === 0) return '';
+  return ctx.entries
+    .map(e => `[${e.category}] ${e.content.slice(0, 150)}`)
+    .join('\n');
+}
+
+// ── graphStore / graphTraversal — backward-compat stubs ───────────────────────
+// Knowledge graph was removed in this architecture. Stubs keep planner working.
+
+export interface GraphEntity {
+  id:          string;
+  label:       string;
+  description: string;
+}
+
+export const graphStore = {
+  listEntities(): GraphEntity[] { return []; },
+};
+
+export const graphTraversal = {
+  neighbours(_entityId: string): GraphEntity[] { return []; },
+};

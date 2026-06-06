@@ -1,0 +1,247 @@
+MEMORY MODULE IMPLEMENTATION PROMPT
+
+You are a Senior TypeScript Engineer.
+
+Implement a SIMPLE but FULLY WORKING memory system.
+
+Do NOT over-engineer.
+
+Delete old memory implementation if it conflicts with this architecture.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GOAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build a production-ready memory module for an AI Agent.
+
+Requirements:
+
+- Store memories
+- Search memories
+- Retrieve relevant memories
+- Support long-term memory
+- Support code/document memory
+- TypeScript strict mode
+- No circular dependencies
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TARGET STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+server/memory/
+
+├── chunking/
+│   ├── text-chunker.ts
+│   ├── code-chunker.ts
+│   ├── markdown-chunker.ts
+│   ├── json-chunker.ts
+│   └── index.ts
+│
+├── embedding/
+│   ├── embedding-service.ts
+│   ├── embedding-provider.ts
+│   └── index.ts
+│
+├── vector/
+│   ├── vector-store.ts
+│   ├── vector-search.ts
+│   ├── vector-upsert.ts
+│   └── index.ts
+│
+├── retrieval/
+│   ├── retrieval-service.ts
+│   ├── hybrid-retrieval.ts
+│   ├── reranker.ts
+│   └── index.ts
+│
+├── repositories/
+│   ├── memory-repository.ts
+│   └── index.ts
+│
+├── persistence/
+│   ├── vector-store-adapter.ts
+│   └── index.ts
+│
+└── index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REMOVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete:
+
+memory-types/
+
+short-term/
+long-term/
+episodic/
+semantic/
+working/
+
+Do not create these folders.
+
+Keep architecture simple.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORKFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Store Flow
+
+Document
+↓
+Chunker
+↓
+Embedding
+↓
+Repository
+↓
+Persistence
+↓
+Vector Store
+
+Search Flow
+
+Query
+↓
+Embedding
+↓
+Vector Search
+↓
+Retrieval
+↓
+Relevant Chunks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+memory/
+↓
+repositories/
+
+repositories/
+↓
+persistence/
+
+persistence/
+↓
+infrastructure/
+
+Forbidden:
+
+memory → infrastructure
+
+memory → database
+
+memory → vector db
+
+repositories → memory
+
+persistence → memory
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+text-chunker.ts
+
+- split text into chunks
+- configurable chunk size
+
+code-chunker.ts
+
+- chunk source code
+- preserve functions/classes
+
+markdown-chunker.ts
+
+- chunk by headings
+
+json-chunker.ts
+
+- chunk large json safely
+
+embedding-provider.ts
+
+Interface:
+
+generateEmbedding(text:string)
+
+embedding-service.ts
+
+Use provider
+
+vector-store.ts
+
+Vector store abstraction
+
+vector-upsert.ts
+
+Store embeddings
+
+vector-search.ts
+
+Search embeddings
+
+retrieval-service.ts
+
+Retrieve top matches
+
+hybrid-retrieval.ts
+
+Keyword + vector search
+
+reranker.ts
+
+Sort results by score
+
+memory-repository.ts
+
+save()
+
+search()
+
+delete()
+
+getById()
+
+vector-store-adapter.ts
+
+Connect repository to vector store
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every folder must contain index.ts
+
+Root:
+
+server/memory/index.ts
+
+Must export all public APIs.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+✓ imports valid
+
+✓ exports valid
+
+✓ no circular dependencies
+
+✓ TypeScript build passes
+
+✓ memory store works
+
+✓ memory retrieval works
+
+✓ architecture respected
+
+Generate COMPLETE CODE.
+
+Do not generate pseudocode.
