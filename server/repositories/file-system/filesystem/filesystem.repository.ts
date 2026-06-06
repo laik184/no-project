@@ -10,7 +10,6 @@ import type { FileEntry, FileStat } from '../../../shared/file-explorer-core/typ
 import { isExcluded } from '../../../shared/file-explorer-core/guards/index.ts';
 import { FE_CONFIG }  from '../../../shared/file-explorer-core/config/index.ts';
 import { emitFileChange } from '../../../infrastructure/index.ts';
-import type { FileChangeEvent } from '../../../infrastructure/index.ts';
 
 /** Minimal record yielded by walkFiles. */
 export interface FileWalkRecord {
