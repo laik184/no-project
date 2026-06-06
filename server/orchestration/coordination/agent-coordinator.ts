@@ -28,7 +28,7 @@ import { runVerification }        from '../../agents/verifier/index.ts';
 
 import type { AgentType, Phase, PhaseResult } from '../types/orchestration.types.ts';
 import type { ToolExecutionContext }           from './dispatcher-client.ts';
-import type { ExecutionTask }                 from '../../agents/executor/types/executor.types.ts';
+import type { ExecutionTask }                 from '../../agents/executor/index.ts';
 
 // ── PlanTask → ExecutionTask transformation ───────────────────────────────────
 // The planner's PlanTask uses different field names than the executor expects.
