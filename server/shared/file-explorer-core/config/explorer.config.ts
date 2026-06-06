@@ -5,7 +5,7 @@
  */
 
 import path from 'path';
-import { SANDBOX_ROOT } from '../../../infrastructure/config/sandbox.config.ts';
+import { SANDBOX_ROOT } from '../../../infrastructure/index.ts';
 
 export interface ExplorerConfig {
   readonly sandboxRoot:        string;
