@@ -31,7 +31,7 @@ import {
   routeIntent,
 }                                     from '@services/chat';
 import { clarificationManager }       from '../questions/clarification-manager.ts';
-import { runChatAgent }               from '../../agents/chat/chat-agent.ts';
+import { runChatLLM }                 from '../llm/chat-llm.ts';
 import { bus, SANDBOX_ROOT }          from '../../infrastructure/index.ts';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
 import { logError }                   from '../../shared/errors/index.ts';
@@ -152,7 +152,7 @@ export const chatOrchestrator = {
           isActive: ()              => streamManager.isActive(runId),
         };
         try {
-          await runChatAgent(
+          await runChatLLM(
             { runId, projectId: payload.projectId, goal: refinedGoal, intentMode: intent.mode },
             writer,
           );
