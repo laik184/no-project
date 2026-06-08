@@ -4,23 +4,19 @@
  * ONLY place in the agent layer that touches Playwright directly.
  * Responsibility: launch, close, and page management for live sessions.
  * All browser orchestration sits ABOVE this layer.
+ *
+ * LiveBrowserSession is defined in ../types/browser.types.ts to prevent
+ * the circular dependency: browser-session ↔ browser-state.
  */
 
-import type { Browser, Page } from 'playwright';
-import type { BrowserLaunchOptions }          from '../types/browser.types.ts';
-import { generateSessionId }                  from '../utils/browser-utils.ts';
+import type { BrowserLaunchOptions, LiveBrowserSession } from '../types/browser.types.ts';
+import { generateSessionId }                             from '../utils/browser-utils.ts';
 import { recordSessionOpened, recordSessionClosed, recordSessionCrashed }
   from './browser-state.ts';
 
-// ── Live session shape ────────────────────────────────────────────────────────
-
-export interface LiveBrowserSession {
-  readonly sessionId: string;
-  readonly runId:     string;
-  readonly browser:   Browser;
-  readonly page:      Page;
-  readonly launchedAt: Date;
-}
+// Re-export so that existing consumers importing LiveBrowserSession from this
+// file continue to work without modification.
+export type { LiveBrowserSession } from '../types/browser.types.ts';
 
 // ── Launch ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +73,7 @@ export async function closeBrowserSession(
 export async function openNewPage(
   live:  LiveBrowserSession,
   _runId: string,
-): Promise<Page> {
+): Promise<import('playwright').Page> {
   const contexts = live.browser.contexts();
   const ctx      = contexts[0] ?? await live.browser.newContext();
   return ctx.newPage();

@@ -5,9 +5,8 @@
  * Pure planning — no dispatch, no tool execution, no filesystem access.
  */
 
-import type { OrchestrationRequest, Phase, AgentType } from '../types/orchestration.types.ts';
+import type { OrchestrationRequest, Phase, AgentType, WorkflowIntent } from '../types/orchestration.types.ts';
 import { newPhaseId } from '../utils/orchestration-utils.ts';
-import type { WorkflowIntent } from './workflow-planner.ts';
 
 // ── Phase factory ─────────────────────────────────────────────────────────────
 

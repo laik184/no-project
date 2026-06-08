@@ -6,8 +6,7 @@
  * Consumed by browser routes API and monitoring layer.
  */
 
-import type { BrowserSession }     from '../types/browser.types.ts';
-import type { LiveBrowserSession } from './browser-session.ts';
+import type { BrowserSession, LiveBrowserSession } from '../types/browser.types.ts';
 
 // ── Internal store ────────────────────────────────────────────────────────────
 

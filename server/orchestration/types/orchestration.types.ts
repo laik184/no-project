@@ -229,3 +229,16 @@ export interface ValidationResult {
   valid:    boolean;
   errors:   string[];
 }
+
+// ── Workflow intent ────────────────────────────────────────────────────────────
+// Defined here (not in workflow-planner.ts) to prevent a circular dependency:
+//   workflow-planner.ts → phase-planner.ts → workflow-planner.ts
+
+export type WorkflowIntent =
+  | 'build_feature'
+  | 'fix_bug'
+  | 'refactor'
+  | 'generate_ui'
+  | 'add_api'
+  | 'verify_runtime'
+  | 'general';

@@ -3,6 +3,8 @@
  * Core browser session and lifecycle types.
  */
 
+import type { Browser, Page } from 'playwright';
+
 export type BrowserSessionStatus =
   | 'launching'
   | 'active'
@@ -34,4 +36,16 @@ export interface BrowserHealthStatus {
   sessionId: string | null;
   url?:      string;
   reason?:   string;
+}
+
+// ── Live session ──────────────────────────────────────────────────────────────
+// Defined here (not in browser-session.ts) to prevent a circular dependency:
+//   browser-session.ts → browser-state.ts → browser-session.ts
+
+export interface LiveBrowserSession {
+  readonly sessionId:  string;
+  readonly runId:      string;
+  readonly browser:    Browser;
+  readonly page:       Page;
+  readonly launchedAt: Date;
 }

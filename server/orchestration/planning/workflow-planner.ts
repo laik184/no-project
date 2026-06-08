@@ -10,20 +10,15 @@ import type {
   Workflow,
   Phase,
   AgentType,
+  WorkflowIntent,
 } from '../types/orchestration.types.ts';
 import { newWorkflowId } from '../utils/orchestration-utils.ts';
 import { buildPhases }  from './phase-planner.ts';
 
-// ── Workflow intent classification ────────────────────────────────────────────
-
-export type WorkflowIntent =
-  | 'build_feature'
-  | 'fix_bug'
-  | 'refactor'
-  | 'generate_ui'
-  | 'add_api'
-  | 'verify_runtime'
-  | 'general';
+// WorkflowIntent is defined in ../types/orchestration.types.ts to prevent the
+// circular dependency: workflow-planner ↔ phase-planner.
+// Re-export so existing consumers don't break.
+export type { WorkflowIntent } from '../types/orchestration.types.ts';
 
 function classifyIntent(goal: string): WorkflowIntent {
   const g = goal.toLowerCase();
