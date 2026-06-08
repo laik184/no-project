@@ -195,3 +195,96 @@ export async function getDevtools(req: Request, res: Response): Promise<void> {
   const element   = domInspector.get(projectId);
   res.json({ ok: true, ...snapshot, selectedElement: element });
 }
+
+// ── GET /api/preview/metrics ──────────────────────────────────────────────────
+// Used by useRuntimeHealth hook (polls every 5 s).
+// Returns a "metrics" envelope that matches what the frontend expects.
+
+export async function getPreviewMetrics(req: Request, res: Response): Promise<void> {
+  const projectId = Number(req.query.projectId ?? req.params.projectId);
+
+  if (isNaN(projectId)) {
+    // All projects
+    const allHealth = await runtimeHealthService.getAll();
+    const allStates = await Promise.all(
+      allHealth.map(async (h) => {
+        const state = await lifecycleService.getCurrentState(h.projectId);
+        return {
+          projectId:      h.projectId,
+          pid:            h.pid,
+          port:           h.port,
+          status:         h.status,
+          lifecycleState: state.state,
+          uptimeMs:       h.uptime,
+          uptimeFmt:      h.uptimeFmt,
+          restartCount:   h.restartCount,
+          healthy:        h.healthy,
+          checkedAt:      h.checkedAt,
+        };
+      }),
+    );
+    res.json({ ok: true, metrics: allStates });
+    return;
+  }
+
+  const health = await runtimeHealthService.snapshot(projectId);
+  const state  = await lifecycleService.getCurrentState(projectId);
+
+  res.json({
+    ok: true,
+    metrics: {
+      projectId,
+      pid:            health.pid,
+      port:           health.port,
+      status:         health.status,
+      lifecycleState: state.state,
+      uptimeMs:       health.uptime,
+      uptimeFmt:      health.uptimeFmt,
+      restartCount:   health.restartCount,
+      healthy:        health.healthy,
+      checkedAt:      health.checkedAt,
+    },
+  });
+}
+
+// ── GET /api/lifecycle-state ──────────────────────────────────────────────────
+// Used by usePreviewLifecycle hook (initial state sync on mount).
+
+export async function getLifecycleState(req: Request, res: Response): Promise<void> {
+  const projectId = Number(req.query.projectId ?? req.params.projectId);
+
+  if (isNaN(projectId)) {
+    // Return a list of all known states (frontend picks the first running one)
+    const health = await runtimeHealthService.getAll();
+    const entries = await Promise.all(
+      health.map(async (h) => {
+        const state = await lifecycleService.getCurrentState(h.projectId);
+        return {
+          projectId: h.projectId,
+          state:     state.state,
+          prevState: state.prevState,
+          message:   state.message,
+          running:   h.healthy,
+          port:      h.port,
+          ts:        state.ts,
+        };
+      }),
+    );
+    res.json({ ok: true, entries });
+    return;
+  }
+
+  const state  = await lifecycleService.getCurrentState(projectId);
+  const health = await runtimeHealthService.getCached(projectId);
+
+  res.json({
+    ok:        true,
+    projectId,
+    state:     state.state,
+    prevState: state.prevState,
+    message:   state.message,
+    running:   health?.healthy ?? false,
+    port:      health?.port ?? null,
+    ts:        state.ts,
+  });
+}

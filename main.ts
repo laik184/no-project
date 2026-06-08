@@ -42,6 +42,7 @@ import { bus }            from './server/infrastructure/index.ts';
 
 // Preview module.
 import { initPreviewModule, buildPreviewRouter } from './server/preview/index.ts';
+import { getLifecycleState } from './server/preview/api/index.ts';
 
 // ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
@@ -119,6 +120,12 @@ function registerRoutes(app: Express): void {
   app.post('/api/run-project',    (_req: Request, res: Response) => res.json({ ok: true }));
   app.post('/api/stop-project',   (_req: Request, res: Response) => res.json({ ok: true }));
   app.get('/api/artifacts',       (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
+
+  // ── Lifecycle-state shortcut routes (used by usePreviewLifecycle hook) ───────
+  // The frontend calls /api/lifecycle-state and /api/lifecycle-state/:projectId
+  // on mount to sync initial state before SSE events arrive.
+  app.get('/api/lifecycle-state',              getLifecycleState);
+  app.get('/api/lifecycle-state/:projectId',   getLifecycleState);
 
   // ── Preview module ──────────────────────────────────────────────────────────
   app.use('/api/preview', buildPreviewRouter());

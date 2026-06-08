@@ -38,5 +38,30 @@ export function initPreviewStreamBroker(): void {
     }
   });
 
+  // ── Bus: devtools.console / devtools.network → SSE DEVTOOLS ───────────────
+  bus.on("devtools.console" as never, (payload: Record<string, unknown>) => {
+    const projectId = payload.projectId as number | undefined;
+    previewSseManager.broadcast(
+      PREVIEW_TOPIC.DEVTOOLS,
+      { type: "devtools.console", ...payload, ts: Date.now() },
+      projectId ?? null,
+    );
+  });
+
+  bus.on("devtools.network" as never, (payload: Record<string, unknown>) => {
+    const projectId = payload.projectId as number | undefined;
+    previewSseManager.broadcast(
+      PREVIEW_TOPIC.DEVTOOLS,
+      { type: "devtools.network", ...payload, ts: Date.now() },
+      projectId ?? null,
+    );
+  });
+
+  // ── Bus: preview.reload → SSE RELOAD ──────────────────────────────────────
+  bus.on("preview.reload" as never, (payload: Record<string, unknown>) => {
+    const projectId = payload.projectId as number | undefined;
+    previewSseManager.broadcast(PREVIEW_TOPIC.RELOAD, payload, projectId ?? null);
+  });
+
   console.log("[preview-stream-broker] Initialized.");
 }

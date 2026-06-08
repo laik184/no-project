@@ -43,6 +43,7 @@ export function stateToSnapshot(
 }
 
 export async function buildAllSnapshots(): Promise<LifecycleApiSnapshot[]> {
-  const states = await lifecycleService["previewRepository"]?.findAllStates?.() ?? [];
+  const { previewRepository } = await import("../../repositories/preview/index.ts");
+  const states = await previewRepository.findAllStates();
   return states.map(s => stateToSnapshot(s));
 }

@@ -11,4 +11,6 @@ export {
   getDevtools,
   postDevtoolsConsole,
   postDevtoolsNetwork,
+  getPreviewMetrics,
+  getLifecycleState,
 } from "./preview-controller.ts";
