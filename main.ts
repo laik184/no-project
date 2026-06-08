@@ -40,6 +40,9 @@ import { terminalRouter } from './server/terminal/index.ts';
 import { initBusAdapter } from './server/shared/events/bus-adapter.ts';
 import { bus }            from './server/infrastructure/index.ts';
 
+// Preview module.
+import { initPreviewModule, buildPreviewRouter } from './server/preview/index.ts';
+
 // ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
 
@@ -115,8 +118,10 @@ function registerRoutes(app: Express): void {
   });
   app.post('/api/run-project',    (_req: Request, res: Response) => res.json({ ok: true }));
   app.post('/api/stop-project',   (_req: Request, res: Response) => res.json({ ok: true }));
-  app.post('/api/preview-state',  (_req: Request, res: Response) => res.json({ ok: true }));
   app.get('/api/artifacts',       (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
+
+  // ── Preview module ──────────────────────────────────────────────────────────
+  app.use('/api/preview', buildPreviewRouter());
 
   // ── Module routers ──────────────────────────────────────────────────────────
   chatOrchestrator.mountRoutes(app);
@@ -163,8 +168,9 @@ async function bootstrap(): Promise<void> {
   await registerInfrastructure();   // Phase 1 — DB seed
   registerRepositories();           // Phase 2 — repo singletons (module-load)
   registerServices();               // Phase 3 — memory, tools
-  registerRoutes(app);              // Phase 4 — HTTP routers
-  startHttpServer(app);             // Phase 5 — listen
+  initPreviewModule();              // Phase 4 — preview module bootstrap
+  registerRoutes(app);              // Phase 5 — HTTP routers
+  startHttpServer(app);             // Phase 6 — listen
 }
 
 bootstrap().catch((err) => {

@@ -1,0 +1,485 @@
+PREVIEW MODULE IMPLEMENTATION PROMPT
+
+You are a Principal TypeScript Architect and Senior Backend Engineer.
+
+Implement a COMPLETE Preview Module based on the architecture below.
+
+Generate REAL production-ready code.
+
+Do NOT generate pseudocode.
+
+Do NOT simplify the architecture.
+
+Follow the folder structure exactly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GOAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build a Replit-style Preview System.
+
+Features:
+
+✓ Live Preview
+
+✓ Runtime Health Monitoring
+
+✓ Lifecycle State Machine
+
+✓ SSE Streaming
+
+✓ Hot Reload Events
+
+✓ Runtime Restart Detection
+
+✓ Crash Detection
+
+✓ Self-Healing State Support
+
+✓ DevTools Data Capture
+
+✓ Preview Session Management
+
+✓ TypeScript Strict Mode
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+server/
+
+├── preview/
+│
+├── services/preview/
+│
+├── repositories/preview/
+│
+├── preview-persistence/
+│
+└── infrastructure/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPENDENCY FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+preview
+↓
+services/preview
+↓
+repositories/preview
+↓
+preview-persistence
+↓
+infrastructure
+
+Never violate this flow.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+preview/*
+imports ONLY from
+
+services/preview/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+services/preview/*
+imports ONLY from
+
+repositories/preview/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+repositories/preview/*
+imports ONLY from
+
+preview-persistence/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+preview-persistence/*
+imports ONLY from
+
+infrastructure/index.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Forbidden:
+
+preview → repository
+
+preview → persistence
+
+preview → infrastructure
+
+service → persistence
+
+service → infrastructure
+
+repository → service
+
+repository → preview
+
+infrastructure → preview
+
+infrastructure → service
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LIFECYCLE STATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+idle
+
+building
+
+installing
+
+starting
+
+verifying
+
+restarting
+
+updating
+
+refreshing
+
+hot_reloading
+
+self_healing
+
+debugging
+
+patching
+
+ready
+
+crashed
+
+reconnecting
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATE MACHINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create lifecycle-state-machine.ts
+
+Requirements:
+
+✓ Valid transitions only
+
+✓ Previous state tracking
+
+✓ Snapshot generation
+
+✓ Transition validation
+
+✓ Timestamp support
+
+✓ Event emission
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SSE STREAMING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+preview-sse-manager.ts
+
+preview-stream-broker.ts
+
+preview-topic-registry.ts
+
+Topics:
+
+PREVIEW_LIFECYCLE
+
+PREVIEW_RUNTIME
+
+PREVIEW_HEALTH
+
+PREVIEW_RELOAD
+
+PREVIEW_DEVTOOLS
+
+Features:
+
+✓ Subscribe
+
+✓ Unsubscribe
+
+✓ Broadcast
+
+✓ Reconnect support
+
+✓ Connection tracking
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RUNTIME HEALTH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+preview-health-monitor.ts
+
+runtime-health-service.ts
+
+Track:
+
+port
+
+uptime
+
+restartCount
+
+status
+
+memoryUsage
+
+cpuUsage
+
+lastRestart
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RELOAD SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+preview-reloader.ts
+
+reload-service.ts
+
+Support:
+
+Soft Reload
+
+Hard Reload
+
+Hot Reload
+
+Server Restart Reload
+
+Debounce reload requests.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRASH DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Detect:
+
+Runtime Crash
+
+Port Failure
+
+Build Failure
+
+Health Check Failure
+
+Emit:
+
+crashed
+
+self_healing
+
+debugging
+
+patching
+
+ready
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEVTOOLS CAPTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+console-capture.ts
+
+network-capture.ts
+
+dom-inspector.ts
+
+Support:
+
+Console Logs
+
+Errors
+
+Warnings
+
+Network Requests
+
+Selected DOM Element
+
+Computed Styles
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOMAIN ENTITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+
+PreviewSession
+
+PreviewState
+
+RuntimeHealth
+
+Entities must be immutable.
+
+Use interfaces and value objects.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPOSITORIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+preview-repository.ts
+
+lifecycle-repository.ts
+
+runtime-health-repository.ts
+
+preview-log-repository.ts
+
+Required methods:
+
+create
+
+update
+
+delete
+
+findById
+
+findAll
+
+save
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PERSISTENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+preview-store.ts
+
+lifecycle-store.ts
+
+runtime-health-store.ts
+
+preview-cache.ts
+
+Support:
+
+Memory Store
+
+Redis Cache Adapter
+
+Future Database Compatibility
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement:
+
+GET /api/preview/state
+
+GET /api/preview/health
+
+GET /api/preview/session/:id
+
+POST /api/preview/reload
+
+GET /api/preview/stream
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INDEX.TS RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every public module must expose an index.ts
+
+Required:
+
+preview/index.ts
+
+preview/api/index.ts
+
+preview/lifecycle/index.ts
+
+preview/runtime/index.ts
+
+preview/streaming/index.ts
+
+preview/devtools/index.ts
+
+preview/events/index.ts
+
+services/preview/index.ts
+
+repositories/preview/index.ts
+
+preview-persistence/index.ts
+
+Use barrel exports correctly.
+
+No circular exports.
+
+No wildcard export loops.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before finishing:
+
+✓ Verify imports
+
+✓ Verify exports
+
+✓ Verify index.ts usage
+
+✓ Verify dependency direction
+
+✓ Verify no circular dependencies
+
+✓ Verify TypeScript build passes
+
+✓ Verify ESLint passes
+
+✓ Verify runtime health works
+
+✓ Verify SSE works
+
+✓ Verify lifecycle transitions work
+
+✓ Verify crash recovery flow works
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL OUTPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. All files
+
+2. All interfaces
+
+3. All implementations
+
+4. All index.ts exports
+
+5. Dependency graph
+
+6. Import graph
+
+7. Architecture validation report
+
+Produce complete working code following the exact architecture.
