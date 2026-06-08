@@ -5,7 +5,6 @@
  * Detects zombie processes and emits health events.
  */
 
-import { TERMINAL_EVENT } from '../events/terminal-events.ts';
 import { terminalLifecycle } from './terminal-lifecycle.ts';
 
 export interface HealthReport {
