@@ -5,7 +5,7 @@ channel = "stable-25_05"
 [agent]
 expertMode = true
 stack = "FULLSTACK_JS"
-integrations = ["javascript_openrouter_ai_integrations:2.0.0"]
+integrations = ["javascript_openrouter_ai_integrations:2.0.0", "javascript_database:1.0.0"]
 
 [workflows]
 runButton = "Project"
