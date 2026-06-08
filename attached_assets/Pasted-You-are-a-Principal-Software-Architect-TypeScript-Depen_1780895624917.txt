@@ -1,0 +1,256 @@
+You are a Principal Software Architect, TypeScript Dependency Auditor, and Refactoring Agent.
+
+Your mission is to perform a COMPLETE architecture recovery of the entire codebase.
+
+Do not assume any folder structure.
+
+Do not assume any module boundaries.
+
+Discover everything automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Perform a deep scan of the entire project.
+
+Find every:
+
+- import
+- export
+- re-export
+- barrel export
+- dynamic import
+- circular dependency
+- dependency cycle
+- layer violation
+- architecture violation
+- direct file import
+- index.ts bypass
+- orphaned module
+- dead export
+- dead import
+- duplicate export
+- duplicate dependency
+- dependency inversion violation
+
+Then automatically repair the architecture.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1
+FULL DISCOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scan the entire repository.
+
+Build:
+
+1. Module Graph
+2. Dependency Graph
+3. Import Graph
+4. Export Graph
+5. Runtime Graph
+
+Resolve every import to its real target.
+
+Do not rely on filenames.
+
+Trace actual dependencies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2
+IMPORT AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every file:
+
+Find:
+
+- invalid imports
+- broken imports
+- duplicate imports
+- unused imports
+- upward imports
+- cross-layer imports
+- bypass imports
+
+Verify that dependency direction is consistent.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3
+EXPORT AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every module:
+
+Find:
+
+- missing exports
+- invalid exports
+- orphan exports
+- unused exports
+- barrel export conflicts
+- duplicate exports
+
+Generate export map.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4
+ARCHITECTURE DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Infer actual architecture automatically.
+
+Identify:
+
+- API layer
+- orchestration layer
+- agent layer
+- tool layer
+- service layer
+- repository layer
+- persistence layer
+- infrastructure layer
+- memory layer
+- runtime layer
+- streaming layer
+
+Determine whether dependencies follow the architecture.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5
+CIRCULAR DEPENDENCY ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Detect:
+
+- direct cycles
+- indirect cycles
+- barrel cycles
+- index.ts cycles
+- runtime cycles
+
+Generate cycle graph.
+
+Remove all cycles.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6
+PUBLIC API RECOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Identify every module boundary.
+
+Create proper public entry points.
+
+Ensure modules expose only public APIs.
+
+Replace deep imports with public module imports wherever possible.
+
+Eliminate internal module leakage.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7
+DEPENDENCY REFACTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Repair all invalid dependency directions.
+
+Remove:
+
+- upward imports
+- cross-layer imports
+- direct infrastructure usage
+- repository bypasses
+- service bypasses
+- internal module coupling
+
+Refactor to proper dependency flow.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8
+WORKFLOW VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace all runtime execution paths.
+
+Verify:
+
+Entry Point
+ ↓
+Routing
+ ↓
+Execution
+ ↓
+Business Logic
+ ↓
+Data Access
+ ↓
+Storage
+ ↓
+External Systems
+
+Find shortcuts.
+
+Find broken chains.
+
+Find skipped layers.
+
+Repair all workflow violations.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9
+REBUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run:
+
+- TypeScript Build
+- ESLint
+- Dependency Scan
+- Circular Scan
+- Import Scan
+- Export Scan
+
+Continue fixing until clean.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide:
+
+1. Architecture Graph Before
+2. Architecture Graph After
+3. Dependency Graph
+4. Circular Dependencies Removed
+5. Invalid Imports Fixed
+6. Invalid Exports Fixed
+7. Public APIs Created
+8. Workflow Violations Fixed
+9. Orphan Modules Removed
+10. Dead Imports Removed
+11. Dead Exports Removed
+12. Final Dependency Health Score
+13. Final Architecture Score
+
+Target:
+
+✓ No circular dependencies
+
+✓ No invalid imports
+
+✓ No invalid exports
+
+✓ No broken workflows
+
+✓ No layer violations
+
+✓ No index bypasses
+
+✓ No orphan modules
+
+✓ Clean architecture
+
+Do not stop until the architecture is internally consistent and all dependency violations are resolved.

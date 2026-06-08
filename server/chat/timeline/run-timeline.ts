@@ -1,4 +1,5 @@
 import { timelineManager } from './timeline-manager.ts';
+import { eventTimeline }   from './event-timeline.ts';
 import type { TimelineEntry } from './event-timeline.ts';
 
 export const runTimeline = {

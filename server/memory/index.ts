@@ -62,10 +62,11 @@ export const memoryEngine = {
 // ── buildMemoryContext ────────────────────────────────────────────────────────
 
 export interface MemoryContextResult {
-  totalFound:   number;
-  hasGraphData: boolean;
-  entries:      import('./repositories/memory-repository.ts').MemoryEntry[];
-  summary:      string;
+  totalFound:    number;
+  hasGraphData:  boolean;
+  entries:       import('./repositories/memory-repository.ts').MemoryEntry[];
+  summary:       string;
+  graphEntities: GraphEntity[];
 }
 
 export async function buildMemoryContext(
@@ -74,10 +75,11 @@ export async function buildMemoryContext(
 ): Promise<MemoryContextResult> {
   const entries = await _repo.search(query, options).catch(() => []);
   return {
-    totalFound:   entries.length,
-    hasGraphData: false,
+    totalFound:    entries.length,
+    hasGraphData:  false,
     entries,
-    summary:      entries.map(e => e.content.slice(0, 80)).join(' | '),
+    summary:       entries.map(e => e.content.slice(0, 80)).join(' | '),
+    graphEntities: [],
   };
 }
 
@@ -101,6 +103,7 @@ export async function buildMemoryContextString(
 
 export interface GraphEntity {
   id:          string;
+  kind:        string;
   label:       string;
   description: string;
 }

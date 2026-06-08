@@ -61,9 +61,9 @@ function _gatherFactors(input: PredictionInput): RiskFactor[] {
   const topFailure  = histSummary.topFailures[0];
   if (topFailure && topFailure.count >= 3) {
     factors.push({
-      name:       `chronic error class: ${topFailure.errorClass} (${topFailure.count}x)`,
+      name:       `chronic error class: ${topFailure.toolName} (${topFailure.count}x)`,
       score:      Math.min(25, topFailure.count * 4),
-      mitigation: `apply pre-emptive fix for ${topFailure.errorClass}`,
+      mitigation: `apply pre-emptive fix for ${topFailure.toolName}`,
     });
   }
 

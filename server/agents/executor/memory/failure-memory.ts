@@ -23,8 +23,9 @@ export interface FailurePattern {
 }
 
 export interface FailureAnalysis {
-  readonly pattern:     FailurePattern;
-  readonly isChronicle: boolean;
+  readonly pattern:        FailurePattern;
+  readonly isChronicle:    boolean;
+  readonly recommendation?: string;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────

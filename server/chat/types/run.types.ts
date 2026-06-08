@@ -1,4 +1,5 @@
-export type { RunMode, RunStatus, ChatRun } from '../../shared/types/chat.types.ts';
+import type { RunMode, RunStatus, ChatRun } from '../../shared/types/chat.types.ts';
+export type { RunMode, RunStatus, ChatRun };
 
 export interface RunStartPayload {
   projectId:       number;

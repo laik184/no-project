@@ -16,6 +16,7 @@ export interface LearnedEntry {
   readonly evidence:  number;
   readonly updatedAt: number;
   readonly meta:      Record<string, string | number | boolean>;
+  readonly metadata:  Record<string, string | number | boolean>;
 }
 
 export interface LearningStoreSummary {
@@ -23,6 +24,7 @@ export interface LearningStoreSummary {
   readonly kinds:         string[];
   readonly topReliable:   LearnedEntry[];
   readonly topRisky:      LearnedEntry[];
+  readonly version:       number;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -34,6 +36,7 @@ const MAX_DELTA    = 0.15;
 // ── Internal state ────────────────────────────────────────────────────────────
 
 const _store = new Map<string, LearnedEntry>();
+let _version = 0;
 
 function _key(kind: LearnedKind, key: string): string {
   return `${kind}::${key}`;
@@ -65,14 +68,17 @@ export const learningStore = {
     const current = _store.get(k);
     const clampedDelta = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, delta));
     const newValue     = _clamp((current?.value ?? 0.5) + clampedDelta);
+    const merged = { ...(current?.meta ?? {}), ...meta };
     _store.set(k, {
       kind,
       key,
       value:     newValue,
       evidence:  (current?.evidence ?? 0) + 1,
       updatedAt: Date.now(),
-      meta:      { ...(current?.meta ?? {}), ...meta },
+      meta:      merged,
+      metadata:  merged,
     });
+    _version++;
   },
 
   byKind(kind: LearnedKind): LearnedEntry[] {
@@ -104,10 +110,20 @@ export const learningStore = {
       kinds,
       topReliable:  reliable,
       topRisky:     risky,
+      version:      _version,
     };
+  },
+
+  version(): number {
+    return _version;
+  },
+
+  size(): number {
+    return _store.size;
   },
 
   reset(): void {
     _store.clear();
+    _version = 0;
   },
 };

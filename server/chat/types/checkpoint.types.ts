@@ -1,7 +1,5 @@
-export type {
-  CheckpointTrigger,
-  ChatCheckpoint,
-} from '../../shared/types/chat.types.ts';
+import type { CheckpointTrigger, ChatCheckpoint } from '../../shared/types/chat.types.ts';
+export type { CheckpointTrigger, ChatCheckpoint };
 
 export interface CheckpointListItem {
   id:            string;
