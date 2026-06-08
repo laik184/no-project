@@ -1,5 +1,12 @@
 import type { AgentHandlerDeps, AgentEvent } from "../agent-event-handler";
 
+function toFriendlyRunError(err: string): string {
+  if (err.includes("timeout")) return "The agent timed out. Please try again.";
+  if (err.includes("cancelled")) return "The run was cancelled.";
+  if (err.includes("quota") || err.includes("rate limit")) return "AI quota reached. Please try again shortly.";
+  return `Something went wrong: ${err.slice(0, 120)}`;
+}
+
 export function handleMessageEvents(e: AgentEvent, deps: AgentHandlerDeps): void {
   const { runId, setMessages, setIsAgentThinking, setIsAgentTyping, setActiveAction, finalizeStream, flushGroup } = deps;
 

@@ -5,7 +5,7 @@ import type { TimelineEntry } from './event-timeline.ts';
 export const timelinePublisher = {
   publish(runId: string, projectId: number, entry: TimelineEntry): void {
     eventPublisher.publish(
-      makeTimelineEvent(runId, projectId, entry) as Record<string, unknown>,
+      makeTimelineEvent(runId, projectId, entry),
     );
   },
 };

@@ -1,5 +1,6 @@
 import type { AgentHandlerDeps, AgentEvent } from "../agent-event-handler";
 import type { PlanStep } from "../types";
+import type { ToolName } from "@/components/agent/AgentActionFeed";
 
 const toolKey = (tool: string, phase?: string) => `${phase ?? ""}::${tool}`;
 
@@ -78,7 +79,7 @@ export function handlePlanEvents(e: AgentEvent, deps: AgentHandlerDeps): void {
 
     case "phase.started": {
       const key  = toolKey(`phase.${e.phase || "step"}`);
-      const item = { type: "action" as const, tool: `phase.${e.phase || "step"}`, content: e.payload?.label || `Phase: ${e.phase || "step"}`, status: "running" as const };
+      const item = { type: "action" as const, tool: `phase.${e.phase || "step"}` as ToolName, content: e.payload?.label || `Phase: ${e.phase || "step"}`, status: "running" as const };
       inflight.set(key, item);
       setActiveAction(item);
       break;
@@ -95,7 +96,7 @@ export function handlePlanEvents(e: AgentEvent, deps: AgentHandlerDeps): void {
     case "phase.failed": {
       const key = toolKey(`phase.${e.phase || "step"}`);
       const cur = inflight.get(key);
-      inflight.set(key, { type: "action", tool: `phase.${e.phase || "step"}`, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error" as any, meta: { logs: String(e.payload?.error || "failed") } });
+      inflight.set(key, { type: "action", tool: `phase.${e.phase || "step"}` as ToolName, content: cur?.content || `Phase ${e.phase || ""} failed`, status: "error" as any, meta: { logs: String(e.payload?.error || "failed") } });
       setActiveAction(null);
       break;
     }

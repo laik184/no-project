@@ -28,6 +28,8 @@ export function CheckpointTimelineItem({ data, checkpointNumber, isLatest, proje
   const toggle  = (p: ActivePanel) => setPanel((cur) => cur === p ? "none" : p);
   const relTime = data.createdAt ? formatRelativeTime(data.createdAt) : data.time;
   const tLabel  = data.trigger ? triggerLabel(data.trigger) : "end of loop";
+  const isRollback = panel === "rollback";
+  const isChanges  = panel === "changes";
 
   return (
     <div className="relative" style={{ animation: "checkpoint-in 0.22s cubic-bezier(0.22,1,0.36,1) both" }}>
@@ -93,7 +95,7 @@ export function CheckpointTimelineItem({ data, checkpointNumber, isLatest, proje
               <button
                 onClick={(e) => { e.stopPropagation(); toggle("rollback"); }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10.5px] font-medium transition-all"
-                style={panel === "rollback"
+                style={isRollback
                   ? { background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }
                   : { background: "rgba(239,68,68,0.06)", border: "1px solid #1f2937", color: "rgba(252,165,165,0.75)" }}
                 data-testid={`button-rollback-${data.checkpointId}`}>
@@ -102,7 +104,7 @@ export function CheckpointTimelineItem({ data, checkpointNumber, isLatest, proje
               <button
                 onClick={(e) => { e.stopPropagation(); toggle("changes"); }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10.5px] font-medium transition-all"
-                style={panel === "changes"
+                style={isChanges
                   ? { background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.3)", color: "#3b82f6" }
                   : { background: "rgba(59,130,246,0.06)", border: "1px solid #1f2937", color: "rgba(147,197,253,0.75)" }}
                 data-testid={`button-changes-${data.checkpointId}`}>

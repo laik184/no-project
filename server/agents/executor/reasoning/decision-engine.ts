@@ -125,7 +125,7 @@ export const decisionEngine = {
         action:      'repair',
         rationale:   `Type/import error detected — repair pass required`,
         confidence:  _confidence(0.75, attempt, maxAttempts),
-        repairHint:  priorFix ?? analysis.recommendation,
+        repairHint:  analysis.recommendation,
       };
     }
 

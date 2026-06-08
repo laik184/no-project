@@ -32,7 +32,7 @@ export const answerManager = {
     if (!answered) throw new AnswerError('Failed to record answer', 'NOT_FOUND');
 
     eventPublisher.publish(
-      makeQuestionAnsweredEvent(q.questionId, q.runId, q.projectId, payload.answer) as Record<string, unknown>,
+      makeQuestionAnsweredEvent(q.questionId, q.runId, q.projectId, payload.answer),
     );
 
     return answered;

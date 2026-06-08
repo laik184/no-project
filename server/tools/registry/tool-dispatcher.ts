@@ -184,7 +184,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       'ok' in (data as object) &&
       'data' in (data as object)
     ) {
-      const toolResult = data as ToolExecutionResult<TOutput>;
+      const toolResult = data as unknown as ToolExecutionResult<TOutput>;
       recordMetric(name, true, durationMs, retries, timedOut);
       recordAudit({
         ts:        new Date().toISOString(),
@@ -194,7 +194,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
         ok:        true,
         durationMs,
       });
-      return { ...toolResult, durationMs } as ToolExecutionResult<TOutput>;
+      return { ...toolResult, durationMs } as unknown as ToolExecutionResult<TOutput>;
     }
 
     recordMetric(name, true, durationMs, retries, timedOut);

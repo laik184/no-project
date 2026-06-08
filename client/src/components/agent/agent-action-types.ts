@@ -1,6 +1,7 @@
 export type ToolName =
   | "analysis.think"
   | "file.read" | "file.write" | "file.delete" | "file.create"
+  | "file_write"
   | "console.run" | "shell.exec"
   | "package.install" | "package.remove"
   | "server.start" | "server.restart"
@@ -16,7 +17,12 @@ export type ToolName =
   | "webhook.trigger"
   | "search.web" | "search.code"
   | "env.read" | "env.write"
-  | "debug.run" | "test.run" | "monitor.check";
+  | "debug.run" | "test.run" | "monitor.check"
+  | "recovery.start"
+  | "plan.phase" | "plan.replan" | "plan.compress" | "plan.continue"
+  | "patch.queue"
+  | "file_write"
+  | "agent.retry";
 
 export type StreamItemType = "message" | "action_group" | "action" | "result" | "state";
 export type ActionStatus = "pending" | "running" | "done";
@@ -51,6 +57,17 @@ export interface AgentStreamItem {
     branch?: string;
     /** Numeric duration in ms */
     durationMs?: number;
+    /** Deployment environment name */
+    environment?: string;
+    /** Proposed file content for diff preview */
+    proposed?: string;
+    /** Number of files changed in a git operation */
+    filesChanged?: number;
+    /** Git commit message */
+    message?: string;
+    /** Raw base64 image data for screenshots */
+    imageData?: string;
+    [key: string]: unknown;
   };
 }
 
@@ -87,4 +104,12 @@ export const TOOL_META: Record<ToolName, { emoji: string; label: string; color: 
   "debug.run":         { emoji: "🐛", label: "debug.run",         color: "#f87171" },
   "test.run":          { emoji: "🧪", label: "test.run",          color: "#34d399" },
   "monitor.check":     { emoji: "📊", label: "monitor.check",     color: "#a78bfa" },
+  "recovery.start":    { emoji: "🔧", label: "recovery.start",    color: "#fb923c" },
+  "plan.phase":        { emoji: "📋", label: "plan.phase",        color: "#a78bfa" },
+  "plan.replan":       { emoji: "🔄", label: "plan.replan",       color: "#fb923c" },
+  "plan.compress":     { emoji: "📦", label: "plan.compress",     color: "#7dd3fc" },
+  "plan.continue":     { emoji: "▶️", label: "plan.continue",     color: "#4ade80" },
+  "patch.queue":       { emoji: "🩹", label: "patch.queue",       color: "#86efac" },
+  "file_write":        { emoji: "📁", label: "file_write",        color: "#86efac" },
+  "agent.retry":       { emoji: "🔁", label: "agent.retry",       color: "#fbbf24" },
 };

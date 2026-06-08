@@ -130,7 +130,7 @@ export const chatOrchestrator = {
       .catch(() => payload.goal);
 
     const loaded  = await contextLoader.loadForRun(runId).catch(() => ({ messages: [], run: null }));
-    const memoryCtx = await buildMemoryContextString(refinedGoal).catch(() => '');
+    const memoryCtx = await buildMemoryContextString({ query: refinedGoal }).catch(() => '');
     const context = buildContext(loaded.messages, memoryCtx || undefined, 20);
 
     eventPublisher.publish(makeRunStartedEvent(runId, payload.projectId, refinedGoal, mode));

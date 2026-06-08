@@ -17,7 +17,7 @@ interface Props {
 
 function FileGroup({
   label, files, color, Icon,
-}: { label: string; files: string[]; color: string; Icon: React.FC<{ className?: string }> }) {
+}: { label: string; files: string[]; color: string; Icon: React.FC<{ className?: string; style?: React.CSSProperties }> }) {
   if (files.length === 0) return null;
   return (
     <div className="mt-1.5">

@@ -1,5 +1,5 @@
 import { db } from '../../infrastructure/db/index.ts';
-import { conversations, messages } from '../../../shared/schema.ts';
+import { conversations, messages } from '../../../shared/models/chat.ts';
 import { eq, desc } from 'drizzle-orm';
 
 export interface IChatStorage {

@@ -12,7 +12,7 @@ export const messageBuilder = {
   async buildUser(payload: UserMessagePayload): Promise<ChatMessageRecord> {
     const record = await messageStore.insertUser(payload);
     eventPublisher.publish(
-      makeMessageCreatedEvent(record.projectId, record.id, 'user', record.runId) as Record<string, unknown>,
+      makeMessageCreatedEvent(record.projectId, record.id, 'user', record.runId),
     );
     return record;
   },
@@ -20,7 +20,7 @@ export const messageBuilder = {
   async buildAssistant(payload: AssistantMessagePayload): Promise<ChatMessageRecord> {
     const record = await messageStore.insertAssistant(payload);
     eventPublisher.publish(
-      makeMessageCreatedEvent(record.projectId, record.id, 'assistant', record.runId) as Record<string, unknown>,
+      makeMessageCreatedEvent(record.projectId, record.id, 'assistant', record.runId),
     );
     return record;
   },

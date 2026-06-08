@@ -3,6 +3,7 @@ import { chatOrchestrator } from '../orchestration/chat-orchestrator.ts';
 import { runService }       from '@services/chat';
 import { startRunSchema }   from '../schemas/chat.schema.ts';
 import { unregisterRun }    from '../run/registry.ts';
+import type { RunStartPayload } from '../types/run.types.ts';
 
 export const runController = {
   async start(req: Request, res: Response): Promise<void> {
@@ -12,7 +13,7 @@ export const runController = {
       return;
     }
     try {
-      const run = await chatOrchestrator.startRun(parsed.data);
+      const run = await chatOrchestrator.startRun(parsed.data as RunStartPayload);
       res.status(202).json(run);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Internal error';
@@ -28,7 +29,7 @@ export const runController = {
       return;
     }
     try {
-      const run = await chatOrchestrator.startRun(parsed.data);
+      const run = await chatOrchestrator.startRun(parsed.data as RunStartPayload);
       res.status(202).json({ ok: true, data: run });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Internal error';
@@ -68,7 +69,7 @@ export const runController = {
     }
     try {
       const runs   = await runService.listByProject(projectId, 5);
-      const active = runs.find((r) => r.status === 'running' || r.status === 'active');
+      const active = runs.find((r) => r.status === 'running');
       res.json({ ok: true, run: active ?? null });
     } catch {
       res.json({ ok: true, run: null });
