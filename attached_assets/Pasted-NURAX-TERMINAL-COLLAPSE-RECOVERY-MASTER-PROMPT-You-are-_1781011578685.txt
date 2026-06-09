@@ -1,0 +1,526 @@
+NURAX TERMINAL COLLAPSE RECOVERY MASTER PROMPT
+
+You are a Principal Runtime Engineer, Terminal Systems Architect, Process Execution Auditor, and Root Cause Recovery Specialist.
+
+Your mission is NOT to verify the terminal.
+
+Your mission is to discover why the terminal is not executing real actions and recover the entire terminal execution pipeline.
+
+Treat the terminal as potentially broken.
+
+Trust nothing.
+
+Verify everything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Observed symptoms may include:
+
+- Commands appear successful
+- No real command execution
+- No stdout
+- No stderr
+- No package installation
+- No runtime startup
+- No process creation
+- No file generation
+- No preview startup
+- Agent reports success but terminal does nothing
+
+Treat this as a TERMINAL SYSTEM COLLAPSE investigation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 0
+FORENSIC GRAPH GENERATION
+(NO CODE CHANGES ALLOWED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before modifying any code:
+
+Generate:
+
+1. Terminal Registration Graph
+
+2. Terminal Tool Graph
+
+3. Terminal Service Graph
+
+4. Terminal Repository Graph
+
+5. Runtime Graph
+
+6. Process Graph
+
+7. Spawn Graph
+
+8. Command Routing Graph
+
+9. Stdout Flow Graph
+
+10. Stderr Flow Graph
+
+11. Event Flow Graph
+
+12. Stream Graph
+
+13. Runtime Startup Graph
+
+14. Package Installation Graph
+
+15. End-to-End Terminal Execution Graph
+
+Do not modify code until all graphs are complete.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1
+BOOTSTRAP AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Deep scan startup flow.
+
+Verify:
+
+Application Startup
+
+Module Startup
+
+Dependency Injection
+
+Terminal Registration
+
+Tool Registration
+
+Runtime Registration
+
+Event Registration
+
+Service Registration
+
+Repository Registration
+
+Container Wiring
+
+Find:
+
+Missing Registration
+
+Duplicate Registration
+
+Dead Registration
+
+Broken Registration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2
+TERMINAL EXECUTION CHAIN AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+User
+↓
+Agent
+↓
+Tool
+↓
+Terminal Service
+↓
+Terminal Repository
+↓
+Process Supervisor
+↓
+Spawn
+↓
+OS Process
+
+Verify every hop.
+
+Determine:
+
+Where execution stops.
+
+Identify:
+
+FIRST FAILURE POINT.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3
+PROCESS EXECUTION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+spawn()
+
+exec()
+
+execFile()
+
+fork()
+
+Process Lifecycle
+
+PID Creation
+
+Exit Codes
+
+Signal Handling
+
+Child Process Handling
+
+Process Supervision
+
+Detect:
+
+Broken Spawn
+
+Dead Process
+
+Silent Failures
+
+Permission Failures
+
+Swallowed Exceptions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4
+COMMAND EXECUTION VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Execute controlled tests:
+
+pwd
+
+echo TEST
+
+node --version
+
+npm --version
+
+Verify:
+
+Process Created
+
+Command Executed
+
+Stdout Returned
+
+Exit Code Returned
+
+Detect:
+
+Fake Success
+
+Mock Responses
+
+Simulated Execution
+
+Disabled Execution Paths
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5
+STDOUT / STDERR AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Process
+↓
+Stdout
+↓
+Parser
+↓
+Service
+↓
+Event
+↓
+Stream
+↓
+Frontend
+
+Verify:
+
+Output Capture
+
+Output Parsing
+
+Output Streaming
+
+Output Persistence
+
+Detect:
+
+Dropped Events
+
+Broken Pipes
+
+Lost Streams
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6
+PACKAGE INSTALLATION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Install Tool
+↓
+Terminal
+↓
+npm install
+↓
+Process
+↓
+Output
+↓
+Completion
+
+Verify:
+
+Package Installation
+
+Dependency Resolution
+
+Lockfile Updates
+
+Node Modules Updates
+
+Detect:
+
+Fake Install Success
+
+Incomplete Installations
+
+Broken Package Manager Integration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7
+RUNTIME STARTUP AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Terminal
+↓
+Runtime Manager
+↓
+Process Supervisor
+↓
+npm run dev
+↓
+Application
+
+Verify:
+
+Runtime Starts
+
+Port Opens
+
+Health Check Passes
+
+Runtime State Updates
+
+Detect:
+
+Broken Startup
+
+Process Crash
+
+Port Failure
+
+Missing Runtime Events
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8
+AGENT → TERMINAL AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Agent
+↓
+Tool Selection
+↓
+Terminal Tool
+↓
+Terminal Service
+↓
+Process Execution
+
+Verify:
+
+Agent Can Discover Tool
+
+Agent Can Invoke Tool
+
+Tool Executes Command
+
+Results Return To Agent
+
+Detect:
+
+Broken Tool Routing
+
+Broken Agent Wiring
+
+Lost Results
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9
+REALITY VERIFICATION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Compare:
+
+Reported Success
+
+vs
+
+Actual Reality
+
+Verify:
+
+Files Created
+
+Packages Installed
+
+Processes Running
+
+Ports Open
+
+Runtime Healthy
+
+Preview Reachable
+
+Detect:
+
+Fake Verification
+
+Mock Success
+
+Simulation Responses
+
+Plan-Only Execution
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10
+ROOT CAUSE ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every issue:
+
+Determine:
+
+Symptom
+
+Cause
+
+Root Cause
+
+Architectural Cause
+
+Registration Cause
+
+Dependency Cause
+
+Execution Cause
+
+Never fix symptoms.
+
+Fix root causes only.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 11
+AUTONOMOUS RECOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After identifying root causes:
+
+Find
+↓
+Fix
+↓
+Build
+↓
+Test
+↓
+Verify
+↓
+Retest
+
+Repeat automatically.
+
+Do not stop after diagnosis.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 12
+END TO END TERMINAL TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create test workflow:
+
+echo TEST
+↓
+Create File
+↓
+Install Package
+↓
+Run Runtime
+↓
+Open Port
+↓
+Start Preview
+
+Verify every stage produces a REAL side effect.
+
+Not logs.
+
+Not plans.
+
+Not simulated responses.
+
+Real execution only.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Output:
+
+1. Terminal Graph
+
+2. Process Graph
+
+3. Runtime Graph
+
+4. Execution Graph
+
+5. First Failure Point
+
+6. Root Cause(s)
+
+7. Broken Registrations
+
+8. Broken Dependencies
+
+9. Broken Execution Paths
+
+10. Fake Success Paths
+
+11. Fixes Applied
+
+12. Validation Results
+
+13. Terminal Health Score
+
+14. Runtime Health Score
+
+15. Production Readiness %
+
+Goal:
+
+Recover the terminal from a simulated execution layer into a fully operational command execution system.
+
+Do not stop until real commands execute successfully end-to-end.

@@ -67,8 +67,10 @@ export const terminalController = {
     if (!body.command?.trim()) { res.status(400).json({ error: 'command is required.' }); return; }
 
     try {
+      // session.cwd IS the sandboxRoot — pass cwd as undefined so the service
+      // uses sandboxRoot directly instead of join(sandboxRoot, sandboxRoot).
       const result = await commandService.stream(body.command, {
-        cwd:         session.cwd,
+        cwd:         body.cwd,
         env:         { ...session.env, ...(body.env ?? {}) },
         timeoutMs:   body.timeoutMs,
         sandboxRoot: session.cwd,

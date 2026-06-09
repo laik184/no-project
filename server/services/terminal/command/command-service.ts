@@ -44,23 +44,25 @@ export interface StreamResult {
 export const commandService = {
   execute(command: string, opts: ExecuteOptions): ExecuteResult {
     commandValidator.assert(command);
-    const parsed  = commandParser.parse(command);
     const cwd     = opts.cwd ? join(opts.sandboxRoot, opts.cwd) : opts.sandboxRoot;
     const timeout = opts.timeoutMs ?? 30_000;
     const start   = Date.now();
 
-    const result = spawnSync(parsed.executable, parsed.args, {
+    // Use shell: true so builtins, pipes, and redirects work.
+    // Pass the raw command string directly to the shell.
+    const result = spawnSync(command, [], {
       cwd,
-      env:       { ...process.env, ...parsed.env, ...(opts.env ?? {}) },
+      env:       { ...process.env, ...(opts.env ?? {}) },
       encoding:  'utf8',
       timeout,
       maxBuffer: 10 * 1024 * 1024,
+      shell:     true,
     });
 
     return {
       exitCode:   result.status ?? 1,
       stdout:     result.stdout ?? '',
-      stderr:     result.stderr ?? '',
+      stderr:     result.stderr ?? (result.error ? result.error.message : ''),
       timedOut:   result.signal === 'SIGTERM',
       durationMs: Date.now() - start,
     };
@@ -68,31 +70,43 @@ export const commandService = {
 
   stream(command: string, opts: ExecuteOptions): Promise<StreamResult> {
     commandValidator.assert(command);
-    const parsed  = commandParser.parse(command);
     const cwd     = opts.cwd ? join(opts.sandboxRoot, opts.cwd) : opts.sandboxRoot;
     const timeout = opts.timeoutMs ?? 60_000;
 
-    return new Promise<StreamResult>((resolve) => {
+    return new Promise<StreamResult>((resolve, reject) => {
       const stdoutChunks: string[] = [];
       const stderrChunks: string[] = [];
       let   timedOut               = false;
+      let   settled                = false;
       const start                  = Date.now();
 
-      const proc = spawn(parsed.executable, parsed.args, {
+      // Use shell: true so pipes, redirects, and builtins work correctly.
+      // Pass the raw command string directly to the shell.
+      const proc = spawn(command, [], {
         cwd,
-        env:   { ...process.env, ...parsed.env, ...(opts.env ?? {}) },
+        env:   { ...process.env, ...(opts.env ?? {}) },
         stdio: ['ignore', 'pipe', 'pipe'],
+        shell: true,
       });
 
       const timer = setTimeout(() => {
         timedOut = true;
-        proc.kill('SIGTERM');
+        try { proc.kill('SIGTERM'); } catch { /* gone */ }
       }, timeout);
 
-      proc.stdout.on('data', (c: Buffer) => stdoutChunks.push(c.toString()));
-      proc.stderr.on('data', (c: Buffer) => stderrChunks.push(c.toString()));
+      proc.stdout?.on('data', (c: Buffer) => stdoutChunks.push(c.toString()));
+      proc.stderr?.on('data', (c: Buffer) => stderrChunks.push(c.toString()));
+
+      proc.on('error', (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new CommandError(`Spawn failed: ${err.message}`, (err as NodeJS.ErrnoException).code));
+      });
 
       proc.on('close', (code) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         resolve({
           pid:        proc.pid ?? 0,
