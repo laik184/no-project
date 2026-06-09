@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { History, MessageSquarePlus } from "lucide-react";
 import { useAgentRunner } from "./useAgentRunner";
 import { ChatHistoryPanel } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
@@ -98,6 +99,37 @@ export function ChatPanel({ inputRef, currentAction, onOpenFile, newChatTrigger 
       className="flex flex-col h-full min-h-0 overflow-hidden"
       style={{ background: "rgba(255,255,255,0.015)" }}
     >
+      {/* ── Mini header with history + new chat icons ────────────────────── */}
+      <div
+        className="flex items-center justify-end px-3 flex-shrink-0"
+        style={{
+          height: 36,
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <button
+          onClick={() => { setShowHistoryPanel((v) => !v); setShowNewChatScreen(false); }}
+          className={cn(
+            "w-6 h-6 flex items-center justify-center rounded-lg transition-all",
+            showHistoryPanel
+              ? "text-blue-400 bg-blue-500/10"
+              : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+          )}
+          data-testid="button-chat-history"
+          title="Chat history"
+        >
+          <History className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => { setShowNewChatScreen(true); setShowHistoryPanel(false); setMessages([]); }}
+          className="w-6 h-6 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+          data-testid="button-new-chat"
+          title="New chat"
+        >
+          <MessageSquarePlus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
       {showHistoryPanel && (
         <ChatHistoryPanel
           chatHistory={chatHistory}
