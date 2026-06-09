@@ -342,7 +342,14 @@ export function CenterPanel({
                   />
                 );
               }
-              return <CenterPanelToolsGrid onToolSelect={addToolTab} />;
+              return (
+                <CenterPanelToolsGrid
+                  onToolSelect={addToolTab}
+                  onTabJump={(id) => void handleTabSwitch(id)}
+                  existingTabs={tabs.filter((t) => t.id !== activeTabId)}
+                  tabIcon={tabIcon}
+                />
+              );
             })()}
           </div>
 

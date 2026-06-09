@@ -1,47 +1,221 @@
+import { useState, useMemo } from "react";
+import { Search } from "lucide-react";
 import { toolItems } from "./center-panel-tools";
+import type { WorkspaceTab } from "./editor-toolbar";
 
 interface CenterPanelToolsGridProps {
   onToolSelect: (label: string, url: string) => void;
+  onTabJump?: (tabId: number) => void;
+  existingTabs?: WorkspaceTab[];
+  tabIcon?: (tab: WorkspaceTab) => React.ReactElement;
 }
 
-export function CenterPanelToolsGrid({ onToolSelect }: CenterPanelToolsGridProps) {
+export function CenterPanelToolsGrid({
+  onToolSelect,
+  onTabJump,
+  existingTabs = [],
+  tabIcon,
+}: CenterPanelToolsGridProps) {
+  const [query, setQuery] = useState("");
+
+  const filteredTools = useMemo(() => {
+    if (!query.trim()) return toolItems;
+    const q = query.toLowerCase();
+    return toolItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.sub.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const filteredTabs = useMemo(() => {
+    const openTabs = existingTabs.filter((t) => t.url || t.fileContent !== undefined);
+    if (!query.trim()) return openTabs;
+    const q = query.toLowerCase();
+    return openTabs.filter((t) => t.label.toLowerCase().includes(q));
+  }, [query, existingTabs]);
+
   return (
-    <div className="absolute inset-0 overflow-y-auto" style={{ background: "rgba(255,255,255,0.006)" }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-      <div className="relative py-8 px-6 w-full">
-        <div style={{ maxWidth: 700, margin: "0 auto" }}>
-          {toolItems.map((section) => (
-            <div key={section.section} className="mb-7">
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(148,163,184,0.38)" }}>
-                {section.section}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => onToolSelect(item.label, item.url)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left group transition-all duration-200"
-                      style={{ background: "rgba(255,255,255,0.028)", border: "1px solid rgba(255,255,255,0.07)" }}
-                      onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.border = "1px solid rgba(124,141,255,0.28)"; el.style.background = "rgba(124,141,255,0.055)"; el.style.transform = "translateY(-1px)"; el.style.boxShadow = "0 4px 16px rgba(124,141,255,0.08)"; }}
-                      onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.border = "1px solid rgba(255,255,255,0.07)"; el.style.background = "rgba(255,255,255,0.028)"; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}
-                      data-testid={`button-newtab-tool-${item.id}`}
-                    >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: item.bg }}>
-                        <Icon style={{ width: 15, height: 15, color: item.color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-semibold text-foreground/80 group-hover:text-foreground transition-colors mb-0.5 truncate">{item.label}</p>
-                        <p className="text-[10.5px] leading-snug line-clamp-2" style={{ color: "rgba(148,163,184,0.48)" }}>{item.sub}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+    <div
+      className="absolute inset-0 overflow-y-auto"
+      style={{ background: "rgba(255,255,255,0.01)", scrollbarWidth: "thin" }}
+    >
+      {/* ── Search bar ─────────────────────────────────────────────────────── */}
+      <div className="px-5 pt-5 pb-4">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ width: 13, height: 13, color: "rgba(148,163,184,0.45)" }}
+          />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for tools & files..."
+            className="w-full pl-8 pr-4 rounded-lg text-sm outline-none transition-all"
+            style={{
+              height: 38,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.09)",
+              color: "rgba(226,232,240,0.9)",
+            }}
+            onFocus={(e) => {
+              (e.currentTarget as HTMLElement).style.border =
+                "1px solid rgba(124,141,255,0.35)";
+              (e.currentTarget as HTMLElement).style.background =
+                "rgba(255,255,255,0.07)";
+            }}
+            onBlur={(e) => {
+              (e.currentTarget as HTMLElement).style.border =
+                "1px solid rgba(255,255,255,0.09)";
+              (e.currentTarget as HTMLElement).style.background =
+                "rgba(255,255,255,0.05)";
+            }}
+            data-testid="input-newtab-search"
+          />
         </div>
+      </div>
+
+      <div className="px-5 pb-8 space-y-5">
+        {/* ── Jump to existing tab ─────────────────────────────────────────── */}
+        {filteredTabs.length > 0 && (
+          <section>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+              style={{ color: "rgba(148,163,184,0.38)" }}
+            >
+              Jump to existing tab
+            </p>
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              {filteredTabs.map((tab, i) => (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabJump?.(tab.id)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                  style={{
+                    borderBottom:
+                      i < filteredTabs.length - 1
+                        ? "1px solid rgba(255,255,255,0.05)"
+                        : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background =
+                      "rgba(255,255,255,0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "";
+                  }}
+                  data-testid={`button-jump-tab-${tab.id}`}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {tabIcon ? tabIcon(tab) : null}
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className="text-[13px] font-medium truncate"
+                      style={{ color: "rgba(226,232,240,0.88)" }}
+                    >
+                      {tab.label}
+                    </p>
+                    <p
+                      className="text-[11px]"
+                      style={{ color: "rgba(148,163,184,0.45)" }}
+                    >
+                      {tab.fileContent !== undefined
+                        ? "Open file"
+                        : "Open tab"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Suggested / search results ────────────────────────────────────── */}
+        <section>
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+            style={{ color: "rgba(148,163,184,0.38)" }}
+          >
+            {query.trim() ? "Results" : "Suggested"}
+          </p>
+
+          {filteredTools.length === 0 ? (
+            <div
+              className="rounded-xl px-4 py-8 text-center text-[12px]"
+              style={{
+                border: "1px solid rgba(255,255,255,0.07)",
+                color: "rgba(148,163,184,0.4)",
+              }}
+            >
+              No results for &ldquo;{query}&rdquo;
+            </div>
+          ) : (
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              {filteredTools.map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onToolSelect(item.label, item.url)}
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors"
+                    style={{
+                      borderBottom:
+                        i < filteredTools.length - 1
+                          ? "1px solid rgba(255,255,255,0.05)"
+                          : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "rgba(255,255,255,0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "";
+                    }}
+                    data-testid={`button-newtab-tool-${item.id}`}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: item.bg,
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <Icon style={{ width: 15, height: 15, color: item.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[13px] font-semibold leading-tight"
+                        style={{ color: "rgba(226,232,240,0.9)" }}
+                      >
+                        {item.label}
+                      </p>
+                      <p
+                        className="text-[11px] leading-snug mt-0.5 line-clamp-2"
+                        style={{ color: "rgba(148,163,184,0.5)" }}
+                      >
+                        {item.sub}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
