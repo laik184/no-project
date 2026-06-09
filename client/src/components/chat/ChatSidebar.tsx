@@ -1,5 +1,6 @@
-import { Cpu, Plus, LayoutPanelLeft } from "lucide-react";
+import { Home, Plus, LayoutPanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface ChatSidebarProps {
   onNewChat: () => void;
@@ -8,6 +9,8 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ onNewChat, onToggleLayout, hasActiveChat = false }: ChatSidebarProps) {
+  const [, navigate] = useLocation();
+
   return (
     <div
       className="flex flex-col items-center py-2 flex-shrink-0"
@@ -18,16 +21,16 @@ export function ChatSidebar({ onNewChat, onToggleLayout, hasActiveChat = false }
         height: "100%",
       }}
     >
-      {/* Top: Logo icon */}
-      <div
-        className="w-7 h-7 rounded-lg flex items-center justify-center mb-3 flex-shrink-0"
-        style={{
-          background: "#1A2230",
-          border: "1px solid #263244",
-        }}
+      {/* Top: Home icon */}
+      <button
+        onClick={() => navigate("/")}
+        className="w-7 h-7 rounded-lg flex items-center justify-center mb-3 flex-shrink-0 hover:bg-white/8 transition-colors"
+        title="Home"
+        data-testid="button-sidebar-home"
+        style={{ color: "rgba(148,163,184,0.5)" }}
       >
-        <Cpu style={{ width: 13, height: 13, color: "#3B82F6" }} />
-      </div>
+        <Home style={{ width: 13, height: 13 }} />
+      </button>
 
       {/* Active chat indicator (◉) */}
       <button
