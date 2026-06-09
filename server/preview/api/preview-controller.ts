@@ -247,6 +247,27 @@ export async function getPreviewMetrics(req: Request, res: Response): Promise<vo
   });
 }
 
+// ── POST /api/preview/debug — send crash context to agent ─────────────────────
+
+export async function postPreviewDebug(req: Request, res: Response): Promise<void> {
+  const { projectId, crashLog = "", errorMessage = "" } = req.body as {
+    projectId: number;
+    crashLog?:     string;
+    errorMessage?: string;
+  };
+
+  if (!projectId) {
+    res.status(400).json({ ok: false, error: "projectId is required." });
+    return;
+  }
+
+  // Emit bus event so any agent subscriber can pick up the debug request
+  const { bus } = await import("../../infrastructure/index.ts");
+  bus.emit("preview.debug_requested" as never, { projectId, crashLog, errorMessage } as never);
+
+  res.json({ ok: true, queued: true });
+}
+
 // ── GET /api/lifecycle-state ──────────────────────────────────────────────────
 // Used by usePreviewLifecycle hook (initial state sync on mount).
 

@@ -35,12 +35,12 @@ export const gitCommitTool: ToolDefinition = {
     // Configure git user if not set (required for commit to work in CI-like envs)
     await commandService.execute(
       'git config user.email "agent@nurax.ai" && git config user.name "NURAX Agent" 2>/dev/null || true',
-      { cwd, timeoutMs: 3_000 },
+      { sandboxRoot: cwd, timeoutMs: 3_000 },
     );
 
     const result = await commandService.execute(
       `git commit -m ${JSON.stringify(message)} 2>&1`,
-      { cwd, timeoutMs: 10_000 },
+      { sandboxRoot: cwd, timeoutMs: 10_000 },
     );
 
     const output    = (result.stdout ?? '') + (result.stderr ?? '');

@@ -39,7 +39,7 @@ export const runLintTool: ToolDefinition = {
     // Try npx eslint; fall back gracefully if not available
     const result = await commandService.execute(
       `npx eslint ${path} --format=compact 2>&1 || true`,
-      { cwd: sandboxRoot, timeoutMs: 55_000 },
+      { sandboxRoot, timeoutMs: 55_000 },
     );
 
     const stdout = result.stdout ?? '';

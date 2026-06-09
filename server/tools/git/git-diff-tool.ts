@@ -36,7 +36,7 @@ export const gitDiffTool: ToolDefinition = {
     const file   = (input.file as string | undefined) ?? '';
 
     const cmd    = `git diff ${staged} ${file} 2>&1 | head -500`.trim();
-    const result = await commandService.execute(cmd, { cwd, timeoutMs: 10_000 });
+    const result = await commandService.execute(cmd, { sandboxRoot: cwd, timeoutMs: 10_000 });
 
     const diff   = result.stdout ?? '';
     const lines  = diff.split('\n');

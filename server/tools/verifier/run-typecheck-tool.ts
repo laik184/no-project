@@ -35,7 +35,7 @@ export const runTypecheckTool: ToolDefinition = {
     const sandboxRoot = (ctx.sandboxRoot as string | undefined) ?? '.sandbox';
 
     const result = await commandService.execute('npx tsc --noEmit 2>&1 || true', {
-      cwd:       sandboxRoot,
+      sandboxRoot,
       timeoutMs: 55_000,
     });
 

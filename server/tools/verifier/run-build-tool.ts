@@ -35,7 +35,7 @@ export const runBuildTool: ToolDefinition = {
     const start = Date.now();
 
     const result = await commandService.execute('npm run build 2>&1', {
-      cwd:       sandboxRoot,
+      sandboxRoot,
       timeoutMs: 115_000,
     });
 

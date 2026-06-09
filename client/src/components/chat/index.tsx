@@ -74,6 +74,19 @@ export function ChatPanel({ inputRef, currentAction, onOpenFile, newChatTrigger 
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for crash-debug event from the preview panel overlay
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { prompt } = (e as CustomEvent<{ prompt: string }>).detail ?? {};
+      if (!prompt) return;
+      setShowNewChatScreen(false);
+      setShowHistoryPanel(false);
+      runAgent(prompt);
+    };
+    window.addEventListener("nurax:debug-crash", handler);
+    return () => window.removeEventListener("nurax:debug-crash", handler);
+  }, [runAgent]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleOpenFile = async (path: string) => {
     if (!onOpenFile) { await fetchFileContent(path); return; }
     const { content, lang } = await fetchFileContent(path);

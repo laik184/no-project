@@ -11,6 +11,7 @@ import {
   postPreviewStart,
   postPreviewStop,
   postPreviewLifecycle,
+  postPreviewDebug,
   postDevtoolsConsole,
   postDevtoolsNetwork,
   getDevtools,
@@ -40,6 +41,7 @@ export function buildPreviewRouter(): Router {
   router.post("/start",         postPreviewStart);
   router.post("/stop",          postPreviewStop);
   router.post("/lifecycle",     postPreviewLifecycle);
+  router.post("/debug",         postPreviewDebug);
 
   // ── DevTools ────────────────────────────────────────────────────────────────
   router.get("/devtools",          getDevtools);

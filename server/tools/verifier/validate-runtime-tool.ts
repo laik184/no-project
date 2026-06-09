@@ -42,7 +42,7 @@ export const validateRuntimeTool: ToolDefinition = {
     try {
       const r = await commandService.execute(
         `ss -tlnp 2>/dev/null | grep :${port} || netstat -tlnp 2>/dev/null | grep :${port} || true`,
-        { timeoutMs: 5_000 },
+        { sandboxRoot: '.', timeoutMs: 5_000 },
       );
       portBound = (r.stdout ?? '').includes(String(port));
     } catch {

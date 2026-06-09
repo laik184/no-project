@@ -26,12 +26,15 @@ export function initLifecycleEvents(): void {
   bus.on("process.crashed", async (payload) => {
     const projectId = (payload as Record<string, unknown>).projectId as number | undefined;
     const code      = (payload as Record<string, unknown>).code      as number | undefined;
+    const logs      = (payload as Record<string, unknown>).logs      as string[] | undefined;
     if (projectId == null) return;
+
+    const crashLog = logs?.slice(-40).join("\n") ?? "";
 
     await stateMachine.transition(
       projectId, "crashed",
       `Process exited with code ${code ?? "?"}.`,
-      { exitCode: code },
+      { exitCode: code, crashLog },
     ).catch(console.error);
   });
 

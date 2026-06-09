@@ -38,7 +38,7 @@ export const runTestsTool: ToolDefinition = {
     const start       = Date.now();
 
     const result = await commandService.execute(`npm run ${script} 2>&1`, {
-      cwd:       sandboxRoot,
+      sandboxRoot,
       timeoutMs: 115_000,
     });
 

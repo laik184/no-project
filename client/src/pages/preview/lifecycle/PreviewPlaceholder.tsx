@@ -1,16 +1,17 @@
 /**
  * PreviewPlaceholder.tsx
  *
- * Compact browser-style loading indicator shown inside the iframe area
- * when lifecycle state is "idle". Replaces the full-page placeholder.
- *
- * Shows only a thin animated progress bar at the top edge of the frame
- * and a small centered status chip — no full-page blocking content.
+ * "Your app is not running" full-page state — Replit-style.
+ * Shown when lifecycle state is "idle".
  */
 
 import { useEffect, useState } from "react";
 
-export function PreviewPlaceholder() {
+interface Props {
+  onRun?: () => void;
+}
+
+export function PreviewPlaceholder({ onRun }: Props) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,74 +20,90 @@ export function PreviewPlaceholder() {
 
   return (
     <div
-      className="preview-idle-shell"
       data-testid="preview-placeholder"
       style={{
         position: "absolute",
         inset: 0,
         zIndex: 20,
-        background: "#0d0d0f",
+        background: "#1a1a1a",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexDirection: "column",
+        gap: 20,
         opacity: mounted ? 1 : 0,
-        transition: "opacity 0.3s ease",
+        transition: "opacity 0.25s ease",
+        userSelect: "none",
       }}
     >
-      {/* Top progress shimmer */}
-      <div style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "2px",
-        background: "rgba(255,255,255,0.04)",
-        overflow: "hidden",
-      }}>
-        <div style={{
-          height: "100%",
-          width: "40%",
-          background: "linear-gradient(90deg, transparent, rgba(124,141,255,0.6), transparent)",
-          animation: "idle-shimmer 1.8s ease-in-out infinite",
-        }} />
-      </div>
+      {/* Monitor with slash icon */}
+      <MonitorOffIcon />
 
-      {/* Centered status chip */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "6px 14px",
-        borderRadius: "999px",
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        color: "rgba(148,163,184,0.5)",
-        fontSize: "11px",
-        fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
-        fontWeight: 500,
-        userSelect: "none",
+      {/* Title */}
+      <p style={{
+        color: "#e5e7eb",
+        fontSize: 18,
+        fontWeight: 600,
+        margin: 0,
+        letterSpacing: "-0.01em",
       }}>
-        <span style={{
-          width: "6px",
-          height: "6px",
-          borderRadius: "50%",
-          background: "rgba(124,141,255,0.4)",
-          animation: "idle-dot-pulse 2s ease-in-out infinite",
-          flexShrink: 0,
-        }} />
-        Waiting for server
-      </div>
+        Your app is not running
+      </p>
 
-      <style>{`
-        @keyframes idle-shimmer {
-          0%   { transform: translateX(-150%); }
-          100% { transform: translateX(400%); }
-        }
-        @keyframes idle-dot-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.3; }
-        }
-      `}</style>
+      {/* Run button row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          onClick={onRun}
+          data-testid="button-preview-run"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "8px 20px",
+            background: "#22c55e",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#16a34a")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#22c55e")}
+        >
+          <PlayIcon />
+          Run
+        </button>
+        <span style={{ color: "#6b7280", fontSize: 14 }}>to preview your app.</span>
+      </div>
     </div>
+  );
+}
+
+// ── Icons ──────────────────────────────────────────────────────────────────────
+
+function MonitorOffIcon() {
+  return (
+    <svg
+      width="72" height="72"
+      viewBox="0 0 24 24" fill="none"
+      stroke="#4b5563" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M17 17H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h16a2 2 0 0 1 2 2v8" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+      <path d="M2.5 1.5 L10 6 L2.5 10.5 Z" />
+    </svg>
   );
 }

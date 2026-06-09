@@ -40,7 +40,7 @@ export const gitLogTool: ToolDefinition = {
 
     const result = await commandService.execute(
       `git log --oneline --pretty=format:"%H|%ai|%an|%s" -${limit} 2>&1`,
-      { cwd, timeoutMs: 8_000 },
+      { sandboxRoot: cwd, timeoutMs: 8_000 },
     );
 
     const lines   = (result.stdout ?? '').split('\n').filter(Boolean);

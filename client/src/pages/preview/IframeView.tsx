@@ -61,7 +61,7 @@ function LifecycleAwareIframe({
   return (
     <div className="relative w-full h-full">
       {children}
-      {lifecycleState === "idle" && <PreviewPlaceholder />}
+      {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
       <PreviewLifecycleOverlay
         state={lifecycleState}
         prevState={lifecyclePrev}
@@ -158,7 +158,7 @@ export function IframeView({
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad}
         />
-        {lifecycleState === "idle" && <PreviewPlaceholder />}
+        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}
           message={lifecycleMessage} meta={lifecycleMeta}
@@ -187,7 +187,7 @@ export function IframeView({
           title="Preview" onLoad={onIframeLoad}
         />
 
-        {lifecycleState === "idle" && <PreviewPlaceholder />}
+        {lifecycleState === "idle" && <PreviewPlaceholder onRun={onRun} />}
 
         <PreviewLifecycleOverlay
           state={lifecycleState} prevState={lifecyclePrev}

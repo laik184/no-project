@@ -30,7 +30,7 @@ export const gitAddTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext): Promise<GitAddResult> => {
     const cwd    = (input.cwd as string | undefined) ?? (ctx.sandboxRoot as string | undefined) ?? '.sandbox';
     const path   = (input.path as string | undefined) ?? '.';
-    const result = await commandService.execute(`git add ${path} 2>&1`, { cwd, timeoutMs: 8_000 });
+    const result = await commandService.execute(`git add ${path} 2>&1`, { sandboxRoot: cwd, timeoutMs: 8_000 });
     return {
       staged: (result.exitCode ?? 0) === 0,
       output: (result.stdout ?? '') + (result.stderr ?? ''),

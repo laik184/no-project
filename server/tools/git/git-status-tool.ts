@@ -34,8 +34,8 @@ export const gitStatusTool: ToolDefinition = {
     const cwd = (input.cwd as string | undefined) ?? (ctx.sandboxRoot as string | undefined) ?? '.sandbox';
 
     const [statusResult, branchResult] = await Promise.all([
-      commandService.execute('git status --porcelain 2>&1', { cwd, timeoutMs: 8_000 }),
-      commandService.execute('git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown', { cwd, timeoutMs: 5_000 }),
+      commandService.execute('git status --porcelain 2>&1', { sandboxRoot: cwd, timeoutMs: 8_000 }),
+      commandService.execute('git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown', { sandboxRoot: cwd, timeoutMs: 5_000 }),
     ]);
 
     const raw    = statusResult.stdout ?? '';

@@ -62,7 +62,7 @@ class RuntimeManager {
       child.on('exit', (code) => {
         entry.status = code === 0 ? 'stopped' : 'crashed';
         entry.child  = undefined;
-        bus.emit('process.crashed', { projectId, code: code ?? -1 });
+        bus.emit('process.crashed', { projectId, code: code ?? -1, logs: [...entry.logs] });
       });
 
       this.processes.set(projectId, entry);
