@@ -9,20 +9,23 @@
 import type { CodingTask, CodingTaskKind, RoutedCodingStep } from '../types/coderx.types.ts';
 
 // ── Code generation routing ───────────────────────────────────────────────────
+//
+// ALL names here MUST match registered names in register-coding-tools.ts exactly.
+// Wrong names cause silent NOT_FOUND failures on every coding task.
 
 const CODING_TOOL_MAP: Record<CodingTaskKind, string> = {
-  generate_component:    'coding_generate_react_component',
+  generate_component:    'coding_generate_tailwind_ui',      // FIX: was 'coding_generate_react_component' (unregistered)
   generate_route:        'coding_generate_express_route',
-  generate_schema:       'coding_generate_drizzle_schema',
+  generate_schema:       'coding_generate_schema',           // FIX: was 'coding_generate_drizzle_schema' (unregistered)
   generate_api_client:   'coding_generate_api_client',
   generate_auth:         'coding_generate_jwt_auth',
   generate_middleware:   'coding_generate_auth_middleware',
   generate_error_handler:'coding_generate_error_handler',
   generate_controller:   'coding_generate_controller',
   generate_rest_api:     'coding_generate_rest_api',
-  refactor:              'coding_refactor_code',
-  analyze:               'coding_analyze_code',
-  validate:              'coding_validate_code',
+  refactor:              'coding_generate_generic_file',     // FIX: 'coding_refactor_code' was never registered
+  analyze:               'coding_generate_generic_file',     // FIX: 'coding_analyze_code' was never registered
+  validate:              'run_build',                        // FIX: 'coding_validate_code' was never registered → verifier
 };
 
 export function coordinateCodingTask(task: CodingTask): RoutedCodingStep {
@@ -41,30 +44,37 @@ export function coordinateCodingTask(task: CodingTask): RoutedCodingStep {
 }
 
 // ── Filesystem support routing (for coderx read/write needs) ─────────────────
+//
+// ALWAYS pass RELATIVE paths — fs_* tools call resolveSafe() internally which
+// prepends AGENT_PROJECT_ROOT/sandboxRoot. Passing an absolute path or manually
+// pre-joining sandboxRoot causes double-prefixing and NOT_FOUND failures.
 
 export function coordinateFilesystemTask(
   operation: string,
   input:     Record<string, unknown>,
-  sandboxRoot: string,
+  _sandboxRoot: string, // kept for API compat — never use to prefix paths
 ): RoutedCodingStep {
+  // FIX: was using un-prefixed names (read_file, write_file, etc.) — all NOT_FOUND.
+  // Correct names must match register-filesystem-tools.ts exactly.
   const fsToolMap: Record<string, string> = {
-    read:   'read_file',
-    write:  'write_file',
-    patch:  'patch_file',
-    delete: 'delete_file',
-    search: 'search_text',
-    list:   'read_folder',
+    read:   'fs_read_file',
+    write:  'fs_write_file',
+    patch:  'fs_patch_file',
+    delete: 'fs_delete_file',
+    search: 'fs_search_text',
+    list:   'fs_read_folder',
   };
 
-  const toolName = fsToolMap[operation] ?? 'read_file';
-  const rawPath  = typeof input.path === 'string' ? input.path : '';
-  const resolved = rawPath
-    ? `${sandboxRoot}/${rawPath.replace(/^\/+/, '')}`
-    : sandboxRoot;
+  const toolName = fsToolMap[operation] ?? 'fs_read_file';
+
+  // Strip any leading slash so the path is always relative.
+  // FIX: was doing `${sandboxRoot}/${rawPath}` which caused double-prefixing.
+  const rawPath = typeof input.path === 'string' ? input.path : '';
+  const relPath = rawPath.replace(/^\/+/, '');
 
   return {
     toolName,
-    toolInput: { ...input, path: resolved },
+    toolInput: { ...input, path: relPath },
   };
 }
 

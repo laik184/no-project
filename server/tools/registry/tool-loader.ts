@@ -15,6 +15,7 @@ import { registerCodingTools }     from '../coding/index.ts';
 import { registerTerminalTools }   from '../terminal/index.ts';
 import { registerVerifierTools }   from '../verifier/register-verifier-tools.ts';
 import { registerGitTools }        from '../git/register-git-tools.ts';
+import { registerBrowserTools }    from '../browser/register-browser-tools.ts';
 import { sealRegistry, toolCount, isSealed } from './tool-registry.ts';
 
 export function loadAllTools(): void {
@@ -29,10 +30,11 @@ export function loadAllTools(): void {
   registerTerminalTools();
   registerVerifierTools();
   registerGitTools();
+  registerBrowserTools();
 
   sealRegistry();
 
   console.log(
-    `[tool-loader] ${toolCount()} tools registered (filesystem + coding + terminal + verifier + git) — registry sealed.`,
+    `[tool-loader] ${toolCount()} tools registered (filesystem + coding + terminal + verifier + git + browser) — registry sealed.`,
   );
 }
