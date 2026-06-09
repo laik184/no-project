@@ -49,4 +49,5 @@ export interface ChatPanelProps {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   currentAction?: AgentStreamItem | null;
   onOpenFile?: (path: string, content: string, lang: string) => void;
+  newChatTrigger?: number;
 }

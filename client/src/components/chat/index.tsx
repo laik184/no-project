@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useAgentRunner } from "./useAgentRunner";
-import { ChatHeader, ChatHistoryPanel } from "./ChatHeader";
+import { ChatHistoryPanel } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { fetchFileContent, guessLangFromPath, fetchChatHistory, fetchChatPrompts } from "./tool-helpers";
@@ -18,7 +18,7 @@ const DEFAULT_PROMPTS = [
   "Add dark mode",
 ];
 
-export function ChatPanel({ inputRef, currentAction, onOpenFile }: ChatPanelProps) {
+export function ChatPanel({ inputRef, currentAction, onOpenFile, newChatTrigger }: ChatPanelProps) {
   const [chatInput, setChatInput]                 = useState("");
   const [showNewChatScreen, setShowNewChatScreen] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel]   = useState(false);
@@ -55,6 +55,17 @@ export function ChatPanel({ inputRef, currentAction, onOpenFile }: ChatPanelProp
       setActiveAction((currentAction as AgentStreamItem | null) ?? null);
     }
   }, [currentAction, setActiveAction]);
+
+  // External "new chat" trigger from sidebar
+  const prevTriggerRef = useRef(newChatTrigger ?? 0);
+  useEffect(() => {
+    if (newChatTrigger !== undefined && newChatTrigger !== prevTriggerRef.current) {
+      prevTriggerRef.current = newChatTrigger;
+      setShowNewChatScreen(true);
+      setShowHistoryPanel(false);
+      setMessages([]);
+    }
+  }, [newChatTrigger, setMessages]);
 
   // Auto-send prompt from URL on first mount
   useEffect(() => {

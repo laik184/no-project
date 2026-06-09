@@ -52,6 +52,7 @@ import { CheckpointCard, type CheckpointData } from "@/components/panels/Checkpo
 import { type AgentStreamItem } from "@/components/agent/AgentActionFeed";
 import { generateMockDiffs, type FileDiff } from "@/components/diff/FileDiffCard";
 import { ChatPanel } from "@/components/chat";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { DiffApprovalModal } from "@/features/diff-approval/DiffApprovalModal";
 import { useExternalChangeWarning } from "@/features/collaboration/useExternalChangeWarning";
 
@@ -232,6 +233,7 @@ export default function Workspace() {
   const [showInvitePopup, setShowInvitePopup] = useState(false);
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [activeFileName, setActiveFileName] = useState("");
+  const [newChatTrigger, setNewChatTrigger] = useState(0);
 
   const addTab = () => {
     const id = nextTabId.current++;
@@ -362,12 +364,20 @@ export default function Workspace() {
         {/* Three-panel body */}
         <PanelGroup direction="horizontal" className="flex-1 overflow-hidden min-h-0">
 
-          {/* LEFT: Chat Panel */}
+          {/* LEFT: Chat Panel + Sidebar */}
           <Panel defaultSize={29} minSize={15} maxSize={40}>
             <div className="h-full flex">
-              <div style={{ width: 1, flexShrink: 0, background: "rgba(255,255,255,0.08)" }} />
+              <ChatSidebar
+                onNewChat={() => setNewChatTrigger((n) => n + 1)}
+                onToggleLayout={() => setShowFileExplorer((v) => !v)}
+                hasActiveChat={tabs.length > 0}
+              />
               <div className="flex-1 min-w-0">
-                <ChatPanel inputRef={chatInputRef} onOpenFile={openFileTab} />
+                <ChatPanel
+                  inputRef={chatInputRef}
+                  onOpenFile={openFileTab}
+                  newChatTrigger={newChatTrigger}
+                />
               </div>
             </div>
           </Panel>
