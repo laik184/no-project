@@ -24,7 +24,9 @@ import { bootstrapMemory }                               from './server/memory/i
 import { loadAllTools }                                  from './server/tools/registry/tool-loader.ts';
 import { chatOrchestrator }                              from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { seedDefaultProject, TOPIC, sseManager }        from './server/infrastructure/index.ts';
+import { seedDefaultProject, TOPIC, sseManager, db }    from './server/infrastructure/index.ts';
+import { projects }                                       from './shared/schema.ts';
+import { desc, eq }                                      from 'drizzle-orm';
 import {
   fileExplorerRouter,
   legacyFileRouter,
@@ -45,7 +47,7 @@ import { initPreviewModule, buildPreviewRouter } from './server/preview/index.ts
 import { getLifecycleState } from './server/preview/api/index.ts';
 
 // Runtime routes (/api/runtime/:projectId/start|restart|stop) + legacy /api/restart
-import { buildRuntimeRouter, handleLegacyRestart } from './server/preview/api/runtime-routes.ts';
+import { buildRuntimeRouter, handleLegacyRestart, buildPreviewFrameHandler } from './server/preview/api/runtime-routes.ts';
 
 // ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
@@ -124,6 +126,92 @@ function registerRoutes(app: Express): void {
   app.post('/api/stop-project',   (_req: Request, res: Response) => res.json({ ok: true }));
   app.get('/api/artifacts',       (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
 
+  // ── Projects CRUD ───────────────────────────────────────────────────────────
+  app.get('/api/projects', async (_req: Request, res: Response) => {
+    try {
+      const rows = await db.select().from(projects).orderBy(desc(projects.updatedAt)).limit(50);
+      res.json({ ok: true, data: rows });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
+  app.post('/api/projects', async (req: Request, res: Response) => {
+    try {
+      const { name, description, framework } = req.body as { name?: string; description?: string; framework?: string };
+      if (!name?.trim()) { res.status(400).json({ ok: false, error: "name is required" }); return; }
+      const sandboxRoot = process.env.AGENT_PROJECT_ROOT ?? '/tmp/nurax-sandbox';
+      const slug        = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+      const sandboxPath = `${sandboxRoot}/${slug}-${Date.now()}`;
+      const [row] = await db.insert(projects).values({
+        name: name.trim(),
+        description: description ?? null,
+        framework:   framework ?? null,
+        sandboxPath,
+        status: 'idle',
+      }).returning();
+      res.json({ ok: true, data: row });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
+  app.get('/api/projects/:id', async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const [row] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+      if (!row) { res.status(404).json({ ok: false, error: "Not found" }); return; }
+      res.json({ ok: true, data: row });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
+  app.patch('/api/projects/:id', async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const { name, description, framework, status } = req.body as Record<string, string>;
+      const [row] = await db.update(projects)
+        .set({ ...(name && { name }), ...(description !== undefined && { description }), ...(framework && { framework }), ...(status && { status }), updatedAt: new Date() })
+        .where(eq(projects.id, id))
+        .returning();
+      res.json({ ok: true, data: row });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
+  // ── Folders (in-memory, no DB table) ───────────────────────────────────────
+  const _folders: Array<{ id: number; name: string; projectIds: number[]; createdAt: string }> = [];
+  let _folderId = 1;
+
+  app.get('/api/folders', (_req: Request, res: Response) => res.json(_folders));
+
+  app.post('/api/folders', (req: Request, res: Response) => {
+    const { name } = req.body as { name?: string };
+    if (!name?.trim()) { res.status(400).json({ ok: false, error: "name is required" }); return; }
+    const folder = { id: _folderId++, name: name.trim(), projectIds: [], createdAt: new Date().toISOString() };
+    _folders.push(folder);
+    res.json(folder);
+  });
+
+  app.patch('/api/folders/:id', (req: Request, res: Response) => {
+    const id  = Number(req.params.id);
+    const idx = _folders.findIndex(f => f.id === id);
+    if (idx < 0) { res.status(404).json({ ok: false, error: "Not found" }); return; }
+    const { name } = req.body as { name?: string };
+    if (name?.trim()) _folders[idx].name = name.trim();
+    res.json(_folders[idx]);
+  });
+
+  app.delete('/api/folders/:id', (req: Request, res: Response) => {
+    const id  = Number(req.params.id);
+    const idx = _folders.findIndex(f => f.id === id);
+    if (idx < 0) { res.status(404).json({ ok: false, error: "Not found" }); return; }
+    _folders.splice(idx, 1);
+    res.json({ ok: true });
+  });
+
   // ── Lifecycle-state shortcut routes (used by usePreviewLifecycle hook) ───────
   // The frontend calls /api/lifecycle-state and /api/lifecycle-state/:projectId
   // on mount to sync initial state before SSE events arrive.
@@ -136,6 +224,10 @@ function registerRoutes(app: Express): void {
   // ── Runtime routes (Run / Restart buttons) ──────────────────────────────────
   app.use('/api/runtime', buildRuntimeRouter());
   app.post('/api/restart', handleLegacyRestart);
+
+  // ── Preview frame proxy — /preview/frame → sandbox project port ─────────────
+  // Vite already proxies /preview/* → :3001, so this route is reachable.
+  app.use('/preview/frame', buildPreviewFrameHandler());
 
   // ── Module routers ──────────────────────────────────────────────────────────
   chatOrchestrator.mountRoutes(app);

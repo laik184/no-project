@@ -208,29 +208,11 @@ export function useNavigationLogic({
   };
 
   const handleOverlayRun = async (projectId?: number) => {
+    // Always target a specific project — fall back to project 1 (the default seeded project)
+    const targetId = projectId ?? 1;
     setIsRunning(true);
     try {
-      if (projectId) {
-        // Project-scoped start — fires lifecycle events directly
-        await fetch(`/api/runtime/${projectId}/start`, { method: "POST" });
-      } else {
-        // Check if anything is already running and restart it; otherwise
-        // use the compat restart endpoint which handles the empty case gracefully.
-        const statusRes = await fetch("/api/project-status");
-        const status    = await statusRes.json().catch(() => ({ running: [] }));
-        const running: Array<{ id: string }> = status?.running ?? [];
-
-        if (running.length > 0) {
-          await handleHardRestart();
-        } else {
-          // Nothing running yet — just refresh the iframe in case the user's
-          // project server started outside our knowledge (e.g. a long-running dev server).
-          if (iframeRef.current) {
-            iframeRef.current.src = iframeRef.current.src;
-            setLastReloadType("hot");
-          }
-        }
-      }
+      await fetch(`/api/runtime/${targetId}/start`, { method: "POST" });
     } catch (e) {
       console.error("handleOverlayRun failed:", e);
     } finally {

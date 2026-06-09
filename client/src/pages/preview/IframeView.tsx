@@ -29,7 +29,7 @@ export interface IframeViewProps {
   onRun?:           () => void;
 }
 
-const IFRAME_SRC = "/preview-frame";
+const IFRAME_SRC = "/preview/frame";
 
 /** Smooth fade-in hook — adds the animation class whenever the key changes. */
 function useFadeClass(iframeKey: number) {

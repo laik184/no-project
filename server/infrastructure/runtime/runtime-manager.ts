@@ -41,9 +41,10 @@ class RuntimeManager {
 
     try {
       const child = spawn(cmd, args, {
-        env:   { ...process.env, ...(opts.env ?? {}) },
-        stdio: ['ignore', 'pipe', 'pipe'],
+        env:      { ...process.env, ...(opts.env ?? {}) },
+        stdio:    ['ignore', 'pipe', 'pipe'],
         detached: false,
+        ...(opts.cwd ? { cwd: opts.cwd } : {}),
       });
 
       entry.pid    = child.pid;

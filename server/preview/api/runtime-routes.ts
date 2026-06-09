@@ -6,15 +6,67 @@
  * frontend does not need to know (or send) a command string.
  */
 
-import { Router, type Request, type Response } from "express";
-import { existsSync, readFileSync }             from "fs";
-import { resolve }                              from "path";
+import { Router, type Request, type Response, type NextFunction } from "express";
+import { existsSync, readFileSync }                                from "fs";
+import { resolve }                                                 from "path";
+import httpProxy                                                   from "http-proxy";
 
 import { db }                     from "../../infrastructure/index.ts";
 import { projects }               from "../../../shared/schema.ts";
 import { eq }                     from "drizzle-orm";
 import { lifecycleManager }       from "../lifecycle/preview-lifecycle-manager.ts";
 import { previewRuntimeManager }  from "../runtime/preview-runtime-manager.ts";
+import { runtimeManager }         from "../../infrastructure/index.ts";
+
+// ── Shared proxy server (created once) ────────────────────────────────────────
+const sandboxProxy = httpProxy.createProxyServer({ selfHandleResponse: false });
+
+// ── Idle HTML (shown in iframe when no project is running) ────────────────────
+
+const IDLE_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0d0f;
+    color: #9ca3af;
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; text-align: center;
+  }
+</style>
+</head>
+<body></body>
+</html>`;
+
+// ── Port detection from process stdout ────────────────────────────────────────
+
+const PORT_PATTERNS = [
+  /listening on .*?:(\d{4,5})/i,
+  /Local:\s+http:\/\/localhost:(\d{4,5})/i,
+  /running on.*?:(\d{4,5})/i,
+  /started.*?port[: ]+(\d{4,5})/i,
+  /port[: ]+(\d{4,5})/i,
+  /:(\d{4,5})\s*\n/,
+];
+
+function detectPortFromLogs(logs: string[]): number | undefined {
+  for (let i = logs.length - 1; i >= 0; i--) {
+    const line = logs[i];
+    for (const re of PORT_PATTERNS) {
+      const m = line.match(re);
+      if (m) {
+        const p = parseInt(m[1], 10);
+        if (p > 1024 && p < 65536) return p;
+      }
+    }
+  }
+  return undefined;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,8 +78,11 @@ import { previewRuntimeManager }  from "../runtime/preview-runtime-manager.ts";
  *   3. index.js / server.js / main.js present → "node <file>"
  *   4. Fallback: "npm run dev"
  */
-function detectCommand(sandboxPath: string): { command: string; port?: number } {
+/** Returns null when the sandbox has no runnable content. */
+function detectCommand(sandboxPath: string): { command: string; port?: number } | null {
   const abs = resolve(sandboxPath);
+
+  if (!existsSync(abs)) return null;
 
   const pkgPath = resolve(abs, "package.json");
   if (existsSync(pkgPath)) {
@@ -45,7 +100,8 @@ function detectCommand(sandboxPath: string): { command: string; port?: number } 
     }
   }
 
-  return { command: "npm run dev" };
+  // Sandbox exists but has no known entry point → nothing to run
+  return null;
 }
 
 async function fetchProject(projectId: number) {
@@ -67,11 +123,20 @@ async function handleStart(req: Request, res: Response): Promise<void> {
   if (!project) { res.status(404).json({ ok: false, error: `Project ${projectId} not found.` }); return; }
 
   const sandboxPath = project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-  const { command, port } = detectCommand(sandboxPath);
+  const detected   = detectCommand(sandboxPath);
 
+  if (!detected) {
+    // Nothing to run yet — transition lifecycle to reflect that and tell the client.
+    await lifecycleManager.markCrashed(projectId, null).catch(() => {});
+    res.json({ ok: false, empty: true, error: "No app built yet — describe your idea in the chat to get started." });
+    return;
+  }
+
+  const { command, port } = detected;
   const result = await previewRuntimeManager.start(projectId, {
     command,
     port,
+    cwd: resolve(sandboxPath),
     env: { PROJECT_ROOT: resolve(sandboxPath) },
   });
 
@@ -86,11 +151,19 @@ async function handleRestart(req: Request, res: Response): Promise<void> {
   if (!project) { res.status(404).json({ ok: false, error: `Project ${projectId} not found.` }); return; }
 
   const sandboxPath = project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-  const { command, port } = detectCommand(sandboxPath);
+  const detected   = detectCommand(sandboxPath);
 
+  if (!detected) {
+    await lifecycleManager.markCrashed(projectId, null).catch(() => {});
+    res.json({ ok: false, empty: true, error: "No app built yet." });
+    return;
+  }
+
+  const { command, port } = detected;
   const result = await previewRuntimeManager.restart(projectId, {
     command,
     port,
+    cwd: resolve(sandboxPath),
     env: { PROJECT_ROOT: resolve(sandboxPath) },
   });
 
@@ -114,13 +187,49 @@ async function handleLegacyRestart(_req: Request, res: Response): Promise<void> 
   try {
     const project = await fetchProject(DEFAULT_PROJECT_ID);
     const sandboxPath = project?.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-    const { command, port } = detectCommand(sandboxPath);
-    await previewRuntimeManager.restart(DEFAULT_PROJECT_ID, { command, port });
+    const detected   = detectCommand(sandboxPath);
+    if (!detected) { res.json({ ok: false, empty: true }); return; }
+    const { command, port } = detected;
+    await previewRuntimeManager.restart(DEFAULT_PROJECT_ID, {
+      command,
+      port,
+      cwd: resolve(sandboxPath),
+    });
     res.json({ ok: true });
   } catch (err) {
     await lifecycleManager.markStarting(DEFAULT_PROJECT_ID).catch(() => {});
     res.json({ ok: true, note: "lifecycle nudged" });
   }
+}
+
+// ── Preview frame proxy ───────────────────────────────────────────────────────
+// Mounted at /preview/frame (already proxied by Vite's /preview → :3001 rule).
+// When a sandbox project is running, proxies through to its port.
+// When nothing is running, serves a minimal dark HTML page.
+
+export function buildPreviewFrameHandler() {
+  sandboxProxy.on("error", (_err, _req, proxyRes) => {
+    try {
+      const r = proxyRes as Response;
+      if (!r.headersSent) {
+        r.setHeader("Content-Type", "text/html; charset=utf-8");
+        r.end(IDLE_HTML);
+      }
+    } catch { /* swallow */ }
+  });
+
+  return (_req: Request, res: Response, _next: NextFunction) => {
+    const entry = runtimeManager.get(1) ?? runtimeManager.all()[0];
+
+    if (!entry || (entry.status !== "running" && entry.status !== "starting")) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(IDLE_HTML);
+      return;
+    }
+
+    const port = entry.port ?? detectPortFromLogs(entry.logs as string[]) ?? 3000;
+    sandboxProxy.web(_req, res, { target: `http://localhost:${port}`, changeOrigin: true });
+  };
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────

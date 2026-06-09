@@ -21,6 +21,7 @@ export interface RuntimeStartOptions {
   command:  string;
   env?:     Record<string, string>;
   port?:    number;
+  cwd?:     string;
 }
 
 export interface RuntimeStartResult {
