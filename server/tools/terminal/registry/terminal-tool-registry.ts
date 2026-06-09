@@ -19,6 +19,12 @@ import { updatePackageTool }        from '../package-manager/update-package-tool
 import { listPackagesTool }         from '../package-manager/list-packages-tool.ts';
 import { detectPackageManagerTool } from '../package-manager/detect-package-manager-tool.ts';
 
+// ── NPM scripts ───────────────────────────────────────────────────────────────
+import { npmRunScriptTool } from '../npm/npm-run-script-tool.ts';
+import { npmBuildTool }     from '../npm/npm-build-tool.ts';
+import { npmTestTool }      from '../npm/npm-test-tool.ts';
+import { npmCiTool }        from '../npm/npm-ci-tool.ts';
+
 // ── Runtime ───────────────────────────────────────────────────────────────────
 import { startRuntimeTool }   from '../runtime/start-runtime-tool.ts';
 import { stopRuntimeTool }    from '../runtime/stop-runtime-tool.ts';
@@ -29,6 +35,13 @@ import { runtimeStatusTool }  from '../runtime/runtime-status-tool.ts';
 import { listProcessesTool } from '../process/list-processes-tool.ts';
 import { killProcessTool }   from '../process/kill-process-tool.ts';
 import { processLogsTool }   from '../process/process-logs-tool.ts';
+
+// ── Port ──────────────────────────────────────────────────────────────────────
+import { findFreePortTool } from '../port/find-free-port-tool.ts';
+import { portInUseTool }    from '../port/port-in-use-tool.ts';
+
+// ── Cleanup ───────────────────────────────────────────────────────────────────
+import { cleanupRunTool } from '../cleanup/cleanup-run-tool.ts';
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 import { pwdTool }   from '../shell/pwd-tool.ts';
@@ -50,6 +63,11 @@ const ALL_TERMINAL_TOOLS = [
   updatePackageTool,
   listPackagesTool,
   detectPackageManagerTool,
+  // NPM scripts
+  npmRunScriptTool,
+  npmBuildTool,
+  npmTestTool,
+  npmCiTool,
   // Runtime
   startRuntimeTool,
   stopRuntimeTool,
@@ -59,6 +77,11 @@ const ALL_TERMINAL_TOOLS = [
   listProcessesTool,
   killProcessTool,
   processLogsTool,
+  // Port
+  findFreePortTool,
+  portInUseTool,
+  // Cleanup
+  cleanupRunTool,
   // Shell
   pwdTool,
   lsTool,

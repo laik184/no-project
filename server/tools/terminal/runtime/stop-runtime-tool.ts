@@ -17,7 +17,7 @@ export const stopRuntimeTool: ToolDefinition = {
     sessionId: { type: 'string',  description: 'Terminal session identifier', required: true  },
     force:     { type: 'boolean', description: 'Use SIGKILL (immediate)',     required: false },
   },
-  permissions: ['execute', 'process'],
+  permissions: ['execute'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 

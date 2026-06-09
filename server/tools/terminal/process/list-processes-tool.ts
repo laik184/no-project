@@ -14,7 +14,7 @@ export const listProcessesTool: ToolDefinition = {
   category:    'terminal',
   description: 'List all tracked runtime processes and their current status.',
   inputSchema: {},
-  permissions: ['read', 'process'],
+  permissions: ['read'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 

@@ -10,28 +10,29 @@ import { executeTool, type TerminalDispatchOptions } from './dispatcher-client.t
 import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/types/execution-contracts.ts';
 
 // ── Terminal tool name constants ──────────────────────────────────────────────
+// These MUST match the names registered in terminal-tool-registry.ts exactly.
 
 export const TERMINAL_TOOLS = {
-  RUN_COMMAND:      'run_command',
-  NPM_INSTALL:      'npm_install',
-  NPM_RUN_SCRIPT:   'npm_run_script',
-  NPM_BUILD:        'npm_build',
-  NPM_TEST:         'npm_test',
-  NPM_CI:           'npm_ci',
+  RUN_COMMAND:      'terminal_execute_command',
+  NPM_INSTALL:      'terminal_install_package',
+  NPM_RUN_SCRIPT:   'terminal_npm_run_script',
+  NPM_BUILD:        'terminal_npm_build',
+  NPM_TEST:         'terminal_npm_test',
+  NPM_CI:           'terminal_npm_ci',
   WRITE_FILE:       'fs_write_file',
   READ_FILE:        'fs_read_file',
   PATCH_FILE:       'fs_patch_file',
   DELETE_FILE:      'fs_delete_file',
   READ_FOLDER:      'fs_read_folder',
   SEARCH_TEXT:      'fs_search_text',
-  PROCESS_START:    'process_start',
-  PROCESS_STOP:     'process_stop',
-  PROCESS_REGISTER: 'process_register',
-  CLEANUP_RUN:      'cleanup_run',
-  RESOLVE_PORT:     'resolve_port',
-  RELEASE_PORT:     'release_port',
-  FIND_FREE_PORT:   'find_free_port',
-  PORT_IN_USE:      'port_in_use',
+  PROCESS_START:    'terminal_start_runtime',
+  PROCESS_STOP:     'terminal_stop_runtime',
+  PROCESS_REGISTER: 'terminal_runtime_status',
+  CLEANUP_RUN:      'terminal_cleanup_run',
+  RESOLVE_PORT:     'terminal_find_free_port',
+  RELEASE_PORT:     'terminal_find_free_port',
+  FIND_FREE_PORT:   'terminal_find_free_port',
+  PORT_IN_USE:      'terminal_port_in_use',
 } as const;
 
 type ToolName = typeof TERMINAL_TOOLS[keyof typeof TERMINAL_TOOLS];
@@ -56,8 +57,8 @@ export async function coordinateCommand(
   opts?:      TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
   return runTool(TERMINAL_TOOLS.RUN_COMMAND, {
-    command, projectId: context.projectId, sandboxRoot: context.sandboxRoot, timeoutMs,
-  }, context, { timeoutMs, label: `run_command(${command.slice(0, 40)})`, ...opts });
+    command, timeoutMs,
+  }, context, { timeoutMs, label: `execute_command(${command.slice(0, 40)})`, ...opts });
 }
 
 // ── NPM coordination ──────────────────────────────────────────────────────────
@@ -68,9 +69,18 @@ export async function coordinateNpmInstall(
   dev       = false,
   opts?:    TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
+  // terminal_install_package takes a single packageName; install packages one by one.
+  // If no packages specified, run `npm install` to restore from package.json.
+  if (packages.length === 0) {
+    return runTool(TERMINAL_TOOLS.RUN_COMMAND, {
+      command: 'npm install',
+    }, context, { timeoutMs: 120_000, label: 'npm_install', ...opts });
+  }
+  // Install first package; additional packages will need separate calls.
   return runTool(TERMINAL_TOOLS.NPM_INSTALL, {
-    projectId: context.projectId, sandboxRoot: context.sandboxRoot, packages, dev,
-  }, context, { timeoutMs: 120_000, label: 'npm_install', ...opts });
+    packageName: packages[0],
+    dev,
+  }, context, { timeoutMs: 120_000, label: `npm_install(${packages[0]})`, ...opts });
 }
 
 export async function coordinateNpmScript(
@@ -80,7 +90,8 @@ export async function coordinateNpmScript(
   opts?:     TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
   return runTool(TERMINAL_TOOLS.NPM_RUN_SCRIPT, {
-    projectId: context.projectId, sandboxRoot: context.sandboxRoot, script,
+    script,
+    timeoutMs: timeoutMs ?? 60_000,
   }, context, { timeoutMs: timeoutMs ?? 60_000, label: `npm_run(${script})`, ...opts });
 }
 
@@ -88,18 +99,18 @@ export async function coordinateNpmBuild(
   context: ToolExecutionContext,
   opts?:   TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(TERMINAL_TOOLS.NPM_BUILD, {
-    projectId: context.projectId, sandboxRoot: context.sandboxRoot,
-  }, context, { timeoutMs: 180_000, label: 'npm_build', ...opts });
+  return runTool(TERMINAL_TOOLS.NPM_BUILD, {}, context, {
+    timeoutMs: 180_000, label: 'npm_build', ...opts,
+  });
 }
 
 export async function coordinateNpmTest(
   context: ToolExecutionContext,
   opts?:   TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(TERMINAL_TOOLS.NPM_TEST, {
-    projectId: context.projectId, sandboxRoot: context.sandboxRoot,
-  }, context, { timeoutMs: 120_000, label: 'npm_test', ...opts });
+  return runTool(TERMINAL_TOOLS.NPM_TEST, {}, context, {
+    timeoutMs: 120_000, label: 'npm_test', ...opts,
+  });
 }
 
 // ── Process coordination ──────────────────────────────────────────────────────
@@ -109,18 +120,22 @@ export async function coordinateProcessStart(
   context:  ToolExecutionContext,
   opts?:    TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
+  const sessionId = context.runId ?? 'agent-session';
   return runTool(TERMINAL_TOOLS.PROCESS_START, {
-    command, projectId: context.projectId, sandboxRoot: context.sandboxRoot,
+    sessionId,
+    command,
+    cwd: context.sandboxRoot,
   }, context, { label: `process_start(${command.slice(0, 30)})`, ...opts });
 }
 
 export async function coordinateProcessStop(
-  pid:     number,
+  _pid:    number,
   context: ToolExecutionContext,
   opts?:   TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  return runTool(TERMINAL_TOOLS.PROCESS_STOP, { pid }, context, {
-    label: `process_stop(${pid})`, ...opts,
+  const sessionId = context.runId ?? 'agent-session';
+  return runTool(TERMINAL_TOOLS.PROCESS_STOP, { sessionId }, context, {
+    label: `process_stop(${sessionId})`, ...opts,
   });
 }
 
@@ -141,6 +156,6 @@ export async function coordinateResolvePort(
   opts?:       TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
   return runTool(TERMINAL_TOOLS.RESOLVE_PORT, {
-    runId: context.runId, projectId: context.projectId, preferred,
-  }, context, { label: 'resolve_port', ...opts });
+    preferred,
+  }, context, { label: 'find_free_port', ...opts });
 }

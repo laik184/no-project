@@ -32,6 +32,7 @@ import {
 }                                     from '@services/chat';
 import { clarificationManager }       from '../questions/clarification-manager.ts';
 import { runChatLLM }                 from '../llm/chat-llm.ts';
+import { hasLLMKey }                  from '../../shared/llm-client.ts';
 import { bus, SANDBOX_ROOT }          from '../../infrastructure/index.ts';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
 import { logError }                   from '../../shared/errors/index.ts';
@@ -167,6 +168,27 @@ export const chatOrchestrator = {
       })();
       return run;
     }
+
+    // ── LLM key guard ────────────────────────────────────────────────────────
+    // Surface a friendly message if no API key is configured, rather than
+    // letting the orchestration engine crash silently deep in the stack.
+    if (!hasLLMKey()) {
+      void (async () => {
+        streamManager.open(runId, payload.projectId);
+        streamManager.append(runId,
+          '⚠️  No OpenRouter API key found.\n\n' +
+          'To enable AI code generation, add your key in **Replit Secrets**:\n' +
+          '1. Open the Secrets panel (lock icon in the sidebar)\n' +
+          '2. Add a new secret: `OPENROUTER_API_KEY` = your key from https://openrouter.ai\n' +
+          '3. Restart the application\n\n' +
+          'Get a free key at https://openrouter.ai/keys',
+        );
+        streamManager.close(runId);
+        await _completeRun(run, turn.turnId).catch(e => logError(e, 'complete-run-no-key'));
+      })();
+      return run;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     void orchestrate({
       orchestrationId: crypto.randomUUID(),

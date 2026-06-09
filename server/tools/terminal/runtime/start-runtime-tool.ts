@@ -18,7 +18,7 @@ export const startRuntimeTool: ToolDefinition = {
     command:   { type: 'string', description: 'Command to run (e.g. "npm start")',                 required: true  },
     cwd:       { type: 'string', description: 'Absolute working directory (defaults to sandbox)',   required: false },
   },
-  permissions: ['execute', 'process'],
+  permissions: ['execute'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 

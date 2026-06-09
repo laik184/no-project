@@ -16,7 +16,7 @@ export const runtimeStatusTool: ToolDefinition = {
   inputSchema: {
     sessionId: { type: 'string', description: 'Terminal session identifier', required: true },
   },
-  permissions: ['read', 'process'],
+  permissions: ['read'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 

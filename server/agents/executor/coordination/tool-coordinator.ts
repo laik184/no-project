@@ -14,20 +14,23 @@ export function coordinateTerminal(task: ExecutionTask, sandboxRoot: string): Ro
   const input = task.input as Record<string, unknown>;
   const subKind = String(input.subKind ?? 'run_script');
 
+  // Tool names MUST match registered names in terminal-tool-registry.ts exactly.
   const toolMap: Record<string, string> = {
-    run_script:     'npm_run_script',
-    start_process:  'process_start',
-    stop_process:   'process_stop',
-    watch_process:  'process_watch',
-    install:        'npm_install',
-    build:          'npm_build',
-    test:           'npm_test',
-    find_port:      'find_free_port',
-    check_port:     'port_in_use',
-    cleanup:        'cleanup_run',
+    run_script:     'terminal_npm_run_script',
+    start_process:  'terminal_start_runtime',
+    stop_process:   'terminal_stop_runtime',
+    watch_process:  'terminal_runtime_status',
+    install:        'terminal_install_package',
+    build:          'terminal_npm_build',
+    test:           'terminal_npm_test',
+    ci:             'terminal_npm_ci',
+    execute:        'terminal_execute_command',
+    find_port:      'terminal_find_free_port',
+    check_port:     'terminal_port_in_use',
+    cleanup:        'terminal_cleanup_run',
   };
 
-  const toolName = toolMap[subKind] ?? 'npm_run_script';
+  const toolName = toolMap[subKind] ?? 'terminal_npm_run_script';
 
   return {
     toolName,

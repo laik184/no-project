@@ -1,0 +1,345 @@
+NURAX SYSTEM COLLAPSE RECOVERY MASTER PROMPT
+
+You are a Principal AI Systems Engineer, Distributed Systems Auditor, and Autonomous Agent Recovery Specialist.
+
+Your mission is NOT to fix a specific bug.
+
+Your mission is to discover why the entire platform behaves like a dead system.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBSERVED FAILURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The system behaves as follows:
+
+- Chat UI may render
+- Agents do not execute
+- Tools do not execute
+- Terminal does not execute commands
+- File Explorer does not modify files
+- Preview does not run applications
+- Runtime does not start correctly
+- Website does not load
+- Agent actions produce no real effects
+
+The platform behaves like a chatbot shell instead of a coding agent.
+
+Treat this as a SYSTEM COLLAPSE investigation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT ASSUME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do not assume:
+
+- agents are correct
+- tools are correct
+- memory is correct
+- repositories are correct
+- services are correct
+- infrastructure is correct
+- runtime is correct
+- preview is correct
+
+Trust nothing.
+
+Verify everything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE INVESTIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Deep scan the entire codebase.
+
+Build a complete execution graph.
+
+Discover:
+
+User
+↓
+Chat
+↓
+Orchestrator
+↓
+Agent
+↓
+Tool
+↓
+Service
+↓
+Repository
+↓
+Persistence
+↓
+Infrastructure
+↓
+Runtime
+↓
+Preview
+
+Verify every hop.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEAD EXECUTION DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+- execution stops
+- missing registrations
+- missing dependency injection
+- broken event bus
+- broken tool registry
+- broken agent registry
+- broken runtime startup
+- missing listeners
+- missing service bindings
+- failed initialization
+- startup race conditions
+- runtime crashes
+- silent failures
+- swallowed exceptions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BOOTSTRAP AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Application Startup
+
+Module Registration
+
+Agent Registration
+
+Tool Registration
+
+Memory Registration
+
+Runtime Registration
+
+Preview Registration
+
+Event Registration
+
+Dependency Injection Registration
+
+Container Wiring
+
+Find anything not connected.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AGENT EXECUTION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Can agent receive tasks?
+
+Can agent create plans?
+
+Can agent call tools?
+
+Can agent receive tool results?
+
+Can agent continue execution?
+
+Can agent write files?
+
+Can agent read files?
+
+Can agent update project?
+
+Can agent recover from failures?
+
+Find every break.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOOL EXECUTION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Tool Discovery
+
+Tool Registration
+
+Tool Routing
+
+Tool Invocation
+
+Tool Result Handling
+
+Tool Permissions
+
+Tool Return Flow
+
+Find any broken link.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TERMINAL AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Process Spawn
+
+Command Execution
+
+Runtime Manager
+
+Terminal Streaming
+
+Stdout Handling
+
+Stderr Handling
+
+Command Completion
+
+Find why commands are not executing.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE SYSTEM AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Read Access
+
+Write Access
+
+Edit Access
+
+Patch Application
+
+Workspace Routing
+
+File Persistence
+
+Find why code is not being generated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PREVIEW AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Runtime Startup
+
+Port Detection
+
+Health Monitoring
+
+SSE Events
+
+Preview Lifecycle
+
+Iframe Routing
+
+Preview Refresh
+
+Find why preview is dead.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MEMORY AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Chunking
+
+Embedding
+
+Retrieval
+
+Context Injection
+
+Memory Access
+
+Memory Consumption
+
+Determine whether memory is connected to execution.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUTONOMOUS RECOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do not stop at diagnosis.
+
+For every root cause:
+
+Find
+↓
+Fix
+↓
+Verify
+↓
+Retest
+
+Continue automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END TO END TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a test task:
+
+"Create a simple page and run it"
+
+Verify:
+
+Agent
+↓
+Tool
+↓
+File Write
+↓
+Terminal
+↓
+Runtime
+↓
+Preview
+
+If any stage fails:
+
+Trace root cause.
+
+Fix it.
+
+Retest.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Output:
+
+1. Root Cause(s)
+
+2. System Collapse Point
+
+3. Broken Registrations
+
+4. Broken Dependency Chains
+
+5. Broken Agent Flows
+
+6. Broken Tool Flows
+
+7. Broken Runtime Flows
+
+8. Broken Preview Flows
+
+9. Fixes Applied
+
+10. Verification Results
+
+11. Remaining Risks
+
+12. Autonomous Agent Readiness %
+
+Goal:
+
+Transform the platform from a chatbot shell into a fully functioning autonomous coding agent.
+
+Do not stop until execution flow works end-to-end.

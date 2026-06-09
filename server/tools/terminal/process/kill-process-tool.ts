@@ -17,7 +17,7 @@ export const killProcessTool: ToolDefinition = {
     pid:   { type: 'number',  description: 'Process ID to kill',              required: true  },
     force: { type: 'boolean', description: 'Use SIGKILL instead of SIGTERM',  required: false },
   },
-  permissions: ['execute', 'process'],
+  permissions: ['execute'],
   timeoutMs:   TIMEOUT.FAST,
   retry:       RETRY_NONE,
 

@@ -17,6 +17,9 @@ import { validateRuntimeTool }           from './validate-runtime-tool.ts';
 import { validateDependenciesTool }      from './validate-dependencies-tool.ts';
 import { analyzeErrorsTool }             from './analyze-errors-tool.ts';
 import { verifierFailureRecoveryTool }   from './verifier-failure-recovery-tool.ts';
+import { detectRootCausesTool }          from './detect-root-causes-tool.ts';
+import { parseRuntimeLogsTool }          from './parse-runtime-logs-tool.ts';
+import { detectRuntimeCrashTool }        from './detect-runtime-crash-tool.ts';
 
 const ALL_VERIFIER_TOOLS = [
   runTypecheckTool,
@@ -28,6 +31,9 @@ const ALL_VERIFIER_TOOLS = [
   validateDependenciesTool,
   analyzeErrorsTool,
   verifierFailureRecoveryTool,
+  detectRootCausesTool,
+  parseRuntimeLogsTool,
+  detectRuntimeCrashTool,
 ] as const;
 
 let _registered = false;
