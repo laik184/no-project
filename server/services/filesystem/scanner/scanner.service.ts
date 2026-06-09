@@ -50,6 +50,8 @@ export interface ScanWithFiltersOptions {
   readonly maxDepth?:      number;
   readonly includeHidden?: boolean;
   readonly extensions?:    string[];
+  /** Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot when omitted. */
+  readonly sandboxRoot?:   string;
 }
 
 export interface CountResult {
@@ -77,8 +79,9 @@ class ScannerService {
    * Resolves an optional relative project path to an absolute sandbox path.
    * Returns the sandbox root when no path is provided.
    */
-  private resolveRoot(projectPath?: string): string {
-    return projectPath ? resolveSafe(projectPath) : FE_CONFIG.sandboxRoot;
+  private resolveRoot(projectPath?: string, sandboxRoot?: string): string {
+    const root = sandboxRoot ?? FE_CONFIG.sandboxRoot;
+    return projectPath ? resolveSafe(projectPath, root) : root;
   }
 
   /**
@@ -95,7 +98,8 @@ class ScannerService {
     if (depth > opts.maxDepth)       return;
     if (results.length >= MAX_ENTRIES) return;
 
-    const dirEntries = filesystemRepository.readDir(absDir, FE_CONFIG.sandboxRoot);
+    const sandboxRoot = opts.sandboxRoot ?? FE_CONFIG.sandboxRoot;
+    const dirEntries  = filesystemRepository.readDir(absDir, sandboxRoot);
 
     for (const entry of dirEntries) {
       if (!opts.includeHidden && isHidden(entry.name)) continue;
@@ -129,7 +133,7 @@ class ScannerService {
    */
   scanFolder(projectPath?: string, opts: ScanWithFiltersOptions = {}): ScanResult {
     try {
-      const absRoot = this.resolveRoot(projectPath);
+      const absRoot = this.resolveRoot(projectPath, opts.sandboxRoot);
       const relRoot = projectPath ?? '';
       const stat    = filesystemRepository.stat(absRoot);
 
@@ -145,6 +149,7 @@ class ScannerService {
         maxDepth:      opts.maxDepth      ?? DEFAULT_MAX_DEPTH,
         includeHidden: opts.includeHidden ?? false,
         extensions:    opts.extensions    ?? [],
+        sandboxRoot:   opts.sandboxRoot   ?? FE_CONFIG.sandboxRoot,
       };
 
       const entries: ScanEntry[] = [];

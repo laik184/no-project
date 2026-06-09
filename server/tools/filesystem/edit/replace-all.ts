@@ -21,19 +21,19 @@ export const replaceAllTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path        = assertInputPath(input.path, 'path');
     const search      = assertInputString(input.search, 'search');
     const replacement = assertInputString(input.replacement, 'replacement');
 
-    const read = readService.readFile(path);
+    const read = readService.readFile(path, ctx.sandboxRoot);
     if (!read.ok) throw new Error(read.error ?? 'Failed to read file');
 
     const original   = read.content ?? '';
     const newContent = original.split(search).join(replacement);
     const count      = (original.split(search).length - 1);
 
-    const write = writeService.saveFile(path, newContent);
+    const write = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { replaced: count, path };
   },

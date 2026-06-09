@@ -21,11 +21,11 @@ export const searchTextTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
-    const path          = assertInputPath(input.path, 'path');
+  handler: async (input, ctx: ToolExecutionContext) => {
+    const searchPath    = assertInputPath(input.path, 'path');
     const query         = assertInputString(input.query, 'query');
     const caseSensitive = (input.caseSensitive as boolean) ?? false;
-    const result = searchService.search(query, path, caseSensitive);
+    const result = searchService.search(query, searchPath, caseSensitive, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Search failed');
     return { matches: result.matches, total: result.total };
   },

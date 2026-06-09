@@ -20,10 +20,10 @@ export const fileEntriesTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
-    const path          = assertInputPath(input.path, 'path');
+  handler: async (input, ctx: ToolExecutionContext) => {
+    const folderPath    = assertInputPath(input.path, 'path');
     const includeHidden = (input.includeHidden as boolean) ?? false;
-    const result = scannerService.scanFolder(path, { maxDepth: 1, includeHidden });
+    const result = scannerService.scanFolder(folderPath, { maxDepth: 1, includeHidden, sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to list file entries');
     return result.entries.filter(e => e.kind === 'file');
   },

@@ -1,6 +1,9 @@
 /**
  * server/file-explorer/services/read/read.service.ts
  * Reads file content with encoding detection, binary guard, and size guard.
+ *
+ * readFile() accepts an optional sandboxRoot so that agent tools can pass the
+ * per-execution context root instead of the global FE_CONFIG root.
  */
 
 import { FE_CONFIG }              from '../../../shared/file-explorer-core/config/index.ts';
@@ -14,10 +17,14 @@ class ReadService {
   /**
    * Reads a file and returns its content with metadata.
    * Returns { ok: false } for binary files, missing files, or files exceeding maxReadSizeBytes.
+   *
+   * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
+   *                     Agent tools must pass ctx.sandboxRoot here for per-project isolation.
    */
-  readFile(filePath: string): ReadResponse {
+  readFile(filePath: string, sandboxRoot?: string): ReadResponse {
     try {
-      const abs  = resolveSafe(filePath);
+      const root = sandboxRoot ?? FE_CONFIG.sandboxRoot;
+      const abs  = resolveSafe(filePath, root);
       const stat = filesystemRepository.stat(abs);
 
       if (!stat.exists) {

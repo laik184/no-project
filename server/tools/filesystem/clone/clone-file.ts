@@ -20,10 +20,10 @@ export const cloneFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const sourcePath      = assertInputPath(input.sourcePath,      'sourcePath');
     const destinationPath = assertInputPath(input.destinationPath, 'destinationPath');
-    const result          = duplicateService.duplicate(sourcePath, destinationPath);
+    const result          = duplicateService.duplicate(sourcePath, destinationPath, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to clone file');
     return { cloned: true, from: sourcePath, to: result.destPath };
   },

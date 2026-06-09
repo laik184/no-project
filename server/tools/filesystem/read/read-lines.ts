@@ -21,14 +21,14 @@ export const readLinesTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path = assertInputPath(input.path, 'path');
     const from = input.from as number;
     const to   = input.to   as number;
     if (!Number.isInteger(from) || from < 1) throw new Error('"from" must be a positive integer');
     if (!Number.isInteger(to)   || to < from) throw new Error('"to" must be >= "from"');
 
-    const result = readService.readFile(path);
+    const result = readService.readFile(path, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to read file');
 
     const lines = (result.content ?? '').split('\n');

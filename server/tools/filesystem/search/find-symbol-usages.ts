@@ -20,7 +20,7 @@ export const findSymbolUsagesTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path,     'path');
     const symbol = assertInputString(input.symbol, 'symbol');
     const result = dependencyAnalysisService.findSymbolUsages(symbol, path);

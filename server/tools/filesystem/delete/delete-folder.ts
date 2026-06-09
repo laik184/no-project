@@ -20,10 +20,10 @@ export const deleteFolderTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const mustExist = (input.mustExist as boolean) ?? false;
-    const result    = deleteService.delete(path);
+    const result    = deleteService.delete(path, ctx.sandboxRoot);
     if (!result.ok) {
       if (!mustExist && (result.error?.includes('Not found') ?? false)) {
         return { deleted: false, path, skipped: true };

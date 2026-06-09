@@ -1,6 +1,10 @@
 /**
  * server/tools/filesystem/write/write-file.ts
  * Tool: fs_write_file
+ *
+ * FIX: ctx.sandboxRoot is now passed to writeService.saveFile() so that
+ * per-project sandboxes are respected. Previously _ctx was ignored and all
+ * writes landed in the global FE_CONFIG.sandboxRoot regardless of project.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -20,11 +24,11 @@ export const writeFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
     historyService.snapshotBeforeWrite(path);
-    const result  = writeService.saveFile(path, content);
+    const result  = writeService.saveFile(path, content, undefined, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to write file');
     return { written: true, path, serverMtime: result.serverMtime };
   },

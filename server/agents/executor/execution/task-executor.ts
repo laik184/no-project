@@ -102,9 +102,28 @@ export async function executeTask(
       console.error('[task-executor] File persistence threw unexpectedly:', err);
       return { written: [], failed: [] };
     });
+
     if (persist.failed.length > 0 && persist.written.length === 0) {
-      // Every file failed — surface as task error so the caller knows nothing landed on disk
+      // Every file failed to write — coding task produced nothing on disk; surface as failure.
       console.error(`[task-executor] All ${persist.failed.length} generated file(s) failed to persist`);
+      executionMonitor.incrementDone(context.runId);
+      incrementTaskDone(context.sessionId);
+      return {
+        taskId:   task.taskId,
+        kind:     task.kind,
+        ok:       false,
+        output:   result.output,
+        error:    `All ${persist.failed.length} generated file(s) failed to write to disk`,
+        attempts: result.attempts,
+      };
+    }
+
+    if (persist.failed.length > 0) {
+      // Partial failure — some files written, some not. Log clearly so users know.
+      console.warn(
+        `[task-executor] Partial persistence: ${persist.written.length} written, ` +
+        `${persist.failed.length} failed: ${persist.failed.join(', ')}`,
+      );
     }
   }
 

@@ -21,12 +21,12 @@ export const renameFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const filePath = assertInputPath(input.path, 'path');
     const newName  = assertInputString(input.newName, 'newName');
     const destPath = path.join(path.dirname(filePath), newName);
 
-    const result = renameService.rename(filePath, destPath);
+    const result = renameService.rename(filePath, destPath, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to rename file');
     return { renamed: true, from: filePath, to: destPath };
   },

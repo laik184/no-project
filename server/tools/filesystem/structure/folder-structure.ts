@@ -52,12 +52,12 @@ export const folderStructureTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path          = assertInputPath(input.path, 'path');
     const maxDepth      = (input.maxDepth      as number)  ?? 8;
     const includeHidden = (input.includeHidden as boolean) ?? false;
 
-    const result = scannerService.scanFolder(path, { maxDepth, includeHidden });
+    const result = scannerService.scanFolder(path, { maxDepth, includeHidden, sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to scan folder');
     return buildTree(result.entries);
   },

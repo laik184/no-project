@@ -21,20 +21,20 @@ export const searchRegexTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const pattern = assertInputString(input.pattern, 'pattern');
     const flags   = ((input.flags as string) ?? 'g').replace('g', '').concat('g');
     const regex   = new RegExp(pattern, flags);
 
-    const scan = scannerService.scanFolder(path, { maxDepth: 20 });
+    const scan = scannerService.scanFolder(path, { maxDepth: 20, sandboxRoot: ctx.sandboxRoot });
     if (!scan.ok) throw new Error(scan.error ?? 'Failed to scan folder');
 
     const matches: { path: string; line: number; column: number; text: string }[] = [];
 
     for (const entry of scan.entries) {
       if (entry.kind !== 'file') continue;
-      const read = readService.readFile(entry.relativePath);
+      const read = readService.readFile(entry.relativePath, ctx.sandboxRoot);
       if (!read.ok) continue;
 
       const lines = (read.content ?? '').split('\n');

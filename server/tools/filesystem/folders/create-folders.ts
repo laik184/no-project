@@ -18,13 +18,13 @@ export const createFoldersTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const paths = input.paths as string[];
     if (!Array.isArray(paths) || paths.length === 0) {
       throw new Error('"paths" must be a non-empty array');
     }
     return paths.map(p => {
-      const r = createService.createEntry(p, true);
+      const r = createService.createEntry(p, true, '', ctx.sandboxRoot);
       return { path: p, created: r.ok, error: r.ok ? undefined : r.error };
     });
   },

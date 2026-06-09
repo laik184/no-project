@@ -21,21 +21,21 @@ export const replaceLineTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path       = assertInputPath(input.path, 'path');
     const newContent = assertInputString(input.newContent, 'newContent');
     const lineResult = validateLineNumber(input.lineNumber, 'lineNumber');
     if (!lineResult.valid) throw new Error(lineResult.error!);
     const lineNumber = input.lineNumber as number;
 
-    const read = readService.readFile(path);
+    const read = readService.readFile(path, ctx.sandboxRoot);
     if (!read.ok) throw new Error(read.error ?? 'Failed to read file');
 
     const lines = (read.content ?? '').split('\n');
     if (lineNumber > lines.length) throw new Error(`Line ${lineNumber} does not exist (file has ${lines.length} lines)`);
 
     lines[lineNumber - 1] = newContent;
-    const write = writeService.saveFile(path, lines.join('\n'));
+    const write = writeService.saveFile(path, lines.join('\n'), undefined, ctx.sandboxRoot);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { replaced: true, path, lineNumber };
   },

@@ -20,13 +20,13 @@ export const scanExtensionTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path       = assertInputPath(input.path, 'path');
     const extensions = input.extensions as string[];
     if (!Array.isArray(extensions) || extensions.length === 0) {
       throw new Error('"extensions" must be a non-empty array');
     }
-    const result = scannerService.scanExtension(extensions, path);
+    const result = scannerService.scanFolder(path, { extensions, sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to scan by extension');
     return result;
   },

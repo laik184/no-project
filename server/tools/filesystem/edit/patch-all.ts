@@ -21,12 +21,12 @@ export const patchAllTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const oldString = assertInputString(input.oldString, 'oldString');
     const newString = assertInputString(input.newString, 'newString');
 
-    const read = readService.readFile(path);
+    const read = readService.readFile(path, ctx.sandboxRoot);
     if (!read.ok) throw new Error(read.error ?? 'Failed to read file');
 
     const original   = read.content ?? '';
@@ -34,7 +34,7 @@ export const patchAllTool: ToolDefinition = {
     if (count === 0) throw new Error(`"oldString" not found in file: ${path}`);
 
     const newContent = original.split(oldString).join(newString);
-    const write      = writeService.saveFile(path, newContent);
+    const write      = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { patched: count, path };
   },

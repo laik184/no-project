@@ -19,7 +19,7 @@ export const fileMetadataTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path, 'path');
     const result = metadataService.getMeta(path);
     if (!result.ok) throw new Error(result.error ?? 'Failed to get metadata');

@@ -21,13 +21,12 @@ export const findByExtensionTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const extension = assertInputString(input.extension, 'extension');
-    const maxDepth  = (input.maxDepth as number) ?? 10;
     const ext       = extension.startsWith('.') ? extension : `.${extension}`;
 
-    const result = scannerService.scanExtension([ext], path);
+    const result = scannerService.scanFolder(path, { extensions: [ext], sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to scan by extension');
     return result.entries;
   },

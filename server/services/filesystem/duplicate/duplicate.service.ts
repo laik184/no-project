@@ -14,12 +14,13 @@ import type { DuplicateResponse }   from '../../../shared/file-explorer-core/con
 class DuplicateService {
 
   /**
-   * Copies sourcePath to destPath.
-   * If destPath is omitted, auto-generates a unique sibling name ("foo copy.ts").
+   * Copies sourcePath to destPath. If destPath is omitted, auto-generates a unique sibling name.
+   * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
+   *                     Agent tools must pass ctx.sandboxRoot for per-project isolation.
    */
-  duplicate(sourcePath: string, destPath?: string): DuplicateResponse {
+  duplicate(sourcePath: string, destPath?: string, sandboxRoot?: string): DuplicateResponse {
     try {
-      const absSrc = resolveSafe(sourcePath);
+      const absSrc = resolveSafe(sourcePath, sandboxRoot);
 
       if (!filesystemRepository.exists(absSrc)) {
         return { ok: false, error: `Source not found: ${sourcePath}` };
@@ -27,7 +28,7 @@ class DuplicateService {
 
       let absDest: string;
       if (destPath) {
-        absDest = resolveSafe(destPath);
+        absDest = resolveSafe(destPath, sandboxRoot);
       } else {
         const siblings = filesystemRepository.siblingNames(absSrc);
         const srcName  = path.basename(absSrc);

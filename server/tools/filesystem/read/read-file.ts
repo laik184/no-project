@@ -1,6 +1,9 @@
 /**
  * server/tools/filesystem/read/read-file.ts
  * Tool: fs_read_file
+ *
+ * FIX: ctx.sandboxRoot is now passed to readService.readFile() so that
+ * per-project sandboxes are respected. Previously _ctx was ignored.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -19,9 +22,9 @@ export const readFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path, 'path');
-    const result = readService.readFile(path);
+    const result = readService.readFile(path, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to read file');
     return result.content;
   },

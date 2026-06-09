@@ -22,14 +22,14 @@ export const findByPatternTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path     = assertInputPath(input.path, 'path');
     const pattern  = assertInputString(input.pattern, 'pattern');
     const flags    = (input.flags    as string) ?? 'i';
     const maxDepth = (input.maxDepth as number) ?? 10;
     const regex    = new RegExp(pattern, flags);
 
-    const result = scannerService.scanFolder(path, { maxDepth });
+    const result = scannerService.scanFolder(path, { maxDepth, sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to scan folder');
     return result.entries.filter(e => regex.test(e.name));
   },

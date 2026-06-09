@@ -1,6 +1,10 @@
 /**
  * server/file-explorer/services/write/write.service.ts
  * Writes file content with optional clientMtime conflict detection.
+ *
+ * saveFile() accepts an optional sandboxRoot parameter so that agent tools
+ * can pass the per-execution context root instead of the global FE_CONFIG root.
+ * The file-explorer UI omits sandboxRoot and gets the global default.
  */
 
 import path                     from 'path';
@@ -16,10 +20,14 @@ class WriteService {
    * Saves file content to disk.
    * If clientMtime is provided and diverges > 1 second from server mtime, returns conflict=true.
    * Invalidates the metadata cache on success.
+   *
+   * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
+   *                     Agent tools must pass ctx.sandboxRoot here for per-project isolation.
    */
-  saveFile(filePath: string, content: string, clientMtime?: number): WriteResponse {
+  saveFile(filePath: string, content: string, clientMtime?: number, sandboxRoot?: string): WriteResponse {
     try {
-      const abs  = resolveSafe(filePath);
+      const root = sandboxRoot ?? FE_CONFIG.sandboxRoot;
+      const abs  = resolveSafe(filePath, root);
       const stat = filesystemRepository.stat(abs);
 
       if (stat.exists && !stat.isDir && clientMtime !== undefined) {
@@ -29,7 +37,7 @@ class WriteService {
         }
       }
 
-      const relPath = path.relative(FE_CONFIG.sandboxRoot, abs).split(path.sep).join('/');
+      const relPath = path.relative(root, abs).split(path.sep).join('/');
       filesystemRepository.writeText(abs, content, { projectId: 1, relPath });
       metadataRepository.invalidate(abs);
       const newStat = filesystemRepository.stat(abs);

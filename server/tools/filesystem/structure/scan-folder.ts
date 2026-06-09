@@ -22,13 +22,13 @@ export const scanFolderTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path          = assertInputPath(input.path, 'path');
     const maxDepth      = (input.maxDepth      as number  ) ?? 10;
     const includeHidden = (input.includeHidden as boolean ) ?? false;
     const extensions    = (input.extensions    as string[]) ?? [];
 
-    const result = scannerService.scanFolder(path, { maxDepth, includeHidden, extensions });
+    const result = scannerService.scanFolder(path, { maxDepth, includeHidden, extensions, sandboxRoot: ctx.sandboxRoot });
     if (!result.ok) throw new Error(result.error ?? 'Failed to scan folder');
     return result;
   },

@@ -20,7 +20,7 @@ export const deleteMultipleTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const paths = input.paths as string[];
     if (!Array.isArray(paths) || paths.length === 0) {
       throw new Error('"paths" must be a non-empty array');
@@ -29,7 +29,7 @@ export const deleteMultipleTool: ToolDefinition = {
       throw new Error(`Cannot delete more than ${MAX_BATCH} files at once`);
     }
     return paths.map(p => {
-      const r = deleteService.delete(p);
+      const r = deleteService.delete(p, ctx.sandboxRoot);
       return { path: p, deleted: r.ok, error: r.ok ? undefined : r.error };
     });
   },

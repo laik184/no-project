@@ -20,14 +20,14 @@ export const writeIfAbsentTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
 
-    const existing = readService.readFile(path);
+    const existing = readService.readFile(path, ctx.sandboxRoot);
     if (existing.ok) return { written: false, path, skipped: true };
 
-    const result = createService.createEntry(path, false, content);
+    const result = createService.createEntry(path, false, content, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to write file');
     return { written: true, path, skipped: false };
   },

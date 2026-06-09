@@ -11,13 +11,14 @@ import type { RenameResponse }   from '../../../shared/file-explorer-core/contra
 class RenameService {
 
   /**
-   * Renames or moves oldPath to newPath.
-   * Destination parent directory is auto-created if absent.
+   * Renames or moves oldPath to newPath. Destination parent is auto-created.
+   * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
+   *                     Agent tools must pass ctx.sandboxRoot for per-project isolation.
    */
-  rename(oldPath: string, newPath: string): RenameResponse {
+  rename(oldPath: string, newPath: string, sandboxRoot?: string): RenameResponse {
     try {
-      const absOld = resolveSafe(oldPath);
-      const absNew = resolveSafe(newPath);
+      const absOld = resolveSafe(oldPath, sandboxRoot);
+      const absNew = resolveSafe(newPath, sandboxRoot);
 
       if (!filesystemRepository.exists(absOld)) {
         return { ok: false, error: `Source not found: ${oldPath}` };

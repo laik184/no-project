@@ -1,6 +1,9 @@
 /**
  * server/tools/filesystem/write/ensure-file.ts
  * Tool: fs_ensure_file
+ *
+ * FIX: ctx.sandboxRoot is now passed to createService so that
+ * per-project sandboxes are respected. Previously _ctx was ignored.
  */
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
@@ -20,10 +23,10 @@ export const ensureFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputString(input.content, 'content');
-    const result  = createService.createEntry(path, false, content);
+    const result  = createService.createEntry(path, false, content, ctx.sandboxRoot);
     const created = result.ok;
     const alreadyExists = !result.ok && (result.error?.includes('Already exists') ?? false);
     if (!result.ok && !alreadyExists) throw new Error(result.error ?? 'Failed to ensure file');

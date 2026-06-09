@@ -33,7 +33,9 @@ import {
 import { clarificationManager }       from '../questions/clarification-manager.ts';
 import { runChatLLM }                 from '../llm/chat-llm.ts';
 import { hasLLMKey }                  from '../../shared/llm-client.ts';
-import { bus, SANDBOX_ROOT }          from '../../infrastructure/index.ts';
+import { bus, SANDBOX_ROOT, db }      from '../../infrastructure/index.ts';
+import { projects }                   from '../../../shared/schema.ts';
+import { eq }                         from 'drizzle-orm';
 import { memoryEngine, buildMemoryContextString } from '../../memory/index.ts';
 import { logError }                   from '../../shared/errors/index.ts';
 import type {
@@ -43,7 +45,17 @@ import type {
   RunMode,
 }                                     from '../types/run.types.ts';
 
-const SANDBOX = SANDBOX_ROOT;
+/** Resolve the sandbox root for a given project. Falls back to global SANDBOX_ROOT. */
+async function resolveProjectSandbox(projectId: number): Promise<string> {
+  try {
+    const [row] = await db.select({ sandboxPath: projects.sandboxPath })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+    if (row?.sandboxPath?.trim()) return row.sandboxPath.trim();
+  } catch { /* non-fatal — fall through to global default */ }
+  return SANDBOX_ROOT;
+}
 
 // ── Error class ───────────────────────────────────────────────────────────────
 
@@ -190,11 +202,13 @@ export const chatOrchestrator = {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    const sandboxRoot = await resolveProjectSandbox(payload.projectId);
+
     void orchestrate({
       orchestrationId: crypto.randomUUID(),
       runId,
       projectId:       String(payload.projectId),
-      sandboxRoot:     SANDBOX,
+      sandboxRoot,
       goal:            refinedGoal,
       context:         {
         ...(payload.context ?? {}),

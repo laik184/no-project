@@ -19,7 +19,7 @@ export const findExportsTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.LONG,
   retry:       RETRY_ONCE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path, 'path');
     const result = dependencyAnalysisService.findExports(path);
     if (!result.ok) throw new Error(result.error ?? 'Failed to find exports');

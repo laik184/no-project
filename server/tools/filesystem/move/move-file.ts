@@ -22,13 +22,13 @@ export const moveFileTool: ToolDefinition = {
   timeoutMs:   TIMEOUT.DEFAULT,
   retry:       RETRY_NONE,
 
-  handler: async (input, _ctx: ToolExecutionContext) => {
+  handler: async (input, ctx: ToolExecutionContext) => {
     const sourcePath     = assertInputPath(input.sourcePath,     'sourcePath');
     const destinationDir = assertInputPath(input.destinationDir, 'destinationDir');
     const newName        = (input.newName as string | undefined) ?? path.basename(sourcePath);
     const destPath       = path.join(destinationDir, newName);
 
-    const result = renameService.rename(sourcePath, destPath);
+    const result = renameService.rename(sourcePath, destPath, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to move file');
     return { moved: true, from: sourcePath, to: destPath };
   },

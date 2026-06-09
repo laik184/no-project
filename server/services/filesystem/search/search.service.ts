@@ -17,20 +17,22 @@ class SearchService {
   /**
    * Searches all text files under projectPath (default: sandbox root) for query.
    * Returns up to FE_CONFIG.maxSearchResults matches.
-   * No direct fs access — delegates entirely to filesystemRepository.
+   * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
+   *                     Agent tools must pass ctx.sandboxRoot for per-project isolation.
    */
-  search(query: string, projectPath?: string, caseSensitive = false): SearchResponse {
+  search(query: string, projectPath?: string, caseSensitive = false, sandboxRoot?: string): SearchResponse {
     if (!query.trim()) {
       return { ok: false, matches: [], total: 0, error: 'Query is empty' };
     }
 
     try {
-      const root   = projectPath ? resolveSafe(projectPath) : FE_CONFIG.sandboxRoot;
+      const root    = sandboxRoot ?? FE_CONFIG.sandboxRoot;
+      const absRoot = projectPath ? resolveSafe(projectPath, root) : root;
       const needle = caseSensitive ? query : query.toLowerCase();
       const matches: SearchMatch[] = [];
       const max    = FE_CONFIG.maxSearchResults;
 
-      for (const record of filesystemRepository.walkFiles(root, FE_CONFIG.sandboxRoot)) {
+      for (const record of filesystemRepository.walkFiles(absRoot, root)) {
         if (matches.length >= max) break;
         if (record.size > MAX_FILE_SEARCH_BYTES) continue;
 
