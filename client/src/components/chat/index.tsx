@@ -11,9 +11,7 @@ import type { AgentStreamItem } from "@/components/agent/AgentActionFeed";
 
 const DEFAULT_PROMPTS = [
   "Check my app for bugs",
-  "Add user authentication",
   "Connect a database",
-  "Add payment processing",
   "Write tests for my code",
   "Add dark mode",
 ];
