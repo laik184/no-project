@@ -182,13 +182,13 @@ export default function Preview() {
                 onResizeDragStart={device.handleResizeDragStart}
                 onResetCustomSize={() => { device.setCustomWidth(null); device.setCustomHeight(null); }}
                 onPlayClick={() => nav.setIsExecuting(!nav.isExecuting)}
-                onOverlayRun={nav.handleOverlayRun}
+                onOverlayRun={() => nav.handleOverlayRun(lifecycle.meta?.projectId as number | undefined)}
                 lifecycleState={lifecycle.state}
                 lifecyclePrev={lifecycle.prevState}
                 lifecycleMessage={lifecycle.message}
                 lifecycleMeta={lifecycle.meta}
                 onRetry={handleRetry}
-                onRun={nav.handleOverlayRun}
+                onRun={() => nav.handleOverlayRun(lifecycle.meta?.projectId as number | undefined)}
               />
 
               <ErrorPanel

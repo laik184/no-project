@@ -44,6 +44,9 @@ import { bus }            from './server/infrastructure/index.ts';
 import { initPreviewModule, buildPreviewRouter } from './server/preview/index.ts';
 import { getLifecycleState } from './server/preview/api/index.ts';
 
+// Runtime routes (/api/runtime/:projectId/start|restart|stop) + legacy /api/restart
+import { buildRuntimeRouter, handleLegacyRestart } from './server/preview/api/runtime-routes.ts';
+
 // ── Global error safety net ────────────────────────────────────────────────────
 installGlobalHandlers();
 
@@ -129,6 +132,10 @@ function registerRoutes(app: Express): void {
 
   // ── Preview module ──────────────────────────────────────────────────────────
   app.use('/api/preview', buildPreviewRouter());
+
+  // ── Runtime routes (Run / Restart buttons) ──────────────────────────────────
+  app.use('/api/runtime', buildRuntimeRouter());
+  app.post('/api/restart', handleLegacyRestart);
 
   // ── Module routers ──────────────────────────────────────────────────────────
   chatOrchestrator.mountRoutes(app);
