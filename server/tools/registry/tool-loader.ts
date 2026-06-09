@@ -6,13 +6,15 @@
  * Boot flow:
  *   main.ts → loadAllTools() → registerTool() × N → sealRegistry() → system ready
  *
- * Phase A — Platform tools (filesystem + coding) registered into the platform registry.
+ * Phase A — Platform tools (filesystem + coding + terminal + verifier + git).
  */
 
 // ── Phase A: Platform tool registrations ──────────────────────────────────────
 import { registerFilesystemTools } from '../filesystem/index.ts';
 import { registerCodingTools }     from '../coding/index.ts';
 import { registerTerminalTools }   from '../terminal/index.ts';
+import { registerVerifierTools }   from '../verifier/register-verifier-tools.ts';
+import { registerGitTools }        from '../git/register-git-tools.ts';
 import { sealRegistry, toolCount, isSealed } from './tool-registry.ts';
 
 export function loadAllTools(): void {
@@ -25,10 +27,12 @@ export function loadAllTools(): void {
   registerFilesystemTools();
   registerCodingTools();
   registerTerminalTools();
+  registerVerifierTools();
+  registerGitTools();
 
   sealRegistry();
 
   console.log(
-    `[tool-loader] ${toolCount()} tools registered (filesystem + coding + terminal) — registry sealed.`,
+    `[tool-loader] ${toolCount()} tools registered (filesystem + coding + terminal + verifier + git) — registry sealed.`,
   );
 }
