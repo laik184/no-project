@@ -319,18 +319,7 @@ export default function Workspace() {
             borderBottom: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          {/* Left: home */}
-          <div className="flex items-center gap-3 flex-1 max-w-xs">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-xs text-foreground/70 hover:bg-white/8 hover:text-foreground hover:border-white/14 transition-all flex-shrink-0"
-              data-testid="button-home"
-              title="Home"
-            >
-              <Home className="h-3.5 w-3.5" />
-              Home
-            </button>
-          </div>
+          <div className="flex-1" />
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">

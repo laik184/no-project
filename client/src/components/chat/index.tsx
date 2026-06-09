@@ -89,13 +89,6 @@ export function ChatPanel({ inputRef, currentAction, onOpenFile }: ChatPanelProp
       className="flex flex-col h-full min-h-0 overflow-hidden"
       style={{ background: "rgba(255,255,255,0.015)" }}
     >
-      <ChatHeader
-        showHistoryPanel={showHistoryPanel}
-        onToggleHistory={() => { setShowHistoryPanel((v) => !v); setShowNewChatScreen(false); }}
-        onNewChat={() => { setShowNewChatScreen(true); setShowHistoryPanel(false); setMessages([]); }}
-        chatHistory={chatHistory}
-      />
-
       {showHistoryPanel && (
         <ChatHistoryPanel
           chatHistory={chatHistory}
