@@ -1,9 +1,11 @@
 /**
  * lifecycle-events.ts — Bridges state machine events → infrastructure bus.
- * Wires stateMachine listeners to bus + sseManager.
+ * Wires stateMachine listeners to bus only.
+ * SSE fan-out is handled exclusively by preview-stream-broker to avoid
+ * duplicate events (broker also listens to "preview.lifecycle" on the bus).
  */
 
-import { bus, sseManager, TOPIC } from "../../infrastructure/index.ts";
+import { bus } from "../../infrastructure/index.ts";
 import { stateMachine }           from "./lifecycle-state-machine.ts";
 import type { PreviewLifecycleEvent } from "../events/preview-events.ts";
 
@@ -13,13 +15,9 @@ export function initLifecycleEvents(): void {
   if (_initialized) return;
   _initialized = true;
 
-  // ── State machine → SSE broadcast ─────────────────────────────────────────
+  // ── State machine → bus (stream-broker handles SSE fan-out) ───────────────
   stateMachine.on((event: PreviewLifecycleEvent) => {
-    // Publish on bus so other modules can subscribe
     bus.emit("preview.lifecycle" as never, event as never);
-
-    // Fan out to SSE clients subscribed to TOPIC.PREVIEW_LIFECYCLE
-    sseManager.publish(TOPIC.PREVIEW_LIFECYCLE, event, event.projectId);
   });
 
   // ── Bus: process crashed → trigger crashed state ───────────────────────────

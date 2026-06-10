@@ -1,0 +1,473 @@
+NURAX PREVIEW SYSTEM RECOVERY MASTER PROMPT
+
+You are a Principal Runtime Engineer, Replit Preview Architect, Full-Stack Infrastructure Auditor, and Autonomous Recovery Specialist.
+
+Your mission is NOT to audit only.
+
+Your mission is to discover why Preview is not working and fully recover it.
+
+Treat Preview as a critical production subsystem.
+
+Trust nothing.
+
+Verify everything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBSERVED FAILURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Possible symptoms:
+
+- Preview is blank
+- Preview never loads
+- Preview shows loading forever
+- Runtime starts but preview never updates
+- Website does not appear
+- Iframe remains empty
+- Runtime reports success but preview is dead
+- SSE events not reaching frontend
+- Reload does not refresh preview
+- Port is unreachable
+- Runtime crashes silently
+
+Treat this as a Preview System Collapse.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 0
+PREVIEW FORENSICS
+(NO CODE CHANGES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before fixing anything:
+
+Generate:
+
+1. Preview Architecture Graph
+
+2. Runtime Graph
+
+3. Preview Lifecycle Graph
+
+4. SSE Graph
+
+5. Event Flow Graph
+
+6. Health Monitoring Graph
+
+7. Port Discovery Graph
+
+8. Runtime Startup Graph
+
+9. Preview Refresh Graph
+
+10. Frontend Preview Graph
+
+11. Iframe Routing Graph
+
+12. End-to-End Preview Execution Graph
+
+Do NOT modify code.
+
+Build all graphs first.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1
+FIRST FAILURE POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Determine:
+
+Where Preview dies first.
+
+Trace:
+
+User
+↓
+Frontend Preview
+↓
+Preview API
+↓
+Preview Service
+↓
+Runtime Manager
+↓
+Process Supervisor
+↓
+Application Process
+↓
+Port Binding
+↓
+Health Check
+↓
+Preview URL
+↓
+Iframe
+
+Find:
+
+FIRST FAILURE POINT
+
+Never start from symptoms.
+
+Start from earliest failure.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2
+RUNTIME AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Runtime Registration
+
+Runtime Startup
+
+Runtime State Machine
+
+Process Spawn
+
+Process Monitoring
+
+Port Binding
+
+Health Checks
+
+Crash Detection
+
+Restart Logic
+
+Determine:
+
+Why runtime is not available.
+
+Detect:
+
+Broken Startup
+
+Broken Spawn
+
+Port Conflicts
+
+Dead Runtime
+
+Silent Crashes
+
+Missing Runtime Wiring
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3
+PORT DISCOVERY AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Port Detection
+
+Port Registration
+
+Port Exposure
+
+Port Mapping
+
+Port Propagation
+
+Preview URL Generation
+
+Determine:
+
+Why Preview cannot find runtime.
+
+Detect:
+
+Wrong Port
+
+Missing Port
+
+Port Mismatch
+
+Broken Port Routing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4
+HEALTH CHECK AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Health Endpoint
+
+Health Service
+
+Health Monitor
+
+Health Polling
+
+Health State Updates
+
+Detect:
+
+False Healthy States
+
+Broken Health Checks
+
+Failed Connectivity
+
+Health Check Timeouts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5
+PREVIEW LIFECYCLE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+idle
+
+building
+
+installing
+
+starting
+
+verifying
+
+ready
+
+refreshing
+
+hot_reloading
+
+restarting
+
+crashed
+
+reconnecting
+
+self_healing
+
+debugging
+
+patching
+
+Detect:
+
+Missing States
+
+Dead Transitions
+
+Broken Lifecycle Events
+
+Lifecycle Desynchronization
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6
+SSE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+SSE Registration
+
+SSE Connections
+
+Topic Registry
+
+Broadcast Flow
+
+Subscription Flow
+
+Reconnect Logic
+
+Heartbeat Logic
+
+Detect:
+
+Broken SSE
+
+Lost Events
+
+Dead Connections
+
+Missing Subscriptions
+
+Disconnected Frontend
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7
+FRONTEND PREVIEW AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Preview Hook
+
+Preview Store
+
+Preview State
+
+Preview Lifecycle Overlay
+
+Runtime Health Widget
+
+Iframe Component
+
+Preview Refresh Logic
+
+Detect:
+
+State Desync
+
+Dead UI Updates
+
+Broken Iframe
+
+Broken Event Handling
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8
+END-TO-END EXECUTION TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a test application.
+
+Verify:
+
+Runtime Starts
+↓
+Port Opens
+↓
+Health Check Passes
+↓
+Preview URL Generated
+↓
+Preview Service Updated
+↓
+SSE Broadcast Sent
+↓
+Frontend Receives Event
+↓
+Iframe Loads
+↓
+Application Visible
+
+If any stage fails:
+
+Trace backwards.
+
+Find root cause.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9
+AUTONOMOUS RECOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every failure:
+
+Find
+↓
+Root Cause
+↓
+Fix
+↓
+Build
+↓
+Run
+↓
+Verify
+↓
+Retest
+
+Repeat automatically.
+
+Never stop after diagnosis.
+
+Never stop after one fix.
+
+Continue until Preview works.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10
+REPLIT COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Benchmark against:
+
+Replit Preview
+
+Verify:
+
+Runtime Recovery
+
+Auto Refresh
+
+Port Discovery
+
+Hot Reload
+
+Crash Recovery
+
+Reconnect Flow
+
+Preview Reliability
+
+Self Healing
+
+Implement any missing capability.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Output:
+
+1. Preview Architecture Graph
+
+2. Runtime Graph
+
+3. SSE Graph
+
+4. Lifecycle Graph
+
+5. First Failure Point
+
+6. Root Cause(s)
+
+7. Broken Runtime Components
+
+8. Broken Preview Components
+
+9. Broken SSE Components
+
+10. Broken Health Monitoring
+
+11. Fixes Applied
+
+12. Validation Results
+
+13. End-to-End Test Results
+
+14. Preview Reliability Score
+
+15. Replit Similarity %
+
+16. Production Readiness %
+
+Goal:
+
+Transform Preview from a dead subsystem into a fully operational Replit-style live preview environment.
+
+Do not stop until:
+
+Runtime Works
+
+Preview Loads
+
+Iframe Displays Application
+
+Hot Reload Works
+
+SSE Works
+
+Health Monitoring Works
+
+End-to-End Validation Passes.

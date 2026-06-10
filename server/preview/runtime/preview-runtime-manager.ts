@@ -72,11 +72,13 @@ class PreviewRuntimeManager {
     const poll = setInterval(async () => {
       const entry = runtimeManager.get(projectId);
 
-      // Process crashed or stopped before we finished verifying.
+      // Process crashed or stopped — the bus.on('process.crashed') handler in
+      // lifecycle-events.ts already transitions the state machine to "crashed".
+      // Do NOT call markCrashed here: that causes a spurious crashed→crashed
+      // transition when the bus handler fires first.
       if (!entry || entry.status === 'crashed' || entry.status === 'stopped') {
         clearInterval(poll);
         if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-        await lifecycleManager.markCrashed(projectId, null).catch(console.error);
         return;
       }
 
@@ -106,13 +108,20 @@ class PreviewRuntimeManager {
   async restart(projectId: number, opts: PreviewStartOptions): Promise<{ ok: boolean; error?: string }> {
     await lifecycleManager.markRestarting(projectId);
     healthMonitor.stop(projectId);
-    runtimeManager.stop(projectId);
 
-    // Short pause to allow port release
-    await new Promise(r => setTimeout(r, 500));
+    // Use runtimeManager.restart — it waits for child exit + frees the port.
+    // Pass only non-port options; restart() preserves the existing port.
+    await runtimeManager.restart(projectId, {
+      command: opts.command,
+      cwd:     opts.cwd,
+      env:     opts.env,
+    });
 
     previewReloader.triggerServerRestart(projectId);
-    return this.start(projectId, opts);
+    await lifecycleManager.markVerifying(projectId);
+    healthMonitor.start(projectId);
+    this._waitForPortAndMarkReady(projectId);
+    return { ok: true };
   }
 
   isRunning(projectId: number): boolean {

@@ -3,6 +3,12 @@
  *
  * Manages spawned project processes.
  * Single source of truth for all running project processes.
+ *
+ * Process model:
+ *   spawn(shell:true, detached:true) → creates a new process GROUP.
+ *   stop() kills the whole group with process.kill(-pgid, signal) so that
+ *   shell wrappers (npm run dev) and their node children all die together —
+ *   no orphan processes, no EADDRINUSE on restart.
  */
 import { spawn } from 'child_process';
 import { bus }   from '../events/bus.ts';
@@ -36,6 +42,11 @@ function extractPort(line: string): number | undefined {
   return undefined;
 }
 
+/** Kill a process group (negative pid) with the given signal. Swallows ESRCH. */
+function killGroup(pid: number, sig: NodeJS.Signals): void {
+  try { process.kill(-pid, sig); } catch { /* process already gone */ }
+}
+
 type ManagedEntry = RuntimeEntry & { child?: ReturnType<typeof spawn> };
 
 class RuntimeManager {
@@ -51,12 +62,23 @@ class RuntimeManager {
       return { ok: true, pid: entry.pid, port: entry.port, alreadyRunning: true };
     }
 
+    // Mark any previous entry as 'stopping' so its exit handler won't emit
+    // process.crashed when we kill the old process group below.
+    const prevEntry = this.processes.get(projectId);
+    if (prevEntry) {
+      prevEntry.status = 'stopping';
+      // Kill the old process group before starting the new one.
+      if (prevEntry.pid) killGroup(prevEntry.pid, 'SIGKILL');
+      // Brief pause so the OS can release the port socket.
+      await new Promise(r => setTimeout(r, 600));
+    }
+
     const entry: ManagedEntry = {
       projectId,
       status:       'starting',
       command:      opts.command,
       startedAt:    Date.now(),
-      restartCount: (this.processes.get(projectId)?.restartCount ?? -1) + 1,
+      restartCount: (prevEntry?.restartCount ?? -1) + 1,
       logs:         [],
       port:         opts.port,
     };
@@ -64,15 +86,17 @@ class RuntimeManager {
     this.processes.set(projectId, entry);
 
     try {
-      // shell: true — supports npm scripts, pipes, redirects, and shell builtins.
+      // detached:true — creates a new process group (pgid = child.pid).
+      // This lets us kill npm + node children together via process.kill(-pgid).
       const child = spawn(opts.command, [], {
         env:      { ...process.env, ...(opts.env ?? {}) },
         stdio:    ['ignore', 'pipe', 'pipe'],
         shell:    true,
-        detached: false,
+        detached: true,
         ...(opts.cwd ? { cwd: opts.cwd } : {}),
       });
 
+      // Do NOT unref() — we want to monitor the process.
       entry.pid   = child.pid;
       entry.child = child;
 
@@ -95,7 +119,6 @@ class RuntimeManager {
           if (detected) {
             entry.port = detected;
             console.log(`[runtime-manager] project ${projectId} port detected: ${detected}`);
-            // Emit so lifecycle can mark ready with the right port.
             bus.emit('runtime.port_detected' as never, { projectId, port: detected } as never);
           }
         }
@@ -105,7 +128,7 @@ class RuntimeManager {
       child.stderr?.on('data', appendLog);
 
       child.on('exit', (code, signal) => {
-        // SIGTERM / SIGKILL = intentional stop — do NOT mark as crashed.
+        // Intentional: SIGTERM/SIGKILL sent by us, or entry was already 'stopping'.
         const intentional = signal === 'SIGTERM' || signal === 'SIGKILL' || entry.status === 'stopping';
         entry.status = (code === 0 || intentional) ? 'stopped' : 'crashed';
         entry.child  = undefined;
@@ -130,7 +153,14 @@ class RuntimeManager {
 
     try {
       entry.status = 'stopping';
-      entry.child?.kill('SIGTERM');
+
+      if (entry.pid) {
+        // Kill the entire process group — this kills npm + node children together.
+        killGroup(entry.pid, 'SIGTERM');
+        // Follow up with SIGKILL after a short grace period for stubborn processes.
+        setTimeout(() => killGroup(entry.pid!, 'SIGKILL'), 1500);
+      }
+
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -138,10 +168,17 @@ class RuntimeManager {
   }
 
   async restart(projectId: number, opts: Omit<RuntimeStartOptions, 'port'>): Promise<RuntimeStartResult> {
+    const prevPort = this.processes.get(projectId)?.port;
     this.stop(projectId);
-    await new Promise(r => setTimeout(r, 500));
-    const entry = this.processes.get(projectId);
-    return this.start(projectId, { ...opts, port: entry?.port });
+    // Wait for process group to fully exit before restarting.
+    await new Promise<void>((resolve) => {
+      const entry  = this.processes.get(projectId);
+      const child  = (entry as ManagedEntry | undefined)?.child;
+      if (!child) { setTimeout(resolve, 300); return; }
+      child.once('exit', () => setTimeout(resolve, 300));
+      setTimeout(resolve, 3000); // hard fallback
+    });
+    return this.start(projectId, { ...opts, port: prevPort });
   }
 
   get(projectId: number): RuntimeEntry | undefined {

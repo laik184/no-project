@@ -21,9 +21,11 @@ interface Options {
   delayMs?:     number;
 }
 
-// States that require a full iframe reload when transitioning into "ready"
+// States that require a full iframe reload when transitioning into "ready".
+// "verifying" is the normal penultimate state before "ready" — must be included
+// so the iframe reloads after a standard startup: idle→starting→verifying→ready.
 const HARD_RELOAD_PREV = new Set<PreviewLifecycleState>([
-  "starting", "restarting", "crashed", "patching", "reconnecting",
+  "starting", "verifying", "restarting", "crashed", "patching", "reconnecting",
 ]);
 
 // States where we NEVER reload the iframe
