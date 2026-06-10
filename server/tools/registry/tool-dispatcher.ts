@@ -26,6 +26,7 @@ import { ToolNotFoundError, ToolPermissionError } from './tool-resolver.ts';
 import { recordMetric }  from './tool-metrics.ts';
 import { recordAudit }   from './tool-security.ts';
 import { getTool }       from './tool-registry.ts';
+import { bus }           from '../../infrastructure/index.ts';
 
 // ── Dispatch options ──────────────────────────────────────────────────────────
 
@@ -100,6 +101,67 @@ function categoryOf(name: string, def?: ToolDefinition): string {
   return def?.category ?? name.split('_')[0] ?? 'unknown';
 }
 
+
+// ── Runtime event helpers ────────────────────────────────────────────────────
+
+function publishToolEvent(
+  eventType: string,
+  name: string,
+  context: ToolExecutionContext,
+  payload: Record<string, unknown>,
+): void {
+  bus.emit('agent.event', {
+    eventType,
+    type: eventType,
+    runId: context.runId,
+    projectId: Number.isFinite(Number(context.projectId)) ? Number(context.projectId) : context.projectId,
+    phase: context.meta.phaseId ?? context.meta.phase ?? context.meta.agent,
+    payload: { tool: name, ...payload },
+    ts: Date.now(),
+  } as never);
+}
+
+function publishShellOutput(name: string, context: ToolExecutionContext, output: unknown): void {
+  if (!output || typeof output !== 'object') return;
+  const record = output as Record<string, unknown>;
+  const stdout = typeof record.stdout === 'string' ? record.stdout : '';
+  const stderr = typeof record.stderr === 'string' ? record.stderr : '';
+  const combined = [stdout, stderr].filter(Boolean).join('\n');
+  if (!combined.trim()) return;
+
+  for (const line of combined.split(/\r?\n/).filter(Boolean).slice(-50)) {
+    bus.emit('agent.event', {
+      eventType: 'shell.output',
+      type: 'shell.output',
+      runId: context.runId,
+      projectId: Number.isFinite(Number(context.projectId)) ? Number(context.projectId) : context.projectId,
+      payload: { tool: name, runId: context.runId, line },
+      ts: Date.now(),
+    } as never);
+  }
+}
+
+function publishFileWrites(name: string, context: ToolExecutionContext, output: unknown): void {
+  if (name !== 'fs_write_file' || !output || typeof output !== 'object') return;
+  const path = (output as Record<string, unknown>).path;
+  if (!path) return;
+  publishToolEvent('agent.file_write', name, context, {
+    status: 'done',
+    label: `Wrote ${String(path)}`,
+    path,
+    args: { path },
+  });
+}
+
+function assertRealityForTerminalOutput(name: string, definition: ToolDefinition, output: unknown): void {
+  if (definition.category !== 'terminal' || !output || typeof output !== 'object') return;
+  const record = output as Record<string, unknown>;
+  if (typeof record.exitCode === 'number' && record.exitCode !== 0) {
+    const detail = String(record.stderr ?? record.output ?? record.stdout ?? '').trim();
+    throw new Error(`[${name}] exited with code ${record.exitCode}${detail ? `: ${detail}` : ''}`);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -115,6 +177,11 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
   opts:    DispatchOptions = {},
 ): Promise<ToolExecutionResult<TOutput>> {
   const start = Date.now();
+  publishToolEvent('agent.tool_call', name, context, {
+    status: 'running',
+    label: name.replace(/_/g, ' '),
+    args: input as Record<string, unknown>,
+  });
 
   // ── Permission resolution ──────────────────────────────────────────────────
   let resolved: { definition: ToolDefinition };
@@ -136,6 +203,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       errorCode: result.code,
     });
 
+    publishToolEvent('tool.error', name, context, { status: 'error', error: result.error, code: result.code });
     return result;
   }
 
@@ -154,6 +222,8 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
           // their handler instead of raw data. When they return { ok: false, ... } we
           // MUST throw so the retry + failure pipeline triggers — otherwise the failure
           // is silently wrapped as { ok: true, data: { ok: false } } and swallowed.
+          assertRealityForTerminalOutput(name, definition, result);
+
           if (
             result !== null &&
             typeof result === 'object' &&
@@ -194,6 +264,9 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
         ok:        true,
         durationMs,
       });
+      publishShellOutput(name, context, toolResult.ok ? toolResult.data : undefined);
+      publishFileWrites(name, context, toolResult.ok ? toolResult.data : undefined);
+      publishToolEvent('tool.completed', name, context, { status: 'done', durationMs });
       return { ...toolResult, durationMs } as unknown as ToolExecutionResult<TOutput>;
     }
 
@@ -205,6 +278,14 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       runId:     context.runId,
       ok:        true,
       durationMs,
+    });
+
+    publishShellOutput(name, context, data);
+    publishFileWrites(name, context, data);
+    publishToolEvent('tool.completed', name, context, {
+      status: 'done',
+      durationMs,
+      ...((data && typeof data === 'object' && 'exitCode' in (data as object)) ? { exitCode: (data as Record<string, unknown>).exitCode } : {}),
     });
 
     return { ok: true, data, durationMs };
@@ -225,6 +306,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       errorCode: result.code,
     });
 
+    publishToolEvent('tool.error', name, context, { status: 'error', error: result.error, code: result.code });
     return result;
   }
 }

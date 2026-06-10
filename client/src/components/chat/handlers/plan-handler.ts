@@ -101,8 +101,9 @@ export function handlePlanEvents(e: AgentEvent, deps: AgentHandlerDeps): void {
       break;
     }
 
+    case "agent.file_write":
     case "file.written": {
-      const path = e.payload?.path || "(file)";
+      const path = e.payload?.path || e.payload?.args?.path || "(file)";
       inflight.set(`file::${path}`, { type: "action", tool: "file_write", content: `Wrote ${path}`, status: "done", meta: { file: path } });
       break;
     }
