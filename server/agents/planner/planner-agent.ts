@@ -118,16 +118,17 @@ export interface PlannerCycleResult {
  * Drives a full planning pass for a run goal.
  */
 export async function runPlannerCycle(ctx: {
-  runId:     string;
-  projectId: string;
-  goal:      string;
-  metadata?: Record<string, unknown>;
+  runId:       string;
+  projectId:   string;
+  sandboxRoot?: string;
+  goal:        string;
+  metadata?:   Record<string, unknown>;
 }): Promise<PlannerCycleResult> {
   try {
     const result = await plan({
       runId:       ctx.runId,
       projectId:   ctx.projectId,
-      sandboxRoot: process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
+      sandboxRoot: ctx.sandboxRoot ?? process.env.AGENT_PROJECT_ROOT ?? '.sandbox',
       goal:        ctx.goal,
       meta:        ctx.metadata ?? {},
     });

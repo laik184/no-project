@@ -43,6 +43,22 @@ export function buildAgentHandler(deps: AgentHandlerDeps): (raw: unknown) => voi
   return (raw: unknown) => {
     try {
       const e = raw as AgentEvent;
+      if (!e.eventType && e.type) {
+        const aliases: Record<string, string> = {
+          'orchestration.phase.started': 'phase.started',
+          'orchestration.phase.completed': 'phase.completed',
+          'orchestration.phase.failed': 'phase.failed',
+          'orchestration.recovery.started': 'recovery.started',
+          'orchestration.recovery.completed': 'recovery.completed',
+        };
+        e.eventType = aliases[e.type] ?? e.type;
+        e.phase = e.phase ?? (e as any).phaseName;
+        e.payload = e.payload ?? {
+          label: (e as any).message,
+          error: e.error,
+          durationMs: (e as any).durationMs,
+        };
+      }
       if (e.runId !== deps.runId) return;
       handleStreamEvents(e, deps);
       handleToolEvents(e, deps);
