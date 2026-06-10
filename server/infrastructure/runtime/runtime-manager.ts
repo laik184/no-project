@@ -13,10 +13,33 @@ import type {
   RuntimeStopResult,
 } from './runtime-types.ts';
 
-const MAX_LOG_LINES = 200;
+const MAX_LOG_LINES = 500;
+
+// Port-detection patterns — scan stdout/stderr lines for a bound port.
+const PORT_PATTERNS = [
+  /listening on .*?:(\d{4,5})/i,
+  /Local:\s+http:\/\/localhost:(\d{4,5})/i,
+  /running on.*?:(\d{4,5})/i,
+  /started.*?port[: ]+(\d{4,5})/i,
+  /port[: ]+(\d{4,5})/i,
+  /:(\d{4,5})\s*$/,
+];
+
+function extractPort(line: string): number | undefined {
+  for (const re of PORT_PATTERNS) {
+    const m = line.match(re);
+    if (m) {
+      const p = parseInt(m[1], 10);
+      if (p > 1024 && p < 65536) return p;
+    }
+  }
+  return undefined;
+}
+
+type ManagedEntry = RuntimeEntry & { child?: ReturnType<typeof spawn> };
 
 class RuntimeManager {
-  private readonly processes = new Map<number, RuntimeEntry & { child?: ReturnType<typeof spawn> }>();
+  private readonly processes = new Map<number, ManagedEntry>();
 
   init(): void {
     console.log('[runtime-manager] Initialized.');
@@ -28,8 +51,7 @@ class RuntimeManager {
       return { ok: true, pid: entry.pid, port: entry.port, alreadyRunning: true };
     }
 
-    const [cmd, ...args] = opts.command.split(' ');
-    const entry: RuntimeEntry & { child?: ReturnType<typeof spawn> } = {
+    const entry: ManagedEntry = {
       projectId,
       status:       'starting',
       command:      opts.command,
@@ -39,39 +61,65 @@ class RuntimeManager {
       port:         opts.port,
     };
 
+    this.processes.set(projectId, entry);
+
     try {
-      const child = spawn(cmd, args, {
+      // shell: true — supports npm scripts, pipes, redirects, and shell builtins.
+      const child = spawn(opts.command, [], {
         env:      { ...process.env, ...(opts.env ?? {}) },
         stdio:    ['ignore', 'pipe', 'pipe'],
+        shell:    true,
         detached: false,
         ...(opts.cwd ? { cwd: opts.cwd } : {}),
       });
 
-      entry.pid    = child.pid;
-      entry.child  = child;
-      entry.status = 'running';
+      entry.pid   = child.pid;
+      entry.child = child;
+
+      child.on('error', (err) => {
+        console.error(`[runtime-manager] spawn error for project ${projectId}:`, err.message);
+        entry.status = 'crashed';
+        entry.child  = undefined;
+        bus.emit('process.crashed', { projectId, code: -1, logs: [...entry.logs] });
+      });
 
       const appendLog = (data: Buffer) => {
         const line = data.toString().trimEnd();
+        if (!line) return;
         entry.logs.push(line);
         if (entry.logs.length > MAX_LOG_LINES) entry.logs.shift();
+
+        // Auto-detect port from process output if not already known.
+        if (!entry.port) {
+          const detected = extractPort(line);
+          if (detected) {
+            entry.port = detected;
+            console.log(`[runtime-manager] project ${projectId} port detected: ${detected}`);
+            // Emit so lifecycle can mark ready with the right port.
+            bus.emit('runtime.port_detected' as never, { projectId, port: detected } as never);
+          }
+        }
       };
 
       child.stdout?.on('data', appendLog);
       child.stderr?.on('data', appendLog);
 
-      child.on('exit', (code) => {
-        entry.status = code === 0 ? 'stopped' : 'crashed';
+      child.on('exit', (code, signal) => {
+        // SIGTERM / SIGKILL = intentional stop — do NOT mark as crashed.
+        const intentional = signal === 'SIGTERM' || signal === 'SIGKILL' || entry.status === 'stopping';
+        entry.status = (code === 0 || intentional) ? 'stopped' : 'crashed';
         entry.child  = undefined;
-        bus.emit('process.crashed', { projectId, code: code ?? -1, logs: [...entry.logs] });
+
+        if (!intentional && code !== 0) {
+          bus.emit('process.crashed', { projectId, code: code ?? -1, logs: [...entry.logs] });
+        }
       });
 
-      this.processes.set(projectId, entry);
+      entry.status = 'running';
       return { ok: true, pid: child.pid, port: entry.port };
 
     } catch (err) {
       entry.status = 'crashed';
-      this.processes.set(projectId, entry);
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
@@ -81,8 +129,8 @@ class RuntimeManager {
     if (!entry) return { ok: false, error: `No process for project ${projectId}` };
 
     try {
-      entry.child?.kill('SIGTERM');
       entry.status = 'stopping';
+      entry.child?.kill('SIGTERM');
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };

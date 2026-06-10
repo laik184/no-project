@@ -1,0 +1,516 @@
+NURAX RUNTIME COLLAPSE RECOVERY MASTER PROMPT
+
+You are a Principal Runtime Engineer, Distributed Systems Architect, Process Lifecycle Specialist, and Autonomous Recovery Agent.
+
+Your mission is NOT to perform a simple runtime check.
+
+Your mission is to discover why the runtime subsystem is preventing the platform from functioning as a real coding agent.
+
+Treat the runtime as potentially broken.
+
+Trust nothing.
+
+Verify everything.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MISSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The platform behaves like:
+
+✓ Chat responds
+
+✗ Commands do not execute
+
+✗ Runtime does not start
+
+✗ Packages do not install
+
+✗ Preview does not load
+
+✗ Agent actions produce no real side effects
+
+Treat this as a RUNTIME COLLAPSE investigation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 0
+RUNTIME FORENSIC MAPPING
+(NO FIXES YET)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generate:
+
+1. Runtime Startup Graph
+
+2. Runtime Registration Graph
+
+3. Runtime Dependency Graph
+
+4. Process Lifecycle Graph
+
+5. Terminal Execution Graph
+
+6. Package Installation Graph
+
+7. Runtime Event Graph
+
+8. Runtime State Machine Graph
+
+9. Health Monitoring Graph
+
+10. Preview Runtime Graph
+
+11. Agent → Runtime Graph
+
+12. Tool → Runtime Graph
+
+13. Runtime → Preview Graph
+
+14. Runtime → SSE Graph
+
+15. Runtime Recovery Graph
+
+Do NOT modify code.
+
+Build all graphs first.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1
+BOOTSTRAP AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Application Startup
+
+Runtime Registration
+
+Dependency Injection
+
+Container Wiring
+
+Runtime Manager Registration
+
+Process Supervisor Registration
+
+Health Monitor Registration
+
+Event Registration
+
+SSE Registration
+
+Find:
+
+Missing Runtime Registrations
+
+Duplicate Registrations
+
+Dead Registrations
+
+Unreachable Runtime Components
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2
+PROCESS EXECUTION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+spawn()
+
+fork()
+
+exec()
+
+execFile()
+
+Process Creation
+
+Process Supervision
+
+Process Restart
+
+Exit Handling
+
+Signal Handling
+
+Stdout Handling
+
+Stderr Handling
+
+Determine:
+
+Can processes actually start?
+
+Can processes actually complete?
+
+Can processes actually return output?
+
+Find:
+
+Silent failures
+
+Suppressed errors
+
+Missing listeners
+
+Broken process supervision
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3
+TERMINAL INTEGRATION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Agent
+↓
+Tool
+↓
+Terminal
+↓
+Runtime
+↓
+Process
+
+Verify:
+
+Command Routing
+
+Command Execution
+
+Output Streaming
+
+Exit Codes
+
+Terminal State
+
+Find:
+
+Broken terminal-runtime connections
+
+Fake terminal success
+
+Lost command execution
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4
+PACKAGE INSTALLATION AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Agent
+↓
+Package Tool
+↓
+Runtime
+↓
+npm/pnpm/yarn
+
+Verify:
+
+Install Command Execution
+
+Dependency Resolution
+
+Install Completion
+
+Package Detection
+
+Package Persistence
+
+Find:
+
+Broken installers
+
+Broken package monitors
+
+Fake installation success
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5
+RUNTIME STATE MACHINE AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify states:
+
+idle
+
+building
+
+installing
+
+starting
+
+running
+
+restarting
+
+recovering
+
+crashed
+
+stopped
+
+Determine:
+
+Are transitions valid?
+
+Are events emitted?
+
+Are states synchronized?
+
+Find:
+
+Dead states
+
+Invalid transitions
+
+Missing events
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6
+HEALTH MONITOR AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Port Detection
+
+Health Checks
+
+Heartbeat
+
+CPU Monitoring
+
+Memory Monitoring
+
+Restart Count
+
+Process Health
+
+Find:
+
+False healthy states
+
+False unhealthy states
+
+Broken monitoring
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7
+PREVIEW CONNECTIVITY AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Trace:
+
+Runtime
+↓
+Port
+↓
+Health Check
+↓
+Preview
+↓
+Frontend
+
+Verify:
+
+Runtime Reachable
+
+Port Open
+
+Preview Reachable
+
+Preview Lifecycle Events
+
+SSE Events
+
+Find:
+
+Why preview never loads
+
+Why runtime never reaches preview
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8
+EVENT BUS AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verify:
+
+Runtime Started Event
+
+Runtime Stopped Event
+
+Runtime Crashed Event
+
+Runtime Recovered Event
+
+Runtime Health Event
+
+Preview Update Event
+
+Find:
+
+Lost events
+
+Dead listeners
+
+Broken emitters
+
+Broken subscribers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9
+ROOT CAUSE DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Identify:
+
+First Runtime Failure Point
+
+Not:
+
+Latest Failure
+
+Not:
+
+Visible Failure
+
+Find:
+
+Earliest Runtime Failure
+
+Classify:
+
+Symptom
+
+Cause
+
+Root Cause
+
+Architectural Cause
+
+Initialization Cause
+
+Registration Cause
+
+Dependency Cause
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10
+AUTO RECOVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After root causes are identified:
+
+Fix
+
+Build
+
+Run
+
+Verify
+
+Retest
+
+Repeat automatically.
+
+Never stop after diagnosis.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 11
+REALITY VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Do NOT trust:
+
+Logs
+
+Success Messages
+
+Status Flags
+
+Verify reality:
+
+Run:
+
+echo TEST
+
+Verify output exists.
+
+Run:
+
+npm install
+
+Verify package exists.
+
+Run:
+
+npm run dev
+
+Verify process exists.
+
+Verify:
+
+Port Open
+
+Health Pass
+
+Preview Loads
+
+Only real side effects count.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Output:
+
+1. Runtime Startup Graph
+
+2. Process Graph
+
+3. Terminal Graph
+
+4. Package Installation Graph
+
+5. Runtime State Graph
+
+6. Health Monitoring Graph
+
+7. Preview Connectivity Graph
+
+8. First Runtime Failure Point
+
+9. Root Cause(s)
+
+10. Runtime Bugs Found
+
+11. Runtime Bugs Fixed
+
+12. Runtime Verification Results
+
+13. Remaining Risks
+
+14. Runtime Reliability Score
+
+15. Production Readiness Score
+
+Goal:
+
+Transform the runtime from a dead subsystem into a fully functioning execution engine.
+
+Do not stop until:
+
+Command Execution Works
+
+Package Installation Works
+
+Runtime Starts
+
+Preview Loads
+
+End-to-End Runtime Flow Passes.

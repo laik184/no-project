@@ -7,12 +7,18 @@ import { runtimeManager }   from "../../infrastructure/index.ts";
 import { lifecycleManager } from "../lifecycle/preview-lifecycle-manager.ts";
 import { healthMonitor }    from "./preview-health-monitor.ts";
 import { previewReloader }  from "./preview-reloader.ts";
+import { bus }              from "../../infrastructure/index.ts";
 
 export interface PreviewStartOptions {
   command: string;
   port?:   number;
+  cwd?:    string;
   env?:    Record<string, string>;
 }
+
+// How long to wait for port detection before falling back to markReady(null).
+const PORT_WAIT_MS     = 10_000;
+const PORT_POLL_MS     = 200;
 
 class PreviewRuntimeManager {
   async start(projectId: number, opts: PreviewStartOptions): Promise<{ ok: boolean; error?: string }> {
@@ -21,6 +27,7 @@ class PreviewRuntimeManager {
     const result = await runtimeManager.start(projectId, {
       command: opts.command,
       port:    opts.port,
+      cwd:     opts.cwd,
       env:     opts.env,
     });
 
@@ -32,17 +39,62 @@ class PreviewRuntimeManager {
     await lifecycleManager.markVerifying(projectId);
     healthMonitor.start(projectId);
 
-    // Give the process a moment to bind its port, then mark ready
-    setTimeout(async () => {
-      const entry = runtimeManager.get(projectId);
-      if (entry?.status === "running") {
-        await lifecycleManager.markReady(projectId, result.port ?? null);
-      } else {
-        await lifecycleManager.markCrashed(projectId, null);
-      }
-    }, 2_000);
+    // Wait for port detection (up to PORT_WAIT_MS), then mark ready.
+    this._waitForPortAndMarkReady(projectId);
 
     return { ok: true };
+  }
+
+  private _waitForPortAndMarkReady(projectId: number): void {
+    const deadline = Date.now() + PORT_WAIT_MS;
+    let   unsubscribe: (() => void) | null = null;
+
+    const markReady = async (port: number | null) => {
+      if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+      const entry = runtimeManager.get(projectId);
+      if (!entry || entry.status === 'crashed' || entry.status === 'stopped') {
+        await lifecycleManager.markCrashed(projectId, null).catch(console.error);
+        return;
+      }
+      await lifecycleManager.markReady(projectId, port).catch(console.error);
+    };
+
+    // Subscribe to bus port_detected event.
+    const handler = (payload: Record<string, unknown>) => {
+      if ((payload.projectId as number) !== projectId) return;
+      markReady(payload.port as number);
+    };
+    bus.on('runtime.port_detected' as never, handler as never);
+    unsubscribe = () => bus.off('runtime.port_detected' as never, handler as never);
+
+    // Polling fallback: if port was detected synchronously (fast startup),
+    // OR deadline passes without port detection → mark ready with whatever we have.
+    const poll = setInterval(async () => {
+      const entry = runtimeManager.get(projectId);
+
+      // Process crashed or stopped before we finished verifying.
+      if (!entry || entry.status === 'crashed' || entry.status === 'stopped') {
+        clearInterval(poll);
+        if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+        await lifecycleManager.markCrashed(projectId, null).catch(console.error);
+        return;
+      }
+
+      // Port was detected — mark ready.
+      if (entry.port) {
+        clearInterval(poll);
+        if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+        await markReady(entry.port);
+        return;
+      }
+
+      // Deadline reached — mark ready without a port (proxy will use default 3000).
+      if (Date.now() >= deadline) {
+        clearInterval(poll);
+        if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+        await markReady(null);
+      }
+    }, PORT_POLL_MS);
   }
 
   async stop(projectId: number): Promise<void> {
