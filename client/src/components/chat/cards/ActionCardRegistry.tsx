@@ -23,22 +23,29 @@ export function normalizeTool(tool: string): string {
 const FILE_OPEN = new Set([
   "file.read", "file.list", "file.search", "file.create",
   "file_read", "file_list", "file_search", "file_create",
+  "fs.read.file", "fs.find.by.pattern", "fs.search.text", "fs.scan.folder",
   "preview.open",
 ]);
 const FILE_WRITE = new Set([
   "file.write", "file.replace", "file_write", "file_replace",
+  "fs.write.file", "fs.write.if.absent", "fs.ensure.file", "fs.append.file",
   "patch.queue", "diff.queued",
 ]);
 const TERMINAL = new Set([
   "shell.exec", "shell_exec", "console.run",
+  "terminal.execute.command", "terminal.stream.command", "terminal.npm.run.script",
+  "terminal.npm.build", "terminal.npm.test", "terminal.npm.ci",
+  "run.build", "run.tests", "run.typecheck", "run.lint",
 ]);
 const PACKAGE = new Set([
   "package.install", "package.remove", "package.audit",
   "package_install", "package_uninstall", "package_audit",
+  "terminal.install.package", "terminal.uninstall.package", "terminal.update.package",
   "detect_missing_packages", "detect.missing.packages",
 ]);
 const SCREENSHOT = new Set([
   "screenshot.capture", "preview_screenshot", "preview.screenshot",
+  "browser.screenshot", "browser.element.screenshot",
   "ui.render",
 ]);
 const DATABASE = new Set([
@@ -46,6 +53,7 @@ const DATABASE = new Set([
 ]);
 const DEPLOY = new Set([
   "deploy.publish", "deploy_publish",
+  "server.start", "server.restart", "terminal.start.runtime", "terminal.restart.runtime",
 ]);
 
 /**

@@ -145,12 +145,12 @@ function publishShellOutput(name: string, context: ToolExecutionContext, output:
 }
 
 function publishFileWrites(name: string, context: ToolExecutionContext, output: unknown): void {
-  if (name !== 'fs_write_file' || !output || typeof output !== 'object') return;
+  if (!['fs_write_file', 'fs_write_if_absent', 'fs_ensure_file', 'fs_append_file'].includes(name) || !output || typeof output !== 'object') return;
   const path = (output as Record<string, unknown>).path;
   if (!path) return;
   publishToolEvent('agent.file_write', name, context, {
     status: 'done',
-    label: `Wrote ${String(path)}`,
+    label: `${name === 'fs_append_file' ? 'Appended' : 'Wrote'} ${String(path)}`,
     path,
     args: { path },
   });

@@ -24,16 +24,51 @@ interface SseConnection {
   readonly projectId: number | null;
   readonly runId:     string | undefined;
   readonly connectedAt: number;
+  readonly heartbeat: ReturnType<typeof setInterval>;
 }
+
+interface SseHistoryEntry {
+  readonly id:        number;
+  readonly topic:     string;
+  readonly payload:   unknown;
+  readonly projectId: number | null;
+  readonly runId:     string | undefined;
+}
+
 
 // ── Internal store ─────────────────────────────────────────────────────────────
 
 const connections = new Map<string, SseConnection>();
+const history: SseHistoryEntry[] = [];
+const MAX_HISTORY = 1_000;
+const HEARTBEAT_MS = 15_000;
 let   _seq = 0;
+let   _eventSeq = 0;
 
 function nextId(): string {
   return `sse-${Date.now()}-${++_seq}`;
 }
+
+function nextEventId(): number {
+  return ++_eventSeq;
+}
+
+function remember(entry: SseHistoryEntry): void {
+  history.push(entry);
+  if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+}
+
+function matchesConnection(conn: SseConnection, topic: string, projectId: number | null, runId: string | undefined): boolean {
+  if (!conn.topics.has(topic)) return false;
+  if (projectId !== null && conn.projectId !== null && conn.projectId !== projectId) return false;
+  if (runId && conn.runId && conn.runId !== runId) return false;
+  return true;
+}
+
+function formatSse(entry: SseHistoryEntry): string {
+  return `id: ${entry.id}\nevent: ${entry.topic}\ndata: ${JSON.stringify(entry.payload)}\n\n`;
+}
+
 
 // ── Fan-out from bus ──────────────────────────────────────────────────────────
 
@@ -62,18 +97,17 @@ function broadcastToTopic(
   projectId: number | null,
   runId:     string | undefined,
 ): void {
-  // Named SSE event so addEventListener(topic, cb) fires on the client.
-  // Format: "event: <topic>\ndata: <json>\n\n"
-  const data = `event: ${topic}\ndata: ${JSON.stringify(payload)}\n\n`;
+  const entry: SseHistoryEntry = { id: nextEventId(), topic, payload, projectId, runId };
+  remember(entry);
+  const data = formatSse(entry);
 
   for (const conn of connections.values()) {
-    if (!conn.topics.has(topic)) continue;
-    if (projectId !== null && conn.projectId !== null && conn.projectId !== projectId) continue;
-    if (runId && conn.runId && conn.runId !== runId) continue;
+    if (!matchesConnection(conn, topic, projectId, runId)) continue;
 
     try {
       conn.res.write(data);
     } catch {
+      clearInterval(conn.heartbeat);
       connections.delete(conn.id);
     }
   }
@@ -91,15 +125,36 @@ export const sseManager = {
     topics:    ReadonlySet<string>,
     projectId: number | null,
     runId?:    string,
+    lastEventId?: string | number | null,
   ): () => void {
-    const id   = nextId();
-    const conn: SseConnection = { id, res, topics, projectId, runId, connectedAt: Date.now() };
+    const id = nextId();
+    const heartbeat = setInterval(() => {
+      try { res.write(`: heartbeat ${Date.now()}\n\n`); } catch {
+        clearInterval(heartbeat);
+        connections.delete(id);
+      }
+    }, HEARTBEAT_MS);
+
+    const conn: SseConnection = { id, res, topics, projectId, runId, connectedAt: Date.now(), heartbeat };
     connections.set(id, conn);
 
-    // Send initial keep-alive comment
-    try { res.write(': connected\n\n'); } catch { /* ignore */ }
+    try {
+      res.write(`: connected ${id}\n\n`);
+      const lastSeen = Number(lastEventId ?? 0);
+      if (Number.isFinite(lastSeen) && lastSeen > 0) {
+        for (const entry of history) {
+          if (entry.id <= lastSeen) continue;
+          if (!matchesConnection(conn, entry.topic, entry.projectId, entry.runId)) continue;
+          res.write(formatSse(entry));
+        }
+      }
+    } catch {
+      clearInterval(heartbeat);
+      connections.delete(id);
+    }
 
     return () => {
+      clearInterval(heartbeat);
       connections.delete(id);
     };
   },

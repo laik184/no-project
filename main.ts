@@ -96,8 +96,9 @@ function registerRoutes(app: Express): void {
 
   // ── Shared SSE stream (all topics) ─────────────────────────────────────────
   app.get('/api/realtime', (req: Request, res: Response) => {
-    const projectId = req.query.projectId ? Number(req.query.projectId) : null;
-    const runId     = req.query.runId as string | undefined;
+    const projectId   = req.query.projectId ? Number(req.query.projectId) : null;
+    const runId       = req.query.runId as string | undefined;
+    const lastEventId = (req.query.lastEventId as string | undefined) ?? req.header('Last-Event-ID') ?? null;
 
     res.writeHead(200, {
       'Content-Type':      'text/event-stream',
@@ -113,6 +114,7 @@ function registerRoutes(app: Express): void {
       topicSet as unknown as ReadonlySet<string>,
       projectId,
       runId,
+      lastEventId,
     );
     req.on('close', () => cleanup());
   });
