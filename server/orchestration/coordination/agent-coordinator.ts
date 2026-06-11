@@ -46,21 +46,60 @@ function normalizeTaskKind(raw: string): ExecutionTaskKind {
     database: 'coding', auth:     'coding', component: 'coding',
     crud:     'coding', build:    'terminal', test:  'verify',
     testing:  'verify', runtime:  'verify', planning:  'coding',
-    finalize: 'coding', general:  'coding',
+    finalize: 'coding', generic:  'coding', general:  'coding',
   };
   return MAP[key] ?? 'coding';
 }
 
+const REQUESTED_FILE_RE = /(?:create|write|make|add)\s+(?:a\s+)?(?:new\s+)?file(?:\s+named|\s+called)?\s+["'`]?([\w./-]+\.[A-Za-z0-9]{1,12})["'`]?|["'`]?([\w./-]+\.[A-Za-z0-9]{1,12})["'`]?/i;
+
+function extractRequestedFilePath(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const match = value.match(REQUESTED_FILE_RE);
+  const path = (match?.[1] ?? match?.[2])?.replace(/^\/+/, '');
+  return path && !path.includes('..') ? path : undefined;
+}
+
+function buildFilesystemCreateTask(
+  taskId: string,
+  description: string,
+  input: Record<string, unknown>,
+  path: string,
+  dependsOn?: string[],
+  optional?: boolean,
+): ExecutionTask {
+  return {
+    taskId,
+    kind:        'filesystem',
+    description,
+    input:       { ...input, operation: 'create', path, content: String(input.content ?? '') },
+    dependsOn,
+    optional,
+  };
+}
+
 function planTaskToExecutionTask(t: Record<string, unknown>): ExecutionTask {
-  const taskId  = String(t.taskId ?? t.id ?? `task-${Date.now()}`);
-  const rawKind = String(t.kind ?? t.category ?? t.toolName ?? 'coding');
+  const taskId      = String(t.taskId ?? t.id ?? `task-${Date.now()}`);
+  const rawKind     = String(t.kind ?? t.category ?? t.toolName ?? 'coding');
+  const description = String(t.description ?? t.title ?? t.label ?? taskId);
+  const input       = ((t.input as Record<string, unknown>) ?? {});
+  const dependsOn   = ((t.dependsOn ?? t.dependencies) as string[] | undefined);
+  const optional    = t.optional as boolean | undefined;
+  const filePath    = extractRequestedFilePath(input.path)
+    ?? extractRequestedFilePath(input.goal)
+    ?? extractRequestedFilePath(description);
+
+  if (filePath && normalizeTaskKind(rawKind) === 'coding') {
+    return buildFilesystemCreateTask(taskId, description, input, filePath, dependsOn, optional);
+  }
+
   return {
     taskId,
     kind:        normalizeTaskKind(rawKind),
-    description: String(t.description ?? t.title ?? t.label ?? taskId),
-    input:       ((t.input as Record<string, unknown>) ?? {}),
-    dependsOn:   ((t.dependsOn ?? t.dependencies) as string[] | undefined),
-    optional:    t.optional as boolean | undefined,
+    description,
+    input,
+    dependsOn,
+    optional,
   };
 }
 
@@ -170,12 +209,21 @@ async function invokeAgent(
       const mapped   = rawTasks.length > 0 ? rawTasks.map(planTaskToExecutionTask) : [];
 
       // Synthetic fallback plan — used when planner phase was skipped or failed.
-      const syntheticTask: ExecutionTask = {
-        taskId:      `task-${runId}`,
-        kind:        'coding',
-        description: effectiveGoal || 'Execute the requested goal',
-        input:       { goal: effectiveGoal || goal, mode, runId, projectId, sandboxRoot },
-      };
+      const syntheticInput = { goal: effectiveGoal || goal, mode, runId, projectId, sandboxRoot };
+      const requestedPath  = extractRequestedFilePath(effectiveGoal || goal);
+      const syntheticTask: ExecutionTask = requestedPath
+        ? buildFilesystemCreateTask(
+            `task-${runId}`,
+            effectiveGoal || 'Execute the requested goal',
+            syntheticInput,
+            requestedPath,
+          )
+        : {
+            taskId:      `task-${runId}`,
+            kind:        'coding',
+            description: effectiveGoal || 'Execute the requested goal',
+            input:       syntheticInput,
+          };
 
       const plan = (rawPlan && mapped.length > 0)
         ? { planId: rawPlan.planId ?? `plan-${runId}`, tasks: mapped }
@@ -238,12 +286,18 @@ async function invokeAgent(
       const resolvedPhases = (directPhases && directPhases.length > 0)
         ? directPhases
         : undefined;
+      const expectedFiles = Array.isArray(executorOutput?.outputs)
+        ? executorOutput.outputs
+            .map((entry: any) => entry?.output?.path)
+            .filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+        : undefined;
 
       return runVerification({
         runId,
         projectId,
         sandboxRoot,
-        phases:    resolvedPhases,
+        phases:    expectedFiles && expectedFiles.length > 0 ? ['validation'] : resolvedPhases,
+        expectedFiles,
         port:      (input.port ?? executorOutput?.port) as number | undefined,
         timeoutMs: input.timeoutMs as number | undefined,
       });

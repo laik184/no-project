@@ -172,8 +172,8 @@ function adaptCodingInput(
   goal: string,
   raw: Record<string, unknown>,
 ): Record<string, unknown> {
-  // Extract a filename from the goal if present (e.g. "hello.ts")
-  const fileMatch = goal.match(/\b([\w/-]+\.(ts|tsx|js|jsx|mts|json|md))\b/i);
+  // Extract a filename from the goal if present (e.g. "hello.ts", "hello.txt")
+  const fileMatch = goal.match(/\b([\w/-]+\.[A-Za-z0-9]{1,12})\b/i);
   const filePath = fileMatch ? fileMatch[1] : undefined;
 
   // Extract a PascalCase or kebab name from goal for component-style tools

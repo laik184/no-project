@@ -15,7 +15,7 @@ import { getLLMClient, getDefaultModel }            from '../../../shared/llm-cl
 import { parseCodeResponse, hasParseError }         from '../llm/response-parser.ts';
 
 interface GenericFileInput {
-  path?:    string;   // e.g. "hello.ts", "src/utils/math.ts"
+  path?:    string;   // e.g. "hello.ts", "hello.txt", "src/utils/math.ts"
   goal?:    string;   // user goal / description of what to create
   content?: string;   // if provided, write directly without LLM
 }
@@ -25,7 +25,7 @@ const RETRY_TWICE = { maxAttempts: 2, delayMs: 500, backoff: 'linear' as const }
 export const generateGenericFileTool = defineCodingTool<GenericFileInput>({
   name:        'coding_generate_generic_file',
   category:    'coding',
-  description: 'Generate any TypeScript/JavaScript file from a goal description. Uses LLM. Returns file map — does not write to disk.',
+  description: 'Generate any text/code file from a goal description. Uses LLM when content is not deterministic. Returns file map — does not write to disk.',
   inputSchema: {
     path:    { type: 'string', description: 'Target file path (e.g. hello.ts)',        required: false },
     goal:    { type: 'string', description: 'What to create (user goal description)',  required: false },
@@ -46,11 +46,19 @@ export const generateGenericFileTool = defineCodingTool<GenericFileInput>({
       return codingFail('Cannot determine target file path. Provide "path" or "goal" containing a filename.');
     }
 
-    // If explicit content was provided, write directly
-    if (input.content) {
+    // If explicit content was provided, write directly. Empty string is valid content.
+    if (Object.prototype.hasOwnProperty.call(input, 'content')) {
       return codingOk(llmResult(
-        { [filePath]: input.content },
+        { [filePath]: input.content ?? '' },
         `Wrote ${filePath}`,
+        true,
+      ));
+    }
+
+    if (isPlainFileCreationGoal(goal, filePath)) {
+      return codingOk(llmResult(
+        { [filePath]: '' },
+        `Created empty file ${filePath}`,
         true,
       ));
     }
@@ -132,7 +140,7 @@ Rules:
  * e.g. "create hello.ts and write a function" → "hello.ts"
  */
 function derivePathFromGoal(goal: string): string {
-  const match = goal.match(/\b([\w/-]+\.(ts|tsx|js|jsx|mts|mjs|cjs|json|md))\b/i);
+  const match = goal.match(/\b([\w/-]+\.[A-Za-z0-9]{1,12})\b/i);
   if (match) return match[1]!;
 
   // Fall back to a generic name based on goal keywords
@@ -143,4 +151,15 @@ function derivePathFromGoal(goal: string): string {
   if (lower.includes('config')) return 'config.ts';
   if (lower.includes('index'))  return 'index.ts';
   return 'generated.ts';
+}
+
+function isPlainFileCreationGoal(goal: string, filePath: string): boolean {
+  if (!goal.trim()) return false;
+  const lower = goal.toLowerCase();
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+  const codeExts = new Set(['ts', 'tsx', 'js', 'jsx', 'mts', 'mjs', 'cjs', 'json']);
+  return /\b(create|make|add)\b/.test(lower)
+    && /\bfile\b/.test(lower)
+    && !/\b(with|containing|that|which|function|component|class|export|import)\b/.test(lower)
+    && !codeExts.has(ext);
 }

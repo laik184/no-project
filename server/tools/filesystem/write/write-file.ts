@@ -9,7 +9,7 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../../registry/tool-types.ts';
 import { RETRY_NONE, TIMEOUT }                       from '../../registry/tool-metadata.ts';
-import { assertInputPath, assertInputString }        from '../validation/operation-validator.ts';
+import { assertInputPath, assertInputStringAllowEmpty } from '../validation/operation-validator.ts';
 import { writeService, historyService }              from '../../../services/filesystem/index.ts';
 
 export const writeFileTool: ToolDefinition = {
@@ -26,7 +26,7 @@ export const writeFileTool: ToolDefinition = {
 
   handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
-    const content = assertInputString(input.content, 'content');
+    const content = assertInputStringAllowEmpty(input.content, 'content');
     historyService.snapshotBeforeWrite(path);
     const result  = writeService.saveFile(path, content, undefined, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to write file');

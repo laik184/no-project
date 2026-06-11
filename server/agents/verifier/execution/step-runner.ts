@@ -106,8 +106,29 @@ async function dispatchVerificationStep(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function semanticFailure(output: unknown): string | null {
+  if (!output || typeof output !== 'object') return null;
+  const record = output as Record<string, unknown>;
+
+  if (record.passed === false) {
+    return String(record.error ?? record.stderr ?? record.stdout ?? 'Verification tool reported passed=false');
+  }
+  if (record.healthy === false) {
+    return String(record.error ?? 'Health check reported healthy=false');
+  }
+  if (typeof record.exitCode === 'number' && record.exitCode !== 0) {
+    return String(record.stderr ?? record.stdout ?? `Process exited with code ${record.exitCode}`);
+  }
+  if (record.success === false || record.ok === false) {
+    return String(record.error ?? 'Verification tool reported failure');
+  }
+
+  return null;
+}
+
 function okR(phase: VerificationPhase, output: unknown): StepRouteResult {
-  return { success: true, phase, output };
+  const failure = semanticFailure(output);
+  return failure ? failR(phase, failure) : { success: true, phase, output };
 }
 
 function failR(phase: VerificationPhase, error: string): StepRouteResult {
