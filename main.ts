@@ -25,7 +25,7 @@ import { bootstrapMemory }                               from './server/memory/i
 import { loadAllTools }                                  from './server/tools/registry/tool-loader.ts';
 import { chatOrchestrator }                              from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { seedDefaultProject, TOPIC, sseManager, db }    from './server/infrastructure/index.ts';
+import { seedDefaultProject, TOPIC, sseManager, db, runtimeManager } from './server/infrastructure/index.ts';
 import { projects }                                       from './shared/schema.ts';
 import { desc, eq }                                      from 'drizzle-orm';
 import {
@@ -117,15 +117,43 @@ function registerRoutes(app: Express): void {
     req.on('close', () => cleanup());
   });
 
-  // ── Stub routes ─────────────────────────────────────────────────────────────
-  app.get('/api/project-status',  (_req: Request, res: Response) => res.json({ ok: true, running: [] }));
-  app.get('/api/tunnel-info',     (_req: Request, res: Response) => {
+  // ── Runtime status compatibility routes ───────────────────────────────────
+  app.get('/api/project-status', (_req: Request, res: Response) => {
+    const entries = runtimeManager.all().map((entry) => ({
+      projectId:     entry.projectId,
+      pid:           entry.pid ?? null,
+      port:          entry.port ?? null,
+      status:        entry.status,
+      command:       entry.command,
+      startedAt:     entry.startedAt,
+      restartCount:  entry.restartCount,
+      processAlive:  runtimeManager.isProcessAlive(entry.projectId),
+    }));
+    res.json({
+      ok: true,
+      running: entries.filter((entry) =>
+        (entry.status === 'running' || entry.status === 'starting') && entry.processAlive,
+      ),
+      entries,
+    });
+  });
+  app.get('/api/tunnel-info', (_req: Request, res: Response) => {
     const domain = process.env.REPLIT_DEV_DOMAIN;
     res.json({ ok: true, url: domain ? `https://${domain}` : null });
   });
-  app.post('/api/run-project',    (_req: Request, res: Response) => res.json({ ok: true }));
-  app.post('/api/stop-project',   (_req: Request, res: Response) => res.json({ ok: true }));
-  app.get('/api/artifacts',       (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
+  app.post('/api/run-project', (_req: Request, res: Response) => {
+    res.status(410).json({
+      ok: false,
+      error: 'Legacy /api/run-project was removed; use /api/runtime/:projectId/start.',
+    });
+  });
+  app.post('/api/stop-project', (_req: Request, res: Response) => {
+    res.status(410).json({
+      ok: false,
+      error: 'Legacy /api/stop-project was removed; use /api/runtime/:projectId/stop.',
+    });
+  });
+  app.get('/api/artifacts', (_req: Request, res: Response) => res.json({ ok: true, artifacts: [] }));
 
   // ── Projects CRUD ───────────────────────────────────────────────────────────
   app.get('/api/projects', async (_req: Request, res: Response) => {

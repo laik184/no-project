@@ -15,6 +15,7 @@ import {
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import httpProxy from "http-proxy";
+import type { RuntimeEntry } from "../../infrastructure/runtime/runtime-types.ts";
 
 import { db } from "../../infrastructure/index.ts";
 import { projects } from "../../../shared/schema.ts";
@@ -145,6 +146,34 @@ async function fetchProject(projectId: number) {
   return project ?? null;
 }
 
+
+function parseProjectId(req: Request): number | null {
+  const raw = req.query.projectId ?? req.params.projectId;
+  if (raw == null) return null;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const projectId = Number(value);
+  return Number.isFinite(projectId) && projectId > 0 ? projectId : null;
+}
+
+function isProxyableRuntime(entry: RuntimeEntry | undefined): entry is RuntimeEntry {
+  return Boolean(
+    entry &&
+    (entry.status === "running" || entry.status === "starting") &&
+    (entry.port ?? detectPortFromLogs(entry.logs as string[])),
+  );
+}
+
+function selectRuntimeEntry(projectId: number | null): RuntimeEntry | undefined {
+  if (projectId != null) {
+    const requested = runtimeManager.get(projectId);
+    return isProxyableRuntime(requested) ? requested : undefined;
+  }
+
+  return runtimeManager
+    .all()
+    .find((entry) => isProxyableRuntime(entry));
+}
+
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 async function handleStart(req: Request, res: Response): Promise<void> {
@@ -262,8 +291,11 @@ async function handleLegacyRestart(
     });
     res.json({ ok: true });
   } catch (err) {
-    await lifecycleManager.markStarting(DEFAULT_PROJECT_ID).catch(() => {});
-    res.json({ ok: true, note: "lifecycle nudged" });
+    await lifecycleManager.markCrashed(DEFAULT_PROJECT_ID, null).catch(() => {});
+    res.status(500).json({
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -286,9 +318,10 @@ export function buildPreviewFrameHandler() {
   });
 
   return (_req: Request, res: Response, _next: NextFunction) => {
-    const entry = runtimeManager.get(1) ?? runtimeManager.all()[0];
+    const projectId = parseProjectId(_req);
+    const entry = selectRuntimeEntry(projectId);
 
-    if (!entry || (entry.status !== "running" && entry.status !== "starting")) {
+    if (!entry) {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(IDLE_HTML);
       return;
@@ -302,7 +335,7 @@ export function buildPreviewFrameHandler() {
     }
 
     sandboxProxy.web(_req, res, {
-      target: `http://localhost:${port}`,
+      target: `http://127.0.0.1:${port}`,
       changeOrigin: true,
     });
   };

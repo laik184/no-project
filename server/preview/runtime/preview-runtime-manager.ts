@@ -115,16 +115,15 @@ class PreviewRuntimeManager {
     const poll = setInterval(async () => {
       const entry = runtimeManager.get(projectId);
 
-      // Process crashed or stopped — the bus.on('process.crashed') handler in
-      // lifecycle-events.ts already transitions the state machine to "crashed".
-      // Do NOT call markCrashed here: that causes a spurious crashed→crashed
-      // transition when the bus handler fires first.
+      // If the process disappears before a reachable port is verified, the
+      // preview cannot become visible. Non-zero exits are also bridged by
+      // lifecycle-events.ts, but zero-code early exits only emit process.exited;
+      // mark them crashed here to avoid an infinite fake "verifying" state.
       if (!entry || entry.status === "crashed" || entry.status === "stopped") {
         clearInterval(poll);
-        if (unsubscribe) {
-          unsubscribe();
-          unsubscribe = null;
-        }
+        await markCrashed(
+          `Project ${projectId} exited before exposing a reachable preview port.`,
+        );
         return;
       }
 
