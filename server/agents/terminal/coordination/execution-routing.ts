@@ -10,15 +10,14 @@ import type { ExecutionStep, StepOutcome } from '../types/terminal.types.ts';
 import type { ToolExecutionContext }        from '../../../shared/types/execution-contracts.ts';
 import {
   coordinateCommand,
-  coordinateNpmInstall,
   coordinateNpmScript,
   coordinateNpmBuild,
   coordinateNpmTest,
   coordinateProcessStart,
-  coordinateProcessStop,
   coordinateResolvePort,
+  TERMINAL_TOOLS,
 } from './tool-coordinator.ts';
-import { resultError } from './dispatcher-client.ts';
+import { executeTool, resultError } from './dispatcher-client.ts';
 
 // ── Route a step to its coordinator ──────────────────────────────────────────
 
@@ -37,9 +36,17 @@ export async function routeStep(
     }
 
     case 'npm_install': {
-      const pkgs = Array.isArray(input.packages) ? (input.packages as string[]) : [];
+      const pkgs = Array.isArray(input.packages) ? (input.packages as string[]).filter(Boolean) : [];
       const dev  = Boolean(input.dev);
-      const r = await coordinateNpmInstall(context, pkgs, dev, { timeoutMs });
+      if (pkgs.length === 0 && !input.packageName) {
+        const r = await executeTool(TERMINAL_TOOLS.RUN_COMMAND, { command: 'npm install', cwd: input.cwd, timeoutMs }, context, { timeoutMs: timeoutMs ?? 120_000 });
+        return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+      }
+      const packageName = String(input.packageName ?? pkgs[0] ?? '').trim();
+      if (!packageName) return fail('npm_install requires input.packageName or input.packages');
+      const r = await executeTool(TERMINAL_TOOLS.NPM_INSTALL, {
+        packageName, packages: pkgs, dev, manager: input.manager, cwd: input.cwd,
+      }, context, { timeoutMs: timeoutMs ?? 120_000 });
       return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
     }
 
@@ -68,9 +75,9 @@ export async function routeStep(
     }
 
     case 'process_stop': {
-      const pid = Number(input.pid ?? 0);
-      if (!pid) return fail('process_stop requires input.pid');
-      const r = await coordinateProcessStop(pid, context, { timeoutMs });
+      const sessionId = String(input.sessionId ?? context.runId ?? '');
+      if (!sessionId) return fail('process_stop requires input.sessionId');
+      const r = await executeTool(TERMINAL_TOOLS.PROCESS_STOP, { sessionId, force: Boolean(input.force) }, context, { timeoutMs });
       return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
     }
 
@@ -80,11 +87,52 @@ export async function routeStep(
       return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
     }
 
+    case 'write_file': {
+      const path = String(input.path ?? '');
+      if (!path) return fail('write_file requires input.path');
+      const r = await executeTool(TERMINAL_TOOLS.WRITE_FILE, { path, content: String(input.content ?? '') }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
+    case 'read_file': {
+      const path = String(input.path ?? '');
+      if (!path) return fail('read_file requires input.path');
+      const r = await executeTool(TERMINAL_TOOLS.READ_FILE, { path }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
+    case 'patch_file': {
+      const path = String(input.path ?? '');
+      if (!path) return fail('patch_file requires input.path');
+      const r = await executeTool(TERMINAL_TOOLS.PATCH_FILE, { ...input, path }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
+    case 'delete_file': {
+      const path = String(input.path ?? '');
+      if (!path) return fail('delete_file requires input.path');
+      const r = await executeTool(TERMINAL_TOOLS.DELETE_FILE, { path }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
+    case 'list_directory': {
+      const path = String(input.path ?? '.');
+      const r = await executeTool(TERMINAL_TOOLS.READ_FOLDER, { path }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
+    case 'search_files': {
+      const query = String(input.query ?? input.pattern ?? '');
+      if (!query) return fail('search_files requires input.query or input.pattern');
+      const r = await executeTool(TERMINAL_TOOLS.SEARCH_TEXT, { query, path: input.path ?? '.' }, context, { timeoutMs });
+      return r.ok ? ok(extractOutput(r.data)) : fail(resultError(r));
+    }
+
     case 'validate_output':
-      return ok(`Validated: ${String(input.description ?? step.label)}`);
+      return fail('validate_output has no registered tool-backed side effect and cannot report success');
 
     case 'checkpoint':
-      return ok('Checkpoint recorded');
+      return fail('checkpoint has no registered persistence-backed tool and cannot report success');
 
     default:
       return fail(`Unknown step type: ${type}`);

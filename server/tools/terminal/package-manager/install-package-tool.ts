@@ -17,7 +17,8 @@ export const installPackageTool: ToolDefinition = {
   category:    'terminal',
   description: 'Install an npm package into the sandbox project.',
   inputSchema: {
-    packageName: { type: 'string',  description: 'Package name (e.g. "express" or "react@18")', required: true  },
+    packageName: { type: 'string',  description: 'Package name (e.g. "express" or "react@18")', required: false },
+    packages:    { type: 'array',   description: 'Package names; first entry is installed by this single-package tool', required: false },
     dev:         { type: 'boolean', description: 'Install as a devDependency',                   required: false },
     manager:     { type: 'string',  description: 'Package manager: npm | yarn | pnpm',           required: false },
     cwd:         { type: 'string',  description: 'Absolute working directory (defaults to sandbox)', required: false },
@@ -27,7 +28,11 @@ export const installPackageTool: ToolDefinition = {
   retry:       RETRY_NONE,
 
   handler: async (input, ctx: ToolExecutionContext) => {
-    const pkg     = String(input.packageName).trim();
+    const packageList = Array.isArray(input.packages) ? input.packages.map(String).filter(Boolean) : [];
+    const pkg     = String(input.packageName ?? packageList[0] ?? '').trim();
+    if (!pkg) {
+      throw new Error('terminal_install_package requires packageName or a non-empty packages array. Use terminal_execute_command for a full project install.');
+    }
     const dev     = Boolean(input.dev);
     const manager = input.manager as PackageManager | undefined;
     const cwd     = String(input.cwd ?? ctx.sandboxRoot);

@@ -14,6 +14,9 @@
  * Never throws — always returns ToolExecutionResult.
  */
 
+import { existsSync } from 'fs';
+import { join } from 'path';
+
 import type {
   ToolExecutionContext,
   ToolExecutionResult,
@@ -162,6 +165,29 @@ function assertRealityForTerminalOutput(name: string, definition: ToolDefinition
   }
 }
 
+function assertRealityForFilesystemOutput(
+  name: string,
+  definition: ToolDefinition,
+  context: ToolExecutionContext,
+  output: unknown,
+): void {
+  if (definition.category !== 'filesystem' || !output || typeof output !== 'object') return;
+  const record = output as Record<string, unknown>;
+  const rawPath = typeof record.path === 'string' ? record.path : undefined;
+  if (!rawPath) return;
+
+  const relPath = rawPath.replace(/^\/+/, '');
+  const absPath = join(context.sandboxRoot, relPath);
+
+  if ((name === 'fs_write_file' || name === 'fs_ensure_file' || name === 'fs_append_file') && !existsSync(absPath)) {
+    throw new Error(`[${name}] reported success but file does not exist on disk: ${relPath}`);
+  }
+
+  if (name === 'fs_delete_file' && existsSync(absPath)) {
+    throw new Error(`[${name}] reported success but file still exists on disk: ${relPath}`);
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -223,6 +249,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
           // MUST throw so the retry + failure pipeline triggers — otherwise the failure
           // is silently wrapped as { ok: true, data: { ok: false } } and swallowed.
           assertRealityForTerminalOutput(name, definition, result);
+          assertRealityForFilesystemOutput(name, definition, context, result);
 
           if (
             result !== null &&
@@ -256,6 +283,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
     ) {
       const toolResult = data as unknown as ToolExecutionResult<TOutput>;
       assertRealityForTerminalOutput(name, definition, toolResult.ok ? toolResult.data : undefined);
+      assertRealityForFilesystemOutput(name, definition, context, toolResult.ok ? toolResult.data : undefined);
       recordMetric(name, true, durationMs, retries, timedOut);
       recordAudit({
         ts:        new Date().toISOString(),

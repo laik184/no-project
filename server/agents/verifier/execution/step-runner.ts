@@ -89,15 +89,30 @@ async function dispatchVerificationStep(
       return r.ok ? okR(phase, r.data) : failR(phase, resultError(r));
     }
 
+    case 'detect_root_causes': {
+      const error = String(input.error ?? input.output ?? '');
+      const r = await executeTool(VERIFIER_TOOLS.DETECT_ROOT_CAUSES,
+        { runId, error, output: input.output }, context, { timeoutMs: timeoutMs ?? 10_000 });
+      return r.ok ? okR(phase, r.data) : failR(phase, resultError(r));
+    }
+
+    case 'validate_endpoints': {
+      const port = input.port as number | undefined;
+      if (!port && !Array.isArray(input.endpoints)) {
+        return failR(phase, 'validate_endpoints requires input.port or input.endpoints and has no standalone registered tool');
+      }
+      const r = await executeTool(VERIFIER_TOOLS.CHECK_SERVER_HEALTH,
+        { runId, port }, context, { timeoutMs: timeoutMs ?? 15_000 });
+      return r.ok ? okR(phase, r.data) : failR(phase, resultError(r));
+    }
+
     case 'checkpoint':
-      return okR(phase, { checkpointAt: Date.now() });
+      return failR(phase, 'checkpoint has no registered persistence-backed verifier tool and cannot report success');
 
     case 'validate_output':
     case 'validate_execution':
-    case 'detect_root_causes':
     case 'build_diagnostics_report':
-    case 'validate_endpoints':
-      return okR(phase, { message: `${type} delegated`, step: step.id });
+      return failR(phase, `${type} has no registered tool-backed side effect and cannot report success`);
 
     default:
       return failR(phase, `Unknown verification step type: ${type}`);
