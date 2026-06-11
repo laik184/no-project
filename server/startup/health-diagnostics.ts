@@ -9,13 +9,18 @@
 import { existsSync, mkdirSync } from 'fs';
 
 export interface DiagnosticsResult {
-  hasLLMKey:      boolean;
-  hasSandboxRoot: boolean;
-  sandboxPath:    string;
-  warnings:       string[];
+  hasLLMKey:       boolean;
+  hasDatabaseUrl:  boolean;
+  hasSandboxRoot:  boolean;
+  sandboxPath:     string;
+  warnings:        string[];
 }
 
+let cachedDiagnostics: DiagnosticsResult | null = null;
+
 export function runStartupDiagnostics(): DiagnosticsResult {
+  if (cachedDiagnostics) return cachedDiagnostics;
+
   const warnings: string[] = [];
 
   // ── LLM Key ──────────────────────────────────────────────────────────────
@@ -32,6 +37,18 @@ export function runStartupDiagnostics(): DiagnosticsResult {
   } else {
     const src = process.env.OPENROUTER_API_KEY ? 'OPENROUTER_API_KEY' : 'AI_INTEGRATIONS_OPENROUTER_API_KEY';
     console.log(`[health] ✓  LLM key found (${src})`);
+  }
+
+  // ── Database ─────────────────────────────────────────────────────────────
+  const hasDatabaseUrl = !!process.env.DATABASE_URL?.trim();
+
+  if (!hasDatabaseUrl) {
+    const w = '[health] ⚠️  DATABASE_URL not set — database-backed features will run in degraded mode.\n' +
+              '[health]    → Project CRUD, chat history, checkpoints, and runtime persistence require PostgreSQL.';
+    warnings.push(w);
+    console.warn(w);
+  } else {
+    console.log('[health] ✓  DATABASE_URL configured');
   }
 
   // ── Sandbox Root ──────────────────────────────────────────────────────────
@@ -76,5 +93,6 @@ export function runStartupDiagnostics(): DiagnosticsResult {
     console.log('[health] ✓  All environment checks passed');
   }
 
-  return { hasLLMKey, hasSandboxRoot, sandboxPath, warnings };
+  cachedDiagnostics = { hasLLMKey, hasDatabaseUrl, hasSandboxRoot, sandboxPath, warnings };
+  return cachedDiagnostics;
 }

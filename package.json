@@ -55,7 +55,6 @@
     "@types/ws": "^8.18.1",
     "adm-zip": "^0.5.17",
     "archiver": "^8.0.0",
-    "better-sqlite3": "^9.6.0",
     "bullmq": "^5.77.1",
     "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
@@ -99,7 +98,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.25",
     "@types/node": "^20.19.37",
     "@types/prismjs": "^1.26.6",

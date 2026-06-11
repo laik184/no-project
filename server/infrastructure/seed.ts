@@ -5,12 +5,17 @@
  * project_id=1 FK reference from agent_runs is always satisfied.
  */
 import path        from 'path';
-import { db }      from './db/index.ts';
+import { db, isDatabaseConfigured } from './db/index.ts';
 import { eq }      from 'drizzle-orm';
 import { projects } from '../../shared/schema.ts';
 import { SANDBOX_ROOT } from './config/sandbox.config.ts';
 
 export async function seedDefaultProject(): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    console.warn('[seed] DATABASE_URL not set — skipping default project seed');
+    return;
+  }
+
   const existing = await db.select({ id: projects.id, sandboxPath: projects.sandboxPath })
     .from(projects).limit(1);
 
