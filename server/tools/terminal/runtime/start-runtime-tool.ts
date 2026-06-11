@@ -28,6 +28,16 @@ export const startRuntimeTool: ToolDefinition = {
     const cwd       = String(input.cwd ?? ctx.sandboxRoot);
 
     const info = runtimeService.start(sessionId, command, cwd);
-    return { sessionId, pid: info.pid, command: info.command, running: true };
+
+    // Reality check: a spawn call can return a pid and then fail immediately
+    // (bad command, bad cwd, missing interpreter). Do not report success until
+    // the process survives the first event-loop turn and is still observable.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const status = runtimeService.status(sessionId);
+    if (!status?.running) {
+      throw new Error(`Runtime process exited before becoming healthy: ${command}`);
+    }
+
+    return { sessionId, pid: info.pid, command: info.command, running: true, cwd: info.cwd };
   },
 };

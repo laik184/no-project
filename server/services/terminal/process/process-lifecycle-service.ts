@@ -10,6 +10,7 @@
  */
 
 import { spawn }    from 'child_process';
+import { existsSync, statSync } from 'fs';
 import type { ChildProcess } from 'child_process';
 import { commandParser, commandValidator } from '../command/index.ts';
 import { processRepository }               from '../../../repositories/terminal/index.ts';
@@ -41,6 +42,15 @@ export const processLifecycleService = {
   ): ManagedProcess {
     commandValidator.assert(command);
 
+    if (!existsSync(cwd)) {
+      throw new LifecycleError(`Working directory does not exist: ${cwd}`);
+    }
+
+    const cwdStat = statSync(cwd);
+    if (!cwdStat.isDirectory()) {
+      throw new LifecycleError(`Working directory is not a directory: ${cwd}`);
+    }
+
     if (_registry.has(sessionId)) {
       throw new LifecycleError(`Session "${sessionId}" already has a running process.`);
     }
@@ -50,6 +60,11 @@ export const processLifecycleService = {
       cwd,
       env:   { ...process.env, ...parsed.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    proc.once('error', () => {
+      _registry.delete(sessionId);
+      processRepository.unregister(sessionId);
     });
 
     const managed: ManagedProcess = {

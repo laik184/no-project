@@ -136,6 +136,7 @@ async function invokeAgent(
 ): Promise<unknown> {
   const sandboxRoot =
     (input.sandboxRoot as string | undefined) ??
+    context.sandboxRoot ??
     process.env.AGENT_PROJECT_ROOT ??
     '.sandbox';
 
