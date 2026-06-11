@@ -7,6 +7,8 @@
 
 import type { ToolDefinition, ToolExecutionContext } from '../contracts/index.ts';
 import { RETRY_NONE }                                from '../../registry/tool-metadata.ts';
+import { existsSync }                                from 'fs';
+import { join }                                      from 'path';
 import { packageService }                            from '../../../services/terminal/index.ts';
 import type { PackageManager }                       from '../../../services/terminal/index.ts';
 
@@ -31,6 +33,19 @@ export const installPackageTool: ToolDefinition = {
     const cwd     = String(input.cwd ?? ctx.sandboxRoot);
 
     const result = packageService.install(pkg, cwd, dev, manager);
-    return result;
+    if (result.exitCode !== 0) {
+      throw new Error(result.output || `Package install failed for ${pkg}`);
+    }
+
+    const packageFolder = pkg.startsWith('@')
+      ? pkg.split('@').slice(0, 2).join('@')
+      : pkg.split('@')[0];
+    const installed = Boolean(packageFolder) && existsSync(join(cwd, 'node_modules', packageFolder!, 'package.json'));
+
+    if (!installed) {
+      throw new Error(`Package install reported success but ${pkg} was not found on disk in node_modules.`);
+    }
+
+    return { ...result, installed };
   },
 };
