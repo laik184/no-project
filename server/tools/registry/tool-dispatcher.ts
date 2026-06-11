@@ -14,7 +14,7 @@
  * Never throws — always returns ToolExecutionResult.
  */
 
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 
 import type {
@@ -179,8 +179,15 @@ function assertRealityForFilesystemOutput(
   const relPath = rawPath.replace(/^\/+/, '');
   const absPath = join(context.sandboxRoot, relPath);
 
-  if ((name === 'fs_write_file' || name === 'fs_ensure_file' || name === 'fs_append_file') && !existsSync(absPath)) {
+  if (
+    (name === 'fs_write_file' || name === 'fs_write_if_absent' || name === 'fs_ensure_file' || name === 'fs_append_file') &&
+    !existsSync(absPath)
+  ) {
     throw new Error(`[${name}] reported success but file does not exist on disk: ${relPath}`);
+  }
+
+  if (name === 'fs_create_folder' && (!existsSync(absPath) || !statSync(absPath).isDirectory())) {
+    throw new Error(`[${name}] reported success but folder does not exist on disk: ${relPath}`);
   }
 
   if (name === 'fs_delete_file' && existsSync(absPath)) {

@@ -35,7 +35,7 @@ export const replaceLineTool: ToolDefinition = {
     if (lineNumber > lines.length) throw new Error(`Line ${lineNumber} does not exist (file has ${lines.length} lines)`);
 
     lines[lineNumber - 1] = newContent;
-    const write = writeService.saveFile(path, lines.join('\n'), undefined, ctx.sandboxRoot);
+    const write = writeService.saveFile(path, lines.join('\n'), undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { replaced: true, path, lineNumber };
   },

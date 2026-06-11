@@ -34,7 +34,7 @@ export const insertAtTool: ToolDefinition = {
     const lines = (read.content ?? '').split('\n');
     lines.splice(lineNumber - 1, 0, content);
 
-    const write = writeService.saveFile(path, lines.join('\n'), undefined, ctx.sandboxRoot);
+    const write = writeService.saveFile(path, lines.join('\n'), undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { inserted: true, path, lineNumber };
   },

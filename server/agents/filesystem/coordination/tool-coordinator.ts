@@ -15,27 +15,26 @@ import type {
   SearchKind,
   RoutedOperation,
 } from '../types/filesystem.types.ts';
-import { joinPaths } from '../utils/filesystem-utils.ts';
 
 // ── Read coordination ─────────────────────────────────────────────────────────
 
 export function coordinateRead(
   req:         ReadOperationRequest,
-  sandboxRoot: string,
+  _sandboxRoot: string,
 ): RoutedOperation {
   if (req.startLine !== undefined || req.endLine !== undefined) {
     return {
-      toolName:  'read_lines',
+      toolName:  'fs_read_lines',
       toolInput: {
-        path:      joinPaths(sandboxRoot, req.path),
-        startLine: req.startLine ?? 1,
-        endLine:   req.endLine,
+        path:      req.path,
+        from:      req.startLine ?? 1,
+        to:        req.endLine ?? req.startLine ?? 1,
       },
     };
   }
   return {
-    toolName:  'read_file',
-    toolInput: { path: joinPaths(sandboxRoot, req.path) },
+    toolName:  'fs_read_file',
+    toolInput: { path: req.path },
   };
 }
 
@@ -43,34 +42,32 @@ export function coordinateRead(
 
 export function coordinateWrite(
   req:         WriteOperationRequest,
-  sandboxRoot: string,
+  _sandboxRoot: string,
 ): RoutedOperation {
-  const fullPath = joinPaths(sandboxRoot, req.path);
   if (req.onlyIfAbsent) {
-    return { toolName: 'write_if_absent', toolInput: { path: fullPath, content: req.content } };
+    return { toolName: 'fs_write_if_absent', toolInput: { path: req.path, content: req.content } };
   }
   if (req.append) {
-    return { toolName: 'append_file', toolInput: { path: fullPath, content: req.content } };
+    return { toolName: 'fs_append_file', toolInput: { path: req.path, content: req.content } };
   }
-  return { toolName: 'write_file', toolInput: { path: fullPath, content: req.content } };
+  return { toolName: 'fs_write_file', toolInput: { path: req.path, content: req.content } };
 }
 
 // ── Patch coordination ────────────────────────────────────────────────────────
 
 export function coordinatePatch(
   req:         PatchOperationRequest,
-  sandboxRoot: string,
+  _sandboxRoot: string,
 ): RoutedOperation {
-  const fullPath = joinPaths(sandboxRoot, req.path);
   if (req.patchAll) {
     return {
-      toolName:  'patch_all',
-      toolInput: { path: fullPath, hunks: req.hunks },
+      toolName:  'fs_patch_all',
+      toolInput: { path: req.path, hunks: req.hunks },
     };
   }
   return {
-    toolName:  'patch_file',
-    toolInput: { path: fullPath, hunks: req.hunks },
+    toolName:  'fs_patch_file',
+    toolInput: { path: req.path, hunks: req.hunks },
   };
 }
 
@@ -78,53 +75,57 @@ export function coordinatePatch(
 
 export function coordinateDelete(
   req:         DeleteOperationRequest,
-  sandboxRoot: string,
+  _sandboxRoot: string,
 ): RoutedOperation {
   if (req.multiple && req.multiple.length > 0) {
     return {
-      toolName:  'delete_multiple',
-      toolInput: { paths: req.multiple.map((p) => joinPaths(sandboxRoot, p)) },
+      toolName:  'fs_delete_multiple',
+      toolInput: { paths: req.multiple },
     };
   }
-  const fullPath = joinPaths(sandboxRoot, req.path);
   if (req.recursive) {
-    return { toolName: 'delete_folder', toolInput: { path: fullPath } };
+    return { toolName: 'fs_delete_folder', toolInput: { path: req.path } };
   }
-  return { toolName: 'delete_file', toolInput: { path: fullPath } };
+  return { toolName: 'fs_delete_file', toolInput: { path: req.path } };
 }
 
 // ── Search coordination ───────────────────────────────────────────────────────
 
 const SEARCH_TOOL_MAP: Record<SearchKind, string> = {
-  by_name:    'find_by_name',
-  by_extension: 'find_by_extension',
-  by_pattern: 'find_by_pattern',
-  text:       'search_text',
-  regex:      'search_regex',
-  imports:    'find_imports',
-  exports:    'find_exports',
-  symbol:     'find_symbol_usages',
+  by_name:    'fs_find_by_name',
+  by_extension: 'fs_find_by_extension',
+  by_pattern: 'fs_find_by_pattern',
+  text:       'fs_search_text',
+  regex:      'fs_search_regex',
+  imports:    'fs_find_imports',
+  exports:    'fs_find_exports',
+  symbol:     'fs_find_symbol_usages',
 };
 
 export function coordinateSearch(
   req:         SearchOperationRequest,
-  sandboxRoot: string,
+  _sandboxRoot: string,
 ): RoutedOperation {
   const toolName = SEARCH_TOOL_MAP[req.searchKind];
   if (!toolName) {
     throw new Error(`[tool-coordinator] Unknown searchKind: ${req.searchKind}`);
   }
-  const rootPath = req.rootPath
-    ? joinPaths(sandboxRoot, req.rootPath)
-    : sandboxRoot;
+  const path = req.rootPath ?? '.';
 
-  return {
-    toolName,
-    toolInput: {
-      query:         req.query,
-      rootPath,
-      caseSensitive: req.caseSensitive ?? false,
-      maxResults:    req.maxResults,
-    },
-  };
+  switch (req.searchKind) {
+    case 'by_name':
+      return { toolName, toolInput: { path, name: req.query, maxDepth: req.maxResults } };
+    case 'by_extension':
+      return { toolName, toolInput: { path, extension: req.query, maxDepth: req.maxResults } };
+    case 'by_pattern':
+      return { toolName, toolInput: { path, pattern: req.query, maxDepth: req.maxResults } };
+    case 'regex':
+      return { toolName, toolInput: { path, pattern: req.query, flags: req.caseSensitive ? 'g' : 'gi' } };
+    case 'text':
+      return { toolName, toolInput: { path, query: req.query, caseSensitive: req.caseSensitive ?? false } };
+    case 'imports':
+    case 'exports':
+    case 'symbol':
+      return { toolName, toolInput: { path } };
+  }
 }

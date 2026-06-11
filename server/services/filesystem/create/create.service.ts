@@ -21,7 +21,7 @@ class CreateService {
    * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
    *                     Agent tools must pass ctx.sandboxRoot here for per-project isolation.
    */
-  createEntry(filePath: string, isFolder = false, content = '', sandboxRoot?: string): CreateResponse {
+  createEntry(filePath: string, isFolder = false, content = '', sandboxRoot?: string, projectId = 1): CreateResponse {
     try {
       const root = sandboxRoot ?? FE_CONFIG.sandboxRoot;
       const abs  = resolveSafe(filePath, root);
@@ -31,9 +31,9 @@ class CreateService {
       }
 
       if (isFolder) {
-        filesystemRepository.mkdir(abs);
+        filesystemRepository.mkdir(abs, { projectId, relPath: toRelative(abs, root) });
       } else {
-        filesystemRepository.writeText(abs, content);
+        filesystemRepository.writeText(abs, content, { projectId, relPath: toRelative(abs, root) });
       }
 
       return { ok: true, path: toRelative(abs, root) };

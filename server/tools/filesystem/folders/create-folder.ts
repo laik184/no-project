@@ -21,7 +21,7 @@ export const createFolderTool: ToolDefinition = {
 
   handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path, 'path');
-    const result = createService.createEntry(path, true, '', ctx.sandboxRoot);
+    const result = createService.createEntry(path, true, '', ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!result.ok) throw new Error(result.error ?? 'Failed to create folder');
     return { created: true, path: result.path };
   },

@@ -33,7 +33,7 @@ export const replaceAllTool: ToolDefinition = {
     const newContent = original.split(search).join(replacement);
     const count      = (original.split(search).length - 1);
 
-    const write = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
+    const write = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { replaced: count, path };
   },

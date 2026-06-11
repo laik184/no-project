@@ -34,7 +34,7 @@ export const patchAllTool: ToolDefinition = {
     if (count === 0) throw new Error(`"oldString" not found in file: ${path}`);
 
     const newContent = original.split(oldString).join(newString);
-    const write      = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
+    const write      = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { patched: count, path };
   },

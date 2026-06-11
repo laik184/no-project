@@ -27,7 +27,7 @@ export const writeIfAbsentTool: ToolDefinition = {
     const existing = readService.readFile(path, ctx.sandboxRoot);
     if (existing.ok) return { written: false, path, skipped: true };
 
-    const result = createService.createEntry(path, false, content, ctx.sandboxRoot);
+    const result = createService.createEntry(path, false, content, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!result.ok) throw new Error(result.error ?? 'Failed to write file');
     return { written: true, path, skipped: false };
   },

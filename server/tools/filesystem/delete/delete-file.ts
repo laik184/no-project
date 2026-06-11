@@ -23,7 +23,7 @@ export const deleteFileTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path      = assertInputPath(input.path, 'path');
     const mustExist = (input.mustExist as boolean) ?? false;
-    const result    = deleteService.delete(path, ctx.sandboxRoot);
+    const result    = deleteService.delete(path, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!result.ok) {
       if (!mustExist && (result.error?.includes('Not found') ?? false)) {
         return { deleted: false, path, skipped: true };

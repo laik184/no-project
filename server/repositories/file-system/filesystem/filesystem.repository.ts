@@ -54,25 +54,39 @@ class FilesystemRepository {
 
   /** Writes text content to a file, creating parent dirs as needed. */
   writeText(absPath: string, content: string, ctx?: MutationContext): void {
+    const existedBeforeWrite = fs.existsSync(absPath);
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     fs.writeFileSync(absPath, content, 'utf-8');
     if (ctx) {
-      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'modified' });
+      emitFileChange({
+        projectId: ctx.projectId,
+        path:      ctx.relPath,
+        kind:      existedBeforeWrite ? 'modified' : 'created',
+      });
     }
   }
 
   /** Writes a binary buffer to a file, creating parent dirs as needed. */
   writeBuffer(absPath: string, buf: Buffer, ctx?: MutationContext): void {
+    const existedBeforeWrite = fs.existsSync(absPath);
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     fs.writeFileSync(absPath, buf);
     if (ctx) {
-      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'modified' });
+      emitFileChange({
+        projectId: ctx.projectId,
+        path:      ctx.relPath,
+        kind:      existedBeforeWrite ? 'modified' : 'created',
+      });
     }
   }
 
   /** Creates a directory (and any missing parents). */
-  mkdir(absPath: string): void {
+  mkdir(absPath: string, ctx?: MutationContext): void {
+    const existedBeforeCreate = fs.existsSync(absPath);
     fs.mkdirSync(absPath, { recursive: true });
+    if (ctx && !existedBeforeCreate) {
+      emitFileChange({ projectId: ctx.projectId, path: ctx.relPath, kind: 'created' });
+    }
   }
 
   /** Renames / moves src to dest. Creates dest parent dirs as needed. */

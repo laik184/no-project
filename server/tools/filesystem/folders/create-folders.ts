@@ -24,7 +24,7 @@ export const createFoldersTool: ToolDefinition = {
       throw new Error('"paths" must be a non-empty array');
     }
     return paths.map(p => {
-      const r = createService.createEntry(p, true, '', ctx.sandboxRoot);
+      const r = createService.createEntry(p, true, '', ctx.sandboxRoot, Number(ctx.projectId) || 1);
       return { path: p, created: r.ok, error: r.ok ? undefined : r.error };
     });
   },

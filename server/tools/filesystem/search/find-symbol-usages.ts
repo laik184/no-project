@@ -23,7 +23,7 @@ export const findSymbolUsagesTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path,     'path');
     const symbol = assertInputString(input.symbol, 'symbol');
-    const result = dependencyAnalysisService.findSymbolUsages(symbol, path);
+    const result = dependencyAnalysisService.findSymbolUsages(symbol, path, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to find symbol usages');
     return { results: result.results, total: result.total };
   },
