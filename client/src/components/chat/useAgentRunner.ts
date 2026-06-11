@@ -64,7 +64,7 @@ export function useAgentRunner() {
     try {
       await fetch(`/api/questions/${encodeURIComponent(questionId)}/answer`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify({ answer, runId }),
       });
     } catch (e) { console.warn("[question] failed to POST answer:", e); }
     setMessages((prev) =>
