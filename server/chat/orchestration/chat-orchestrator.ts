@@ -68,6 +68,11 @@ export class ChatOrchestratorError extends Error {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
+
+function canRunWithoutLLM(goal: string): boolean {
+  return /(?:create|write|make|add)\s+(?:a\s+)?(?:new\s+)?file(?:\s+named|\s+called)?\s+["'`]?([\w./-]+\.[A-Za-z0-9]{1,12})["'`]?/i.test(goal);
+}
+
 async function _completeRun(run: ChatRun, turnId: string): Promise<void> {
   const now        = new Date();
   const durationMs = now.getTime() - run.startedAt.getTime();
@@ -184,7 +189,7 @@ export const chatOrchestrator = {
     // ── LLM key guard ────────────────────────────────────────────────────────
     // Surface a friendly message if no API key is configured, rather than
     // letting the orchestration engine crash silently deep in the stack.
-    if (!hasLLMKey()) {
+    if (!hasLLMKey() && !canRunWithoutLLM(refinedGoal)) {
       void (async () => {
         streamManager.open(runId, payload.projectId);
         streamManager.append(runId,

@@ -78,6 +78,7 @@ export interface VerifierInput {
   sandboxRoot?: string;
   port?:        number;
   timeoutMs?:   number;
+  expectedFiles?: string[];
 }
 
 export interface VerifierOutput {

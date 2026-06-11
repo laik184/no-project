@@ -15,6 +15,7 @@
  */
 
 import { existsSync } from 'fs';
+import path from 'path';
 import type { VerifierInput, VerifierOutput, VerificationPhase } from './types/verifier.types.ts';
 import { buildVerifierContext }         from './core/verifier-context.ts';
 import { runVerifier }                  from './execution/verification-runner.ts';
@@ -124,6 +125,32 @@ export async function runVerification(req: VerifierInput): Promise<VerifierOutpu
       steps:      [],
       durationMs: 0,
       errors:     [],
+    };
+  }
+
+  if (req.expectedFiles && req.expectedFiles.length > 0) {
+    const checked = req.expectedFiles.map((file) => {
+      const relative = file.replace(/^\/+/, '');
+      const unsafe = relative.includes('..') || path.isAbsolute(file);
+      const exists = !unsafe && existsSync(path.join(sandboxPath, relative));
+      return { path: relative, exists, unsafe };
+    });
+    const missing = checked.filter((entry) => !entry.exists || entry.unsafe);
+    return {
+      ok:         missing.length === 0,
+      runId,
+      phases:     ['validation'],
+      steps:      [{
+        stepId:     'validate-output:expected-files',
+        phase:      'validation',
+        success:    missing.length === 0,
+        durationMs: 0,
+        attempt:    1,
+        output:     { checked },
+        ...(missing.length > 0 ? { error: `Missing expected file(s): ${missing.map((entry) => entry.path).join(', ')}` } : {}),
+      }],
+      durationMs: 0,
+      errors:     missing.length === 0 ? [] : [`Missing expected file(s): ${missing.map((entry) => entry.path).join(', ')}`],
     };
   }
 

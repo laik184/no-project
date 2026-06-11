@@ -53,6 +53,13 @@ export function assertInputString(value: unknown, fieldName: string): string {
   return value as string;
 }
 
+export function assertInputStringAllowEmpty(value: unknown, fieldName: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(`"${fieldName}" must be a string`);
+  }
+  return value;
+}
+
 export function assertInputPath(value: unknown, fieldName = 'path'): string {
   const r = validatePathInput(value, fieldName);
   if (!r.valid) throw new Error(r.error!);
