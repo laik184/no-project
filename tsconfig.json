@@ -16,6 +16,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"],
       "@services/chat": ["./server/services/chat/index.ts"],
       "@services/chat/*": ["./server/services/chat/*"],
       "@services/filesystem": ["./server/services/filesystem/index.ts"],

@@ -19,6 +19,7 @@ import express, { type Express } from 'express';
 import type { Request, Response } from 'express';
 
 import { installGlobalHandlers, expressErrorMiddleware } from './server/shared/errors/index.ts';
+import { runStartupDiagnostics } from './server/startup/health-diagnostics.ts';
 
 import { bootstrapMemory }                               from './server/memory/index.ts';
 import { loadAllTools }                                  from './server/tools/registry/tool-loader.ts';
@@ -267,6 +268,8 @@ function startHttpServer(app: Express): void {
 // BOOTSTRAP — ordered startup sequence
 // ═══════════════════════════════════════════════════════════════════════════════
 async function bootstrap(): Promise<void> {
+  runStartupDiagnostics();
+
   const app = express();
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
