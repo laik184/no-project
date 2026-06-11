@@ -41,6 +41,16 @@ assertContains(dispatcher, 'assertRealityForFilesystemOutput', 'Dispatcher must 
 assertContains(dispatcher, 'reported success but file does not exist on disk', 'Dispatcher must reject fake filesystem write success.');
 assertContains(dispatcher, 'reported success but file still exists on disk', 'Dispatcher must reject fake filesystem delete success.');
 
+
+const filesystemCoordinator = 'server/agents/filesystem/coordination/tool-coordinator.ts';
+for (const tool of ['fs_read_file', 'fs_read_lines', 'fs_write_file', 'fs_append_file', 'fs_write_if_absent', 'fs_patch_file', 'fs_patch_all', 'fs_delete_file', 'fs_delete_folder', 'fs_delete_multiple']) {
+  assertContains(filesystemCoordinator, tool, `Filesystem coordinator must route to registered ${tool}.`);
+}
+assertNotContains(filesystemCoordinator, "toolName: 'write_file'", 'Filesystem coordinator must not route to unregistered write_file.');
+assertNotContains(filesystemCoordinator, "toolName:  'read_file'", 'Filesystem coordinator must not route to unregistered read_file.');
+assertNotContains(filesystemCoordinator, 'joinPaths(sandboxRoot', 'Filesystem coordinator must pass relative paths; tools resolve against ctx.sandboxRoot.');
+assertContains(dispatcher, 'reported success but folder does not exist on disk', 'Dispatcher must reject fake folder create success.');
+
 const terminalStepRunner = 'server/agents/terminal/execution/step-runner.ts';
 for (const step of ['write_file', 'read_file', 'patch_file', 'delete_file', 'list_directory', 'search_files']) {
   assertContains(terminalStepRunner, `case '${step}'`, `Terminal step runner must route ${step}.`);

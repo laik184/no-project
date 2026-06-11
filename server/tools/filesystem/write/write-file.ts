@@ -28,7 +28,7 @@ export const writeFileTool: ToolDefinition = {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputStringAllowEmpty(input.content, 'content');
     historyService.snapshotBeforeWrite(path);
-    const result  = writeService.saveFile(path, content, undefined, ctx.sandboxRoot);
+    const result  = writeService.saveFile(path, content, undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!result.ok) throw new Error(result.error ?? 'Failed to write file');
     return { written: true, path, serverMtime: result.serverMtime };
   },

@@ -21,7 +21,7 @@ export const findExportsTool: ToolDefinition = {
 
   handler: async (input, ctx: ToolExecutionContext) => {
     const path   = assertInputPath(input.path, 'path');
-    const result = dependencyAnalysisService.findExports(path);
+    const result = dependencyAnalysisService.findExports(path, ctx.sandboxRoot);
     if (!result.ok) throw new Error(result.error ?? 'Failed to find exports');
     return { results: result.results, total: result.total };
   },

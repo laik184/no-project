@@ -37,7 +37,7 @@ export const patchFileTool: ToolDefinition = {
     if (count > 1) throw new Error(`"oldString" is ambiguous — found ${count} occurrences. Use fs_patch_all or be more specific.`);
 
     const newContent = original.slice(0, idx) + newString + original.slice(idx + oldString.length);
-    const write      = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
+    const write      = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!write.ok) throw new Error(write.error ?? 'Failed to write file');
     return { patched: true, path };
   },

@@ -24,7 +24,7 @@ class WriteService {
    * @param sandboxRoot  Per-execution sandbox root. Defaults to FE_CONFIG.sandboxRoot.
    *                     Agent tools must pass ctx.sandboxRoot here for per-project isolation.
    */
-  saveFile(filePath: string, content: string, clientMtime?: number, sandboxRoot?: string): WriteResponse {
+  saveFile(filePath: string, content: string, clientMtime?: number, sandboxRoot?: string, projectId = 1): WriteResponse {
     try {
       const root = sandboxRoot ?? FE_CONFIG.sandboxRoot;
       const abs  = resolveSafe(filePath, root);
@@ -38,7 +38,7 @@ class WriteService {
       }
 
       const relPath = path.relative(root, abs).split(path.sep).join('/');
-      filesystemRepository.writeText(abs, content, { projectId: 1, relPath });
+      filesystemRepository.writeText(abs, content, { projectId, relPath });
       metadataRepository.invalidate(abs);
       const newStat = filesystemRepository.stat(abs);
 

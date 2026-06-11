@@ -32,14 +32,14 @@ export const appendFileTool: ToolDefinition = {
     const existing = readService.readFile(path, ctx.sandboxRoot);
 
     if (!existing.ok) {
-      const create = createService.createEntry(path, false, content, ctx.sandboxRoot);
+      const create = createService.createEntry(path, false, content, ctx.sandboxRoot, Number(ctx.projectId) || 1);
       if (!create.ok) throw new Error(create.error ?? 'Failed to create file');
       return { appended: true, path };
     }
 
     const separator   = newline && !(existing.content ?? '').endsWith('\n') ? '\n' : '';
     const newContent  = (existing.content ?? '') + separator + content;
-    const writeResult = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot);
+    const writeResult = writeService.saveFile(path, newContent, undefined, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     if (!writeResult.ok) throw new Error(writeResult.error ?? 'Failed to append to file');
     return { appended: true, path };
   },

@@ -29,7 +29,7 @@ export const deleteMultipleTool: ToolDefinition = {
       throw new Error(`Cannot delete more than ${MAX_BATCH} files at once`);
     }
     return paths.map(p => {
-      const r = deleteService.delete(p, ctx.sandboxRoot);
+      const r = deleteService.delete(p, ctx.sandboxRoot, Number(ctx.projectId) || 1);
       return { path: p, deleted: r.ok, error: r.ok ? undefined : r.error };
     });
   },

@@ -73,8 +73,8 @@ class DependencyAnalysisService {
    * Resolves an optional relative project path to an absolute sandbox root.
    * Defaults to FE_CONFIG.sandboxRoot when no path is provided.
    */
-  private resolveRoot(projectPath?: string): string {
-    return projectPath ? resolveSafe(projectPath) : FE_CONFIG.sandboxRoot;
+  private resolveRoot(projectPath?: string, sandboxRoot = FE_CONFIG.sandboxRoot): string {
+    return projectPath ? resolveSafe(projectPath, sandboxRoot) : sandboxRoot;
   }
 
   // ── findImports ─────────────────────────────────────────────────────────────
@@ -83,15 +83,15 @@ class DependencyAnalysisService {
    * Finds all static import and dynamic require() statements in every
    * TS/JS file under projectPath. Returns structured ImportEntry records.
    */
-  findImports(projectPath?: string): DependencyAnalysisResult<ImportEntry> {
+  findImports(projectPath?: string, sandboxRoot = FE_CONFIG.sandboxRoot): DependencyAnalysisResult<ImportEntry> {
     try {
-      const root    = this.resolveRoot(projectPath);
+      const root    = this.resolveRoot(projectPath, sandboxRoot);
       const entries: ImportEntry[] = [];
 
       const staticRe  = /import\s+(?:.+?\s+from\s+)?['"]([^'"]+)['"]/g;
       const dynamicRe = /(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
-      for (const record of filesystemRepository.walkFiles(root, FE_CONFIG.sandboxRoot)) {
+      for (const record of filesystemRepository.walkFiles(root, sandboxRoot)) {
         if (!isJsTs(record.relPath))       continue;
         if (record.size > MAX_FILE_BYTES)  continue;
 
@@ -141,14 +141,14 @@ class DependencyAnalysisService {
    * Finds all export declarations (named, default, type, re-export) in every
    * TS/JS file under projectPath. Returns structured ExportEntry records.
    */
-  findExports(projectPath?: string): DependencyAnalysisResult<ExportEntry> {
+  findExports(projectPath?: string, sandboxRoot = FE_CONFIG.sandboxRoot): DependencyAnalysisResult<ExportEntry> {
     try {
-      const root    = this.resolveRoot(projectPath);
+      const root    = this.resolveRoot(projectPath, sandboxRoot);
       const entries: ExportEntry[] = [];
 
       const exportLineRe = /^export\s+/;
 
-      for (const record of filesystemRepository.walkFiles(root, FE_CONFIG.sandboxRoot)) {
+      for (const record of filesystemRepository.walkFiles(root, sandboxRoot)) {
         if (!isJsTs(record.relPath))       continue;
         if (record.size > MAX_FILE_BYTES)  continue;
 
@@ -200,17 +200,17 @@ class DependencyAnalysisService {
    * Finds all lines in TS/JS files under projectPath where `symbol` appears
    * as a whole word. Returns structured UsageEntry records.
    */
-  findSymbolUsages(symbol: string, projectPath?: string): DependencyAnalysisResult<UsageEntry> {
+  findSymbolUsages(symbol: string, projectPath?: string, sandboxRoot = FE_CONFIG.sandboxRoot): DependencyAnalysisResult<UsageEntry> {
     if (!symbol || !symbol.trim()) {
       return { ok: false, results: [], total: 0, error: '"symbol" must be a non-empty string' };
     }
 
     try {
-      const root      = this.resolveRoot(projectPath);
+      const root      = this.resolveRoot(projectPath, sandboxRoot);
       const entries: UsageEntry[] = [];
       const symbolRe  = new RegExp(`\\b${escapeRegex(symbol)}\\b`);
 
-      for (const record of filesystemRepository.walkFiles(root, FE_CONFIG.sandboxRoot)) {
+      for (const record of filesystemRepository.walkFiles(root, sandboxRoot)) {
         if (!isJsTs(record.relPath))       continue;
         if (record.size > MAX_FILE_BYTES)  continue;
 

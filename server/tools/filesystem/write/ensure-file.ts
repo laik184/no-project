@@ -26,7 +26,7 @@ export const ensureFileTool: ToolDefinition = {
   handler: async (input, ctx: ToolExecutionContext) => {
     const path    = assertInputPath(input.path, 'path');
     const content = assertInputStringAllowEmpty(input.content, 'content');
-    const result  = createService.createEntry(path, false, content, ctx.sandboxRoot);
+    const result  = createService.createEntry(path, false, content, ctx.sandboxRoot, Number(ctx.projectId) || 1);
     const created = result.ok;
     const alreadyExists = !result.ok && (result.error?.includes('Already exists') ?? false);
     if (!result.ok && !alreadyExists) throw new Error(result.error ?? 'Failed to ensure file');

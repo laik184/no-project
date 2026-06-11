@@ -35,19 +35,31 @@ interface RawSearchOutput {
 }
 
 function parseSearchOutput(data: unknown, query: string): SearchOperationResult {
+  if (Array.isArray(data)) {
+    const matches = data.map((m) => {
+      const record = (m ?? {}) as RawMatch & { relativePath?: string };
+      return {
+        path:    record.path ?? record.file ?? record.relativePath ?? '',
+        line:    record.line,
+        snippet: record.snippet ?? record.text,
+      };
+    });
+    return { kind: 'search', query, matches, total: matches.length };
+  }
+
   const raw = (data ?? {}) as RawSearchOutput;
 
   let matches: SearchMatch[] = [];
 
   if (Array.isArray(raw.matches)) {
     matches = raw.matches.map((m) => ({
-      path:    m.path ?? m.file ?? '',
+      path:    m.path ?? m.file ?? (m as RawMatch & { relativePath?: string }).relativePath ?? '',
       line:    m.line,
       snippet: m.snippet ?? m.text,
     }));
   } else if (Array.isArray(raw.results)) {
     matches = raw.results.map((m) => ({
-      path:    m.path ?? m.file ?? '',
+      path:    m.path ?? m.file ?? (m as RawMatch & { relativePath?: string }).relativePath ?? '',
       line:    m.line,
       snippet: m.snippet ?? m.text,
     }));
