@@ -6,17 +6,22 @@
  * frontend does not need to know (or send) a command string.
  */
 
-import { Router, type Request, type Response, type NextFunction } from "express";
-import { existsSync, readFileSync }                                from "fs";
-import { resolve }                                                 from "path";
-import httpProxy                                                   from "http-proxy";
+import {
+  Router,
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
+import { existsSync, readFileSync } from "fs";
+import { resolve } from "path";
+import httpProxy from "http-proxy";
 
-import { db }                     from "../../infrastructure/index.ts";
-import { projects }               from "../../../shared/schema.ts";
-import { eq }                     from "drizzle-orm";
-import { lifecycleManager }       from "../lifecycle/preview-lifecycle-manager.ts";
-import { previewRuntimeManager }  from "../runtime/preview-runtime-manager.ts";
-import { runtimeManager }         from "../../infrastructure/index.ts";
+import { db } from "../../infrastructure/index.ts";
+import { projects } from "../../../shared/schema.ts";
+import { eq } from "drizzle-orm";
+import { lifecycleManager } from "../lifecycle/preview-lifecycle-manager.ts";
+import { previewRuntimeManager } from "../runtime/preview-runtime-manager.ts";
+import { runtimeManager } from "../../infrastructure/index.ts";
 import { packageManagerDetector } from "../../services/terminal/index.ts";
 
 // ── Shared proxy server (created once) ────────────────────────────────────────
@@ -83,14 +88,20 @@ function detectPortFromLogs(logs: string[]): number | undefined {
 function packageManagerRunCommand(sandboxPath: string, script: string): string {
   const { manager } = packageManagerDetector.detect(sandboxPath);
   switch (manager) {
-    case "yarn": return `yarn ${script}`;
-    case "pnpm": return `pnpm run ${script}`;
-    case "bun":  return `bun run ${script}`;
-    default:     return `npm run ${script}`;
+    case "yarn":
+      return `yarn ${script}`;
+    case "pnpm":
+      return `pnpm run ${script}`;
+    case "bun":
+      return `bun run ${script}`;
+    default:
+      return `npm run ${script}`;
   }
 }
 
-function detectCommand(sandboxPath: string): { command: string; port?: number } | null {
+function detectCommand(
+  sandboxPath: string,
+): { command: string; port?: number } | null {
   const abs = resolve(sandboxPath);
 
   if (!existsSync(abs)) return null;
@@ -100,9 +111,19 @@ function detectCommand(sandboxPath: string): { command: string; port?: number } 
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
       const scripts: Record<string, string> = pkg.scripts ?? {};
-      if (scripts.dev)   return { command: packageManagerRunCommand(abs, "dev"),   port: undefined };
-      if (scripts.start) return { command: packageManagerRunCommand(abs, "start"), port: undefined };
-    } catch { /* ignore parse errors */ }
+      if (scripts.dev)
+        return {
+          command: packageManagerRunCommand(abs, "dev"),
+          port: undefined,
+        };
+      if (scripts.start)
+        return {
+          command: packageManagerRunCommand(abs, "start"),
+          port: undefined,
+        };
+    } catch {
+      /* ignore parse errors */
+    }
   }
 
   for (const entry of ["index.js", "server.js", "main.js", "app.js"]) {
@@ -128,18 +149,32 @@ async function fetchProject(projectId: number) {
 
 async function handleStart(req: Request, res: Response): Promise<void> {
   const projectId = Number(req.params.projectId);
-  if (isNaN(projectId)) { res.status(400).json({ ok: false, error: "Invalid projectId." }); return; }
+  if (isNaN(projectId)) {
+    res.status(400).json({ ok: false, error: "Invalid projectId." });
+    return;
+  }
 
   const project = await fetchProject(projectId);
-  if (!project) { res.status(404).json({ ok: false, error: `Project ${projectId} not found.` }); return; }
+  if (!project) {
+    res
+      .status(404)
+      .json({ ok: false, error: `Project ${projectId} not found.` });
+    return;
+  }
 
-  const sandboxPath = project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-  const detected   = detectCommand(sandboxPath);
+  const sandboxPath =
+    project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
+  const detected = detectCommand(sandboxPath);
 
   if (!detected) {
     // Nothing to run yet — transition lifecycle to reflect that and tell the client.
     await lifecycleManager.markCrashed(projectId, null).catch(() => {});
-    res.json({ ok: false, empty: true, error: "No app built yet — describe your idea in the chat to get started." });
+    res.json({
+      ok: false,
+      empty: true,
+      error:
+        "No app built yet — describe your idea in the chat to get started.",
+    });
     return;
   }
 
@@ -156,13 +191,22 @@ async function handleStart(req: Request, res: Response): Promise<void> {
 
 async function handleRestart(req: Request, res: Response): Promise<void> {
   const projectId = Number(req.params.projectId);
-  if (isNaN(projectId)) { res.status(400).json({ ok: false, error: "Invalid projectId." }); return; }
+  if (isNaN(projectId)) {
+    res.status(400).json({ ok: false, error: "Invalid projectId." });
+    return;
+  }
 
   const project = await fetchProject(projectId);
-  if (!project) { res.status(404).json({ ok: false, error: `Project ${projectId} not found.` }); return; }
+  if (!project) {
+    res
+      .status(404)
+      .json({ ok: false, error: `Project ${projectId} not found.` });
+    return;
+  }
 
-  const sandboxPath = project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-  const detected   = detectCommand(sandboxPath);
+  const sandboxPath =
+    project.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
+  const detected = detectCommand(sandboxPath);
 
   if (!detected) {
     await lifecycleManager.markCrashed(projectId, null).catch(() => {});
@@ -183,7 +227,10 @@ async function handleRestart(req: Request, res: Response): Promise<void> {
 
 async function handleStop(req: Request, res: Response): Promise<void> {
   const projectId = Number(req.params.projectId);
-  if (isNaN(projectId)) { res.status(400).json({ ok: false, error: "Invalid projectId." }); return; }
+  if (isNaN(projectId)) {
+    res.status(400).json({ ok: false, error: "Invalid projectId." });
+    return;
+  }
 
   await previewRuntimeManager.stop(projectId);
   res.json({ ok: true });
@@ -193,13 +240,20 @@ async function handleStop(req: Request, res: Response): Promise<void> {
  * Legacy /api/restart — restarts project 1 (the default seeded project).
  * Used by the no-projectId fallback in useNavigationLogic.
  */
-async function handleLegacyRestart(_req: Request, res: Response): Promise<void> {
+async function handleLegacyRestart(
+  _req: Request,
+  res: Response,
+): Promise<void> {
   const DEFAULT_PROJECT_ID = 1;
   try {
     const project = await fetchProject(DEFAULT_PROJECT_ID);
-    const sandboxPath = project?.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
-    const detected   = detectCommand(sandboxPath);
-    if (!detected) { res.json({ ok: false, empty: true }); return; }
+    const sandboxPath =
+      project?.sandboxPath ?? process.env.AGENT_PROJECT_ROOT ?? ".sandbox";
+    const detected = detectCommand(sandboxPath);
+    if (!detected) {
+      res.json({ ok: false, empty: true });
+      return;
+    }
     const { command, port } = detected;
     await previewRuntimeManager.restart(DEFAULT_PROJECT_ID, {
       command,
@@ -226,7 +280,9 @@ export function buildPreviewFrameHandler() {
         r.setHeader("Content-Type", "text/html; charset=utf-8");
         r.end(IDLE_HTML);
       }
-    } catch { /* swallow */ }
+    } catch {
+      /* swallow */
+    }
   });
 
   return (_req: Request, res: Response, _next: NextFunction) => {
@@ -238,8 +294,17 @@ export function buildPreviewFrameHandler() {
       return;
     }
 
-    const port = entry.port ?? detectPortFromLogs(entry.logs as string[]) ?? 3000;
-    sandboxProxy.web(_req, res, { target: `http://localhost:${port}`, changeOrigin: true });
+    const port = entry.port ?? detectPortFromLogs(entry.logs as string[]);
+    if (!port) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(IDLE_HTML);
+      return;
+    }
+
+    sandboxProxy.web(_req, res, {
+      target: `http://localhost:${port}`,
+      changeOrigin: true,
+    });
   };
 }
 
@@ -248,9 +313,9 @@ export function buildPreviewFrameHandler() {
 export function buildRuntimeRouter(): Router {
   const router = Router();
 
-  router.post("/:projectId/start",   handleStart);
+  router.post("/:projectId/start", handleStart);
   router.post("/:projectId/restart", handleRestart);
-  router.post("/:projectId/stop",    handleStop);
+  router.post("/:projectId/stop", handleStop);
 
   return router;
 }
