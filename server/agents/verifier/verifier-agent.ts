@@ -109,23 +109,16 @@ export async function runVerification(req: VerifierInput): Promise<VerifierOutpu
   }
 
   // ── 2b. Sandbox existence check ───────────────────────────────────────────
-  // If the sandbox root doesn't exist, verification is a no-op (non-fatal).
-  // This happens when AGENT_PROJECT_ROOT is unset and .sandbox hasn't been
-  // written to yet — verifier tools would fail immediately with ENOENT.
+  // If the sandbox root doesn't exist, verification must fail explicitly.
+  // Reporting success here creates a fake-success path with no real check.
   const sandboxPath = req.sandboxRoot ?? '.sandbox';
   if (!existsSync(sandboxPath)) {
-    verifierLogger.warn(runId, 'Sandbox not found — skipping verification (non-fatal)', {
+    const error = `Sandbox not found: ${sandboxPath}`;
+    verifierLogger.error(runId, error, {
       sandboxRoot: sandboxPath,
       hint: 'Set AGENT_PROJECT_ROOT to a writable path or let the executor write files first',
     });
-    return {
-      ok:         true,
-      runId,
-      phases,
-      steps:      [],
-      durationMs: 0,
-      errors:     [],
-    };
+    return failedOutput(runId, phases, 0, [error]);
   }
 
   if (req.expectedFiles && req.expectedFiles.length > 0) {

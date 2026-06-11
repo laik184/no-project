@@ -16,8 +16,9 @@ import {
   coordinateDependencies,
   coordinateErrorAnalysis,
   coordinateRecovery,
+  VERIFIER_TOOLS,
 } from './tool-coordinator.ts';
-import { resultError } from './dispatcher-client.ts';
+import { executeTool, resultError } from './dispatcher-client.ts';
 
 export async function routeVerificationStep(
   step:    VerificationStep,
@@ -58,14 +59,31 @@ export async function routeVerificationStep(
       const r = await coordinateRecovery(String(input.runId ?? context.runId), String(input.phase ?? phase), String(input.error ?? ''), context);
       return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
     }
+    case 'detect_root_causes': {
+      const r = await executeTool(VERIFIER_TOOLS.DETECT_ROOT_CAUSES, {
+        runId: String(input.runId ?? context.runId),
+        error: String(input.error ?? input.output ?? ''),
+        output: input.output,
+      }, context, { timeoutMs: step.timeoutMs ?? 10_000 });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
+    case 'validate_endpoints': {
+      const port = input.port as number | undefined;
+      if (!port && !Array.isArray(input.endpoints)) {
+        return fail(phase, 'validate_endpoints requires input.port or input.endpoints and has no standalone registered tool');
+      }
+      const r = await executeTool(VERIFIER_TOOLS.CHECK_SERVER_HEALTH, {
+        runId: String(input.runId ?? context.runId),
+        port,
+      }, context, { timeoutMs: step.timeoutMs ?? 15_000 });
+      return r.ok ? ok(phase, r.data) : fail(phase, resultError(r));
+    }
     case 'checkpoint':
-      return ok(phase, { checkpointAt: Date.now() });
+      return fail(phase, 'checkpoint has no registered persistence-backed verifier tool and cannot report success');
     case 'validate_output':
     case 'validate_execution':
-    case 'detect_root_causes':
     case 'build_diagnostics_report':
-    case 'validate_endpoints':
-      return ok(phase, { message: `${type} delegated`, step: step.id });
+      return fail(phase, `${type} has no registered tool-backed side effect and cannot report success`);
     default:
       return fail(phase, `Unknown verification step type: ${type}`);
   }

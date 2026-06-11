@@ -13,6 +13,7 @@ import type { ToolExecutionContext, ToolExecutionResult } from '../../../shared/
 export const VERIFIER_TOOLS = {
   RUN_BUILD:           'run_build',
   RUN_TYPECHECK:       'run_typecheck',
+  RUN_LINT:            'run_lint',
   RUN_TESTS:           'run_tests',
   CHECK_SERVER_HEALTH: 'check_server_health',
   VALIDATE_ENDPOINTS:  'validate_endpoints',
