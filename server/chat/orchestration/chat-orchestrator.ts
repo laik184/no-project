@@ -196,7 +196,7 @@ export const chatOrchestrator = {
           'Get a free key at https://openrouter.ai/keys',
         );
         streamManager.close(runId);
-        await _completeRun(run, turn.turnId).catch(e => logError(e, 'complete-run-no-key'));
+        await _failRun(run, turn.turnId, 'No OpenRouter API key configured').catch(e => logError(e, 'fail-run-no-key'));
       })();
       return run;
     }
@@ -219,6 +219,13 @@ export const chatOrchestrator = {
       },
     } as any).then(async (result) => {
       await streamRunSummary(runId, payload.projectId, result as any, refinedGoal);
+
+      if (result?.ok === false) {
+        const error = result.error ?? 'Orchestration failed';
+        await _failRun(run, turn.turnId, error);
+        return;
+      }
+
       await _completeRun(run, turn.turnId);
     }).catch(async (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Orchestration failed';
