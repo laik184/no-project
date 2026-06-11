@@ -72,6 +72,25 @@ function planTaskToExecutionTask(t: Record<string, unknown>): ExecutionTask {
  * No tool-layer round-trip. The agent owns its own loop → dispatcher → tool path.
  * Returns a PhaseResult envelope — never throws.
  */
+function agentFailureMessage(output: unknown): string | null {
+  if (!output || typeof output !== 'object') return null;
+  const record = output as Record<string, unknown>;
+
+  if (record.ok === false) {
+    return String(record.error ?? 'Agent returned ok=false');
+  }
+
+  if (record.success === false) {
+    const errors = Array.isArray(record.errors)
+      ? record.errors.map(String).filter(Boolean).join('; ')
+      : '';
+    const error = typeof record.error === 'string' ? record.error.trim() : '';
+    return error || errors || 'Agent returned success=false';
+  }
+
+  return null;
+}
+
 export async function dispatchPhaseToAgent(
   phase:   Phase,
   context: ToolExecutionContext,
@@ -84,11 +103,13 @@ export async function dispatchPhaseToAgent(
 
   try {
     const output = await invokeAgent(phase.agentType, phase.input, runId, projectId, context);
+    const failure = agentFailureMessage(output);
     return {
       phaseId:   phase.phaseId,
       agentType: phase.agentType,
-      ok:        true,
+      ok:        failure === null,
       output,
+      error:     failure ?? undefined,
       durationMs: Date.now() - start,
       attempts:   attempt,
     };
@@ -116,6 +137,7 @@ async function invokeAgent(
 ): Promise<unknown> {
   const sandboxRoot =
     (input.sandboxRoot as string | undefined) ??
+    context.sandboxRoot ??
     process.env.AGENT_PROJECT_ROOT ??
     '.sandbox';
 
@@ -173,6 +195,7 @@ async function invokeAgent(
       return runPlannerCycle({
         runId,
         projectId,
+        sandboxRoot,
         goal:     (input.goal as string) ?? '',
         metadata:  input.metadata as Record<string, unknown> | undefined,
       });

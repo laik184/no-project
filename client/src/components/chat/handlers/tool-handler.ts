@@ -36,10 +36,23 @@ export function handleToolEvents(e: AgentEvent, deps: AgentHandlerDeps): void {
       const { line, runId: evRunId } = e.payload ?? {};
       if (evRunId && evRunId !== deps.runId) break;
       if (!line) break;
-      for (const [k, item] of inflight) {
+      const payloadTool = typeof e.payload?.tool === "string" ? e.payload.tool : undefined;
+      const preferredKey = payloadTool ? toolKey(payloadTool, e.phase) : undefined;
+      const preferred = preferredKey ? inflight.get(preferredKey) : undefined;
+      const entries = preferredKey && preferred
+        ? [[preferredKey, preferred] as const]
+        : Array.from(inflight.entries()).reverse();
+
+      for (const [k, item] of entries) {
         const t = String(item.tool ?? "");
-        if (t === "shell.exec" || t === "shell_exec" || t === "console.run") {
-          const prev = item.meta?.stdout ?? [];
+        if (
+          t === payloadTool ||
+          t.startsWith("terminal_") ||
+          t.startsWith("shell.") ||
+          t === "shell_exec" ||
+          t === "console.run"
+        ) {
+          const prev = Array.isArray(item.meta?.stdout) ? item.meta.stdout : [];
           inflight.set(k, { ...item, meta: { ...item.meta, stdout: [...prev, String(line)] } });
           break;
         }
