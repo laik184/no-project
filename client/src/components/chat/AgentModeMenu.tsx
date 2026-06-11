@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import type { AgentMode } from "@/hooks/useAgentMode";
 
-const MODES = [
-  { id: "Lite",    label: "Lite",    description: "Lightweight and fast. Great for quick fixes, small edits, and simple tasks." },
-  { id: "Economy", label: "Economy", description: "Cost-optimized models for everyday tasks. Delivers a strong balance of speed and quality. Best mode for most builds." },
-  { id: "Power",   label: "Power",   badge: "Core", description: "High-performance models for complex tasks, advanced reasoning, and large-scale rewrites." },
+const MODES: Array<{ id: AgentMode; label: string; description: string; badge?: string }> = [
+  { id: "lite",    label: "Lite",    description: "Lightweight and fast. Great for quick fixes, small edits, and simple tasks." },
+  { id: "economy", label: "Economy", description: "Cost-optimized models for everyday tasks. Delivers a strong balance of speed and quality. Best mode for most builds." },
+  { id: "power",   label: "Power",   badge: "Core", description: "High-performance models for complex tasks, advanced reasoning, and large-scale rewrites." },
 ];
 
 function DotsGrid({ size = 10 }: { size?: number }) {
@@ -19,8 +20,8 @@ function DotsGrid({ size = 10 }: { size?: number }) {
 }
 
 interface AgentModeMenuProps {
-  mode:     string;
-  onSelect: (mode: string) => void;
+  mode:     AgentMode;
+  onSelect: (mode: AgentMode) => void;
 }
 
 export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
@@ -45,7 +46,7 @@ export function AgentModeMenu({ mode, onSelect }: AgentModeMenuProps) {
         data-testid="button-mode-selector"
       >
         <DotsGrid size={10} />
-        <span>{mode}</span>
+        <span>{MODES.find((m) => m.id === mode)?.label ?? mode}</span>
       </button>
 
       {show && (
