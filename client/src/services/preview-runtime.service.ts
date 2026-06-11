@@ -1,21 +1,18 @@
 export const PreviewRuntimeService = {
   async runProject(id: string, projectPath: string) {
-    const res = await fetch("/api/run-project", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, projectPath })
-    });
+    void projectPath;
+    const res = await fetch(`/api/runtime/${Number(id)}/start`, { method: "POST" });
     if (!res.ok) throw new Error("Run failed");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error ?? "Run failed");
     return true;
   },
 
   async stopProject(id: string) {
-    const res = await fetch("/api/stop-project", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id })
-    });
+    const res = await fetch(`/api/runtime/${Number(id)}/stop`, { method: "POST" });
     if (!res.ok) throw new Error("Stop failed");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error ?? "Stop failed");
     return true;
   },
 
@@ -30,7 +27,10 @@ export const PreviewRuntimeService = {
   },
 
   async restartProject(id: string, projectPath: string) {
-    await this.stopProject(id);
-    await this.runProject(id, projectPath);
+    void projectPath;
+    const res = await fetch(`/api/runtime/${Number(id)}/restart`, { method: "POST" });
+    if (!res.ok) throw new Error("Restart failed");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error ?? "Restart failed");
   }
 };

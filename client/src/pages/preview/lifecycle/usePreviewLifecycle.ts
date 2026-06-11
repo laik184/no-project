@@ -108,7 +108,7 @@ export function usePreviewLifecycle(opts: UsePreviewLifecycleOptions = {}) {
         state:     data.state     ?? "idle",
         prevState: data.prevState ?? "idle",
         message:   data.message   ?? "",
-        meta:      data.meta,
+        meta:      { ...(data.meta ?? {}), projectId: data.projectId },
         ts:        data.ts        ?? Date.now(),
       };
 

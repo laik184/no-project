@@ -29,7 +29,10 @@ export interface IframeViewProps {
   onRun?:           () => void;
 }
 
-const IFRAME_SRC = "/preview/frame";
+const buildIframeSrc = (projectId: unknown): string => {
+  const id = typeof projectId === "number" && Number.isFinite(projectId) ? projectId : null;
+  return id == null ? "/preview/frame" : `/preview/frame?projectId=${id}`;
+};
 
 /** Smooth fade-in hook — adds the animation class whenever the key changes. */
 function useFadeClass(iframeKey: number) {
@@ -80,8 +83,9 @@ export function IframeView({
   onResetCustomSize, onPlayClick, onOverlayRun,
   lifecycleState, lifecyclePrev, lifecycleMessage, lifecycleMeta, onRetry, onRun,
 }: IframeViewProps) {
-  const cfg      = DEVICE_CONFIGS[selectedDevice];
+  const cfg       = DEVICE_CONFIGS[selectedDevice];
   const fadeClass = useFadeClass(iframeKey);
+  const iframeSrc = buildIframeSrc(lifecycleMeta?.projectId);
 
   if (cfg?.frame === "phone") {
     return (
@@ -102,7 +106,7 @@ export function IframeView({
                   onRetry={onRetry} onRun={onRun}
                 >
                   <iframe
-                    key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+                    key={iframeKey} ref={iframeRef} src={iframeSrc}
                     className={`absolute inset-0 w-full h-full border-none ${fadeClass}`}
                     sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
                     title="Preview" onLoad={onIframeLoad}
@@ -135,7 +139,7 @@ export function IframeView({
                 onRetry={onRetry} onRun={onRun}
               >
                 <iframe
-                  key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+                  key={iframeKey} ref={iframeRef} src={iframeSrc}
                   className={`absolute inset-0 w-full h-full border-none ${fadeClass}`}
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
                   title="Preview" onLoad={onIframeLoad}
@@ -153,7 +157,7 @@ export function IframeView({
     return (
       <div className="flex-1 relative overflow-hidden" style={{ minHeight: 0 }}>
         <iframe
-          key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+          key={iframeKey} ref={iframeRef} src={iframeSrc}
           className={`absolute inset-0 w-full h-full border-none bg-[#0d0d0f] ${fadeClass}`}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad}
@@ -181,7 +185,7 @@ export function IframeView({
           : { width: "100%", height: "100%" }),
       }}>
         <iframe
-          key={iframeKey} ref={iframeRef} src={IFRAME_SRC}
+          key={iframeKey} ref={iframeRef} src={iframeSrc}
           className={`w-full h-full border-none ${fadeClass}`}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
           title="Preview" onLoad={onIframeLoad}
