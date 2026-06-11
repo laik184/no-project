@@ -62,9 +62,9 @@ export function useAgentRunner() {
 
   const handleAnswer = useCallback(async (questionId: string, runId: string, answer: string) => {
     try {
-      await fetch("/api/chat/answer", {
+      await fetch(`/api/questions/${encodeURIComponent(questionId)}/answer`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ runId, questionId, answer }),
+        body: JSON.stringify({ answer }),
       });
     } catch (e) { console.warn("[question] failed to POST answer:", e); }
     setMessages((prev) =>

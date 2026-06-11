@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAgentMode } from "@/hooks/useAgentMode";
 import { MousePointer2, Mic, ArrowUp, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentModeMenu } from "./AgentModeMenu";
@@ -15,7 +16,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ chatInput, setChatInput, chatInputRef, isAgentThinking, isAgentTyping, onSend, onStop }: ChatInputProps) {
-  const [mode,     setMode]     = useState("Economy");
+  const [mode,     setMode]     = useAgentMode();
   const [planMode, setPlanMode] = useState(false);
   const isBusy = isAgentThinking || isAgentTyping;
 
