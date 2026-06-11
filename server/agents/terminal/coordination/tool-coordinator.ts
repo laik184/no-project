@@ -69,18 +69,18 @@ export async function coordinateNpmInstall(
   dev       = false,
   opts?:    TerminalDispatchOptions,
 ): Promise<ToolExecutionResult> {
-  // terminal_install_package takes a single packageName; install packages one by one.
+  // terminal_install_package installs all requested packages in one package-manager transaction.
   // If no packages specified, run `npm install` to restore from package.json.
   if (packages.length === 0) {
     return runTool(TERMINAL_TOOLS.RUN_COMMAND, {
       command: 'npm install',
     }, context, { timeoutMs: 120_000, label: 'npm_install', ...opts });
   }
-  // Install first package; additional packages will need separate calls.
   return runTool(TERMINAL_TOOLS.NPM_INSTALL, {
     packageName: packages[0],
+    packages,
     dev,
-  }, context, { timeoutMs: 120_000, label: `npm_install(${packages[0]})`, ...opts });
+  }, context, { timeoutMs: 120_000, label: `npm_install(${packages.join(',')})`, ...opts });
 }
 
 export async function coordinateNpmScript(

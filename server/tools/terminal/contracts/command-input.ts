@@ -12,10 +12,11 @@ export interface CommandInput {
 }
 
 export interface PackageInput {
-  packageName: string;
-  dev?:        boolean;
-  manager?:    'npm' | 'yarn' | 'pnpm';
-  cwd?:        string;
+  packageName?: string;
+  packages?:    string[];
+  dev?:         boolean;
+  manager?:     'npm' | 'yarn' | 'pnpm' | 'bun';
+  cwd?:         string;
 }
 
 export interface RuntimeInput {

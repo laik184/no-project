@@ -32,12 +32,13 @@ export const packageManagerDetector = {
     return { manager: 'npm', lockFile: null, detected: false };
   },
 
-  getInstallCmd(manager: PackageManager, pkg: string, dev: boolean): string[] {
+  getInstallCmd(manager: PackageManager, pkg: string | string[], dev: boolean): string[] {
+    const packages = Array.isArray(pkg) ? pkg : [pkg];
     switch (manager) {
-      case 'yarn': return ['add', ...(dev ? ['--dev'] : []), pkg];
-      case 'pnpm': return ['add', ...(dev ? ['--save-dev'] : []), pkg];
-      case 'bun':  return ['add', ...(dev ? ['--dev'] : []), pkg];
-      default:     return ['install', ...(dev ? ['--save-dev'] : []), pkg];
+      case 'yarn': return ['add', ...(dev ? ['--dev'] : []), ...packages];
+      case 'pnpm': return ['add', ...(dev ? ['--save-dev'] : []), ...packages];
+      case 'bun':  return ['add', ...(dev ? ['--dev'] : []), ...packages];
+      default:     return ['install', ...(dev ? ['--save-dev'] : []), ...packages];
     }
   },
 

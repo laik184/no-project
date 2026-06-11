@@ -138,6 +138,16 @@ class RuntimeManager {
         }
       });
 
+      await new Promise(r => setTimeout(r, 250));
+      if (entry.status === 'crashed' || entry.status === 'stopped') {
+        return {
+          ok: false,
+          pid: child.pid,
+          port: entry.port,
+          error: entry.logs.slice(-20).join('\n') || `Runtime process exited before becoming observable: ${opts.command}`,
+        };
+      }
+
       entry.status = 'running';
       return { ok: true, pid: child.pid, port: entry.port };
 

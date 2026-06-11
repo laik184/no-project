@@ -31,7 +31,7 @@ export interface ListResult {
 }
 
 export const packageService = {
-  install(packageName: string, cwd: string, dev = false, manager?: PackageManager): InstallResult {
+  install(packageName: string | string[], cwd: string, dev = false, manager?: PackageManager): InstallResult {
     return packageInstallerService.install(packageName, { cwd, dev, manager });
   },
 
