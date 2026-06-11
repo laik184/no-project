@@ -50,12 +50,15 @@ assertNotContains(filesystemCoordinator, "toolName: 'write_file'", 'Filesystem c
 assertNotContains(filesystemCoordinator, "toolName:  'read_file'", 'Filesystem coordinator must not route to unregistered read_file.');
 assertNotContains(filesystemCoordinator, 'joinPaths(sandboxRoot', 'Filesystem coordinator must pass relative paths; tools resolve against ctx.sandboxRoot.');
 assertContains(dispatcher, 'reported success but folder does not exist on disk', 'Dispatcher must reject fake folder create success.');
+assertContains('server/infrastructure/runtime/runtime-manager.ts', 'exited before becoming observable', 'Runtime manager must not report success before a spawned process survives startup.');
+assertContains('server/preview/api/runtime-routes.ts', 'packageManagerRunCommand', 'Preview runtime command detection must honor the workspace package manager.');
 
 const terminalStepRunner = 'server/agents/terminal/execution/step-runner.ts';
 for (const step of ['write_file', 'read_file', 'patch_file', 'delete_file', 'list_directory', 'search_files']) {
   assertContains(terminalStepRunner, `case '${step}'`, `Terminal step runner must route ${step}.`);
 }
 assertContains(terminalStepRunner, 'packageName, packages: pkgs', 'Terminal npm install must pass packageName/packages to the package tool.');
+assertContains('server/agents/terminal/coordination/tool-coordinator.ts', 'packages,', 'Terminal coordinator must pass the full package list, not silently install only the first package.');
 assertContains(terminalStepRunner, 'checkpoint has no registered persistence-backed tool', 'Terminal checkpoint must not report fake success.');
 assertContains(terminalStepRunner, 'validate_output has no registered tool-backed side effect', 'Terminal validate_output must not report fake success.');
 
@@ -78,8 +81,18 @@ assertContains(verifierAgent, 'return failedOutput(runId, phases, 0, [error]);',
 assertNotContains(verifierAgent, 'skipping verification (non-fatal)', 'Verifier missing sandbox must not be a success no-op.');
 
 const installTool = 'server/tools/terminal/package-manager/install-package-tool.ts';
-assertContains(installTool, 'packageName ?? packageList[0]', 'Package install tool must accept packageName or packages[0].');
+assertContains(installTool, 'singlePackage ? [singlePackage, ...packageList', 'Package install tool must install packageName plus the full packages array.');
+assertContains(installTool, 'physical verification failed', 'Package install tool must reject success without physical verification.');
+assertContains(installTool, 'packageJsonUpdated', 'Package install tool must validate package.json side effects.');
+assertContains(installTool, 'lockfileUpdated', 'Package install tool must validate lockfile side effects.');
+assertContains(installTool, 'nodeModulesPresent', 'Package install tool must validate node_modules side effects.');
 assertContains(installTool, 'requires packageName or a non-empty packages array', 'Package install tool must reject empty package requests.');
+
+const packageInstaller = 'server/services/terminal/package-manager/package-installer-service.ts';
+assertContains(packageInstaller, 'getInstallCmd(manager, packages', 'Package installer must execute one package-manager command for all requested packages.');
+assertContains(packageInstaller, 'No package.json found', 'Package installer must fail before execution when cwd is not a package workspace.');
+assertContains(packageInstaller, 'result.error ? `', 'Package installer output must include spawn failures.');
+assertContains(packageInstaller, '${result.error.message}', 'Package installer output must include spawn failure messages.');
 
 // Direct side-effect checks for the execution environment itself.
 const temp = mkdtempSync(join(tmpdir(), 'nurax-tool-audit-'));

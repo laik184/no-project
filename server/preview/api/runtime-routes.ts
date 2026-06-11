@@ -17,6 +17,7 @@ import { eq }                     from "drizzle-orm";
 import { lifecycleManager }       from "../lifecycle/preview-lifecycle-manager.ts";
 import { previewRuntimeManager }  from "../runtime/preview-runtime-manager.ts";
 import { runtimeManager }         from "../../infrastructure/index.ts";
+import { packageManagerDetector } from "../../services/terminal/index.ts";
 
 // ── Shared proxy server (created once) ────────────────────────────────────────
 const sandboxProxy = httpProxy.createProxyServer({ selfHandleResponse: false });
@@ -79,6 +80,16 @@ function detectPortFromLogs(logs: string[]): number | undefined {
  *   4. Fallback: "npm run dev"
  */
 /** Returns null when the sandbox has no runnable content. */
+function packageManagerRunCommand(sandboxPath: string, script: string): string {
+  const { manager } = packageManagerDetector.detect(sandboxPath);
+  switch (manager) {
+    case "yarn": return `yarn ${script}`;
+    case "pnpm": return `pnpm run ${script}`;
+    case "bun":  return `bun run ${script}`;
+    default:     return `npm run ${script}`;
+  }
+}
+
 function detectCommand(sandboxPath: string): { command: string; port?: number } | null {
   const abs = resolve(sandboxPath);
 
@@ -89,8 +100,8 @@ function detectCommand(sandboxPath: string): { command: string; port?: number } 
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
       const scripts: Record<string, string> = pkg.scripts ?? {};
-      if (scripts.dev)   return { command: "npm run dev",   port: undefined };
-      if (scripts.start) return { command: "npm run start", port: undefined };
+      if (scripts.dev)   return { command: packageManagerRunCommand(abs, "dev"),   port: undefined };
+      if (scripts.start) return { command: packageManagerRunCommand(abs, "start"), port: undefined };
     } catch { /* ignore parse errors */ }
   }
 
