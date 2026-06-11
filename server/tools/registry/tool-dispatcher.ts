@@ -255,6 +255,7 @@ export async function dispatch<TInput = Record<string, unknown>, TOutput = unkno
       'data' in (data as object)
     ) {
       const toolResult = data as unknown as ToolExecutionResult<TOutput>;
+      assertRealityForTerminalOutput(name, definition, toolResult.ok ? toolResult.data : undefined);
       recordMetric(name, true, durationMs, retries, timedOut);
       recordAudit({
         ts:        new Date().toISOString(),
