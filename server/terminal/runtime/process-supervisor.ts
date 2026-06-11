@@ -44,6 +44,28 @@ export function spawnSupervised(
   let   restarts      = 0;
   let   proc: ChildProcess;
   let   killed        = false;
+  let   finalized     = false;
+
+  function commandLabel(): string {
+    return [command, ...args].join(' ');
+  }
+
+  function finalizeStop(p: ChildProcess, code: number | null, signal: NodeJS.Signals | null): void {
+    if (finalized) return;
+    finalized = true;
+    opts.onStop?.(makeProcessStopped(sessionId, p.pid ?? 0, code, signal));
+  }
+
+  function spawnChild(): ChildProcess {
+    const child = spawn(command, args, {
+      cwd,
+      env:   { ...process.env, ...env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    opts.onStart?.(makeProcessStarted(sessionId, child.pid ?? 0, commandLabel(), cwd));
+    attach(child);
+    return child;
+  }
 
   function attach(p: ChildProcess): void {
     p.stdout?.on('data', (c: Buffer) =>
@@ -51,9 +73,16 @@ export function spawnSupervised(
     p.stderr?.on('data', (c: Buffer) =>
       c.toString().split('\n').filter(Boolean).forEach(l => opts.onLine?.(l, 'stderr')));
 
+    p.on('error', (err) => {
+      opts.onLine?.(`spawn error: ${err.message}`, 'stderr');
+      opts.onCrash?.(makeProcessCrashed(sessionId, p.pid ?? 0, null, null, restarts));
+      finalizeStop(p, null, null);
+    });
+
     p.on('close', (code, signal) => {
+      if (finalized) return;
       if (killed) {
-        opts.onStop?.(makeProcessStopped(sessionId, p.pid ?? 0, code, signal));
+        finalizeStop(p, code, signal);
         return;
       }
       if (restarts < maxRestarts) {
@@ -61,25 +90,17 @@ export function spawnSupervised(
         opts.onCrash?.(makeProcessCrashed(sessionId, p.pid ?? 0, code, signal, restarts));
         setTimeout(() => {
           if (!killed) {
-            proc = spawn(command, args, { cwd, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
-            opts.onStart?.(makeProcessStarted(sessionId, proc.pid ?? 0, [command, ...args].join(' '), cwd));
-            attach(proc);
+            proc = spawnChild();
           }
         }, restartDelay);
       } else {
         opts.onCrash?.(makeProcessCrashed(sessionId, p.pid ?? 0, code, signal, restarts));
+        finalizeStop(p, code, signal);
       }
     });
   }
 
-  proc = spawn(command, args, {
-    cwd,
-    env:   { ...process.env, ...env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-
-  opts.onStart?.(makeProcessStarted(sessionId, proc.pid ?? 0, [command, ...args].join(' '), cwd));
-  attach(proc);
+  proc = spawnChild();
 
   return {
     get pid() { return proc.pid ?? 0; },
@@ -89,7 +110,8 @@ export function spawnSupervised(
       try { proc.kill(force ? 'SIGKILL' : 'SIGTERM'); } catch { /* gone */ }
     },
     isAlive() {
-      try { process.kill(proc.pid ?? 0, 0); return true; } catch { return false; }
+      if (!proc.pid || proc.pid <= 0) return false;
+      try { process.kill(proc.pid, 0); return true; } catch { return false; }
     },
   };
 }

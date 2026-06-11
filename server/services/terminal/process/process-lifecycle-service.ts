@@ -129,6 +129,7 @@ export const processLifecycleService = {
   isRunning(sessionId: string): boolean {
     const m = _registry.get(sessionId);
     if (!m) return false;
+    if (!m.pid || m.pid <= 0) return false;
     try { process.kill(m.pid, 0); return true; } catch { return false; }
   },
 };

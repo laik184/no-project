@@ -15,10 +15,12 @@ export interface HealthStatus {
 export const runtimeHealthService = {
   check(sessionId: string, pid: number): HealthStatus {
     let alive = false;
-    try {
-      process.kill(pid, 0);
-      alive = true;
-    } catch { /* ESRCH = not found */ }
+    if (pid > 0) {
+      try {
+        process.kill(pid, 0);
+        alive = true;
+      } catch { /* ESRCH = not found */ }
+    }
 
     return { sessionId, pid, alive, checkedAt: Date.now() };
   },
@@ -28,6 +30,7 @@ export const runtimeHealthService = {
   },
 
   isAlive(pid: number): boolean {
+    if (!pid || pid <= 0) return false;
     try { process.kill(pid, 0); return true; } catch { return false; }
   },
 };
