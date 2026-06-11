@@ -44,5 +44,6 @@ export function appendLog(projectId: number, line: string): void {
 export function isRunning(projectId: number): boolean {
   const rec = store.get(projectId);
   if (!rec) return false;
+  if (!rec.pid || rec.pid <= 0) return false;
   try { process.kill(rec.pid, 0); return true; } catch { return false; }
 }

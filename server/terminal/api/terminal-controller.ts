@@ -67,37 +67,41 @@ export const terminalController = {
     if (!body.command?.trim()) { res.status(400).json({ error: 'command is required.' }); return; }
 
     try {
-      // session.cwd IS the sandboxRoot — pass cwd as undefined so the service
-      // uses sandboxRoot directly instead of join(sandboxRoot, sandboxRoot).
+      // session.cwd is the sandbox root. commandService resolves optional cwd
+      // relative to that root and rejects escapes instead of blindly joining paths.
+      const publishChunk = (chunk: string, source: 'stdout' | 'stderr') => {
+        chunk.split('\n').filter(Boolean).forEach(line => {
+          const sev = errorParser.classify(line);
+          terminalStreamBroker.publishLine(
+            sessionId,
+            line,
+            source === 'stderr' || sev === 'error' || sev === 'fatal' ? 'stderr' : 'stdout',
+          );
+        });
+      };
+
       const result = await commandService.stream(body.command, {
         cwd:         body.cwd,
         env:         { ...session.env, ...(body.env ?? {}) },
         timeoutMs:   body.timeoutMs,
         sandboxRoot: session.cwd,
-      });
-
-      // Fan out lines to SSE subscribers
-      result.stdout.split('\n').filter(Boolean).forEach(line => {
-        const sev = errorParser.classify(line);
-        terminalStreamBroker.publishLine(sessionId, line, sev === 'error' || sev === 'fatal' ? 'stderr' : 'stdout');
-      });
-      result.stderr.split('\n').filter(Boolean).forEach(line => {
-        terminalStreamBroker.publishLine(sessionId, line, 'stderr');
+        onStdout:    chunk => publishChunk(chunk, 'stdout'),
+        onStderr:    chunk => publishChunk(chunk, 'stderr'),
       });
 
       // Persist logs via repository layer
+      const stdoutLines = result.stdout.split('\n').filter(Boolean).map(line => ({ line, source: 'stdout' as const }));
+      const stderrLines = result.stderr.split('\n').filter(Boolean).map(line => ({ line, source: 'stderr' as const }));
       terminalLogRepository.saveMany(
-        [...result.stdout.split('\n'), ...result.stderr.split('\n')]
-          .filter(Boolean)
-          .map((line, i) => ({
-            id:        `${sessionId}_${Date.now()}_${i}`,
-            sessionId,
-            projectId: session.projectId,
-            line,
-            source:    'stdout' as const,
-            level:     'unknown' as const,
-            timestamp: Date.now(),
-          })),
+        [...stdoutLines, ...stderrLines].map((entry, i) => ({
+          id:        `${sessionId}_${Date.now()}_${i}`,
+          sessionId,
+          projectId: session.projectId,
+          line:      entry.line,
+          source:    entry.source,
+          level:     'unknown' as const,
+          timestamp: Date.now(),
+        })),
       ).catch(() => void 0);
 
       // Persist command history via repository layer
@@ -107,9 +111,10 @@ export const terminalController = {
         timestamp: Date.now(),
       });
 
-      res.json({ sessionId, command: body.command, ...result });
+      const statusCode = result.exitCode === 0 ? 200 : 422;
+      res.status(statusCode).json({ ok: result.exitCode === 0, sessionId, command: body.command, ...result });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Command failed.' });
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Command failed.' });
     }
   },
 
