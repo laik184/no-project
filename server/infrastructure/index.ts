@@ -9,7 +9,7 @@
  */
 
 // ── Database ──────────────────────────────────────────────────────────────────
-export { db } from './db/index.ts';
+export { db, isDatabaseConfigured } from './db/index.ts';
 
 // ── Event Bus ─────────────────────────────────────────────────────────────────
 export { bus } from './events/bus.ts';
@@ -46,6 +46,10 @@ export { captureGitSha } from './checkpoints/git-runner.ts';
 
 // ── Seed ──────────────────────────────────────────────────────────────────────
 export { seedDefaultProject } from './seed.ts';
+
+// ── Degraded Project Store ─────────────────────────────────────────────────
+export { degradedProjectStore } from './projects/degraded-project-store.ts';
+export type { DegradedProjectRecord } from './projects/degraded-project-store.ts';
 
 // ── Redis ─────────────────────────────────────────────────────────────────────
 export { redis } from './redis/index.ts';

@@ -11,7 +11,7 @@
 import crypto from 'crypto';
 import fs     from 'fs';
 import path   from 'path';
-import { db, captureGitSha }          from '../../infrastructure/index.ts';
+import { db, captureGitSha, isDatabaseConfigured } from '../../infrastructure/index.ts';
 import { checkpoints }                from '../../../shared/schema.ts';
 import { checkpointRepository }       from '../../repositories/chat/checkpoint.repository.ts';
 import { scanWorkspace }              from '../../shared/filesystem/workspace-scanner.ts';
@@ -88,6 +88,23 @@ export const checkpointService = {
     const fileList     = Object.keys(files);
     const gitCommitSha = await captureGitSha(SANDBOX_ROOT).catch(() => undefined);
 
+    if (!isDatabaseConfigured()) {
+      return {
+        id: checkpointId,
+        runId,
+        projectId,
+        title: goal.slice(0, 80),
+        description: `Auto-checkpoint after run: ${goal.slice(0, 120)}`,
+        trigger,
+        filesChanged: fileList.length,
+        createdFiles: fileList,
+        modifiedFiles: [],
+        deletedFiles: [],
+        createdAt: new Date(),
+        ...(gitCommitSha ? { gitCommitSha } : {}),
+      };
+    }
+
     const [row] = await db.insert(checkpoints).values({
       checkpointId,
       projectId,
@@ -113,6 +130,23 @@ export const checkpointService = {
 
     const fileList     = Object.keys(files);
     const gitCommitSha = await captureGitSha(SANDBOX_ROOT).catch(() => undefined);
+
+    if (!isDatabaseConfigured()) {
+      return {
+        id: checkpointId,
+        runId: '',
+        projectId,
+        title: label.slice(0, 80),
+        description: label,
+        trigger: 'manual',
+        filesChanged: fileList.length,
+        createdFiles: fileList,
+        modifiedFiles: [],
+        deletedFiles: [],
+        createdAt: new Date(),
+        ...(gitCommitSha ? { gitCommitSha } : {}),
+      };
+    }
 
     const [row] = await db.insert(checkpoints).values({
       checkpointId,

@@ -14,7 +14,8 @@
     "test:watch": "node --import tsx/esm --test --watch server/agents/dependencies/tests/*.test.ts",
     "governance": "node scripts/governance-check.mjs",
     "db:push": "drizzle-kit push",
-    "tool:audit": "node scripts/tool-pipeline-audit.mjs"
+    "tool:audit": "node scripts/tool-pipeline-audit.mjs",
+    "lint": "eslint main.ts server/**/*.ts --max-warnings=0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

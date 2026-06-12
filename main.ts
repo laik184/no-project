@@ -25,7 +25,7 @@ import { bootstrapMemory }                               from './server/memory/i
 import { loadAllTools }                                  from './server/tools/registry/tool-loader.ts';
 import { chatOrchestrator }                              from './server/chat/index.ts';
 import { initOrchestration, createOrchestrationRouter } from './server/orchestration/index.ts';
-import { seedDefaultProject, TOPIC, sseManager, db, runtimeManager } from './server/infrastructure/index.ts';
+import { seedDefaultProject, TOPIC, sseManager, db, runtimeManager, isDatabaseConfigured, degradedProjectStore } from './server/infrastructure/index.ts';
 import { projects }                                       from './shared/schema.ts';
 import { desc, eq }                                      from 'drizzle-orm';
 import {
@@ -160,6 +160,10 @@ function registerRoutes(app: Express): void {
   // ── Projects CRUD ───────────────────────────────────────────────────────────
   app.get('/api/projects', async (_req: Request, res: Response) => {
     try {
+      if (!isDatabaseConfigured()) {
+        res.json({ ok: true, data: degradedProjectStore.list(), degraded: true });
+        return;
+      }
       const rows = await db.select().from(projects).orderBy(desc(projects.updatedAt)).limit(50);
       res.json({ ok: true, data: rows });
     } catch (err) {
@@ -171,6 +175,15 @@ function registerRoutes(app: Express): void {
     try {
       const { name, description, framework } = req.body as { name?: string; description?: string; framework?: string };
       if (!name?.trim()) { res.status(400).json({ ok: false, error: "name is required" }); return; }
+      if (!isDatabaseConfigured()) {
+        const row = degradedProjectStore.create({
+          name: name.trim(),
+          description: description ?? null,
+          framework: framework ?? null,
+        });
+        res.json({ ok: true, data: row, degraded: true });
+        return;
+      }
       const sandboxRoot = process.env.AGENT_PROJECT_ROOT ?? '/tmp/nurax-sandbox';
       const slug        = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
       const sandboxPath = `${sandboxRoot}/${slug}-${Date.now()}`;
@@ -190,6 +203,12 @@ function registerRoutes(app: Express): void {
   app.get('/api/projects/:id', async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
+      if (!isDatabaseConfigured()) {
+        const row = degradedProjectStore.get(id);
+        if (!row) { res.status(404).json({ ok: false, error: "Not found" }); return; }
+        res.json({ ok: true, data: row, degraded: true });
+        return;
+      }
       const [row] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
       if (!row) { res.status(404).json({ ok: false, error: "Not found" }); return; }
       res.json({ ok: true, data: row });
@@ -202,6 +221,17 @@ function registerRoutes(app: Express): void {
     try {
       const id = Number(req.params.id);
       const { name, description, framework, status } = req.body as Record<string, string>;
+      if (!isDatabaseConfigured()) {
+        const row = degradedProjectStore.update(id, {
+          ...(name && { name }),
+          ...(description !== undefined && { description }),
+          ...(framework && { framework }),
+          ...(status && { status }),
+        });
+        if (!row) { res.status(404).json({ ok: false, error: "Not found" }); return; }
+        res.json({ ok: true, data: row, degraded: true });
+        return;
+      }
       const [row] = await db.update(projects)
         .set({ ...(name && { name }), ...(description !== undefined && { description }), ...(framework && { framework }), ...(status && { status }), updatedAt: new Date() })
         .where(eq(projects.id, id))

@@ -17,7 +17,7 @@ import { resolve } from "path";
 import httpProxy from "http-proxy";
 import type { RuntimeEntry } from "../../infrastructure/runtime/runtime-types.ts";
 
-import { db } from "../../infrastructure/index.ts";
+import { db, degradedProjectStore, isDatabaseConfigured } from "../../infrastructure/index.ts";
 import { projects } from "../../../shared/schema.ts";
 import { eq } from "drizzle-orm";
 import { lifecycleManager } from "../lifecycle/preview-lifecycle-manager.ts";
@@ -138,6 +138,7 @@ function detectCommand(
 }
 
 async function fetchProject(projectId: number) {
+  if (!isDatabaseConfigured()) return degradedProjectStore.get(projectId);
   const [project] = await db
     .select()
     .from(projects)
