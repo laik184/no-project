@@ -6,6 +6,7 @@
 import { initLifecycleEvents }    from "./lifecycle/lifecycle-events.ts";
 import { initPreviewStreamBroker } from "./streaming/preview-stream-broker.ts";
 import { previewReloader }        from "./runtime/preview-reloader.ts";
+import { initPreviewRecoveryAgent } from "./recovery/preview-recovery-agent.ts";
 
 let _booted = false;
 
@@ -16,6 +17,7 @@ export function initPreviewModule(): void {
   initLifecycleEvents();
   initPreviewStreamBroker();
   previewReloader.init();
+  initPreviewRecoveryAgent();
 
   console.log("[preview-module] Bootstrap complete.");
 }
