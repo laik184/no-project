@@ -178,6 +178,9 @@ async function invokeAgent(
     context.sandboxRoot ??
     process.env.AGENT_PROJECT_ROOT ??
     '.sandbox';
+  const memoryContext = (input.memoryContext as string | undefined)
+    ?? ((input.context as Record<string, unknown> | undefined)?.memoryContext as string | undefined)
+    ?? (context.meta.memoryContext as string | undefined);
 
   switch (agentType) {
 
@@ -233,7 +236,13 @@ async function invokeAgent(
         runId,
         projectId,
         sandboxRoot,
-        plan:    plan as any,
+        plan:    {
+          ...plan,
+          tasks: plan.tasks.map((task) => ({
+            ...task,
+            input: { ...task.input, memoryContext },
+          })),
+        } as any,
         options: input.options as any,
       });
     }
@@ -244,7 +253,7 @@ async function invokeAgent(
         projectId,
         sandboxRoot,
         goal:     (input.goal as string) ?? '',
-        metadata:  input.metadata as Record<string, unknown> | undefined,
+        metadata:  { ...((input.metadata as Record<string, unknown> | undefined) ?? {}), memoryContext },
       });
 
     case 'filesystem':
@@ -253,6 +262,7 @@ async function invokeAgent(
           runId,
           projectId,
           sandboxRoot,
+          memoryContext,
           ...(input.context as object | undefined ?? {}),
         } as any,
         operations: (input.operations as any[]) ?? [],
@@ -266,7 +276,7 @@ async function invokeAgent(
         sandboxRoot,
         steps:   (input.steps as any[]) ?? [],
         signal:   context.signal,
-        meta:     input.meta as Record<string, unknown> | undefined,
+        meta:     { ...((input.meta as Record<string, unknown> | undefined) ?? {}), memoryContext },
       });
 
     case 'supervisor':
@@ -274,7 +284,7 @@ async function invokeAgent(
         runId,
         projectId,
         goal:     (input.goal as string) ?? '',
-        metadata:  input.metadata as Record<string, unknown> | undefined,
+        metadata:  { ...((input.metadata as Record<string, unknown> | undefined) ?? {}), memoryContext },
       });
 
     case 'verifier': {
@@ -311,7 +321,7 @@ async function invokeAgent(
           projectId,
           sandboxRoot,
           userPrompt:  (input.userPrompt as string | undefined) ?? (input.goal as string | undefined) ?? '',
-          context:      input.context as Record<string, unknown> | undefined,
+          context:      { ...((input.context as Record<string, unknown> | undefined) ?? {}), memoryContext },
           options:      input.options as any,
         },
       });

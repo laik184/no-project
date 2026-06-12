@@ -142,7 +142,13 @@ export async function runExecutorAgent(
   // ── Build context ─────────────────────────────────────────────────────────
   let context;
   try {
-    context = buildExecutorContext({ runId, projectId, sandboxRoot });
+    context = buildExecutorContext({
+      runId,
+      projectId,
+      sandboxRoot,
+      memoryContext: memCtx?.injection
+        ?? (plan.tasks.find(t => typeof t.input.memoryContext === 'string')?.input.memoryContext as string | undefined),
+    });
   } catch (err) {
     const error = toErrorMessage(err);
     executorLogger.error(runId, `Context build failed: ${error}`);

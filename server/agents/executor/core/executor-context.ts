@@ -13,6 +13,7 @@ export interface ExecutorContextInput {
   projectId:   string;
   sandboxRoot: string;
   sessionId?:  string;
+  memoryContext?: string;
   signal?:     AbortSignal;
 }
 
@@ -33,6 +34,7 @@ export function buildExecutorContext(input: ExecutorContextInput): ExecutorExecu
     projectId:   input.projectId.trim(),
     sandboxRoot: input.sandboxRoot.trim(),
     sessionId:   input.sessionId ?? generateSessionId(),
+    memoryContext: input.memoryContext,
     signal:      input.signal,
   });
 }
@@ -50,6 +52,6 @@ export function toToolContext(ctx: ExecutorExecutionContext): {
     projectId:   ctx.projectId,
     sandboxRoot: ctx.sandboxRoot,
     signal:      ctx.signal,
-    meta:        { sessionId: ctx.sessionId, agent: 'executor' },
+    meta:        { sessionId: ctx.sessionId, agent: 'executor', memoryContext: ctx.memoryContext },
   };
 }

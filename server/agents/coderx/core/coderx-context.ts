@@ -14,6 +14,7 @@ export interface CoderXContextInput {
   sandboxRoot: string;
   requestId:   string;
   sessionId?:  string;
+  memoryContext?: string;
   signal?:     AbortSignal;
 }
 
@@ -36,6 +37,7 @@ export function buildCoderXContext(input: CoderXContextInput): CoderXExecutionCo
     sandboxRoot: input.sandboxRoot.trim(),
     requestId:   input.requestId.trim(),
     sessionId:   input.sessionId ?? generateSessionId(),
+    memoryContext: input.memoryContext,
     signal:      input.signal,
   });
 }
@@ -53,6 +55,6 @@ export function toToolContext(ctx: CoderXExecutionContext): {
     projectId:   ctx.projectId,
     sandboxRoot: ctx.sandboxRoot,
     signal:      ctx.signal,
-    meta:        { sessionId: ctx.sessionId, requestId: ctx.requestId, agent: 'coderx' },
+    meta:        { sessionId: ctx.sessionId, requestId: ctx.requestId, agent: 'coderx', memoryContext: ctx.memoryContext },
   };
 }

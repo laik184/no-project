@@ -45,7 +45,24 @@ export async function runPhase(
     console.log(`[phase-runner] Memory context for phase "${phase.phaseId}" (${phase.agentType}) — ${memCtx.totalFound} records, hasGraph=${memCtx.hasGraphData}`);
   }
 
-  const toolCtx   = toToolContext(ctx, { workflowId, phaseId: phase.phaseId });
+  const toolCtx   = toToolContext(ctx, {
+    workflowId,
+    phaseId: phase.phaseId,
+    memoryContext: memCtx.injection || undefined,
+  });
+  const phaseWithMemory: Phase = memCtx.injection
+    ? {
+        ...phase,
+        input: {
+          ...phase.input,
+          context: {
+            ...((phase.input.context as Record<string, unknown> | undefined) ?? {}),
+            memoryContext: memCtx.injection,
+          },
+          memoryContext: memCtx.injection,
+        },
+      }
+    : phase;
   let retryState  = createRetryState(phase.phaseId, config);
 
   recordPhaseStarted(ctx.runId);
@@ -57,7 +74,7 @@ export async function runPhase(
     logPhaseStarted(ctx.orchestrationId, phase.phaseId, phase.name, phase.agentType, attempt);
     publishPhaseStarted(ctx, workflowId, phase.phaseId, phase.name, phase.agentType, attempt);
 
-    const result = await dispatchPhaseToAgent(phase, toolCtx, attempt);
+    const result = await dispatchPhaseToAgent(phaseWithMemory, toolCtx, attempt);
 
     if (result.ok) {
       recordPhaseCompleted(ctx.runId);

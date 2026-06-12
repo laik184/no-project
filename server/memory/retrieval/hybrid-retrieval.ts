@@ -5,6 +5,7 @@
 
 import { embeddingService }         from '../embedding/embedding-service.ts';
 import { vectorSearch }             from '../vector/vector-search.ts';
+import type { VectorRecord }        from '../vector/vector-store.ts';
 import type { RetrievalResult }     from './retrieval-service.ts';
 
 function keywordScore(text: string, query: string): number {
@@ -19,9 +20,10 @@ export async function hybridSearch(
   query:  string,
   topK:   number = 10,
   alpha:  number = 0.7,
+  filter?: (record: VectorRecord) => boolean,
 ): Promise<RetrievalResult[]> {
   const queryVec      = await embeddingService.embed(query);
-  const vectorResults = vectorSearch(queryVec, topK * 3);
+  const vectorResults = vectorSearch(queryVec, topK * 3, filter);
 
   const combined = vectorResults.map(r => {
     const content = String(r.record.metadata['content'] ?? '');

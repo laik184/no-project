@@ -76,6 +76,7 @@ export interface ExecutorExecutionContext {
   readonly projectId:   string;
   readonly sandboxRoot: string;
   readonly sessionId:   string;
+  readonly memoryContext?: string;
   readonly signal?:     AbortSignal;
 }
 
