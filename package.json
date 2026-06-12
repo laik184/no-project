@@ -10,7 +10,7 @@
     "dev:web": "node_modules/.bin/vite",
     "start": "tsx main.ts",
     "build": "vite build",
-    "test": "node --import tsx/esm --test server/agents/dependencies/tests/*.test.ts",
+    "test": "node --import tsx/esm --test server/agents/dependencies/tests/*.test.ts server/memory/tests/*.test.ts",
     "test:watch": "node --import tsx/esm --test --watch server/agents/dependencies/tests/*.test.ts",
     "governance": "node scripts/governance-check.mjs",
     "db:push": "drizzle-kit push",

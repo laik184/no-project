@@ -120,9 +120,15 @@ export async function runCoderXAgent(input: CoderXAgentInput): Promise<CoderXAge
     }
   }
 
+  const injectedMemory = memCtx?.injection
+    ?? (request.context?.memoryContext as string | undefined);
+  const contextWithMemory = injectedMemory
+    ? Object.freeze({ ...context, memoryContext: injectedMemory })
+    : context;
+
   // ── Run coding loop ────────────────────────────────────────────────────────
   try {
-    const result = await runCodingLoop(request, context, session.sessionId, opts);
+    const result = await runCodingLoop(request, contextWithMemory, session.sessionId, opts);
 
     if (result.ok) {
       coderxLogger.agentCompleted(context.runId, result.durationMs, result.tasksCompleted);

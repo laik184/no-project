@@ -16,6 +16,7 @@ import { hydrateVectorStore, persistVectorStore } from '../persistence/vector-st
 import { hybridSearch }                from '../retrieval/hybrid-retrieval.ts';
 import { rerank }                      from '../retrieval/reranker.ts';
 import type { VectorRecord }           from '../vector/vector-store.ts';
+import { chunkCode, chunkJson, chunkMarkdown, chunkText } from '../chunking/index.ts';
 
 export interface MemoryEntry {
   id:        string;
@@ -41,6 +42,36 @@ export interface SearchOptions {
   minScore?:   number;
 }
 
+function inferContentType(input: SaveInput): 'code' | 'json' | 'markdown' | 'text' {
+  const explicit = String(input.meta?.['contentType'] ?? input.meta?.['type'] ?? '').toLowerCase();
+  const path     = String(input.meta?.['filePath'] ?? input.meta?.['path'] ?? '').toLowerCase();
+
+  if (explicit.includes('json') || path.endsWith('.json')) return 'json';
+  if (explicit.includes('markdown') || explicit === 'md' || path.endsWith('.md') || path.endsWith('.mdx')) return 'markdown';
+  if (
+    explicit.includes('code')
+    || /\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|cs|cpp|c|h|css|scss|html|sql)$/.test(path)
+  ) return 'code';
+
+  return 'text';
+}
+
+function chunkMemoryContent(input: SaveInput): string[] {
+  const contentType = inferContentType(input);
+
+  if (contentType === 'json') {
+    try {
+      return chunkJson(JSON.parse(input.content));
+    } catch {
+      return chunkText(input.content, { chunkSize: 900, overlap: 120 });
+    }
+  }
+
+  if (contentType === 'markdown') return chunkMarkdown(input.content, { maxChunkSize: 900, overlap: 120 });
+  if (contentType === 'code') return chunkCode(input.content, { maxChunkSize: 1200 });
+  return chunkText(input.content, { chunkSize: 900, overlap: 120 });
+}
+
 class MemoryRepository {
   private hydrated = false;
 
@@ -51,19 +82,40 @@ class MemoryRepository {
   }
 
   async save(input: SaveInput): Promise<MemoryEntry> {
+    await this.init();
+    const parentId = crypto.randomUUID();
+    const chunks   = chunkMemoryContent(input);
+    const parts    = chunks.length > 0 ? chunks : [input.content];
+
     const entry: MemoryEntry = {
-      id:        crypto.randomUUID(),
+      id:        parentId,
       category:  input.category,
       content:   input.content,
       tags:      input.tags  ?? [],
       score:     input.score ?? 1.0,
-      meta:      input.meta  ?? {},
+      meta:      { ...(input.meta ?? {}), chunkCount: parts.length },
       createdAt: Date.now(),
     };
 
-    const vector = await embeddingService.embed(input.content);
-    upsertVector({ id: entry.id, vector, metadata: entry as unknown as Record<string, unknown> });
-    persistVectorStore().catch(console.error);
+    for (let i = 0; i < parts.length; i++) {
+      const chunkEntry: MemoryEntry = {
+        ...entry,
+        id:      parts.length === 1 ? parentId : `${parentId}:chunk:${i}`,
+        content: parts[i],
+        meta:    {
+          ...entry.meta,
+          parentId,
+          chunkIndex: i,
+          chunkCount: parts.length,
+          contentType: inferContentType(input),
+        },
+      };
+
+      const vector = await embeddingService.embed(chunkEntry.content);
+      upsertVector({ id: chunkEntry.id, vector, metadata: chunkEntry as unknown as Record<string, unknown> });
+    }
+
+    await persistVectorStore();
     return entry;
   }
 
@@ -75,7 +127,7 @@ class MemoryRepository {
       ? (r: VectorRecord) => categories.includes(String(r.metadata['category'] ?? ''))
       : undefined;
 
-    const raw      = await hybridSearch(query, limit * 2);
+    const raw      = await hybridSearch(query, limit * 4, 0.7, filter);
     const filtered = filter ? raw.filter(r => filter({ id: r.id, vector: [], metadata: r.metadata })) : raw;
     const ranked   = rerank(filtered, query, { minScore });
 

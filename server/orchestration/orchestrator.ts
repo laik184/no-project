@@ -97,7 +97,10 @@ export async function orchestrate(
 
   // ── Run orchestration loop ────────────────────────────────────────────────
   try {
-    const result = await runOrchestrationLoop(fullReq, ctx, ctx.sessionId);
+    const reqWithMemory: OrchestrationRequest = memCtx.injection
+      ? { ...fullReq, context: { ...(fullReq.context ?? {}), memoryContext: memCtx.injection } }
+      : fullReq;
+    const result = await runOrchestrationLoop(reqWithMemory, ctx, ctx.sessionId);
     // Fire-and-forget: persist orchestration outcome to memory platform
     memoryEngine.store({
       category: result.ok ? 'execution' : 'bug',

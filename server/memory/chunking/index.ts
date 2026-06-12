@@ -6,3 +6,4 @@ export { chunkJson }     from './json-chunker.ts';
 export type { TextChunkOptions } from './text-chunker.ts';
 export type { CodeChunkOptions } from './code-chunker.ts';
 export type { JsonChunkOptions } from './json-chunker.ts';
+export type { MarkdownChunkOptions } from './markdown-chunker.ts';

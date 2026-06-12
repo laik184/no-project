@@ -66,19 +66,44 @@ export interface MemoryContextResult {
   hasGraphData:  boolean;
   entries:       import('./repositories/memory-repository.ts').MemoryEntry[];
   summary:       string;
+  injection:     string;
+  durationMs:    number;
   graphEntities: GraphEntity[];
+}
+
+function formatMemoryInjection(
+  entries: import('./repositories/memory-repository.ts').MemoryEntry[],
+): string {
+  if (entries.length === 0) return '';
+
+  const lines = entries.map((entry, index) => {
+    const chunk = entry.meta?.chunkIndex !== undefined
+      ? ` chunk=${Number(entry.meta.chunkIndex) + 1}/${entry.meta.chunkCount ?? '?'}`
+      : '';
+    const tags = entry.tags.length > 0 ? ` tags=${entry.tags.join(',')}` : '';
+    return `${index + 1}. [${entry.category}${chunk}${tags}] ${entry.content.slice(0, 500)}`;
+  });
+
+  return [
+    'Retrieved long-term memory. Treat this as prior project context and use it to avoid repeating known mistakes:',
+    ...lines,
+  ].join('\n');
 }
 
 export async function buildMemoryContext(
   query:   string,
   options: { categories?: string[]; limit?: number; minScore?: number } = {},
 ): Promise<MemoryContextResult> {
+  const startedAt = Date.now();
   const entries = await _repo.search(query, options).catch(() => []);
+  const injection = formatMemoryInjection(entries);
   return {
     totalFound:    entries.length,
     hasGraphData:  false,
     entries,
-    summary:       entries.map(e => e.content.slice(0, 80)).join(' | '),
+    summary:       entries.map(e => `[${e.category}] ${e.content.slice(0, 120)}`).join(' | '),
+    injection,
+    durationMs:    Date.now() - startedAt,
     graphEntities: [],
   };
 }
@@ -93,9 +118,7 @@ export async function buildMemoryContextString(
          .filter(Boolean).join(' ') || 'general');
   const ctx = await buildMemoryContext(query, { limit: 5 }).catch(() => null);
   if (!ctx || ctx.totalFound === 0) return '';
-  return ctx.entries
-    .map(e => `[${e.category}] ${e.content.slice(0, 150)}`)
-    .join('\n');
+  return ctx.injection;
 }
 
 // ── graphStore / graphTraversal — backward-compat stubs ───────────────────────

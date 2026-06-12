@@ -102,6 +102,7 @@ export interface CoderXExecutionContext {
   readonly sandboxRoot: string;
   readonly sessionId:   string;
   readonly requestId:   string;
+  readonly memoryContext?: string;
   readonly signal?:     AbortSignal;
 }
 
