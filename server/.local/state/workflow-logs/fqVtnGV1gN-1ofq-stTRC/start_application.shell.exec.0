@@ -1,9 +1,0 @@
-
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
-[Object: null prototype] {
-  [[32mSymbol(nodejs.util.inspect.custom)[39m]: [36m[Function: [nodejs.util.inspect.custom]][39m
-}
-
-Node.js v20.20.0
