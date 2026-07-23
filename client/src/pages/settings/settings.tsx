@@ -484,7 +484,7 @@ function SectionCard({
   const isVisible = mobileSection ? mobileSection === id : activeSection === id;
   const compactSections: SectionId[] = ["profile", "preferences", "editor", "security", "appearance"];
   return (
-    <section id={`settings-${id}`} className={cn("settings-section", compactSections.includes(id) && "settings-section-compact", !isVisible && "hidden")}>
+    <section id={`settings-${id}`} className={cn("settings-section", id === "profile" && "settings-section-profile", compactSections.includes(id) && "settings-section-compact", !isVisible && "hidden")}>
       <div className="settings-section-header flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -862,6 +862,21 @@ export default function Settings() {
         }
         .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .65rem; }
         .settings-section-compact .settings-section-content .grid { gap: .65rem; }
+        .settings-section-profile .settings-section-header {
+          gap: .4rem;
+          padding-top: .35rem;
+          padding-bottom: .35rem;
+        }
+        .settings-section-profile .settings-section-header > div:first-child {
+          gap: .5rem;
+        }
+        .settings-section-profile .settings-section-header h2 {
+          line-height: 1rem;
+        }
+        .settings-section-profile .settings-section-header p {
+          margin-top: .15rem;
+          line-height: .8rem;
+        }
         .settings-profile-summary {
           gap: .75rem;
           padding: .65rem;
@@ -963,6 +978,10 @@ export default function Settings() {
           }
           .settings-modal-panel .settings-section-compact .settings-section-header h2 { font-size: .8rem; }
           .settings-modal-panel .settings-section-compact .settings-section-header p { font-size: .65rem; line-height: .9rem; }
+          .settings-modal-panel .settings-section-profile .settings-section-header {
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+          }
           .settings-modal-panel .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) {
             margin-top: .35rem;
           }
