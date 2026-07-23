@@ -1,0 +1,263 @@
+# ROLE
+
+You are a Senior Frontend Engineer, Product Designer, UX Engineer, and React Architect.
+
+Your task is to improve ONLY the Home Page (/).
+
+Do NOT modify any other page.
+
+Do NOT modify backend APIs.
+
+Do NOT modify unrelated components.
+
+Do NOT create fake data.
+
+--------------------------------------------------
+
+GOAL
+
+Fix every Home Page issue identified in the frontend audit report while preserving the existing design language.
+
+The final page must feel production-ready.
+
+--------------------------------------------------
+
+FIRST
+
+Read the complete Home Page.
+
+Read every imported component.
+
+Read every hook.
+
+Read every query.
+
+Read every state.
+
+Read every event handler.
+
+Read every reusable component used on this page.
+
+Understand the page completely before making changes.
+
+Never skip any file.
+
+--------------------------------------------------
+
+FIX ONLY THESE ISSUES
+
+1.
+
+Remove every hardcoded user value.
+
+Never display hardcoded names.
+
+Use authenticated user data when available.
+
+Provide a graceful fallback if user data is unavailable.
+
+--------------------------------------------------
+
+2.
+
+Fix the Recent Projects section.
+
+Audit the current implementation.
+
+Identify every missing state.
+
+Improve the section without changing the overall design language.
+
+--------------------------------------------------
+
+3.
+
+Empty State
+
+If the user has no projects:
+
+Display a proper production-quality empty state.
+
+Include
+
+• Illustration/Icon
+• Title
+• Helpful description
+• Primary CTA
+• Secondary guidance
+
+The empty state should help first-time users understand what to do next.
+
+--------------------------------------------------
+
+4.
+
+Error State
+
+Handle every API failure.
+
+Never leave the page blank.
+
+Display
+
+• Error title
+• Friendly description
+• Retry action
+
+The user must always understand what happened.
+
+--------------------------------------------------
+
+5.
+
+Loading State
+
+Audit the current loading experience.
+
+If loading exists, improve it.
+
+If missing, create proper skeleton loading.
+
+Skeletons must match the real layout.
+
+--------------------------------------------------
+
+6.
+
+Recent Projects UX
+
+Improve
+
+Visual hierarchy
+
+Spacing
+
+Project cards
+
+Hover states
+
+Focus states
+
+Keyboard navigation
+
+Scrolling
+
+Project metadata
+
+Empty messaging
+
+Loading experience
+
+--------------------------------------------------
+
+7.
+
+Accessibility
+
+Audit
+
+ARIA labels
+
+Keyboard navigation
+
+Focus visibility
+
+Screen reader support
+
+Semantic HTML
+
+Fix every accessibility issue on the Home Page.
+
+--------------------------------------------------
+
+8.
+
+Responsive Design
+
+Audit
+
+320px
+
+360px
+
+375px
+
+390px
+
+414px
+
+768px
+
+1024px
+
+1280px
+
+1440px
+
+Ensure the page works correctly at every breakpoint.
+
+--------------------------------------------------
+
+9.
+
+Performance
+
+Remove unnecessary renders.
+
+Avoid duplicate requests.
+
+Optimize expensive UI updates.
+
+Do not introduce unnecessary complexity.
+
+--------------------------------------------------
+
+10.
+
+Code Quality
+
+Remove dead code.
+
+Remove unused state.
+
+Remove duplicated logic.
+
+Improve readability.
+
+Maintain existing architecture.
+
+--------------------------------------------------
+
+OUTPUT
+
+Before making changes provide
+
+1. Current Problems
+
+2. Root Cause
+
+3. Improvement Plan
+
+4. Components Affected
+
+5. States Affected
+
+6. Responsive Impact
+
+7. Accessibility Impact
+
+Only after the complete analysis begin implementation.
+
+--------------------------------------------------
+
+RULES
+
+• Fix ONLY the Home Page.
+• Do NOT touch other routes.
+• Do NOT redesign the entire page.
+• Keep the existing visual identity.
+• Do NOT create mock data.
+• Do NOT hardcode values.
+• Do NOT skip loading, empty, or error states.
+• Production-quality implementation only.
+• Think step by step before coding.
