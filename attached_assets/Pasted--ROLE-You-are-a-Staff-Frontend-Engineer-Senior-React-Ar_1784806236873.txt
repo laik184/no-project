@@ -1,0 +1,325 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, SaaS Product Designer, and UX Engineer.
+
+Your task is to COMPLETE the existing Upgrade flow.
+
+Do NOT redesign the application.
+
+Do NOT rebuild the page.
+
+Do NOT remove the existing architecture.
+
+Transform the current Upgrade button and its flow into a complete production-quality frontend experience.
+
+--------------------------------------------------
+
+PRIMARY GOAL
+
+The Upgrade button already exists.
+
+It must become a complete working frontend feature.
+
+Nothing should remain as demo, placeholder, fake, or unfinished.
+
+--------------------------------------------------
+
+FIRST STEP (MANDATORY)
+
+Do NOT start coding immediately.
+
+First perform a complete deep scan.
+
+Read and understand every file related to the Upgrade flow.
+
+Inspect
+
+• Upgrade button
+• Navigation
+• Routing
+• Upgrade page
+• Billing page
+• Pricing components
+• Dialogs
+• Modals
+• Shared UI
+• Hooks
+• Context
+• Types
+• Utilities
+
+Understand how everything connects before making changes.
+
+--------------------------------------------------
+
+ANALYZE
+
+Before implementation create a report.
+
+Include
+
+Current Flow
+
+Current UI
+
+Current UX
+
+Current Navigation
+
+Current Components
+
+Current State Management
+
+Missing Features
+
+Broken Features
+
+Demo Features
+
+Dead Interactions
+
+--------------------------------------------------
+
+COMPLETE THE ENTIRE FLOW
+
+Upgrade Button
+
+↓
+
+Navigation
+
+↓
+
+Upgrade Page
+
+↓
+
+Plan Selection
+
+↓
+
+Plan Comparison
+
+↓
+
+Billing Cycle Toggle
+
+↓
+
+Feature Comparison
+
+↓
+
+Confirmation Dialog
+
+↓
+
+Success State
+
+↓
+
+Return Navigation
+
+Every step must work in the frontend.
+
+--------------------------------------------------
+
+REMOVE ALL DEMO UI
+
+Find and replace
+
+Placeholder Buttons
+
+Demo Buttons
+
+Coming Soon
+
+Fake Pricing
+
+Dummy Cards
+
+Static Labels
+
+Hardcoded Values
+
+Dead Links
+
+Dead Actions
+
+Disabled Controls
+
+Every visible element must have a purpose.
+
+--------------------------------------------------
+
+BUTTONS
+
+Every button must work.
+
+No button should exist without an action.
+
+Every action should produce a meaningful frontend result.
+
+--------------------------------------------------
+
+DROPDOWNS
+
+Every dropdown must function.
+
+--------------------------------------------------
+
+TOGGLES
+
+Every toggle must work.
+
+--------------------------------------------------
+
+MODALS
+
+Every modal must
+
+Open
+
+Close
+
+Trap Focus
+
+Support Keyboard
+
+Return Focus
+
+--------------------------------------------------
+
+PRICING
+
+Create a realistic pricing experience.
+
+Allow users to
+
+Switch Monthly / Yearly
+
+Compare Plans
+
+View Features
+
+Select a Plan
+
+Confirm Selection
+
+Everything should work in frontend state.
+
+--------------------------------------------------
+
+STATES
+
+Implement
+
+Loading
+
+Skeleton
+
+Empty
+
+Error
+
+Success
+
+Selected
+
+Hover
+
+Focus
+
+Disabled
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Keyboard Navigation
+
+ARIA Labels
+
+Semantic HTML
+
+Focus Management
+
+Screen Reader Support
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Mobile
+
+Tablet
+
+Desktop
+
+Large Desktop
+
+--------------------------------------------------
+
+KEEP
+
+Existing design language
+
+Existing theme
+
+Existing routing
+
+Existing architecture
+
+Reuse existing components whenever possible.
+
+--------------------------------------------------
+
+DO NOT
+
+Do NOT add backend.
+
+Do NOT build APIs.
+
+Do NOT use fake demo sections.
+
+Do NOT leave unfinished UI.
+
+Do NOT leave placeholder buttons.
+
+Do NOT leave dead interactions.
+
+Do NOT hardcode demo content.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+Before finishing verify
+
+✓ Upgrade button works
+
+✓ Navigation works
+
+✓ Upgrade page is complete
+
+✓ Every button works
+
+✓ Every dropdown works
+
+✓ Every modal works
+
+✓ Every interaction works
+
+✓ No demo UI remains
+
+✓ No placeholder remains
+
+✓ No dead button remains
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-quality frontend
+
+Do not stop until the Upgrade flow is complete from start to finish.

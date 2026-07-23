@@ -1,0 +1,321 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, Product Designer, UX Engineer, and SaaS Product Developer.
+
+Your task is to transform the existing Integrations page into a complete production-ready page.
+
+This is NOT a redesign.
+
+This is NOT a rewrite.
+
+This is NOT a demo improvement.
+
+Your task is to COMPLETE the existing page.
+
+--------------------------------------------------
+
+PRIMARY GOAL
+
+The Integrations page already exists.
+
+Do NOT delete it.
+
+Do NOT rebuild it from scratch.
+
+Deeply understand the current implementation.
+
+Identify everything that is incomplete.
+
+Convert every demo feature into a production-quality frontend implementation.
+
+The final result should feel like a real SaaS product.
+
+--------------------------------------------------
+
+FIRST STEP (MANDATORY)
+
+Do NOT write code immediately.
+
+First perform a complete deep scan.
+
+Read every related file before making any changes.
+
+Read
+
+• Page component
+
+• Child components
+
+• Shared components
+
+• Hooks
+
+• Types
+
+• Constants
+
+• Context
+
+• Utilities
+
+• Icons
+
+• Styles
+
+Understand how everything works together.
+
+Never assume anything.
+
+--------------------------------------------------
+
+ANALYSIS
+
+Create a report before implementation.
+
+Include
+
+Current Features
+
+Current UI
+
+Current UX
+
+Current Component Structure
+
+Current State Management
+
+Current Navigation
+
+Current Data Flow
+
+Current Responsive Behaviour
+
+Current Accessibility
+
+Current Performance
+
+Current Design Consistency
+
+--------------------------------------------------
+
+IDENTIFY EVERYTHING INCOMPLETE
+
+Find
+
+Demo UI
+
+Placeholder UI
+
+Temporary UI
+
+Static Data
+
+Hardcoded Data
+
+Dead Buttons
+
+Dead Links
+
+Disabled Features
+
+Fake Connect Buttons
+
+Missing States
+
+Broken UX
+
+Missing Validation
+
+Missing Loading
+
+Missing Error Handling
+
+Missing Empty States
+
+Missing Success States
+
+Missing Search
+
+Missing Filter
+
+Missing Interaction
+
+Missing Keyboard Support
+
+Missing Accessibility
+
+Missing Responsive Behaviour
+
+Anything unfinished.
+
+Nothing should be ignored.
+
+--------------------------------------------------
+
+DO NOT REMOVE
+
+Keep
+
+Existing routing
+
+Existing architecture
+
+Existing reusable components
+
+Existing design language
+
+Existing theme
+
+Existing layout
+
+Existing navigation
+
+Improve them instead of replacing them whenever possible.
+
+--------------------------------------------------
+
+COMPLETE THE PAGE
+
+Implement every missing frontend feature.
+
+Every visible control must work.
+
+Every button must perform a meaningful frontend action.
+
+Every dropdown must function.
+
+Every modal must work.
+
+Every tab must work.
+
+Every search must work.
+
+Every filter must work.
+
+Every toggle must work.
+
+Every state must exist.
+
+--------------------------------------------------
+
+REQUIRED STATES
+
+Loading
+
+Skeleton
+
+Empty
+
+Error
+
+Success
+
+No Results
+
+Connected
+
+Disconnected
+
+Connecting
+
+Syncing
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Audit and improve
+
+ARIA labels
+
+Keyboard navigation
+
+Focus management
+
+Semantic HTML
+
+Screen reader support
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Ensure production-quality layouts for
+
+Mobile
+
+Tablet
+
+Desktop
+
+Large Desktop
+
+--------------------------------------------------
+
+CODE QUALITY
+
+Reuse existing components whenever possible.
+
+Avoid duplicate code.
+
+Avoid unnecessary abstraction.
+
+Keep components modular.
+
+Keep the architecture clean.
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT redesign the page unless necessary.
+
+Do NOT delete working functionality.
+
+Do NOT remove existing architecture.
+
+Do NOT add backend.
+
+Do NOT create APIs.
+
+Do NOT create databases.
+
+Do NOT generate fake features.
+
+Do NOT leave demo UI behind.
+
+Do NOT leave placeholder buttons.
+
+Do NOT leave dead interactions.
+
+--------------------------------------------------
+
+FINAL CHECKLIST
+
+Before finishing verify
+
+✓ Every demo element has been completed
+
+✓ Every interaction works
+
+✓ Every button has a purpose
+
+✓ Every dropdown functions
+
+✓ Every modal functions
+
+✓ Every visible feature is complete
+
+✓ No placeholder UI remains
+
+✓ No dead buttons remain
+
+✓ No hardcoded demo data remains
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready
+
+Do not stop until the Integrations page is fully completed end-to-end.
