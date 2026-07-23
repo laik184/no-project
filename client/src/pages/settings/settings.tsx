@@ -471,6 +471,7 @@ function SectionCard({
   children,
   onReset,
   mobileSection,
+  activeSection,
 }: {
   id: SectionId;
   title: string;
@@ -479,9 +480,11 @@ function SectionCard({
   children: React.ReactNode;
   onReset: (section: SectionId) => void;
   mobileSection?: SectionId | null;
+  activeSection?: SectionId;
 }) {
+  const isVisible = mobileSection ? mobileSection === id : activeSection === id;
   return (
-    <section id={`settings-${id}`} className={cn("scroll-mt-24 rounded-2xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/10", mobileSection === null || (mobileSection && mobileSection !== id) ? "hidden md:block" : "")}>
+    <section id={`settings-${id}`} className={cn("rounded-2xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/10", !isVisible && "hidden")}>
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -682,7 +685,6 @@ export default function Settings() {
   const goToSection = (id: SectionId) => {
     setActiveSection(id);
     setMobileNavOpen(false);
-    document.getElementById(`settings-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const openMobileSection = (id: SectionId) => {
@@ -861,7 +863,7 @@ export default function Settings() {
         .settings-no-animations .settings-modal-panel,
         .settings-reduced-motion .settings-modal-panel { animation: none; }
       `}</style>
-      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(820px,calc(100vh-48px))] md:max-w-[1120px] md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(75vh,calc(100vh-180px))] md:w-[55vw] md:max-w-[640px] md:overflow-hidden md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
         <header className="sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
           <div>
             <div className="flex items-center gap-3">
@@ -888,7 +890,7 @@ export default function Settings() {
           </div>
         </header>
 
-        <div className="settings-modal-body mx-auto w-full max-w-[1320px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+        <div className="settings-modal-body mx-auto flex w-full min-h-0 flex-1 flex-col px-5 py-6 sm:px-8 lg:px-8 lg:py-6 md:overflow-hidden">
         <div className="settings-mobile md:hidden">
           {mobileSection === null ? (
             <>
@@ -952,8 +954,8 @@ export default function Settings() {
           )}
         </div>
 
-        <div className={cn("grid items-start gap-6 md:grid-cols-[242px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
-          <aside className="sticky top-5 hidden md:block">
+        <div className={cn("grid items-start gap-6 md:h-full md:min-h-0 md:grid-cols-[185px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
+          <aside className="sticky top-0 hidden h-full overflow-y-auto md:block">
             <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
               <div className="relative mb-2">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -971,12 +973,12 @@ export default function Settings() {
             </div>
           </aside>
 
-          <div className={cn("min-w-0 space-y-5", mobileSection && "settings-mobile-section-card")}>
+          <div className={cn("min-w-0 space-y-5 md:min-h-0 md:overflow-y-auto md:pr-1", mobileSection && "settings-mobile-section-card")}>
             {!visibleNavigation.length ? (
               <EmptyState title="No settings found" description={`No category matches “${search}”. Try a provider, editor option, or notification name.`} action={<button type="button" onClick={() => setSearch("")} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/5">Clear search</button>} />
             ) : (
               <>
-                <SectionCard id="profile" title="Profile" description="Personal details used across your local workspace." icon={User} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="profile" title="Profile" description="Personal details used across your local workspace." icon={User} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="flex flex-col gap-5 rounded-xl border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-lg font-semibold text-primary">
                       {settings.profile.avatarUrl ? <img src={settings.profile.avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : profileInitials}
@@ -997,7 +999,7 @@ export default function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard id="models" title="AI Models" description="Choose the provider and generation defaults used by the agent." icon={Bot} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="models" title="AI Models" description="Choose the provider and generation defaults used by the agent." icon={Bot} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="grid gap-5 md:grid-cols-2">
                     <SelectField label="Provider selection" description="The provider used for new agent runs." value={settings.models.provider} options={providerDetails.map((item) => ({ value: item.id, label: item.name }))} onChange={(value) => updateModels({ provider: value as KeyProvider, defaultModel: providerDetails.find((item) => item.id === value)?.model ?? settings.models.defaultModel })} />
                     <TextField label="Default AI" description="The assistant persona shown in new chats." value={settings.models.defaultAI} onChange={(value) => updateModels({ defaultAI: value })} placeholder="NURA Agent" maxLength={40} />
@@ -1012,7 +1014,7 @@ export default function Settings() {
                   <ToggleField label="Streaming responses" description="Show generated text as it arrives instead of waiting for the complete response." value={settings.models.streaming} onChange={(value) => updateModels({ streaming: value })} />
                 </SectionCard>
 
-                <SectionCard id="keys" title="API Keys" description="Connect your own model providers. Keys are masked by default and stored only in this browser." icon={KeyRound} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="keys" title="API Keys" description="Connect your own model providers. Keys are masked by default and stored only in this browser." icon={KeyRound} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="flex items-start gap-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] p-4 text-xs leading-5 text-amber-100/80"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p><strong className="font-medium text-amber-200">Frontend-only storage.</strong> No server or provider connection is available in this imported snapshot. “Test connection” performs a local format check and never sends a request.</p></div>
                   <div className="space-y-3">
                     {providerDetails.map((provider) => {
@@ -1048,7 +1050,7 @@ export default function Settings() {
                   {!Object.keys(settings.apiKeys).length && <EmptyState title="No provider keys configured" description="Add a key above when you want to use a provider outside the workspace defaults." />}
                 </SectionCard>
 
-                <SectionCard id="preferences" title="AI Preferences" description="Give the agent durable context for coding and communication." icon={Sparkles} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="preferences" title="AI Preferences" description="Give the agent durable context for coding and communication." icon={Sparkles} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <TextAreaField label="Custom instructions" description="Applied to every new agent conversation in this browser." value={settings.preferences.customInstructions} onChange={(value) => updatePreferences({ customInstructions: value })} placeholder="Example: Prefer small, reviewable changes and explain trade-offs briefly." maxLength={2000} />
                   <TextAreaField label="System prompt" description="Optional advanced instruction for your local agent setup." value={settings.preferences.systemPrompt} onChange={(value) => updatePreferences({ systemPrompt: value })} placeholder="Define boundaries, tone, or project conventions." maxLength={4000} />
                   <div className="grid gap-5 md:grid-cols-2">
@@ -1064,7 +1066,7 @@ export default function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard id="editor" title="Editor" description="Tune the code editor to match the way you work." icon={Code2} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="editor" title="Editor" description="Tune the code editor to match the way you work." icon={Code2} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="grid gap-5 md:grid-cols-2">
                     <SelectField label="Theme" value={settings.editor.theme} options={[{ value: "nura-dark", label: "NURA Dark" }, { value: "midnight", label: "Midnight" }, { value: "high-contrast", label: "High contrast" }]} onChange={(value) => updateEditor({ theme: value })} />
                     <SelectField label="Font family" value={settings.editor.fontFamily} options={[{ value: "Inter", label: "Inter" }, { value: "JetBrains Mono", label: "JetBrains Mono" }, { value: "IBM Plex Mono", label: "IBM Plex Mono" }, { value: "system", label: "System monospace" }]} onChange={(value) => updateEditor({ fontFamily: value })} />
@@ -1081,7 +1083,7 @@ export default function Settings() {
                   <div className="rounded-xl border border-white/8 bg-[#0b0d12] p-4 font-mono text-xs text-muted-foreground"><div className="mb-3 flex items-center gap-2 border-b border-white/8 pb-3 text-[11px]"><FileCode2 className="h-3.5 w-3.5 text-primary" />preview.ts</div><p><span className="text-primary">const</span> settings = <span className="text-emerald-300">"ready"</span>;</p><p className="mt-1"><span className="text-primary">export default</span> settings;</p><p className="mt-2 text-white/30">1  2  3</p></div>
                 </SectionCard>
 
-                <SectionCard id="notifications" title="Notifications" description="Keep the signals you need and mute the rest." icon={Mail} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="notifications" title="Notifications" description="Keep the signals you need and mute the rest." icon={Mail} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="space-y-3">
                     <ToggleField label="Browser notifications" description="Allow this workspace to request browser-level alerts." value={settings.notifications.browser} onChange={(value) => updateNotifications({ browser: value })} />
                     <ToggleField label="Build notifications" description="Notify when a local build starts, passes, or fails." value={settings.notifications.build} onChange={(value) => updateNotifications({ build: value })} />
@@ -1092,7 +1094,7 @@ export default function Settings() {
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/10 p-4"><div><p className="text-sm font-medium text-foreground">Notification preview</p><p className="mt-1 text-xs text-muted-foreground">Check how this browser handles permission prompts.</p></div><button type="button" onClick={() => { if (!settings.notifications.browser) { showToast("error", "Enable browser notifications first."); return; } showToast("success", "Preview notification queued for this browser."); }} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/5"><Zap className="h-3.5 w-3.5 text-primary" />Send preview</button></div>
                 </SectionCard>
 
-                <SectionCard id="security" title="Security" description="Review local access controls and manage the data stored by this app." icon={Shield} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="security" title="Security" description="Review local access controls and manage the data stored by this app." icon={Shield} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <SelectField label="API key visibility" description="Choose whether configured keys are revealed in provider rows." value={settings.security.apiKeyVisibility} options={[{ value: "masked", label: "Always masked" }, { value: "reveal", label: "Reveal while working" }]} onChange={(value) => updateSecurity({ apiKeyVisibility: value as SecuritySettings["apiKeyVisibility"] })} />
                   <div className="grid gap-3 md:grid-cols-2">
                     <button type="button" onClick={() => setSessionDialog("sessions")} className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.03]"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><Laptop className="h-4 w-4" /></div><span><span className="block text-sm font-medium text-foreground">Sessions</span><span className="mt-1 block text-xs text-muted-foreground">This browser is the only local session.</span></span></button>
@@ -1104,7 +1106,7 @@ export default function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard id="appearance" title="Appearance" description="Make the workspace feel right across your screen sizes." icon={Palette} onReset={reset} mobileSection={mobileSection}>
+                <SectionCard id="appearance" title="Appearance" description="Make the workspace feel right across your screen sizes." icon={Palette} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <div className="grid gap-5 md:grid-cols-2">
                     <SelectField label="Theme" description="Applied to this settings experience." value={settings.appearance.theme} options={[{ value: "dark", label: "Dark" }, { value: "system", label: "System" }, { value: "light", label: "Light preview" }]} onChange={(value) => updateAppearance({ theme: value as ThemeMode })} />
                     <SelectField label="Sidebar" description="Preferred default density for the app sidebar." value={settings.appearance.sidebar} options={[{ value: "collapsed", label: "Collapsed" }, { value: "expanded", label: "Expanded" }]} onChange={(value) => updateAppearance({ sidebar: value as AppearanceSettings["sidebar"] })} />
@@ -1179,7 +1181,7 @@ function NavButton({
 }) {
   const Icon = item.icon;
   return (
-    <button type="button" onClick={() => onClick(item.id)} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
+    <button type="button" onClick={() => onClick(item.id)} aria-current={active ? "page" : undefined} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
       <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
       <span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span><span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{item.description}</span></span>
     </button>
