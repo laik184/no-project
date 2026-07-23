@@ -122,17 +122,14 @@ export default function Apps() {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background">
-      <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold" data-testid="text-apps-title">Apps</h1>
-            <span className="text-sm text-muted-foreground" data-testid="text-apps-count">(1/10) Apps</span>
-          </div>
-        </div>
-        <Button data-testid="button-create" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create
-        </Button>
+      <header
+        className="flex items-center gap-3 border-b border-white/8 px-4 py-4 sm:px-6 sm:py-5"
+        aria-label="Projects page header"
+      >
+        <Folder className="h-5 w-5 shrink-0 text-muted-foreground sm:h-6 sm:w-6" aria-hidden="true" />
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl" data-testid="text-projects-title">
+          Projects
+        </h1>
       </header>
 
       <div className="flex-1 p-6 overflow-auto">
