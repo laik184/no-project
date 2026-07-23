@@ -482,8 +482,9 @@ function SectionCard({
   activeSection?: SectionId;
 }) {
   const isVisible = mobileSection ? mobileSection === id : activeSection === id;
+  const compactSections: SectionId[] = ["profile", "preferences", "editor", "security", "appearance"];
   return (
-    <section id={`settings-${id}`} className={cn("settings-section", !isVisible && "hidden")}>
+    <section id={`settings-${id}`} className={cn("settings-section", compactSections.includes(id) && "settings-section-compact", !isVisible && "hidden")}>
       <div className="settings-section-header flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -850,6 +851,17 @@ export default function Settings() {
         .settings-compact .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
         .settings-compact .px-5.py-6 { padding-top: 1rem; padding-bottom: 1rem; }
         .settings-compact .sm\\:px-7 { padding-left: 1.25rem; padding-right: 1.25rem; }
+        .settings-section-compact .settings-section-header {
+          gap: .6rem;
+          padding: .65rem 1rem;
+        }
+        .settings-section-compact .settings-section-content {
+          gap: .65rem;
+          padding-top: .65rem;
+          padding-bottom: .65rem;
+        }
+        .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .65rem; }
+        .settings-section-compact .settings-section-content .grid { gap: .65rem; }
         .settings-no-animations *, .settings-reduced-motion * {
           animation-duration: 0.01ms !important;
           animation-iteration-count: 1 !important;
@@ -914,6 +926,47 @@ export default function Settings() {
           .settings-modal-panel .settings-section-content label > span:nth-child(2) { font-size: .65rem; line-height: .9rem; }
           .settings-modal-panel .settings-section-content textarea { min-height: 4rem; height: 4rem; font-size: .75rem; line-height: 1.15rem; }
           .settings-modal-panel .settings-section-content button { min-height: 2rem; }
+          .settings-modal-panel .settings-section-compact .settings-section-content {
+            gap: .35rem;
+            padding-top: .35rem;
+            padding-bottom: .35rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-header {
+            gap: .5rem;
+            padding: .45rem 1rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-header h2 { font-size: .8rem; }
+          .settings-modal-panel .settings-section-compact .settings-section-header p { font-size: .65rem; line-height: .9rem; }
+          .settings-modal-panel .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) {
+            margin-top: .35rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .grid {
+            gap: .35rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .rounded-xl.border {
+            padding: .4rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .rounded-lg.border {
+            padding-top: .35rem;
+            padding-bottom: .35rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .py-3\\.5 {
+            padding-top: .35rem;
+            padding-bottom: .35rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .p-4 {
+            padding: .4rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .h-16 {
+            height: 2.5rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content .w-16 {
+            width: 2.5rem;
+          }
+          .settings-modal-panel .settings-section-compact .settings-section-content textarea {
+            min-height: 3rem;
+            height: 3rem;
+          }
           .settings-modal-panel .settings-nav-button {
             width: 100%;
             gap: .45rem;
