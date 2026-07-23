@@ -1,0 +1,194 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, Product Designer, and UX Engineer.
+
+Your task is to replace the current desktop Settings page with a production-quality Settings Modal.
+
+--------------------------------------------------
+
+GOAL
+
+The existing desktop Settings page should no longer exist.
+
+Replace it with a centered Settings Modal.
+
+The experience should feel similar in quality to ChatGPT, Cursor, Replit, GitHub Desktop, and other modern SaaS applications.
+
+--------------------------------------------------
+
+FIRST STEP (MANDATORY)
+
+Before writing code, perform a deep scan.
+
+Analyze
+
+• Current Settings page
+• Routing
+• Navigation
+• Components
+• State management
+• Existing settings sections
+• Responsive behavior
+
+Understand everything before making changes.
+
+--------------------------------------------------
+
+REMOVE
+
+Delete the existing desktop Settings page layout.
+
+Remove unnecessary wrappers and page containers.
+
+Do not keep duplicate layouts.
+
+--------------------------------------------------
+
+BUILD
+
+Create a centered Settings Modal.
+
+The modal must open above the current application.
+
+The application behind it should remain visible with a dimmed backdrop.
+
+--------------------------------------------------
+
+MODAL LAYOUT
+
+Left Sidebar
+
+• Profile
+• AI Models
+• API Keys
+• AI Preferences
+• Editor
+• Notifications
+• Security
+• Appearance
+
+Right Content Panel
+
+Display only the selected section.
+
+Switch sections instantly without closing the modal.
+
+--------------------------------------------------
+
+MODAL FEATURES
+
+Close Button
+
+ESC to Close
+
+Click Outside to Close
+
+Focus Trap
+
+Restore Focus after Close
+
+Smooth Open / Close Animation
+
+Scrollable Content Area
+
+Sticky Sidebar
+
+Sticky Header
+
+--------------------------------------------------
+
+CONTENT
+
+Reuse all existing settings.
+
+Do not remove features.
+
+Do not create duplicate logic.
+
+Each section must have
+
+Loading
+
+Validation
+
+Error State
+
+Success State
+
+Empty State (where applicable)
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Desktop
+
+Use the centered modal layout.
+
+Tablet
+
+Reduce modal width while keeping sidebar.
+
+Mobile
+
+Do NOT use this modal.
+
+Keep the existing mobile dedicated settings navigation.
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Keyboard Navigation
+
+ARIA Labels
+
+Semantic HTML
+
+Focus Management
+
+Screen Reader Support
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT create a separate desktop settings page.
+
+Do NOT use placeholder UI.
+
+Do NOT create demo buttons.
+
+Do NOT create dead interactions.
+
+Do NOT remove existing functionality.
+
+Reuse existing components whenever possible.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+✓ Desktop Settings page replaced by a centered Settings Modal
+
+✓ Sidebar navigation works
+
+✓ Section switching works
+
+✓ Modal open/close works
+
+✓ ESC key works
+
+✓ Click outside closes modal
+
+✓ Focus trap implemented
+
+✓ Existing functionality preserved
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready
+
+The final result should feel like a premium desktop SaaS application, not a traditional settings page.
