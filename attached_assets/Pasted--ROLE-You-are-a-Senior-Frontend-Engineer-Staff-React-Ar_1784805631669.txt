@@ -1,0 +1,340 @@
+# ROLE
+
+You are a Senior Frontend Engineer, Staff React Architect, Product Designer, and SaaS UI Engineer.
+
+Your task is to build a completely new Projects Page from scratch.
+
+Delete the existing Projects page completely.
+
+Do not reuse the old implementation.
+
+--------------------------------------------------
+
+GOAL
+
+Build a modern production-quality Projects Page inspired by professional cloud IDEs like Replit.
+
+This is a REAL application page.
+
+It must NOT look like a UI demo, template, landing page, or design showcase.
+
+Everything should feel like a real working SaaS product.
+
+--------------------------------------------------
+
+IMPORTANT
+
+This is FRONTEND ONLY.
+
+Do NOT implement backend.
+
+Do NOT create API routes.
+
+Do NOT create database logic.
+
+Use frontend state only where required.
+
+--------------------------------------------------
+
+RESEARCH FIRST
+
+Before writing any code,
+
+deeply analyze modern cloud IDE project dashboards.
+
+Understand
+
+• User workflow
+• Information hierarchy
+• Project management UX
+• Search behavior
+• Filter behavior
+• Grid/List behavior
+• Project card hierarchy
+• Empty states
+• Loading states
+• Responsive behavior
+
+Only after analysis begin implementation.
+
+--------------------------------------------------
+
+PAGE STRUCTURE
+
+Build
+
+Page
+
+Header
+
+Toolbar
+
+Search
+
+Filters
+
+Folder Selector
+
+View Toggle
+
+Projects Grid
+
+Project Cards
+
+Context Menu
+
+Empty State
+
+Loading Skeleton
+
+No Result State
+
+--------------------------------------------------
+
+PROJECT CARD
+
+Every card should include
+
+Project Icon
+
+Project Name
+
+Description
+
+Framework Badge
+
+Last Updated
+
+Visibility
+
+Status
+
+Favorite
+
+Context Menu
+
+Hover
+
+Focus
+
+Selection
+
+--------------------------------------------------
+
+SEARCH
+
+Implement
+
+Live Search
+
+Clear Search
+
+Keyboard Support
+
+No Result State
+
+--------------------------------------------------
+
+FILTERS
+
+Implement frontend filtering
+
+Status
+
+Framework
+
+Folder
+
+Sort
+
+--------------------------------------------------
+
+VIEWS
+
+Grid View
+
+List View
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Mobile
+
+Tablet
+
+Desktop
+
+Large Desktop
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Keyboard Navigation
+
+ARIA Labels
+
+Focus States
+
+Screen Reader Friendly
+
+Semantic HTML
+
+--------------------------------------------------
+
+PERFORMANCE
+
+Reusable Components
+
+Clean State Management
+
+No Duplicate Logic
+
+Simple Maintainable Architecture
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT generate
+
+Demo UI
+
+Template UI
+
+Showcase UI
+
+Placeholder Buttons
+
+Fake Buttons
+
+Coming Soon
+
+Lorem Ipsum
+
+Dummy Sections
+
+Example Cards
+
+Example Buttons
+
+Example Actions
+
+Random Statistics
+
+Random Counters
+
+Marketing Sections
+
+Hero Section
+
+Promotional Banner
+
+Upgrade Banner
+
+Pricing Banner
+
+Fake Notifications
+
+Fake Activity Feed
+
+Demo Charts
+
+Demo Widgets
+
+Fake Analytics
+
+Hardcoded User
+
+Hardcoded Company
+
+Hardcoded Workspace
+
+Hardcoded Project Count
+
+Hardcoded Fake Data
+
+--------------------------------------------------
+
+UI RULES
+
+Every visible component must have a purpose.
+
+Every button must perform a meaningful frontend action.
+
+Every dropdown must function.
+
+Every search field must work.
+
+Every filter must work.
+
+Every toggle must work.
+
+No dead UI.
+
+No decorative elements without purpose.
+
+--------------------------------------------------
+
+DESIGN
+
+Professional
+
+Minimal
+
+Modern
+
+Clean
+
+Consistent
+
+Balanced spacing
+
+Production-ready
+
+High readability
+
+Fast interaction
+
+--------------------------------------------------
+
+CODE QUALITY
+
+Reusable Components
+
+Readable Code
+
+Small Components
+
+No Over Engineering
+
+No Unnecessary Abstraction
+
+No Code Duplication
+
+--------------------------------------------------
+
+FINAL CHECKLIST
+
+Before finishing verify
+
+✓ No demo UI
+
+✓ No placeholder UI
+
+✓ No fake buttons
+
+✓ No fake sections
+
+✓ No dead interactions
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Clean architecture
+
+✓ Production-ready
+
+✓ Looks like a real SaaS application instead of a UI concept.
