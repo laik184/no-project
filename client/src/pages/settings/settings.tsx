@@ -941,8 +941,8 @@ export default function Settings() {
           line-height: .8rem;
         }
         .settings-toggle-card-compact > button {
-          height: 1.25rem;
-          width: 2.25rem;
+          height: 1rem;
+          width: 1.9rem;
         }
         .settings-toggle-switch[data-state="on"] .settings-toggle-knob {
           transform: translateX(1.5rem);
@@ -951,9 +951,9 @@ export default function Settings() {
           transform: translateX(.25rem);
         }
         .settings-toggle-card-compact > button > .settings-toggle-knob {
-          top: .25rem;
-          height: .75rem;
-          width: .75rem;
+          top: .2rem;
+          height: .6rem;
+          width: .6rem;
         }
         .settings-main-header {
           gap: .6rem;
@@ -1134,19 +1134,19 @@ export default function Settings() {
             line-height: .7rem;
           }
           .settings-modal-panel .settings-toggle-card-compact > button {
-            height: 1rem;
-            width: 1.8rem;
+            height: .8rem;
+            width: 1.55rem;
           }
           .settings-modal-panel .settings-toggle-card-compact > button > .settings-toggle-knob {
-            top: .2rem;
-            height: .6rem;
-            width: .6rem;
+            top: .15rem;
+            height: .5rem;
+            width: .5rem;
           }
           .settings-modal-panel .settings-toggle-switch[data-state="on"] .settings-toggle-knob {
-            transform: translateX(1rem);
+            transform: translateX(.85rem);
           }
           .settings-modal-panel .settings-toggle-switch[data-state="off"] .settings-toggle-knob {
-            transform: translateX(.2rem);
+            transform: translateX(.15rem);
           }
           .settings-modal-panel .settings-section-compact .settings-section-header {
             gap: .5rem;
