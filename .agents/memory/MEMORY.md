@@ -4,3 +4,4 @@
 - [Settings desktop modal](settings-desktop-modal.md) — desktop sidebar selection swaps one right-side panel; section changes should not scroll the whole modal.
 - [Settings mobile navigation](settings-mobile-navigation.md) — mobile uses a category home and one dedicated section at a time; desktop uses the centered modal.
 - [Upgrade mobile flow](upgrade-mobile-flow.md) — mobile Upgrade uses a step-by-step plan journey; desktop keeps the existing pricing grid and dialogs.
+- [Settings row system](settings-row-system.md) — Settings rows use a consistent 69px desktop rhythm without removing content or interactions.

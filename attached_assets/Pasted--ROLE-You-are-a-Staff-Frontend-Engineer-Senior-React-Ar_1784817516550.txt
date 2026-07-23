@@ -1,0 +1,223 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, Product Designer, and Design System Architect.
+
+Your task is to perform a complete deep scan of the existing Settings Modal and standardize its layout.
+
+Do NOT redesign the Settings page.
+
+Do NOT change the information architecture.
+
+Your goal is to improve visual consistency.
+
+--------------------------------------------------
+
+FIRST STEP (MANDATORY)
+
+Do NOT write code immediately.
+
+Perform a complete deep scan of the Settings Modal.
+
+Analyze
+
+• Layout
+• Components
+• Cards
+• Rows
+• Sections
+• Forms
+• Typography
+• Icons
+• Spacing
+• Padding
+• Margins
+• Alignment
+• Responsive behaviour
+
+Create an internal audit before making any changes.
+
+--------------------------------------------------
+
+PRIMARY GOAL
+
+Every settings row/card must follow a consistent design system.
+
+The standard height for every settings row is:
+
+69px
+
+Audit every visible settings card and row.
+
+Find every component whose height is greater than 69px.
+
+Standardize them to exactly 69px wherever possible.
+
+--------------------------------------------------
+
+STANDARDIZE
+
+Apply the same height to
+
+Profile rows
+
+API Key rows
+
+AI Model rows
+
+Editor rows
+
+Notification rows
+
+Security rows
+
+Appearance rows
+
+Dropdown rows
+
+Toggle rows
+
+Input rows
+
+Selection rows
+
+Action rows
+
+Every settings item should have the same visual rhythm.
+
+--------------------------------------------------
+
+DO NOT CHANGE
+
+Do not remove content.
+
+Do not hide content.
+
+Do not reduce readability.
+
+Do not clip text.
+
+Do not reduce accessibility.
+
+Instead reorganize spacing so the content fits naturally inside the 69px layout.
+
+--------------------------------------------------
+
+VISUAL CONSISTENCY
+
+Every row should have
+
+Equal Height
+
+Equal Vertical Padding
+
+Equal Horizontal Padding
+
+Consistent Typography
+
+Consistent Icon Size
+
+Consistent Alignment
+
+Consistent Button Placement
+
+Consistent Input Height
+
+Consistent Label Position
+
+Consistent Description Position
+
+--------------------------------------------------
+
+CONTENT RULES
+
+Keep the same content.
+
+Keep the same functionality.
+
+Keep all interactions.
+
+Only improve layout consistency.
+
+--------------------------------------------------
+
+IF CONTENT DOES NOT FIT
+
+Do NOT increase row height.
+
+Instead
+
+Reduce unnecessary spacing.
+
+Optimize layout.
+
+Wrap secondary text intelligently.
+
+Use proper flex layouts.
+
+Maintain a clean professional appearance.
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Maintain touch-friendly controls.
+
+Maintain readable typography.
+
+Maintain keyboard navigation.
+
+Maintain focus states.
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Desktop
+
+Tablet
+
+Mobile
+
+The 69px design system should remain visually consistent across all breakpoints where appropriate.
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT redesign.
+
+Do NOT create new cards.
+
+Do NOT create demo UI.
+
+Do NOT create placeholder layouts.
+
+Do NOT use random heights.
+
+Every settings row must follow the same design system.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+✓ Deep scan completed
+
+✓ Every settings row audited
+
+✓ Every oversized row standardized
+
+✓ Standard row height is 69px
+
+✓ Content remains readable
+
+✓ Visual rhythm is consistent
+
+✓ Alignment is consistent
+
+✓ Spacing is consistent
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready

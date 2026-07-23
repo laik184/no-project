@@ -340,7 +340,7 @@ function TextField({
   disabled?: boolean;
 }) {
   return (
-    <label className="block space-y-2">
+    <label className="settings-form-row block space-y-2">
       <span className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium text-foreground">{label}</span>
         {maxLength && <span className="text-[11px] text-muted-foreground">{value.length}/{maxLength}</span>}
@@ -382,7 +382,7 @@ function TextAreaField({
   rows?: number;
 }) {
   return (
-    <label className="block space-y-2">
+    <label className="settings-form-row settings-form-row-textarea block space-y-2">
       <span className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium text-foreground">{label}</span>
         <span className={cn("text-[11px]", value.length >= maxLength ? "text-amber-300" : "text-muted-foreground")}>{value.length}/{maxLength}</span>
@@ -414,7 +414,7 @@ function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="block space-y-2">
+    <label className="settings-form-row block space-y-2">
       <span className="text-sm font-medium text-foreground">{label}</span>
       {description && <span className="block text-xs leading-5 text-muted-foreground">{description}</span>}
       <span className="relative block">
@@ -445,7 +445,7 @@ function ToggleField({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("settings-toggle-card flex items-center justify-between gap-5 rounded-lg border border-white/8 bg-white/[0.015] px-4 py-3.5", compact && "settings-toggle-card-compact")}>
+    <div className={cn("settings-row settings-toggle-card flex items-center justify-between gap-5 rounded-lg border border-white/8 bg-white/[0.015] px-4 py-3.5", compact && "settings-toggle-card-compact")}>
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
@@ -1216,6 +1216,131 @@ export default function Settings() {
             text-overflow: clip;
           }
         }
+        /* Shared 69px settings-row system: keep every standard item aligned. */
+        .settings-modal-panel .settings-row {
+          box-sizing: border-box;
+          height: 69px;
+          min-height: 69px;
+          overflow: hidden;
+        }
+        .settings-modal-panel .settings-form-row {
+          box-sizing: border-box;
+          height: 69px;
+          min-height: 69px;
+          padding: 5px 10px;
+          overflow: visible;
+        }
+        .settings-modal-panel .settings-form-row > :not([hidden]) ~ :not([hidden]) {
+          margin-top: 2px;
+        }
+        .settings-modal-panel .settings-form-row > span:first-child {
+          line-height: 14px;
+        }
+        .settings-modal-panel .settings-form-row > span:nth-child(2) {
+          line-height: 11px;
+        }
+        .settings-modal-panel .settings-form-row input,
+        .settings-modal-panel .settings-form-row select,
+        .settings-modal-panel .settings-form-row textarea {
+          box-sizing: border-box;
+          height: 29px;
+          min-height: 29px;
+          padding-top: 4px;
+          padding-bottom: 4px;
+        }
+        .settings-modal-panel .settings-form-row textarea {
+          resize: vertical;
+          line-height: 17px;
+        }
+        .settings-modal-panel .settings-toggle-card {
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
+        .settings-modal-panel .settings-toggle-card > div:first-child {
+          min-width: 0;
+        }
+        .settings-modal-panel .settings-toggle-card > div:first-child > p:first-child {
+          line-height: 16px;
+        }
+        .settings-modal-panel .settings-toggle-card > div:first-child > p:last-child {
+          margin-top: 2px;
+          line-height: 17px;
+        }
+        .settings-modal-panel .settings-profile-summary,
+        .settings-modal-panel .settings-api-key-row,
+        .settings-modal-panel .settings-action-row,
+        .settings-modal-panel .settings-info-row,
+        .settings-modal-panel .settings-model-temperature {
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
+        .settings-modal-panel .settings-profile-summary {
+          flex-direction: row;
+          gap: 10px;
+        }
+        .settings-modal-panel .settings-profile-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+        }
+        .settings-modal-panel .settings-profile-description {
+          line-height: 15px;
+        }
+        .settings-modal-panel .settings-api-key-row > div {
+          min-height: 0;
+        }
+        .settings-modal-panel .settings-api-key-row > div > div:first-child > div:first-child {
+          width: 32px;
+          height: 32px;
+        }
+        .settings-modal-panel .settings-model-temperature {
+          overflow: visible;
+        }
+        .settings-modal-panel .settings-model-temperature > div:first-child {
+          margin-bottom: 2px;
+        }
+        .settings-modal-panel .settings-model-temperature > div:first-child p {
+          line-height: 14px;
+        }
+        .settings-modal-panel .settings-model-temperature > input {
+          height: 6px;
+        }
+        .settings-modal-panel .settings-model-temperature > div:last-child {
+          margin-top: 2px;
+          line-height: 11px;
+        }
+        .settings-modal-panel .settings-accent-row {
+          box-sizing: border-box;
+          height: 69px;
+          min-height: 69px;
+          padding: 6px 10px;
+          overflow: visible;
+        }
+        .settings-modal-panel .settings-accent-row > p {
+          margin-bottom: 4px;
+          line-height: 14px;
+        }
+        .settings-modal-panel .settings-accent-row button {
+          height: 28px;
+          width: 28px;
+        }
+        .settings-modal-panel .settings-accent-row label {
+          height: 28px;
+        }
+        @media (max-width: 767px) {
+          .settings-modal-panel .settings-row {
+            min-height: 69px;
+            height: auto;
+          }
+          .settings-modal-panel .settings-form-row {
+            min-height: 69px;
+            height: auto;
+          }
+          .settings-modal-panel .settings-profile-summary {
+            min-height: 69px;
+            height: auto;
+          }
+        }
       `}</style>
       <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-hidden bg-background md:h-auto md:max-h-[calc(100dvh-2rem)] md:w-[70vw] md:max-w-[760px] md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
         <header className="settings-main-header sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
@@ -1323,7 +1448,7 @@ export default function Settings() {
             ) : (
               <>
                 <SectionCard id="profile" title="Profile" description="Personal details used across your local workspace." icon={User} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
-                  <div className="settings-profile-summary flex flex-col gap-5 rounded-xl border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center">
+                  <div className="settings-row settings-profile-summary flex flex-col gap-5 rounded-xl border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center">
                     <div className="settings-profile-avatar flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-lg font-semibold text-primary">
                       {settings.profile.avatarUrl ? <img src={settings.profile.avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : profileInitials}
                     </div>
@@ -1350,7 +1475,7 @@ export default function Settings() {
                     <TextField label="Default model" description="Model identifier passed to the selected provider." value={settings.models.defaultModel} onChange={(value) => updateModels({ defaultModel: value })} placeholder={providerDetails.find((item) => item.id === settings.models.provider)?.model} maxLength={80} />
                     <SelectField label="Max tokens" description="Upper bound for each response." value={String(settings.models.maxTokens)} options={[{ value: "2048", label: "2,048 tokens" }, { value: "4096", label: "4,096 tokens" }, { value: "8192", label: "8,192 tokens" }, { value: "16384", label: "16,384 tokens" }, { value: "32768", label: "32,768 tokens" }]} onChange={(value) => updateModels({ maxTokens: Number(value) })} />
                   </div>
-                  <div className="rounded-xl border border-white/8 bg-black/10 p-4">
+                   <div className="settings-row settings-model-temperature rounded-xl border border-white/8 bg-black/10 p-4">
                     <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-medium text-foreground">Temperature</p><p className="mt-1 text-xs text-muted-foreground">Lower values are focused; higher values are more exploratory.</p></div><span className="rounded-md bg-primary/15 px-2 py-1 font-mono text-xs text-primary">{settings.models.temperature.toFixed(1)}</span></div>
                     <input type="range" min="0" max="1.5" step="0.1" value={settings.models.temperature} onChange={(event) => updateModels({ temperature: Number(event.target.value) })} className="h-1.5 w-full cursor-pointer accent-primary" aria-label="Temperature" />
                     <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>Precise</span><span>Creative</span></div>
@@ -1365,7 +1490,7 @@ export default function Settings() {
                       const record = settings.apiKeys[provider.id];
                       const masked = record ? `${record.value.slice(0, 4)}${"•".repeat(Math.max(4, Math.min(16, record.value.length - 4)))}${record.value.slice(-4)}` : "";
                       return (
-                        <div key={provider.id} className="rounded-xl border border-white/8 bg-black/10 p-4">
+                         <div key={provider.id} className="settings-row settings-api-key-row rounded-xl border border-white/8 bg-black/10 p-4">
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                             <div className="flex min-w-0 flex-1 items-center gap-3">
                               <div className="h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center text-sm font-semibold" style={{ borderColor: `${provider.color}40`, background: `${provider.color}15`, color: provider.color }}>{provider.name.slice(0, 1)}</div>
@@ -1406,7 +1531,7 @@ export default function Settings() {
                   <div className="grid gap-3 md:grid-cols-3">
                     <ToggleField label="Auto continue" description="Continue a response when it reaches the output limit." value={settings.preferences.autoContinue} onChange={(value) => updatePreferences({ autoContinue: value })} />
                     <ToggleField label="Planning mode" description="Show a plan before multi-step work." value={settings.preferences.planningMode} onChange={(value) => updatePreferences({ planningMode: value })} />
-                    <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/[0.06] px-4 py-3.5"><div><p className="text-sm font-medium text-foreground">Current language</p><p className="mt-1 text-xs text-muted-foreground">{labelFor([{ value: "typescript", label: "TypeScript" }, { value: "javascript", label: "JavaScript" }, { value: "python", label: "Python" }, { value: "go", label: "Go" }, { value: "rust", label: "Rust" }], settings.preferences.preferredLanguage)}</p></div><Code2 className="h-4 w-4 text-primary" /></div>
+                     <div className="settings-row settings-info-row flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/[0.06] px-4 py-3.5"><div><p className="text-sm font-medium text-foreground">Current language</p><p className="mt-1 text-xs text-muted-foreground">{labelFor([{ value: "typescript", label: "TypeScript" }, { value: "javascript", label: "JavaScript" }, { value: "python", label: "Python" }, { value: "go", label: "Go" }, { value: "rust", label: "Rust" }], settings.preferences.preferredLanguage)}</p></div><Code2 className="h-4 w-4 text-primary" /></div>
                   </div>
                 </SectionCard>
 
@@ -1435,18 +1560,18 @@ export default function Settings() {
                     <ToggleField label="AI notifications" description="Notify when a background agent run needs your attention." value={settings.notifications.ai} onChange={(value) => updateNotifications({ ai: value })} />
                     <ToggleField label="Error notifications" description="Always surface errors even when other notifications are muted." value={settings.notifications.errors} onChange={(value) => updateNotifications({ errors: value })} />
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/10 p-4"><div><p className="text-sm font-medium text-foreground">Notification preview</p><p className="mt-1 text-xs text-muted-foreground">Check how this browser handles permission prompts.</p></div><button type="button" onClick={() => { if (!settings.notifications.browser) { showToast("error", "Enable browser notifications first."); return; } showToast("success", "Preview notification queued for this browser."); }} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/5"><Zap className="h-3.5 w-3.5 text-primary" />Send preview</button></div>
+                   <div className="settings-row settings-info-row flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/10 p-4"><div><p className="text-sm font-medium text-foreground">Notification preview</p><p className="mt-1 text-xs text-muted-foreground">Check how this browser handles permission prompts.</p></div><button type="button" onClick={() => { if (!settings.notifications.browser) { showToast("error", "Enable browser notifications first."); return; } showToast("success", "Preview notification queued for this browser."); }} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/5"><Zap className="h-3.5 w-3.5 text-primary" />Send preview</button></div>
                 </SectionCard>
 
                 <SectionCard id="security" title="Security" description="Review local access controls and manage the data stored by this app." icon={Shield} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
                   <SelectField label="API key visibility" description="Choose whether configured keys are revealed in provider rows." value={settings.security.apiKeyVisibility} options={[{ value: "masked", label: "Always masked" }, { value: "reveal", label: "Reveal while working" }]} onChange={(value) => updateSecurity({ apiKeyVisibility: value as SecuritySettings["apiKeyVisibility"] })} />
                   <div className="grid gap-3 md:grid-cols-2">
-                    <button type="button" onClick={() => setSessionDialog("sessions")} className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.03]"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><Laptop className="h-4 w-4" /></div><span><span className="block text-sm font-medium text-foreground">Sessions</span><span className="mt-1 block text-xs text-muted-foreground">This browser is the only local session.</span></span></button>
-                    <button type="button" onClick={() => setSessionDialog("devices")} className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.03]"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300"><Monitor className="h-4 w-4" /></div><span><span className="block text-sm font-medium text-foreground">Devices</span><span className="mt-1 block text-xs text-muted-foreground">No synced devices in frontend-only mode.</span></span></button>
+                     <button type="button" onClick={() => setSessionDialog("sessions")} className="settings-row settings-action-row flex items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.03]"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300"><Laptop className="h-4 w-4" /></div><span><span className="block text-sm font-medium text-foreground">Sessions</span><span className="mt-1 block text-xs text-muted-foreground">This browser is the only local session.</span></span></button>
+                     <button type="button" onClick={() => setSessionDialog("devices")} className="settings-row settings-action-row flex items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.03]"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300"><Monitor className="h-4 w-4" /></div><span><span className="block text-sm font-medium text-foreground">Devices</span><span className="mt-1 block text-xs text-muted-foreground">No synced devices in frontend-only mode.</span></span></button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <button type="button" onClick={() => setSessionDialog("export")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-sm text-foreground hover:bg-white/5"><Download className="h-4 w-4 text-primary" />Export local data</button>
-                    <button type="button" onClick={() => setSessionDialog("delete")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-400/[0.05] px-3 py-2.5 text-sm text-red-300 hover:bg-red-400/10"><Trash2 className="h-4 w-4" />Delete local account data</button>
+                     <button type="button" onClick={() => setSessionDialog("export")} className="settings-row settings-action-row inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2.5 text-sm text-foreground hover:bg-white/5"><Download className="h-4 w-4 text-primary" />Export local data</button>
+                     <button type="button" onClick={() => setSessionDialog("delete")} className="settings-row settings-action-row inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-400/[0.05] px-3 py-2.5 text-sm text-red-300 hover:bg-red-400/10"><Trash2 className="h-4 w-4" />Delete local account data</button>
                   </div>
                 </SectionCard>
 
@@ -1455,7 +1580,7 @@ export default function Settings() {
                     <SelectField label="Theme" description="Applied to this settings experience." value={settings.appearance.theme} options={[{ value: "dark", label: "Dark" }, { value: "system", label: "System" }, { value: "light", label: "Light preview" }]} onChange={(value) => updateAppearance({ theme: value as ThemeMode })} />
                     <SelectField label="Sidebar" description="Preferred default density for the app sidebar." value={settings.appearance.sidebar} options={[{ value: "collapsed", label: "Collapsed" }, { value: "expanded", label: "Expanded" }]} onChange={(value) => updateAppearance({ sidebar: value as AppearanceSettings["sidebar"] })} />
                   </div>
-                  <div>
+                   <div className="settings-row settings-accent-row">
                     <p className="mb-2 text-sm font-medium text-foreground">Accent color</p>
                     <div className="flex flex-wrap items-center gap-2">
                       {["#7c8dff", "#a78bfa", "#22c55e", "#38bdf8", "#f59e0b", "#f472b6"].map((color) => <button type="button" key={color} onClick={() => updateAppearance({ accentColor: color })} className={cn("h-8 w-8 rounded-full border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", settings.appearance.accentColor === color ? "border-white scale-110" : "border-transparent")} style={{ backgroundColor: color }} aria-label={`Use ${color} accent`} />)}
@@ -1467,7 +1592,7 @@ export default function Settings() {
                     <ToggleField label="Animations" description="Use subtle transitions for navigation and state changes." value={settings.appearance.animations} onChange={(value) => updateAppearance({ animations: value })} />
                     <ToggleField label="Reduced motion" description="Prefer minimal movement for accessibility." value={settings.appearance.reducedMotion} onChange={(value) => updateAppearance({ reducedMotion: value })} />
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.06] p-4 text-xs leading-5 text-muted-foreground"><Moon className="h-4 w-4 shrink-0 text-primary" /><span>Current preview uses <strong className="text-foreground">{settings.appearance.theme === "system" ? "system" : settings.appearance.theme}</strong> mode with a <strong className="text-foreground">{settings.appearance.accentColor}</strong> accent.</span></div>
+                   <div className="settings-row settings-info-row flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.06] p-4 text-xs leading-5 text-muted-foreground"><Moon className="h-4 w-4 shrink-0 text-primary" /><span>Current preview uses <strong className="text-foreground">{settings.appearance.theme === "system" ? "system" : settings.appearance.theme}</strong> mode with a <strong className="text-foreground">{settings.appearance.accentColor}</strong> accent.</span></div>
                 </SectionCard>
               </>
             )}
