@@ -27,6 +27,7 @@ import Base44Import from "@/pages/import/base44-import";
 import Usage from "@/pages/analytics/usage";
 import Upgrade from "@/pages/billing/upgrade";
 import Integrations from "@/pages/settings/integrations";
+import Settings from "@/pages/settings/settings";
 import Publishing from "@/pages/publishing/publishing";
 import PublishedApps from "@/pages/publishing/published-apps";
 import Console from "@/pages/devtools/console";
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/apps" component={Apps} />
       <Route path="/published" component={PublishedApps} />
       <Route path="/integrations" component={Integrations} />
+      <Route path="/settings" component={Settings} />
       <Route path="/usage" component={Usage} />
       <Route path="/upgrade" component={Upgrade} />
       <Route path="/frameworks" component={DeveloperFrameworks} />

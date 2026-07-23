@@ -1,0 +1,441 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, UX Designer, and SaaS Product Designer.
+
+Your task is to completely replace the existing Settings page with a brand-new production-quality Settings experience.
+
+Delete the current Settings page completely.
+
+Do NOT reuse the old layout.
+
+Do NOT keep demo UI.
+
+Do NOT keep placeholder components.
+
+Build a completely new Settings page from scratch.
+
+--------------------------------------------------
+
+PRIMARY GOAL
+
+Create a modern AI Application Settings page similar in quality to Cursor, Replit, Claude, ChatGPT, Windsurf and Lovable.
+
+The page must feel like a real production application.
+
+Every visible element must have a purpose.
+
+Nothing should look unfinished.
+
+--------------------------------------------------
+
+FIRST STEP (MANDATORY)
+
+Before writing any code
+
+Perform a complete deep scan.
+
+Research modern AI application settings pages.
+
+Understand
+
+User workflow
+
+Navigation
+
+Information hierarchy
+
+Best UX patterns
+
+Settings organization
+
+Accessibility
+
+Responsive behaviour
+
+Only after deep analysis begin implementation.
+
+--------------------------------------------------
+
+DELETE
+
+Remove
+
+Old Settings Page
+
+Old Layout
+
+Old Components
+
+Old Placeholder UI
+
+Old Demo Sections
+
+Old Dead Buttons
+
+Old Fake Cards
+
+Old Unused Code
+
+--------------------------------------------------
+
+BUILD NEW SETTINGS PAGE
+
+Create these sections
+
+1.
+
+Profile
+
+Display Name
+
+Username
+
+Email
+
+Avatar
+
+Language
+
+Timezone
+
+--------------------------------------------------
+
+2.
+
+AI Models
+
+Provider Selection
+
+Default AI
+
+Default Model
+
+Temperature
+
+Max Tokens
+
+Streaming
+
+--------------------------------------------------
+
+3.
+
+API Keys
+
+OpenAI
+
+Gemini
+
+Claude
+
+DeepSeek
+
+OpenRouter
+
+Grok
+
+Ollama
+
+Each provider must support
+
+Add
+
+Edit
+
+Delete
+
+Show
+
+Hide
+
+Copy
+
+Test Connection
+
+Connection Status
+
+--------------------------------------------------
+
+4.
+
+AI Preferences
+
+Custom Instructions
+
+System Prompt
+
+Coding Style
+
+Response Style
+
+Preferred Language
+
+Auto Continue
+
+Reasoning Level
+
+Planning Mode
+
+--------------------------------------------------
+
+5.
+
+Editor
+
+Theme
+
+Font Size
+
+Font Family
+
+Word Wrap
+
+Auto Save
+
+Format On Save
+
+Minimap
+
+Line Numbers
+
+Cursor Style
+
+--------------------------------------------------
+
+6.
+
+Notifications
+
+Browser Notifications
+
+Build Notifications
+
+Deploy Notifications
+
+AI Notifications
+
+Error Notifications
+
+--------------------------------------------------
+
+7.
+
+Security
+
+Sessions
+
+Devices
+
+API Key Visibility
+
+Export Data
+
+Delete Account
+
+--------------------------------------------------
+
+8.
+
+Appearance
+
+Theme
+
+Accent Color
+
+Compact Mode
+
+Sidebar
+
+Animations
+
+Reduced Motion
+
+--------------------------------------------------
+
+EVERY SECTION MUST HAVE
+
+Loading State
+
+Empty State
+
+Success State
+
+Error State
+
+Validation
+
+Meaningful Interactions
+
+Proper Labels
+
+Responsive Layout
+
+--------------------------------------------------
+
+SCREEN SECTIONS
+
+Create complete layouts.
+
+Every screen must feel finished.
+
+No blank areas.
+
+No unfinished cards.
+
+No empty containers.
+
+Proper spacing.
+
+Professional typography.
+
+Balanced layout.
+
+--------------------------------------------------
+
+BUTTONS
+
+Every button must work.
+
+No placeholder buttons.
+
+No demo buttons.
+
+No dead buttons.
+
+Every click must perform a meaningful frontend action.
+
+--------------------------------------------------
+
+INPUTS
+
+Every input must work.
+
+Validation
+
+Error Messages
+
+Character Limits
+
+Keyboard Support
+
+--------------------------------------------------
+
+MODALS
+
+Every modal must
+
+Open
+
+Close
+
+Keyboard Accessible
+
+Focus Trap
+
+Restore Focus
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Mobile
+
+Tablet
+
+Desktop
+
+Large Desktop
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+ARIA Labels
+
+Semantic HTML
+
+Keyboard Navigation
+
+Focus States
+
+Screen Reader Support
+
+--------------------------------------------------
+
+CODE QUALITY
+
+Reusable Components
+
+Clean Architecture
+
+No Duplicate Code
+
+No Over Engineering
+
+Simple Maintainable React Code
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT build demo UI.
+
+Do NOT build showcase UI.
+
+Do NOT build template UI.
+
+Do NOT use placeholder text.
+
+Do NOT create fake statistics.
+
+Do NOT create fake analytics.
+
+Do NOT create fake integrations.
+
+Do NOT create dead interactions.
+
+Do NOT create empty cards.
+
+Do NOT leave unfinished sections.
+
+Do NOT hardcode fake user data.
+
+Do NOT stop until the page is fully complete.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+Before finishing verify
+
+✓ Old Settings page completely replaced
+
+✓ Every section complete
+
+✓ Every button works
+
+✓ Every toggle works
+
+✓ Every dropdown works
+
+✓ Every modal works
+
+✓ Every input validated
+
+✓ Every interaction works
+
+✓ No demo UI
+
+✓ No placeholder UI
+
+✓ No dead buttons
+
+✓ No fake sections
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready
+
+The final result must look like a real SaaS application, not a UI concept or design mockup.

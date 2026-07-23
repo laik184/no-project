@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useImportModal } from "@/context/import-modal-context";
-import { SettingsPanel } from "@/components/panels/SettingsPanel";
 import { LifecycleOrb } from "@/components/ui/LifecycleOrb";
 import { useLifecycle } from "@/context/lifecycle-context";
 import {
@@ -39,7 +38,6 @@ const aiNav = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(true);
   const [aiExpanded, setAiExpanded] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   const [location, navigate] = useLocation();
   const { openImport } = useImportModal();
   const { label, dynamicDescription, isActive, state } = useLifecycle();
@@ -207,7 +205,7 @@ export function AppSidebar() {
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={() => setShowSettings(true)} className="w-full flex justify-center p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors" data-testid="button-settings-collapsed">
+               <button onClick={() => navigate("/settings")} className={cn("w-full flex justify-center p-2 rounded-xl transition-colors", location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} data-testid="button-settings-collapsed" aria-current={location === "/settings" ? "page" : undefined}>
                 <Settings className="h-4 w-4" />
               </button>
             </TooltipTrigger>
@@ -219,7 +217,7 @@ export function AppSidebar() {
               <Zap className="h-3.5 w-3.5 mr-1.5" />
               Upgrade
             </Button>
-            <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors" data-testid="button-settings-expanded">
+             <button onClick={() => navigate("/settings")} className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded-xl transition-colors", location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} data-testid="button-settings-expanded" aria-current={location === "/settings" ? "page" : undefined}>
               <Settings className="h-4 w-4 flex-shrink-0" />
               <span className="text-xs font-medium">Settings</span>
             </button>
@@ -228,7 +226,6 @@ export function AppSidebar() {
       </div>
     </div>
 
-    <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
     </>
   );
 }
