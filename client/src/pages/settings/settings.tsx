@@ -888,6 +888,25 @@ export default function Settings() {
           .settings-modal-panel .settings-section-content label > span:first-child { font-size: .75rem; }
           .settings-modal-panel .settings-section-content label > span:nth-child(2) { font-size: .65rem; line-height: .9rem; }
           .settings-modal-panel .settings-section-content textarea { font-size: .75rem; line-height: 1.25rem; }
+          .settings-modal-panel .settings-nav-button {
+            width: 85%;
+            gap: .45rem;
+            border-radius: .55rem;
+            padding: .35rem .55rem;
+          }
+          .settings-modal-panel .settings-nav-button > svg {
+            height: .75rem;
+            width: .75rem;
+          }
+          .settings-modal-panel .settings-nav-button > span > span:first-child {
+            font-size: .7rem;
+            line-height: .85rem;
+          }
+          .settings-modal-panel .settings-nav-button > span > span:last-child {
+            margin-top: .1rem;
+            font-size: .55rem;
+            line-height: .7rem;
+          }
         }
       `}</style>
       <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(75vh,calc(100vh-180px))] md:w-[70vw] md:max-w-[760px] md:overflow-hidden md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
@@ -1208,7 +1227,7 @@ function NavButton({
 }) {
   const Icon = item.icon;
   return (
-    <button type="button" onClick={() => onClick(item.id)} aria-current={active ? "page" : undefined} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
+    <button type="button" onClick={() => onClick(item.id)} aria-current={active ? "page" : undefined} className={cn("settings-nav-button flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
       <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
       <span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span><span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{item.description}</span></span>
     </button>
