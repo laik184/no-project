@@ -5,3 +5,4 @@
 - [Settings mobile navigation](settings-mobile-navigation.md) — mobile uses a category home and one dedicated section at a time; desktop uses the centered modal.
 - [Upgrade mobile flow](upgrade-mobile-flow.md) — mobile Upgrade uses a step-by-step plan journey; desktop keeps the existing pricing grid and dialogs.
 - [Settings row system](settings-row-system.md) — Settings rows use a consistent 69px desktop rhythm without removing content or interactions.
+- [Settings component boundaries](settings-component-boundaries.md) — section components own UI; persistence, navigation, validation, and dialogs remain in the parent.
