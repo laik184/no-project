@@ -436,14 +436,16 @@ function ToggleField({
   description,
   value,
   onChange,
+  compact = false,
 }: {
   label: string;
   description?: string;
   value: boolean;
   onChange: (value: boolean) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-5 rounded-lg border border-white/8 bg-white/[0.015] px-4 py-3.5">
+    <div className={cn("settings-toggle-card flex items-center justify-between gap-5 rounded-lg border border-white/8 bg-white/[0.015] px-4 py-3.5", compact && "settings-toggle-card-compact")}>
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
@@ -482,9 +484,9 @@ function SectionCard({
   activeSection?: SectionId;
 }) {
   const isVisible = mobileSection ? mobileSection === id : activeSection === id;
-  const compactSections: SectionId[] = ["profile", "preferences", "editor", "security", "appearance"];
+  const compactSections: SectionId[] = ["profile", "models", "preferences", "editor", "security", "appearance"];
   return (
-    <section id={`settings-${id}`} className={cn("settings-section", id === "profile" && "settings-section-profile", compactSections.includes(id) && "settings-section-compact", !isVisible && "hidden")}>
+    <section id={`settings-${id}`} className={cn("settings-section", id === "profile" && "settings-section-profile", id === "models" && "settings-section-models", compactSections.includes(id) && "settings-section-compact", !isVisible && "hidden")}>
       <div className="settings-section-header flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -914,6 +916,44 @@ export default function Settings() {
           line-height: .85rem;
         }
         .settings-profile-action svg { width: .7rem; height: .7rem; }
+        .settings-section-models .settings-section-content {
+          gap: .45rem;
+          padding-top: .45rem;
+          padding-bottom: .45rem;
+        }
+        .settings-section-models .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .45rem; }
+        .settings-section-models .settings-section-content .grid { gap: .45rem; }
+        .settings-section-models .settings-section-content .rounded-xl.border {
+          padding: .45rem;
+        }
+        .settings-toggle-card-compact {
+          gap: .75rem;
+          padding: .45rem .55rem;
+        }
+        .settings-toggle-card-compact > div:first-child > p:first-child {
+          font-size: .75rem;
+          line-height: .9rem;
+        }
+        .settings-toggle-card-compact > div:first-child > p:last-child {
+          margin-top: .15rem;
+          font-size: .65rem;
+          line-height: .8rem;
+        }
+        .settings-toggle-card-compact > button {
+          height: 1.25rem;
+          width: 2.25rem;
+        }
+        .settings-toggle-card-compact > button > span {
+          top: .25rem;
+          height: .75rem;
+          width: .75rem;
+        }
+        .settings-toggle-card-compact > button > span.translate-x-6 {
+          transform: translateX(1.25rem);
+        }
+        .settings-toggle-card-compact > button > span.translate-x-1 {
+          transform: translateX(.25rem);
+        }
         .settings-main-header {
           gap: .6rem;
           padding-top: .5rem;
@@ -1036,6 +1076,76 @@ export default function Settings() {
             padding-top: .35rem;
             padding-bottom: .35rem;
           }
+          .settings-modal-panel .settings-section-models .settings-section-content {
+            gap: .25rem;
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content > :not([hidden]) ~ :not([hidden]) {
+            margin-top: .25rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content .grid {
+            gap: .25rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content .rounded-xl.border {
+            padding: .3rem;
+            border-radius: .5rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content .rounded-xl.border > .flex {
+            gap: .35rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content .rounded-lg.border {
+            padding-top: .3rem;
+            padding-bottom: .3rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content label {
+            gap: .2rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content label > span:first-child {
+            font-size: .7rem;
+            line-height: .8rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content label > span:nth-child(2) {
+            font-size: .58rem;
+            line-height: .7rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content input:not([type="range"]):not([type="color"]),
+          .settings-modal-panel .settings-section-models .settings-section-content select {
+            height: 1.85rem;
+            font-size: .68rem;
+          }
+          .settings-modal-panel .settings-section-models .settings-section-content .py-3\\.5 {
+            padding-top: .3rem;
+            padding-bottom: .3rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact {
+            gap: .5rem;
+            padding: .25rem .35rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact > div:first-child > p:first-child {
+            font-size: .65rem;
+            line-height: .75rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact > div:first-child > p:last-child {
+            margin-top: .1rem;
+            font-size: .55rem;
+            line-height: .65rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact > button {
+            height: 1rem;
+            width: 1.8rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact > button > span {
+            top: .2rem;
+            height: .6rem;
+            width: .6rem;
+          }
+          .settings-modal-panel .settings-toggle-card-compact > button > span.translate-x-6 {
+            transform: translateX(1rem);
+          }
+          .settings-modal-panel .settings-toggle-card-compact > button > span.translate-x-1 {
+            transform: translateX(.2rem);
+          }
           .settings-modal-panel .settings-section-compact .settings-section-header {
             gap: .5rem;
             padding: .45rem 1rem;
@@ -1110,10 +1220,6 @@ export default function Settings() {
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary"><Settings2 className="h-4 w-4" /></div>
-              <div>
-                <h1 id="settings-modal-title" className="text-base font-semibold text-foreground">Settings</h1>
-                <p className="mt-0.5 text-xs text-muted-foreground">Configure your workspace preferences.</p>
-              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1247,7 +1353,7 @@ export default function Settings() {
                     <input type="range" min="0" max="1.5" step="0.1" value={settings.models.temperature} onChange={(event) => updateModels({ temperature: Number(event.target.value) })} className="h-1.5 w-full cursor-pointer accent-primary" aria-label="Temperature" />
                     <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>Precise</span><span>Creative</span></div>
                   </div>
-                  <ToggleField label="Streaming responses" description="Show generated text as it arrives instead of waiting for the complete response." value={settings.models.streaming} onChange={(value) => updateModels({ streaming: value })} />
+                  <ToggleField compact label="Streaming responses" description="Show generated text as it arrives instead of waiting for the complete response." value={settings.models.streaming} onChange={(value) => updateModels({ streaming: value })} />
                 </SectionCard>
 
                 <SectionCard id="keys" title="API Keys" description="Connect your own model providers. Keys are masked by default and stored only in this browser." icon={KeyRound} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
