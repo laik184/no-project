@@ -239,8 +239,8 @@ function ProjectCard({
     );
   }
 
-  return (
-    <article className="group relative flex min-h-[190px] cursor-pointer flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-white/[0.045] hover:shadow-[0_10px_35px_rgba(0,0,0,0.18)]" onClick={onOpen}>
+    return (
+      <article className="group relative flex min-h-[168px] cursor-pointer flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-white/[0.045] hover:shadow-[0_10px_35px_rgba(0,0,0,0.18)]" onClick={onOpen}>
       <div className="flex items-start justify-between gap-3">
         <ProjectIcon project={project} />
         <div className="flex items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
@@ -250,18 +250,18 @@ function ProjectCard({
           <ProjectMenu project={project} onRename={onRename} onDuplicate={onDuplicate} onDelete={onDelete} />
         </div>
       </div>
-      <div className="mt-4 min-w-0">
+      <div className="mt-3 min-w-0">
         <h3 className="truncate text-sm font-semibold text-foreground">{project.name}</h3>
-        <p className="mt-1 line-clamp-2 min-h-9 text-xs leading-4 text-muted-foreground">{project.description}</p>
+        <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-4 text-muted-foreground">{project.description}</p>
       </div>
-      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="rounded-md bg-white/7 px-2 py-1 text-[10px] font-medium text-muted-foreground">{project.framework}</span>
           <span className="truncate text-[10px] text-muted-foreground">{project.visibility}</span>
         </div>
         <StatusPill status={project.status} />
       </div>
-      <div className="mt-3 flex items-center gap-1.5 border-t border-white/7 pt-3 text-[10px] text-muted-foreground">
+      <div className="mt-2.5 flex items-center gap-1.5 border-t border-white/7 pt-2.5 text-[10px] text-muted-foreground">
         <Clock3 className="h-3 w-3" /> Updated {timeLabel(project.updatedAt)}
       </div>
     </article>
@@ -401,7 +401,7 @@ export default function Apps() {
 
   return (
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      <header className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-4 sm:px-8">
+      <header className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-3 sm:px-8 sm:py-3.5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Folder className="h-4.5 w-4.5" />
@@ -417,15 +417,15 @@ export default function Apps() {
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[1440px] px-5 py-6 sm:px-8 sm:py-8">
-          <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mx-auto w-full max-w-[1440px] px-5 py-4 sm:px-8 sm:py-5">
+          <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button className="hover:text-foreground" onClick={() => setFolder("All")}>All projects</button>
                 <span>/</span>
                 <span className="text-foreground">{folder === "All" ? "All" : folder}</span>
               </div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">Your projects</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Your projects</h2>
               <p className="mt-1 text-sm text-muted-foreground">Everything you are building in this workspace.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -438,7 +438,7 @@ export default function Apps() {
             </div>
           </div>
 
-          <section className="rounded-2xl border border-white/8 bg-white/[0.018] p-3 sm:p-4" aria-label="Project controls">
+          <section className="rounded-2xl border border-white/8 bg-white/[0.018] p-2.5 sm:p-3" aria-label="Project controls">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
               <label className="relative min-w-0 flex-1">
                 <span className="sr-only">Search projects</span>
@@ -480,7 +480,7 @@ export default function Apps() {
                 </Button>
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-white/7 pt-3">
+            <div className="mt-2 flex items-center justify-between border-t border-white/7 pt-2">
               <p className="text-xs text-muted-foreground">{visibleProjects.length} {visibleProjects.length === 1 ? "project" : "projects"}</p>
               <div className="flex items-center gap-1 rounded-lg border border-white/8 bg-black/20 p-0.5" aria-label="Project view">
                 <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-md", view === "grid" && "bg-white/10 text-foreground")} onClick={() => setView("grid")} aria-label="Grid view" aria-pressed={view === "grid"}><Grid2X2 className="h-3.5 w-3.5" /></Button>
@@ -489,7 +489,7 @@ export default function Apps() {
             </div>
           </section>
 
-          <div className="mt-7">
+          <div className="mt-5">
             {loading ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {[1, 2, 3].map((item) => <div key={item} className="h-48 animate-pulse rounded-2xl border border-white/8 bg-white/[0.035]" />)}
@@ -506,7 +506,7 @@ export default function Apps() {
                 </div>
               )
             ) : (
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/12 bg-white/[0.012] px-6 text-center">
+              <div className="flex min-h-[240px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/12 bg-white/[0.012] px-6 text-center">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-muted-foreground"><Search className="h-5 w-5" /></div>
                 <h3 className="text-sm font-semibold text-foreground">{projects.length === 0 ? "No projects yet" : "No projects found"}</h3>
                 <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{projects.length === 0 ? "Create your first app to get started." : "Try a different search or remove some filters."}</p>
@@ -515,7 +515,7 @@ export default function Apps() {
             )}
           </div>
 
-          <div className="mt-8 flex items-center gap-2 rounded-xl border border-white/7 bg-white/[0.018] px-4 py-3 text-xs text-muted-foreground">
+          <div className="mt-5 flex items-center gap-2 rounded-xl border border-white/7 bg-white/[0.018] px-4 py-2.5 text-xs text-muted-foreground">
             <Users className="h-4 w-4 text-primary/80" />
             <span>Projects shared with you will appear here.</span>
             <Archive className="ml-auto h-4 w-4 opacity-40" />
