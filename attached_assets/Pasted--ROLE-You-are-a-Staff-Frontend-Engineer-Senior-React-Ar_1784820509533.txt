@@ -1,0 +1,417 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, UX Designer, and SaaS Product Engineer.
+
+Your task is to completely replace the existing Settings feature with a brand-new production-quality implementation.
+
+This is a FULL REBUILD.
+
+----------------------------------------
+
+STEP 1 (MANDATORY)
+
+Delete the entire existing Settings implementation before writing any new code.
+
+Remove every Settings-related file, component, route, modal, hook, utility, styles, and folder that belongs to the old implementation.
+
+Do not reuse old code.
+
+Start with a clean architecture.
+
+----------------------------------------
+
+GOAL
+
+Build a modern Settings experience for a professional AI SaaS application.
+
+The result must feel like ChatGPT, Cursor, Claude, Replit or Windsurf.
+
+Not like a UI template.
+
+Not like a demo.
+
+Not like a design showcase.
+
+----------------------------------------
+
+FIRST
+
+Before coding,
+
+deeply analyze the project.
+
+Understand
+
+• Routing
+• Navigation
+• Theme
+• Layout
+• Design System
+• Shared Components
+• State Management
+• Folder Structure
+• Existing Architecture
+
+Then design the best Settings architecture that fits the application.
+
+----------------------------------------
+
+SETTINGS LAYOUT
+
+Desktop
+
+• Open as a centered Settings Modal
+• Large modal
+• Left navigation
+• Right content panel
+• Scrollable content
+• Sticky sidebar
+• Professional spacing
+
+----------------------------------------
+
+Mobile
+
+Open Settings as a Full Screen page.
+
+No popup.
+
+No small modal.
+
+Native mobile experience.
+
+----------------------------------------
+
+BACKGROUND
+
+Desktop
+
+Blur background
+
+Dark overlay
+
+Professional modal experience
+
+----------------------------------------
+
+SETTINGS SECTIONS
+
+Only include important sections.
+
+1. Profile
+
+• Avatar
+• Display Name
+• Username
+• Email
+
+----------------------------------------
+
+2. AI Models
+
+Support
+
+OpenAI
+
+Gemini
+
+Claude
+
+DeepSeek
+
+Grok
+
+OpenRouter
+
+Ollama
+
+Features
+
+• Default Provider
+• Default Model
+• Temperature
+• Max Tokens
+• Streaming
+
+----------------------------------------
+
+3. API Keys
+
+Allow users to
+
+• Add API Key
+• Edit API Key
+• Delete API Key
+• Copy API Key
+• Hide / Show
+• Test Connection
+
+Supported Providers
+
+OpenAI
+
+Gemini
+
+Claude
+
+DeepSeek
+
+Grok
+
+OpenRouter
+
+Ollama
+
+----------------------------------------
+
+4. AI Preferences
+
+Custom Instructions
+
+System Prompt
+
+Preferred Language
+
+Coding Style
+
+Response Style
+
+Auto Continue
+
+Reasoning Mode
+
+----------------------------------------
+
+5. Editor
+
+Theme
+
+Font Size
+
+Word Wrap
+
+Minimap
+
+Auto Save
+
+Format on Save
+
+Tab Size
+
+----------------------------------------
+
+6. Appearance
+
+Theme
+
+Accent Color
+
+Compact Mode
+
+Animations
+
+Sidebar Preference
+
+----------------------------------------
+
+7. Security
+
+Sessions
+
+Connected Devices
+
+Export Data
+
+Delete Account
+
+----------------------------------------
+
+INTERACTIONS
+
+Every button must work.
+
+Every dropdown must work.
+
+Every switch must work.
+
+Every tab must work.
+
+Every modal must work.
+
+Every dialog must work.
+
+Every search must work.
+
+No dead interactions.
+
+----------------------------------------
+
+STATES
+
+Loading
+
+Skeleton
+
+Saving
+
+Saved
+
+Error
+
+Success
+
+Empty
+
+Validation
+
+Disabled
+
+----------------------------------------
+
+ACCESSIBILITY
+
+Keyboard Navigation
+
+ARIA Labels
+
+Focus Management
+
+Screen Reader Support
+
+Semantic HTML
+
+----------------------------------------
+
+RESPONSIVE
+
+Mobile
+
+Tablet
+
+Desktop
+
+Large Desktop
+
+----------------------------------------
+
+ARCHITECTURE
+
+Do NOT create one huge Settings file.
+
+Split into reusable modules.
+
+Suggested structure
+
+settings/
+
+├── components/
+├── sections/
+├── dialogs/
+├── hooks/
+├── context/
+├── services/
+├── types/
+├── utils/
+├── constants/
+├── validation/
+└── index
+
+Every section should be isolated.
+
+Reusable.
+
+Easy to maintain.
+
+----------------------------------------
+
+STRICT RULES
+
+Never create
+
+Demo UI
+
+Placeholder UI
+
+Example Cards
+
+Coming Soon
+
+Lorem Ipsum
+
+Dummy Buttons
+
+Fake Settings
+
+Static Demo Data
+
+Dead Buttons
+
+Dead Tabs
+
+Dead Toggles
+
+Unused Components
+
+Temporary Code
+
+----------------------------------------
+
+QUALITY
+
+Production Ready
+
+Clean Code
+
+Reusable Components
+
+Scalable Architecture
+
+Consistent Design
+
+Fast Performance
+
+Excellent UX
+
+----------------------------------------
+
+FINAL VALIDATION
+
+Before finishing verify
+
+✓ Old Settings completely removed
+
+✓ New architecture created
+
+✓ Desktop uses Settings Modal
+
+✓ Mobile uses Full Screen Settings
+
+✓ White/clean professional content area
+
+✓ Every button works
+
+✓ Every toggle works
+
+✓ Every dropdown works
+
+✓ API key management works
+
+✓ AI provider selection works
+
+✓ Custom Instructions work
+
+✓ No demo UI
+
+✓ No placeholder UI
+
+✓ No fake interactions
+
+✓ No dead buttons
+
+✓ Fully responsive
+
+✓ Accessible
+
+✓ Production-ready
+
+Do not stop until the entire Settings experience is complete from end to end.
