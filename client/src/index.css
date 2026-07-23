@@ -153,6 +153,11 @@
     @apply hidden;
   }
 
+  .projects-filter-select option {
+    background-color: #0b0d12;
+    color: #f4f4f5;
+  }
+
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));

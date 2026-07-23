@@ -122,7 +122,8 @@ function SelectField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 w-full appearance-none rounded-lg border border-white/10 bg-white/[0.035] px-3 pr-8 text-xs font-medium text-foreground outline-none transition-colors hover:border-white/20 focus:border-primary/70 focus:ring-2 focus:ring-primary/20"
+        className="projects-filter-select h-9 w-full appearance-none rounded-lg border border-white/10 bg-white/[0.035] px-3 pr-8 text-xs font-medium text-foreground outline-none transition-colors hover:border-white/20 focus:border-primary/70 focus:ring-2 focus:ring-primary/20"
+        style={{ colorScheme: "dark" }}
         aria-label={label}
       >
         {children}
