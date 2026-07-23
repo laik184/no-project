@@ -1514,19 +1514,30 @@ Please report this to https://github.com/markedjs/marked.`,t){const s="<p>An err
         .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .65rem; }
         .settings-section-compact .settings-section-content .grid { gap: .65rem; }
         .settings-section-profile .settings-section-header {
-          gap: .4rem;
-          padding-top: .35rem;
-          padding-bottom: .35rem;
+          gap: .25rem;
+          padding-top: .15rem;
+          padding-bottom: .15rem;
         }
         .settings-section-profile .settings-section-header > div:first-child {
-          gap: .5rem;
+          gap: .35rem;
+        }
+        .settings-section-profile .settings-section-header > div:first-child > div:first-child {
+          width: 1.5rem;
+          height: 1.5rem;
+          border-radius: .45rem;
+        }
+        .settings-section-profile .settings-section-header > div:first-child > div:first-child svg {
+          width: .7rem;
+          height: .7rem;
         }
         .settings-section-profile .settings-section-header h2 {
+          font-size: .75rem;
           line-height: 1rem;
         }
         .settings-section-profile .settings-section-header p {
           margin-top: .15rem;
-          line-height: .8rem;
+          font-size: .6rem;
+          line-height: .7rem;
         }
         .settings-profile-summary {
           gap: .75rem;
@@ -1630,9 +1641,14 @@ Please report this to https://github.com/markedjs/marked.`,t){const s="<p>An err
           .settings-modal-panel .settings-section-compact .settings-section-header h2 { font-size: .8rem; }
           .settings-modal-panel .settings-section-compact .settings-section-header p { font-size: .65rem; line-height: .9rem; }
           .settings-modal-panel .settings-section-profile .settings-section-header {
-            padding-top: .25rem;
-            padding-bottom: .25rem;
+            gap: .2rem;
+            padding-top: .1rem;
+            padding-bottom: .1rem;
           }
+          .settings-modal-panel .settings-section-profile .settings-section-header > div:first-child { gap: .3rem; }
+          .settings-modal-panel .settings-section-profile .settings-section-header > div:first-child > div:first-child { width: 1.35rem; height: 1.35rem; }
+          .settings-modal-panel .settings-section-profile .settings-section-header h2 { font-size: .7rem; }
+          .settings-modal-panel .settings-section-profile .settings-section-header p { font-size: .55rem; line-height: .65rem; }
           .settings-modal-panel .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) {
             margin-top: .35rem;
           }
