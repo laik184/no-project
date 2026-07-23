@@ -25,6 +25,7 @@ import BoltImport from "@/pages/import/bolt-import";
 import VercelImport from "@/pages/import/vercel-import";
 import Base44Import from "@/pages/import/base44-import";
 import Usage from "@/pages/analytics/usage";
+import Upgrade from "@/pages/billing/upgrade";
 import Integrations from "@/pages/settings/integrations";
 import Publishing from "@/pages/publishing/publishing";
 import PublishedApps from "@/pages/publishing/published-apps";
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/published" component={PublishedApps} />
       <Route path="/integrations" component={Integrations} />
       <Route path="/usage" component={Usage} />
+      <Route path="/upgrade" component={Upgrade} />
       <Route path="/frameworks" component={DeveloperFrameworks} />
       <Route path="/import" component={ImportPage} />
       <Route path="/import/github" component={GitHubImport} />

@@ -40,7 +40,7 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(true);
   const [aiExpanded, setAiExpanded] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { openImport } = useImportModal();
   const { label, dynamicDescription, isActive, state } = useLifecycle();
 
@@ -215,7 +215,7 @@ export function AppSidebar() {
           </Tooltip>
         ) : (
           <>
-            <Button className="w-full h-9 text-sm font-semibold bg-gradient-to-r from-[#7c8dff] to-[#a78bfa] hover:from-[#6b7ef0] hover:to-[#9575f0] border-0 text-white rounded-xl transition-all duration-200" style={{ boxShadow: "0 0 20px rgba(124,141,255,0.3)" }} data-testid="button-upgrade">
+            <Button onClick={() => navigate("/upgrade")} className="w-full h-9 text-sm font-semibold bg-gradient-to-r from-[#7c8dff] to-[#a78bfa] hover:from-[#6b7ef0] hover:to-[#9575f0] border-0 text-white rounded-xl transition-all duration-200" style={{ boxShadow: "0 0 20px rgba(124,141,255,0.3)" }} data-testid="button-upgrade">
               <Zap className="h-3.5 w-3.5 mr-1.5" />
               Upgrade
             </Button>

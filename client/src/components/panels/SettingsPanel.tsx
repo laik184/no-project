@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Search, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import { PANEL_CSS, Toast } from "./settings-primitives";
 import { GeneralSection, AppearanceSection, AISection, IntegrationsSection } from "./settings-sections-a";
 import { BillingSection, SecuritySection, DeploymentSection, AccountSection } from "./settings-sections-b";
@@ -11,6 +12,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
+  const [location] = useLocation();
   const [closing, setClosing] = useState(false);
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState<string | null>(null);
@@ -55,6 +57,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [open]);
+
+  useEffect(() => {
+    if (open && location.startsWith("/upgrade")) onClose();
+  }, [location, onClose, open]);
 
   if (!open && !closing) return null;
 

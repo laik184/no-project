@@ -4,6 +4,7 @@ import {
   Smartphone, Shield, Key, LogOut, UserX, AlertTriangle, Plus,
 } from "lucide-react";
 import { Row, Toggle, Select, UsageBar, SectionTitle, ActionBtn } from "./settings-primitives";
+import { useLocation } from "wouter";
 
 interface SharedSectionProps {
   sq: string;
@@ -16,6 +17,7 @@ interface BillingSectionProps extends SharedSectionProps {
   autoRenew: boolean; setAutoRenew: (v: boolean) => void;
 }
 export function BillingSection({ sq, wrap, showToast, billingEmail, setBillingEmail, autoRenew, setAutoRenew }: BillingSectionProps) {
+  const [, navigate] = useLocation();
   if (sq && !"billing plan upgrade payment invoice subscription".includes(sq)) return null;
   return (
     <section className="mt-4">
@@ -29,7 +31,7 @@ export function BillingSection({ sq, wrap, showToast, billingEmail, setBillingEm
               <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,141,255,0.15)", color: "#a78bfa", border: "1px solid rgba(124,141,255,0.25)" }}>ACTIVE</span>
             </div>
           </div>
-          <ActionBtn variant="primary" onClick={() => showToast("Upgrade coming soon!")}>
+          <ActionBtn variant="primary" onClick={() => navigate("/upgrade?source=settings")}>
             <Rocket style={{ width: 11, height: 11 }} />
             Upgrade Plan
           </ActionBtn>

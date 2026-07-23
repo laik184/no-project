@@ -2,6 +2,7 @@ import { AlertCircle, Activity, CheckCircle2, XCircle, Clock, RefreshCw } from "
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
 
 interface AgentMetrics {
   totalRuns: number;
@@ -13,6 +14,7 @@ interface AgentMetrics {
 }
 
 export default function Usage() {
+  const [, navigate] = useLocation();
   const { data: metrics, isLoading } = useQuery<AgentMetrics>({
     queryKey: ["/api/agents/metrics"],
     refetchInterval: 15_000,
@@ -130,7 +132,7 @@ export default function Usage() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Your plan</h3>
                   <div className="text-base font-semibold" data-testid="text-plan">Starter</div>
-                  <button className="text-primary text-sm hover:underline" data-testid="link-upgrade">Upgrade to Core</button>
+                  <button className="text-primary text-sm hover:underline" onClick={() => navigate("/upgrade?source=usage")} data-testid="link-upgrade">Upgrade to Core</button>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Usage period</h3>
