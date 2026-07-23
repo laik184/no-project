@@ -914,6 +914,59 @@ export default function Settings() {
           line-height: .85rem;
         }
         .settings-profile-action svg { width: .7rem; height: .7rem; }
+        .settings-main-header {
+          gap: .6rem;
+          padding-top: .5rem;
+          padding-bottom: .5rem;
+        }
+        .settings-main-header > div:first-child > div:first-child {
+          gap: .5rem;
+        }
+        .settings-main-header > div:first-child > div:first-child > div:first-child {
+          width: 2rem;
+          height: 2rem;
+          border-radius: .6rem;
+        }
+        .settings-main-header > div:first-child > div:first-child > div:first-child svg {
+          width: .8rem;
+          height: .8rem;
+        }
+        .settings-main-header h1 {
+          font-size: .8rem;
+          line-height: 1rem;
+        }
+        .settings-main-header p {
+          margin-top: .15rem;
+          font-size: .6rem;
+          line-height: .75rem;
+        }
+        .settings-main-header > div:last-child {
+          gap: .4rem;
+        }
+        .settings-main-header > div:last-child > span {
+          gap: .3rem;
+          font-size: .6rem;
+          line-height: .75rem;
+        }
+        .settings-main-header > div:last-child > button:not([aria-label]) {
+          gap: .35rem;
+          padding: .35rem .65rem;
+          border-radius: .5rem;
+          font-size: .7rem;
+          line-height: .85rem;
+        }
+        .settings-main-header > div:last-child > button:not([aria-label]) svg {
+          width: .75rem;
+          height: .75rem;
+        }
+        .settings-main-header > div:last-child > button[aria-label] {
+          width: 1.75rem;
+          height: 1.75rem;
+        }
+        .settings-main-header > div:last-child > button[aria-label] svg {
+          width: .75rem;
+          height: .75rem;
+        }
         .settings-no-animations *, .settings-reduced-motion * {
           animation-duration: 0.01ms !important;
           animation-iteration-count: 1 !important;
@@ -1053,7 +1106,7 @@ export default function Settings() {
         }
       `}</style>
       <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-hidden bg-background md:h-auto md:max-h-[calc(100dvh-2rem)] md:w-[70vw] md:max-w-[760px] md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
-        <header className="sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
+        <header className="settings-main-header sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary"><Settings2 className="h-4 w-4" /></div>
