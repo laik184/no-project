@@ -1,3 +1,4 @@
 - [Imported frontend snapshots](imported-frontend-snapshots.md) — when server sources are absent, keep the UI runnable and surface missing APIs explicitly instead of fabricating data.
 - [Mockup sandbox setup](mockup-sandbox-setup.md) — newly created mockup artifacts may need an explicit dependency install before their preview workflow can start.
 - [Settings persistence boundary](settings-persistence-boundary.md) — settings and provider keys stay browser-local until an account/API backend is connected.
+- [Settings mobile navigation](settings-mobile-navigation.md) — mobile uses a category home and one dedicated section at a time; desktop keeps the full settings layout.

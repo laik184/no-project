@@ -1,0 +1,289 @@
+# ROLE
+
+You are a Staff Frontend Engineer, Senior React Architect, Mobile UX Designer, and SaaS Product Designer.
+
+Your task is to redesign ONLY the mobile experience of the existing Upgrade page.
+
+Do NOT redesign the desktop version.
+
+Desktop must remain exactly as it is.
+
+Only improve the mobile UX.
+
+--------------------------------------------------
+
+GOAL
+
+The current Upgrade page is too long for mobile devices.
+
+Users should never scroll through an oversized pricing page.
+
+Create a premium mobile experience similar to ChatGPT Plus, Cursor, GitHub, Replit, Notion AI and other modern SaaS applications.
+
+--------------------------------------------------
+
+FIRST STEP
+
+Before making changes, perform a complete deep scan.
+
+Analyze
+
+Current Upgrade page
+
+Current Pricing Cards
+
+Billing Toggle
+
+Plan Comparison
+
+Features
+
+Buttons
+
+Dialogs
+
+Navigation
+
+Responsive Behaviour
+
+User Journey
+
+Only after understanding the existing implementation begin the redesign.
+
+--------------------------------------------------
+
+DESKTOP
+
+Do NOT change anything.
+
+Keep the existing desktop layout exactly as it is.
+
+--------------------------------------------------
+
+MOBILE
+
+Replace the long scrolling page.
+
+Create a structured mobile flow.
+
+Upgrade Home
+
+↓
+
+Choose Plan
+
+↓
+
+Plan Details
+
+↓
+
+Feature Comparison
+
+↓
+
+Confirmation
+
+Each screen should focus on one task only.
+
+--------------------------------------------------
+
+MOBILE STRUCTURE
+
+Upgrade Home
+
+Display
+
+Current Plan
+
+Upgrade Benefits
+
+Billing Toggle
+
+Continue Button
+
+--------------------------------------------------
+
+Choose Plan
+
+Display all plans as swipeable cards or a clean list.
+
+Only one plan should be selected at a time.
+
+--------------------------------------------------
+
+Plan Details
+
+Show
+
+Price
+
+Features
+
+Limits
+
+Benefits
+
+What's Included
+
+--------------------------------------------------
+
+Feature Comparison
+
+Display only essential comparisons.
+
+Use collapsible sections if needed.
+
+Avoid massive comparison tables.
+
+--------------------------------------------------
+
+Confirmation
+
+Selected Plan
+
+Billing Cycle
+
+Summary
+
+Confirm Button
+
+Cancel Button
+
+--------------------------------------------------
+
+NAVIGATION
+
+Upgrade Home
+
+↓
+
+Choose Plan
+
+↓
+
+Plan Details
+
+↓
+
+Confirmation
+
+↓
+
+Success
+
+Back navigation must work correctly.
+
+--------------------------------------------------
+
+BUTTONS
+
+Every button must work.
+
+No placeholder buttons.
+
+No demo buttons.
+
+No dead actions.
+
+--------------------------------------------------
+
+STATES
+
+Loading
+
+Skeleton
+
+Error
+
+Success
+
+Selected
+
+Disabled
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Desktop
+
+No changes.
+
+Tablet
+
+Adaptive layout.
+
+Mobile
+
+Dedicated multi-screen experience.
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Keyboard Navigation
+
+ARIA Labels
+
+Semantic HTML
+
+Touch-friendly controls
+
+Proper spacing
+
+Large tap targets
+
+--------------------------------------------------
+
+KEEP
+
+Existing architecture
+
+Existing routing
+
+Existing state
+
+Existing components whenever possible.
+
+Do NOT duplicate logic.
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT create one huge scrolling page.
+
+Do NOT remove existing features.
+
+Do NOT create demo UI.
+
+Do NOT create placeholder screens.
+
+Do NOT leave unfinished interactions.
+
+Every screen must be complete and production-ready.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+✓ Desktop unchanged
+
+✓ Mobile optimized
+
+✓ No excessive scrolling
+
+✓ Multi-step mobile flow implemented
+
+✓ Every button works
+
+✓ Every interaction works
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready mobile UX
+
+The mobile Upgrade experience should feel like a premium native application instead of a compressed desktop page.

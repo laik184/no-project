@@ -1,0 +1,231 @@
+# ROLE
+
+You are a Senior Mobile UX Designer, Staff Frontend Engineer, and React Architect.
+
+Your task is to redesign ONLY the mobile experience of the existing Settings page.
+
+Do NOT redesign the desktop version.
+
+Desktop layout should remain unchanged.
+
+Improve only the mobile UX.
+
+--------------------------------------------------
+
+GOAL
+
+The current Settings page is too long on mobile.
+
+Users should never need to scroll through dozens of settings on one screen.
+
+Create a production-quality mobile navigation similar to ChatGPT, Cursor, GitHub, Replit and modern SaaS applications.
+
+--------------------------------------------------
+
+FIRST STEP
+
+Perform a deep scan.
+
+Analyze
+
+Current Settings Page
+
+Current Sections
+
+Current Components
+
+Current Navigation
+
+Current State Management
+
+Current Responsive Behaviour
+
+Identify why the mobile experience is poor.
+
+Only then begin implementation.
+
+--------------------------------------------------
+
+DESKTOP
+
+Do NOT modify.
+
+Keep the current desktop experience exactly as it is.
+
+--------------------------------------------------
+
+MOBILE
+
+Replace the long scrolling page.
+
+Instead create a Settings Home screen.
+
+Settings Home should display clean navigation cards or list items for each section.
+
+Example
+
+Profile
+
+AI Models
+
+API Keys
+
+AI Preferences
+
+Editor
+
+Notifications
+
+Security
+
+Appearance
+
+--------------------------------------------------
+
+SECTION NAVIGATION
+
+Tapping a section opens a dedicated screen.
+
+Each section has its own page.
+
+Each page contains only its own settings.
+
+Provide
+
+Back Button
+
+Section Title
+
+Save State
+
+Loading
+
+Error
+
+Success
+
+--------------------------------------------------
+
+NAVIGATION
+
+Settings Home
+
+↓
+
+Profile
+
+↓
+
+Back
+
+↓
+
+Settings Home
+
+Repeat for every section.
+
+Never stack every setting on one page.
+
+--------------------------------------------------
+
+SECTION SCREENS
+
+Each section should feel complete.
+
+Proper spacing
+
+Clear hierarchy
+
+Minimal scrolling
+
+Responsive layout
+
+Sticky header if appropriate
+
+--------------------------------------------------
+
+KEEP
+
+Reuse existing settings components.
+
+Reuse existing forms.
+
+Reuse existing validation.
+
+Reuse existing state.
+
+Do NOT duplicate logic.
+
+--------------------------------------------------
+
+RESPONSIVE
+
+Desktop
+
+No changes.
+
+Tablet
+
+Adaptive layout.
+
+Mobile
+
+Dedicated section navigation.
+
+--------------------------------------------------
+
+ACCESSIBILITY
+
+Keyboard support
+
+Focus management
+
+ARIA labels
+
+Semantic HTML
+
+Touch-friendly controls
+
+Minimum tap targets
+
+--------------------------------------------------
+
+STRICT RULES
+
+Do NOT create a long scrolling page.
+
+Do NOT hide settings.
+
+Do NOT remove features.
+
+Do NOT create demo UI.
+
+Do NOT create placeholder screens.
+
+Every section must remain fully functional.
+
+--------------------------------------------------
+
+FINAL VALIDATION
+
+✓ Desktop unchanged
+
+✓ Mobile optimized
+
+✓ No excessive scrolling
+
+✓ Settings Home implemented
+
+✓ Every section opens independently
+
+✓ Navigation works
+
+✓ Back navigation works
+
+✓ Responsive
+
+✓ Accessible
+
+✓ Production-ready mobile UX
+
+The mobile experience should feel like a premium native application rather than a compressed desktop page.
