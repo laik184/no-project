@@ -18,7 +18,6 @@ import {
   KeyRound,
   Laptop,
   Loader2,
-  LockKeyhole,
   Mail,
   Monitor,
   Moon,
@@ -905,7 +904,7 @@ export default function Settings() {
           .settings-modal-panel .settings-section-content textarea { min-height: 4rem; height: 4rem; font-size: .75rem; line-height: 1.15rem; }
           .settings-modal-panel .settings-section-content button { min-height: 2rem; }
           .settings-modal-panel .settings-nav-button {
-            width: 85%;
+            width: 100%;
             gap: .45rem;
             border-radius: .55rem;
             padding: .35rem .55rem;
@@ -922,6 +921,9 @@ export default function Settings() {
             margin-top: .1rem;
             font-size: .55rem;
             line-height: .7rem;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
           }
         }
       `}</style>
@@ -1016,7 +1018,7 @@ export default function Settings() {
           )}
         </div>
 
-        <div className={cn("grid items-start gap-4 md:h-full md:min-h-0 md:grid-cols-[170px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
+        <div className={cn("grid items-start gap-4 md:h-full md:min-h-0 md:grid-cols-[205px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
           <aside className="sticky top-0 hidden h-full overflow-y-auto md:block">
             <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
               <div className="relative mb-2">
@@ -1028,10 +1030,6 @@ export default function Settings() {
                 {visibleNavigation.map((item) => <NavButton key={item.id} item={item} active={activeSection === item.id} onClick={goToSection} />)}
               </nav>
               {!visibleNavigation.length && <p className="px-3 py-5 text-center text-xs text-muted-foreground">No matching categories.</p>}
-            </div>
-            <div className="mt-4 rounded-xl border border-primary/15 bg-primary/[0.06] p-3.5">
-              <div className="flex items-center gap-2 text-xs font-medium text-foreground"><LockKeyhole className="h-3.5 w-3.5 text-primary" />Browser-only workspace</div>
-              <p className="mt-2 text-[11px] leading-5 text-muted-foreground">These settings are saved locally because this imported app has no account backend connected.</p>
             </div>
           </aside>
 
@@ -1245,7 +1243,7 @@ function NavButton({
   return (
     <button type="button" onClick={() => onClick(item.id)} aria-current={active ? "page" : undefined} className={cn("settings-nav-button flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "bg-primary/12 text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
       <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
-      <span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span><span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{item.description}</span></span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{item.label}</span><span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">{item.description}</span></span>
     </button>
   );
 }
