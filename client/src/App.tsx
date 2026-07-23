@@ -67,6 +67,7 @@ function Router() {
 function AppShell() {
   const [location] = useLocation();
   const isWorkspace = location === "/workspace" || location.startsWith("/workspace/") || location.startsWith("/workspace?");
+  const isSettings = location === "/settings" || location.startsWith("/settings?");
 
   if (isWorkspace) {
     return (
@@ -82,7 +83,14 @@ function AppShell() {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0">
         <GoalRunner />
         <Timeline />
-        <Router />
+        {isSettings ? (
+          <>
+            <div className="hidden md:block">
+              <Home />
+            </div>
+            <Settings />
+          </>
+        ) : <Router />}
       </div>
     </div>
   );

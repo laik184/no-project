@@ -3,7 +3,7 @@ name: Settings mobile navigation
 description: Responsive navigation rule for the Settings experience.
 ---
 
-On small screens, Settings should open to a category home and render only one section after selection. Each section needs a touch-friendly sticky header with back navigation and save state; the desktop sidebar and full-section layout remain the desktop experience.
+On small screens, Settings should open to a category home and render only one section after selection. Each section needs a touch-friendly sticky header with back navigation and save state; desktop uses the centered modal with its sidebar.
 
 **Why:** The settings form contains many controls and becomes an excessive scroll on phones; category navigation preserves every feature without compressing the desktop information architecture.
 

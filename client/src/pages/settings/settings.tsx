@@ -622,6 +622,10 @@ export default function Settings() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<SectionId | null>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  const closeSettings = () => navigate("/");
 
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ type, message });
@@ -638,6 +642,42 @@ export default function Settings() {
   useEffect(() => {
     if (!visibleNavigation.some((item) => item.id === activeSection) && visibleNavigation[0]) setActiveSection(visibleNavigation[0].id);
   }, [activeSection, visibleNavigation]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusFirst = () => {
+      const first = modalRef.current?.querySelector<HTMLElement>(focusableSelector);
+      first?.focus();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSettings();
+        return;
+      }
+      if (event.key !== "Tab" || !modalRef.current) return;
+      const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(focusableSelector));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    const timer = window.setTimeout(focusFirst, 40);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [hydrated]);
 
   const goToSection = (id: SectionId) => {
     setActiveSection(id);
@@ -775,8 +815,12 @@ export default function Settings() {
   return (
     <main
       ref={mainRef}
-      className={cn("settings-page flex min-h-0 flex-1 overflow-auto bg-background", settings.appearance.compactMode && "settings-compact", !settings.appearance.animations && "settings-no-animations", settings.appearance.reducedMotion && "settings-reduced-motion")}
+      className={cn("settings-page relative flex min-h-0 flex-1 items-stretch justify-center overflow-auto bg-background md:fixed md:inset-0 md:z-[120] md:items-center md:overflow-hidden md:bg-black/70 md:p-6 md:backdrop-blur-[2px]", settings.appearance.compactMode && "settings-compact", !settings.appearance.animations && "settings-no-animations", settings.appearance.reducedMotion && "settings-reduced-motion")}
       data-theme={isLightPreview ? "light-preview" : "dark"}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeSettings();
+      }}
       style={{
         "--settings-accent": settings.appearance.accentColor,
         "--background": isLightPreview ? "0 0% 97%" : "0 0% 3%",
@@ -809,23 +853,27 @@ export default function Settings() {
           .settings-mobile .settings-mobile-section-card > div:first-child { border-bottom: 0; padding: 1.25rem; }
           .settings-mobile .settings-mobile-section-card > div:first-child button { min-height: 36px; }
         }
+        @keyframes settings-modal-in {
+          from { opacity: 0; transform: translateY(10px) scale(.985); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .settings-modal-panel { animation: settings-modal-in .22s cubic-bezier(.22,.8,.2,1) both; }
+        .settings-no-animations .settings-modal-panel,
+        .settings-reduced-motion .settings-modal-panel { animation: none; }
       `}</style>
-      <div className="mx-auto w-full max-w-[1320px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-        <header className="mb-7 hidden flex-wrap items-start justify-between gap-5 md:flex">
+      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(820px,calc(100vh-48px))] md:max-w-[1120px] md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+        <header className="sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
           <div>
-            <button type="button" onClick={() => navigate("/")} className="mb-5 inline-flex items-center gap-2 text-xs text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-              <ArrowLeft className="h-3.5 w-3.5" />Back to workspace
-            </button>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary"><Settings2 className="h-5 w-5" /></div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary"><Settings2 className="h-4 w-4" /></div>
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Settings</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Configure your workspace, agent, editor, and account preferences.</p>
+                <h1 id="settings-modal-title" className="text-base font-semibold text-foreground">Settings</h1>
+                <p className="mt-0.5 text-xs text-muted-foreground">Configure your workspace preferences.</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={cn("hidden items-center gap-1.5 text-xs sm:inline-flex", saveState === "error" ? "text-red-300" : saveState === "dirty" ? "text-amber-300" : "text-muted-foreground")}>
+            <span className={cn("items-center gap-1.5 text-xs sm:inline-flex", saveState === "error" ? "text-red-300" : saveState === "dirty" ? "text-amber-300" : "text-muted-foreground")}>
               {saveState === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {saveState === "success" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />}
               {saveState === "error" && <AlertCircle className="h-3.5 w-3.5" />}
@@ -834,15 +882,19 @@ export default function Settings() {
             <button type="button" onClick={handleSave} disabled={saveState === "saving"} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-wait disabled:opacity-70">
               {saveState === "saving" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Save changes
             </button>
+            <button type="button" onClick={closeSettings} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-white/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Close settings">
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </header>
 
+        <div className="settings-modal-body mx-auto w-full max-w-[1320px] px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <div className="settings-mobile md:hidden">
           {mobileSection === null ? (
             <>
               <header className="sticky top-0 z-20 -mx-5 mb-5 border-b border-white/8 bg-background/95 px-5 py-3 backdrop-blur-xl">
                 <div className="flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => navigate("/")} className="settings-mobile-icon-button inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-white/5 hover:text-foreground" aria-label="Back to workspace">
+                  <button type="button" onClick={closeSettings} className="settings-mobile-icon-button inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-white/5 hover:text-foreground" aria-label="Back to workspace">
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   <div className="flex items-center gap-2">
@@ -900,8 +952,8 @@ export default function Settings() {
           )}
         </div>
 
-        <div className={cn("grid items-start gap-6 lg:grid-cols-[242px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
-          <aside className="sticky top-5 hidden lg:block">
+        <div className={cn("grid items-start gap-6 md:grid-cols-[242px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
+          <aside className="sticky top-5 hidden md:block">
             <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
               <div className="relative mb-2">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1074,6 +1126,7 @@ export default function Settings() {
               </>
             )}
           </div>
+        </div>
         </div>
       </div>
 
