@@ -454,11 +454,12 @@ function ToggleField({
         type="button"
         role="switch"
         aria-checked={value}
+        data-state={value ? "on" : "off"}
         aria-label={`${label}: ${value ? "on" : "off"}`}
         onClick={() => onChange(!value)}
-        className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background", value ? "bg-primary" : "bg-white/15")}
+        className={cn("settings-toggle-switch relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background", value ? "bg-primary" : "bg-white/15")}
       >
-        <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform", value ? "translate-x-6" : "translate-x-1")} />
+        <span className="settings-toggle-knob absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform" />
       </button>
     </div>
   );
@@ -943,16 +944,16 @@ export default function Settings() {
           height: 1.25rem;
           width: 2.25rem;
         }
-        .settings-toggle-card-compact > button > span {
+        .settings-toggle-switch[data-state="on"] .settings-toggle-knob {
+          transform: translateX(1.5rem);
+        }
+        .settings-toggle-switch[data-state="off"] .settings-toggle-knob {
+          transform: translateX(.25rem);
+        }
+        .settings-toggle-card-compact > button > .settings-toggle-knob {
           top: .25rem;
           height: .75rem;
           width: .75rem;
-        }
-        .settings-toggle-card-compact > button > span.translate-x-6 {
-          transform: translateX(1.25rem);
-        }
-        .settings-toggle-card-compact > button > span.translate-x-1 {
-          transform: translateX(.25rem);
         }
         .settings-main-header {
           gap: .6rem;
@@ -1136,15 +1137,15 @@ export default function Settings() {
             height: 1rem;
             width: 1.8rem;
           }
-          .settings-modal-panel .settings-toggle-card-compact > button > span {
+          .settings-modal-panel .settings-toggle-card-compact > button > .settings-toggle-knob {
             top: .2rem;
             height: .6rem;
             width: .6rem;
           }
-          .settings-modal-panel .settings-toggle-card-compact > button > span.translate-x-6 {
+          .settings-modal-panel .settings-toggle-switch[data-state="on"] .settings-toggle-knob {
             transform: translateX(1rem);
           }
-          .settings-modal-panel .settings-toggle-card-compact > button > span.translate-x-1 {
+          .settings-modal-panel .settings-toggle-switch[data-state="off"] .settings-toggle-knob {
             transform: translateX(.2rem);
           }
           .settings-modal-panel .settings-section-compact .settings-section-header {
