@@ -3,19 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node_modules/.bin/concurrently -k -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
-    "predev:api": "node scripts/kill-port.mjs 3001",
-    "predev:web": "node scripts/kill-port.mjs 5000",
-    "dev:api": "node_modules/.bin/tsx watch main.ts",
-    "dev:web": "node_modules/.bin/vite",
-    "start": "tsx main.ts",
+    "dev": "vite --host 0.0.0.0 --port 5000",
+    "start": "vite --host 0.0.0.0 --port 5000",
     "build": "vite build",
-    "test": "node --import tsx/esm --test server/agents/dependencies/tests/*.test.ts server/memory/tests/*.test.ts",
-    "test:watch": "node --import tsx/esm --test --watch server/agents/dependencies/tests/*.test.ts",
-    "governance": "node scripts/governance-check.mjs",
-    "db:push": "drizzle-kit push",
-    "tool:audit": "node scripts/tool-pipeline-audit.mjs",
-    "lint": "eslint main.ts server/**/*.ts --max-warnings=0"
+    "lint": "eslint client/src --max-warnings=0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
