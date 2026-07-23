@@ -1,0 +1,1 @@
+- [Imported frontend snapshots](imported-frontend-snapshots.md) — when server sources are absent, keep the UI runnable and surface missing APIs explicitly instead of fabricating data.

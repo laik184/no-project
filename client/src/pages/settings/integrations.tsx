@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, Plus, Database, Lock, Link as LinkIcon, FolderOpen, Mail, FileText, Calendar, MessageSquare, CloudCog, ShieldCheck, Plug, CheckCircle2, Lightbulb, GitBranch } from "lucide-react";
-import { SiSpotify, SiTodoist, SiTwilio, SiYoutube, SiZendesk, SiFigma, SiBitbucket, SiGithub, SiGitlab } from "react-icons/si";
+import { SiSpotify, SiTodoist, SiYoutube, SiZendesk, SiFigma, SiBitbucket, SiGithub, SiGitlab } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -194,10 +194,9 @@ const connectors: Integration[] = [
   {
     id: "twilio",
     name: "Twilio",
-    icon: SiTwilio,
+    icon: MessageSquare,
     description: "Send SMS messages and make voice calls using the Twilio API",
     status: "available",
-    isLogo: true,
   },
   {
     id: "youtube",

@@ -123,6 +123,12 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   ::-webkit-scrollbar {
     width: 4px;
     height: 4px;
