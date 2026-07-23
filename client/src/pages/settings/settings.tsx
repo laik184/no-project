@@ -1120,16 +1120,17 @@ export default function Settings() {
           }
           .settings-modal-panel .settings-toggle-card-compact {
             gap: .5rem;
-            padding: .25rem .35rem;
+            min-height: 3rem;
+            padding: .3rem .35rem;
           }
           .settings-modal-panel .settings-toggle-card-compact > div:first-child > p:first-child {
             font-size: .65rem;
             line-height: .75rem;
           }
           .settings-modal-panel .settings-toggle-card-compact > div:first-child > p:last-child {
-            margin-top: .1rem;
+            margin-top: .12rem;
             font-size: .55rem;
-            line-height: .65rem;
+            line-height: .7rem;
           }
           .settings-modal-panel .settings-toggle-card-compact > button {
             height: 1rem;
