@@ -876,18 +876,34 @@ export default function Settings() {
           }
           .settings-modal-panel .settings-section-header svg { height: .8rem; width: .8rem; }
           .settings-modal-panel .settings-section-content {
-            gap: 1rem;
-            padding: 1rem;
+            gap: .55rem;
+            padding: .65rem;
           }
-          .settings-modal-panel .settings-section-content > .grid { gap: .75rem; }
-          .settings-modal-panel .settings-section-content > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: .5rem; }
-          .settings-modal-panel .settings-section-content .rounded-xl { border-radius: .7rem; }
+          .settings-modal-panel .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .6rem; }
+          .settings-modal-panel .settings-section-content > .grid,
+          .settings-modal-panel .settings-section-content .grid { gap: .55rem; }
+          .settings-modal-panel .settings-section-content .space-y-3 > :not([hidden]) ~ :not([hidden]),
+          .settings-modal-panel .settings-section-content .space-y-5 > :not([hidden]) ~ :not([hidden]),
+          .settings-modal-panel .settings-section-content .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: .55rem; }
+          .settings-modal-panel .settings-section-content .rounded-xl { border-radius: .6rem; }
+          .settings-modal-panel .settings-section-content .rounded-xl.border { padding: .6rem; }
+          .settings-modal-panel .settings-section-content .rounded-xl.border > .flex { gap: .55rem; }
+          .settings-modal-panel .settings-section-content .rounded-lg.border { padding-top: .55rem; padding-bottom: .55rem; }
+          .settings-modal-panel .settings-section-content .p-4 { padding: .6rem; }
+          .settings-modal-panel .settings-section-content .p-5 { padding: .7rem; }
+          .settings-modal-panel .settings-section-content .py-3\\.5 { padding-top: .5rem; padding-bottom: .5rem; }
+          .settings-modal-panel .settings-section-content .py-2\\.5 { padding-top: .45rem; padding-bottom: .45rem; }
+          .settings-modal-panel .settings-section-content .h-16 { height: 3rem; }
+          .settings-modal-panel .settings-section-content .w-16 { width: 3rem; }
+          .settings-modal-panel .settings-section-content .h-12 { height: 2.5rem; }
+          .settings-modal-panel .settings-section-content .w-12 { width: 2.5rem; }
           .settings-modal-panel .settings-section-content input:not([type="range"]):not([type="color"]),
           .settings-modal-panel .settings-section-content select { height: 2.25rem; font-size: .75rem; }
           .settings-modal-panel .settings-section-content label { gap: .35rem; }
           .settings-modal-panel .settings-section-content label > span:first-child { font-size: .75rem; }
           .settings-modal-panel .settings-section-content label > span:nth-child(2) { font-size: .65rem; line-height: .9rem; }
-          .settings-modal-panel .settings-section-content textarea { font-size: .75rem; line-height: 1.25rem; }
+          .settings-modal-panel .settings-section-content textarea { min-height: 4rem; height: 4rem; font-size: .75rem; line-height: 1.15rem; }
+          .settings-modal-panel .settings-section-content button { min-height: 2rem; }
           .settings-modal-panel .settings-nav-button {
             width: 85%;
             gap: .45rem;
