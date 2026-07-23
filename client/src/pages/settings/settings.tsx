@@ -862,6 +862,32 @@ export default function Settings() {
         }
         .settings-section-compact .settings-section-content > :not([hidden]) ~ :not([hidden]) { margin-top: .65rem; }
         .settings-section-compact .settings-section-content .grid { gap: .65rem; }
+        .settings-profile-summary {
+          gap: .75rem;
+          padding: .65rem;
+        }
+        .settings-profile-avatar {
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: .65rem;
+          font-size: .8rem;
+        }
+        .settings-profile-title {
+          font-size: .75rem;
+          line-height: .95rem;
+        }
+        .settings-profile-description {
+          margin-top: .2rem;
+          font-size: .65rem;
+          line-height: .85rem;
+        }
+        .settings-profile-action {
+          gap: .35rem;
+          padding: .35rem .55rem;
+          font-size: .65rem;
+          line-height: .85rem;
+        }
+        .settings-profile-action svg { width: .7rem; height: .7rem; }
         .settings-no-animations *, .settings-reduced-motion * {
           animation-duration: 0.01ms !important;
           animation-iteration-count: 1 !important;
@@ -1101,15 +1127,15 @@ export default function Settings() {
             ) : (
               <>
                 <SectionCard id="profile" title="Profile" description="Personal details used across your local workspace." icon={User} onReset={reset} mobileSection={mobileSection} activeSection={activeSection}>
-                  <div className="flex flex-col gap-5 rounded-xl border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-lg font-semibold text-primary">
+                  <div className="settings-profile-summary flex flex-col gap-5 rounded-xl border border-white/8 bg-black/10 p-4 sm:flex-row sm:items-center">
+                    <div className="settings-profile-avatar flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/30 bg-primary/15 text-lg font-semibold text-primary">
                       {settings.profile.avatarUrl ? <img src={settings.profile.avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : profileInitials}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{settings.profile.displayName || "Add your display name"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{settings.profile.username ? `@${settings.profile.username}` : "A profile helps identify your workspace locally."}</p>
+                      <p className="settings-profile-title text-sm font-medium text-foreground">{settings.profile.displayName || "Add your display name"}</p>
+                      <p className="settings-profile-description mt-1 text-xs text-muted-foreground">{settings.profile.username ? `@${settings.profile.username}` : "A profile helps identify your workspace locally."}</p>
                     </div>
-                    <button type="button" onClick={() => updateProfile({ avatarUrl: "" })} className="sm:ml-auto inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground hover:bg-white/5 hover:text-foreground"><User className="h-3.5 w-3.5" />Use initials</button>
+                    <button type="button" onClick={() => updateProfile({ avatarUrl: "" })} className="settings-profile-action sm:ml-auto inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground hover:bg-white/5 hover:text-foreground"><User className="h-3.5 w-3.5" />Use initials</button>
                   </div>
                   <div className="grid gap-5 md:grid-cols-2">
                     <TextField label="Display name" description="Shown in your workspace." value={settings.profile.displayName} onChange={(value) => updateProfile({ displayName: value })} placeholder="Your name" maxLength={60} error={profileErrors.displayName} />
