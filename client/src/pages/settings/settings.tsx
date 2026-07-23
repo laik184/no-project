@@ -484,8 +484,8 @@ function SectionCard({
 }) {
   const isVisible = mobileSection ? mobileSection === id : activeSection === id;
   return (
-    <section id={`settings-${id}`} className={cn("rounded-2xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/10", !isVisible && "hidden")}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
+    <section id={`settings-${id}`} className={cn("settings-section rounded-2xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/10", !isVisible && "hidden")}>
+      <div className="settings-section-header flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
             <Icon className="h-4 w-4" />
@@ -504,7 +504,7 @@ function SectionCard({
           Reset section
         </button>
       </div>
-      <div className="space-y-6 px-5 py-6 sm:px-7">{children}</div>
+      <div className="settings-section-content space-y-6 px-5 py-6 sm:px-7">{children}</div>
     </section>
   );
 }
@@ -862,8 +862,35 @@ export default function Settings() {
         .settings-modal-panel { animation: settings-modal-in .22s cubic-bezier(.22,.8,.2,1) both; }
         .settings-no-animations .settings-modal-panel,
         .settings-reduced-motion .settings-modal-panel { animation: none; }
+        @media (min-width: 768px) {
+          .settings-modal-panel .settings-section-header {
+            gap: .75rem;
+            padding: .85rem 1rem;
+          }
+          .settings-modal-panel .settings-section-header h2 { font-size: .875rem; }
+          .settings-modal-panel .settings-section-header p { margin-top: .2rem; font-size: .7rem; line-height: 1rem; }
+          .settings-modal-panel .settings-section-header > div:first-child > div:first-child {
+            height: 2rem;
+            width: 2rem;
+            border-radius: .65rem;
+          }
+          .settings-modal-panel .settings-section-header svg { height: .8rem; width: .8rem; }
+          .settings-modal-panel .settings-section-content {
+            gap: 1rem;
+            padding: 1rem;
+          }
+          .settings-modal-panel .settings-section-content > .grid { gap: .75rem; }
+          .settings-modal-panel .settings-section-content > .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: .5rem; }
+          .settings-modal-panel .settings-section-content .rounded-xl { border-radius: .7rem; }
+          .settings-modal-panel .settings-section-content input:not([type="range"]):not([type="color"]),
+          .settings-modal-panel .settings-section-content select { height: 2.25rem; font-size: .75rem; }
+          .settings-modal-panel .settings-section-content label { gap: .35rem; }
+          .settings-modal-panel .settings-section-content label > span:first-child { font-size: .75rem; }
+          .settings-modal-panel .settings-section-content label > span:nth-child(2) { font-size: .65rem; line-height: .9rem; }
+          .settings-modal-panel .settings-section-content textarea { font-size: .75rem; line-height: 1.25rem; }
+        }
       `}</style>
-      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(75vh,calc(100vh-180px))] md:w-[55vw] md:max-w-[640px] md:overflow-hidden md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(75vh,calc(100vh-180px))] md:w-[70vw] md:max-w-[760px] md:overflow-hidden md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
         <header className="sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
           <div>
             <div className="flex items-center gap-3">
@@ -890,7 +917,7 @@ export default function Settings() {
           </div>
         </header>
 
-        <div className="settings-modal-body mx-auto flex w-full min-h-0 flex-1 flex-col px-5 py-6 sm:px-8 lg:px-8 lg:py-6 md:overflow-hidden">
+        <div className="settings-modal-body mx-auto flex w-full min-h-0 flex-1 flex-col px-5 py-6 sm:px-8 lg:px-6 lg:py-5 md:overflow-hidden">
         <div className="settings-mobile md:hidden">
           {mobileSection === null ? (
             <>
@@ -954,7 +981,7 @@ export default function Settings() {
           )}
         </div>
 
-        <div className={cn("grid items-start gap-6 md:h-full md:min-h-0 md:grid-cols-[185px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
+        <div className={cn("grid items-start gap-4 md:h-full md:min-h-0 md:grid-cols-[170px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
           <aside className="sticky top-0 hidden h-full overflow-y-auto md:block">
             <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
               <div className="relative mb-2">
