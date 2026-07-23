@@ -483,7 +483,7 @@ function SectionCard({
 }) {
   const isVisible = mobileSection ? mobileSection === id : activeSection === id;
   return (
-    <section id={`settings-${id}`} className={cn("settings-section rounded-2xl border border-white/10 bg-white/[0.025] shadow-2xl shadow-black/10", !isVisible && "hidden")}>
+    <section id={`settings-${id}`} className={cn("settings-section", !isVisible && "hidden")}>
       <div className="settings-section-header flex flex-wrap items-start justify-between gap-4 border-b border-white/8 px-5 py-5 sm:px-7">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
@@ -680,6 +680,17 @@ export default function Settings() {
       previousFocusRef.current?.focus?.();
     };
   }, [hydrated]);
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, []);
 
   const goToSection = (id: SectionId) => {
     setActiveSection(id);
@@ -927,7 +938,7 @@ export default function Settings() {
           }
         }
       `}</style>
-      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-y-auto bg-background md:h-[min(75vh,calc(100vh-180px))] md:w-[70vw] md:max-w-[760px] md:overflow-hidden md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+      <div ref={modalRef} className="settings-modal-panel flex h-full w-full flex-col overflow-hidden bg-background md:h-auto md:max-h-[calc(100dvh-2rem)] md:w-[70vw] md:max-w-[760px] md:rounded-2xl md:border md:border-white/12 md:shadow-[0_24px_100px_rgba(0,0,0,.7)]" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
         <header className="sticky top-0 z-30 hidden flex-wrap items-center justify-between gap-5 border-b border-white/8 bg-background/95 px-6 py-4 backdrop-blur-xl md:flex">
           <div>
             <div className="flex items-center gap-3">
@@ -954,7 +965,7 @@ export default function Settings() {
           </div>
         </header>
 
-        <div className="settings-modal-body mx-auto flex w-full min-h-0 flex-1 flex-col px-5 py-6 sm:px-8 lg:px-6 lg:py-5 md:overflow-hidden">
+        <div className="settings-modal-body flex min-h-0 flex-1 flex-col px-5 py-6 sm:px-8 lg:px-6 lg:py-5 md:grid md:grid-cols-[205px_minmax(0,1fr)] md:gap-0 md:overflow-hidden">
         <div className="settings-mobile md:hidden">
           {mobileSection === null ? (
             <>
@@ -1018,22 +1029,20 @@ export default function Settings() {
           )}
         </div>
 
-        <div className={cn("grid items-start gap-4 md:h-full md:min-h-0 md:grid-cols-[205px_minmax(0,1fr)]", mobileSection === null ? "hidden md:grid" : "grid")}>
-          <aside className="sticky top-0 hidden h-full overflow-y-auto md:block">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
-              <div className="relative mb-2">
-                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search settings" className="h-9 w-full rounded-lg border border-white/8 bg-black/20 pl-9 pr-3 text-xs text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary/70" aria-label="Search settings categories" />
-                {search && <button type="button" onClick={() => setSearch("")} className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground" aria-label="Clear settings search"><X className="h-3.5 w-3.5" /></button>}
-              </div>
-              <nav aria-label="Settings categories" className="space-y-0.5">
-                {visibleNavigation.map((item) => <NavButton key={item.id} item={item} active={activeSection === item.id} onClick={goToSection} />)}
-              </nav>
-              {!visibleNavigation.length && <p className="px-3 py-5 text-center text-xs text-muted-foreground">No matching categories.</p>}
-            </div>
-          </aside>
+        <aside className="hidden min-h-0 overflow-y-auto border-r border-white/8 pr-4 md:block">
+          <div className="relative mb-2">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search settings" className="h-9 w-full rounded-lg border border-white/8 bg-black/20 pl-9 pr-3 text-xs text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary/70" aria-label="Search settings categories" />
+            {search && <button type="button" onClick={() => setSearch("")} className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground" aria-label="Clear settings search"><X className="h-3.5 w-3.5" /></button>}
+          </div>
+          <nav aria-label="Settings categories" className="space-y-0.5">
+            {visibleNavigation.map((item) => <NavButton key={item.id} item={item} active={activeSection === item.id} onClick={goToSection} />)}
+          </nav>
+          {!visibleNavigation.length && <p className="px-3 py-5 text-center text-xs text-muted-foreground">No matching categories.</p>}
+        </aside>
 
-          <div className={cn("min-w-0 space-y-5 md:min-h-0 md:overflow-y-auto md:pr-1", mobileSection && "settings-mobile-section-card")}>
+        <div className="settings-modal-content min-w-0 min-h-0 overflow-y-auto md:pl-5">
+          <div className={cn("min-w-0 space-y-5", mobileSection && "settings-mobile-section-card", mobileSection === null ? "hidden md:block" : "block")}>
             {!visibleNavigation.length ? (
               <EmptyState title="No settings found" description={`No category matches “${search}”. Try a provider, editor option, or notification name.`} action={<button type="button" onClick={() => setSearch("")} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-foreground hover:bg-white/5">Clear search</button>} />
             ) : (
@@ -1187,7 +1196,7 @@ export default function Settings() {
                 </SectionCard>
               </>
             )}
-          </div>
+        </div>
         </div>
         </div>
       </div>
